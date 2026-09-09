@@ -1,0 +1,70 @@
+/* ═══════════════════════════════════════════════════════
+   JEEVIKA ERP — MEMBER DEBIT NOTE STYLESHEET
+   Matches strict ERP accounting design language
+   ═══════════════════════════════════════════════════════ */
+
+/* Section Switching */
+.mdn-section { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+
+/* ── LIST VIEW ── */
+.mdn-list-toolbar {
+  padding: 6px 14px; background: #C62828; display: flex; gap: 6px; align-items: center; flex-shrink: 0; overflow: visible; position: relative; z-index: 20;
+}
+.mdn-list-toolbar .tbar-btn {
+  background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); color: white;
+  padding: 5px 12px; font-size: 11px; font-weight: 700; border-radius: 4px; cursor: pointer;
+  display: flex; align-items: center; gap: 6px; text-transform: uppercase;
+}
+.mdn-list-toolbar .tbar-btn:hover { background: white; color: #C62828; }
+
+.mdn-filter-bar {
+  padding: 8px 14px; background: #F5F5F5; border-bottom: 1px solid #E0E0E0;
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap; flex-shrink: 0;
+}
+.mdn-filter-group { display: flex; align-items: center; gap: 4px; }
+.mdn-filter-label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #616161; }
+.mdn-filter-input, .mdn-filter-select {
+  height: 28px; border: 1px solid #BDBDBD; border-radius: 3px; padding: 2px 8px; font-size: 12px;
+}
+.mdn-filter-clear-btn {
+  background: none; border: 1px solid #BDBDBD; color: #616161; padding: 3px 10px; font-size: 11px; font-weight: 600; border-radius: 3px; cursor: pointer;
+}
+.mdn-search-bar { padding: 6px 14px; background: #FAFAFA; border-bottom: 1px solid #E0E0E0; display: flex; align-items: center; gap: 8px; }
+.mdn-list-count { font-size: 11px; color: #C62828; }
+
+.mdn-list-summary-bar { padding: 8px 14px; background: #FFEBEE; border-top: 1px solid #FFCDD2; display: flex; gap: 24px; align-items: center; }
+.mdn-summary-item { font-size: 12px; color: #C62828; }
+
+/* ── FORM VIEW ── */
+.mdn-form-header-bar { display: none !important; }
+.mdn-form-title { font-size: 14px; font-weight: 700; color: #212121; }
+
+.mdn-form-body { flex: 1; display: flex; overflow: hidden; background: #E0E0E0; }
+.mdn-form-main { flex: 1; overflow-y: auto; background: white; padding: 14px; display: flex; flex-direction: column; }
+.mdn-form-sidebar { width: 300px; flex-shrink: 0; border-left: 1px solid #BDBDBD; background: #FAFAFA; overflow-y: auto; padding: 14px; }
+
+.mdn-form-fields { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+.mdn-form-field { display: flex; flex-direction: column; gap: 4px; }
+.mdn-form-field label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #616161; }
+.mdn-form-field input, .mdn-form-field select { height: 30px; border: 1px solid #BDBDBD; border-radius: 3px; padding: 2px 8px; font-size: 12px; }
+.mdn-form-field input:focus, .mdn-form-field select:focus { border-color: #C62828; outline: none; box-shadow: 0 0 0 2px rgba(198,40,40,0.12); }
+
+.mdn-grid-wrap { border: 1px solid #BDBDBD; border-radius: 4px; overflow: hidden; margin-top: 10px; margin-bottom: 10px; }
+.mdn-grid-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.mdn-grid-table th { background: #C62828; color: white; padding: 6px 8px; font-size: 10px; font-weight: 700; text-transform: uppercase; text-align: left; }
+.mdn-grid-table td { padding: 4px 8px; border-bottom: 1px solid #E0E0E0; border-right: 1px solid #E0E0E0; }
+
+.erp-table-wrap { flex: 1; overflow: auto; border: 1px solid #BDBDBD; background: #FFF; }
+.erp-table { width: auto; min-width: 1400px; border-collapse: collapse; font-size: 11px; }
+.erp-table th { background: #C62828; color: white; padding: 6px 8px; font-size: 10px; font-weight: 700; text-transform: uppercase; text-align: left; position: sticky; top: 0; z-index: 2; white-space: nowrap; }
+.erp-table td { padding: 4px 8px; border-bottom: 1px solid #E0E0E0; border-right: 1px solid #E0E0E0; white-space: nowrap; }
+.erp-table tr:hover td { background: #FFEBEE !important; cursor: pointer; }
+.erp-table .row-active td { background: #FFCDD2 !important; color: #C62828; font-weight: 600; }
+
+.mdn-dropdown { position: relative; display: inline-block; }
+.mdn-dropdown-btn { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); color: white; padding: 5px 12px; font-size: 11px; font-weight: 700; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+.mdn-dropdown-btn:hover { background: white; color: #C62828; }
+.mdn-dropdown-content { display: none; position: absolute; background-color: #f9f9f9; min-width: 160px; box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2); z-index: 10; border-radius: 4px; overflow: hidden; right: 0; }
+.mdn-dropdown-content a { color: #212121; padding: 8px 12px; text-decoration: none; display: block; font-size: 11px; font-weight: 600; border-bottom: 1px solid #E0E0E0; }
+.mdn-dropdown-content a:hover { background-color: #FFEBEE; color: #C62828; }
+.mdn-dropdown:hover .mdn-dropdown-content { display: block; }

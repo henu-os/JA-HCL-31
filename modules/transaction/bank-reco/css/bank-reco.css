@@ -1,0 +1,70 @@
+/* ═══════════════════════════════════════════════════════
+   JEEVIKA ERP v2 — BANK RECONCILIATION STYLESHEET
+   Clean Accounting ERP Component Styles
+   ═══════════════════════════════════════════════════════ */
+
+/* Section Switching */
+.br-section { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+
+/* ── FILTER & TOOLBAR ── */
+.br-filter-bar {
+  padding: 8px 14px; background: #F5F5F5; border-bottom: 1px solid #E0E0E0;
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap; flex-shrink: 0;
+}
+.br-filter-group { display: flex; align-items: center; gap: 4px; }
+.br-filter-label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #616161; }
+.br-filter-select { height: 28px; border: 1px solid #BDBDBD; border-radius: 3px; padding: 2px 8px; font-size: 12px; }
+
+.br-list-toolbar {
+  padding: 6px 14px; background: #0D47A1; display: flex; gap: 6px; align-items: center; flex-shrink: 0; position: relative; z-index: 20; border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+.br-list-toolbar .tbar-btn {
+  background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25); color: white;
+  padding: 5px 12px; font-size: 11px; font-weight: 700; border-radius: 4px; cursor: pointer;
+  display: flex; align-items: center; gap: 6px; text-transform: uppercase;
+}
+.br-list-toolbar .tbar-btn:hover { background: white; color: #0D47A1; }
+.tbar-sep { width: 1px; height: 16px; background: rgba(255,255,255,0.25); margin: 0 4px; }
+
+.br-list-count { font-size: 11px; color: #9E9E9E; }
+
+/* ── TABLE GRID ── */
+.erp-table-wrap { flex: 1; overflow: auto; }
+.erp-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.erp-table th {
+  background: #1565C0; color: white; padding: 7px 10px; font-size: 10px; font-weight: 700;
+  text-transform: uppercase; position: sticky; top: 0; white-space: nowrap; border-right: 1px solid rgba(255,255,255,0.15); cursor: pointer;
+}
+.erp-table td { padding: 6px 10px; border-bottom: 1px solid #F0F0F0; border-right: 1px solid #E0E0E0; color: #424242; }
+.erp-table tr:nth-child(even) { background: #FAFAFA; }
+.erp-table tr:hover { background: #E3F2FD !important; cursor: pointer; }
+.br-row-active { background: #BBDEFB !important; }
+.br-row-cleared { background: #E8F5E9 !important; }
+
+/* ── SIDEBAR ── */
+.br-bp-section { border: 1px solid #E0E0E0; border-radius: 4px; padding: 10px; background: #FFF; margin-bottom: 10px; }
+.br-bp-header { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #1565C0; margin-bottom: 6px; border-bottom: 1px solid #F0F0F0; padding-bottom: 4px; }
+.br-bp-row { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px; color: #424242; }
+
+.br-action-btn { padding: 6px 14px; border-radius: 4px; font-size: 11px; font-weight: 700; cursor: pointer; text-transform: uppercase; border: 1px solid; display: inline-flex; align-items: center; gap: 5px; }
+.br-action-primary { background: #1565C0; color: white; border-color: #1565C0; }
+.br-action-secondary { background: white; color: #424242; border-color: #BDBDBD; }
+.br-action-danger { background: white; color: #D32F2F; border-color: #D32F2F; }
+.br-action-success { background: #2E7D32; color: white; border-color: #2E7D32; }
+
+.br-list-summary-bar { padding: 8px 14px; background: #E3F2FD; border-top: 1px solid #BBDEFB; display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+.br-summary-item { font-size: 11px; color: #0D47A1; }
+
+/* ── PREVIEW VIEW ── */
+.br-preview-toolbar { padding: 8px 14px; background: #F5F5F5; border-bottom: 1px solid #E0E0E0; display: flex; gap: 6px; }
+.br-preview-area { flex: 1; overflow-y: auto; background: #E0E0E0; padding: 20px; display: flex; justify-content: center; }
+.br-statement-page { width: 210mm; min-height: 297mm; background: white; padding: 20mm 15mm; box-shadow: 0 2px 20px rgba(0,0,0,0.15); font-family: 'Inter', sans-serif; font-size: 12px; color: #212121; }
+
+/* ── OTHER DROPDOWN ── */
+.br-dropdown { position: relative; display: inline-block; }
+.br-dropdown-btn { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25); color: white; padding: 5px 12px; font-size: 11px; font-weight: 700; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+.br-dropdown-btn:hover { background: white; color: #0D47A1; }
+.br-dropdown-content { display: none; position: absolute; background-color: #f9f9f9; min-width: 160px; box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2); z-index: 10; border-radius: 4px; overflow: hidden; right: 0; }
+.br-dropdown-content a { color: #212121; padding: 8px 12px; text-decoration: none; display: block; font-size: 11px; font-weight: 600; border-bottom: 1px solid #E0E0E0; }
+.br-dropdown-content a:hover { background-color: #E3F2FD; color: #1565C0; }
+.br-dropdown:hover .br-dropdown-content { display: block; }

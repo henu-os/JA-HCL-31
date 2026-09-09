@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en" style="height:100%;overflow:hidden;">
+<head>
+  <meta charset="UTF-8">
+  <title>Account Master — JEEVIKA ERP</title>
+  <link rel="stylesheet" href="../../../assets/css/global.css">
+  <link rel="stylesheet" href="./account-master.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body style="margin:0;padding:0;height:100%;overflow:hidden;">
+
+<div class="am-canvas" id="am-panel">
+
+  <!-- MODULE HEADER -->
+  <div class="am-header">
+    <div>
+      <h2>ACCOUNT MASTER</h2>
+      
+    </div>
+    <div class="am-header-tag">[Ledger Account Register]</div>
+  </div>
+
+  <!-- COMMAND STRIP -->
+  <div class="am-cmd-strip" id="am-cmd-strip">
+    <button class="am-btn" id="am-btn-add" onclick="amAdd()"><i class="bi bi-plus-lg"></i> ADD</button>
+    <button class="am-btn" id="am-btn-alter" onclick="amAlter()"><i class="bi bi-pencil-square"></i> ALTER</button>
+    <button class="am-btn am-btn-danger" id="am-btn-delete" onclick="amDelete()"><i class="bi bi-trash"></i> DELETE</button>
+    <div class="am-sep"></div>
+    <button class="am-btn am-btn-hidden" id="am-btn-save" onclick="amSave()"><i class="bi bi-check-lg"></i> SAVE</button>
+    <button class="am-btn am-btn-hidden" id="am-btn-cancel" onclick="amShowList()"><i class="bi bi-x-circle"></i> CANCEL</button>
+    <div class="am-sep"></div>
+    <button class="am-btn" id="am-btn-print" onclick="amPrint()"><i class="bi bi-printer"></i> PRINT REGISTER</button>
+    
+    <!-- OTHER dropdown -->
+    <div style="position:relative;display:inline-block;" id="am-other-drop"
+         onmouseleave="document.getElementById('am-other-menu').style.display='none'">
+      <button class="am-btn" onmouseenter="document.getElementById('am-other-menu').style.display='block'">
+        OTHER <i class="bi bi-chevron-down"></i>
+      </button>
+      <div id="am-other-menu" style="display:none;position:absolute;top:26px;left:0;background:#ffffff;border:1px solid #cbd5e1;box-shadow:0 4px 12px rgba(0,0,0,0.1);z-index:1000;min-width:150px;padding:4px 0;border-radius:4px;">
+        <a href="#" onclick="event.preventDefault();amToggleMultiDelete()" style="display:block;padding:6px 12px;color:#1e293b;text-decoration:none;font-size:11px;font-weight:600;"><i class="bi bi-trash-fill"></i> Multi Delete</a>
+        <a href="#" onclick="event.preventDefault();amExportExcel()" style="display:block;padding:6px 12px;color:#1e293b;text-decoration:none;font-size:11px;font-weight:600;"><i class="bi bi-cloud-download-fill"></i> Export Excel</a>
+      </div>
+    </div>
+
+    <!-- Search toggle -->
+    <button class="am-btn" id="am-btn-search" onclick="amToggleSearch()" title="Search & Filter"><i class="bi bi-search"></i></button>
+    <button class="am-btn" style="margin-left:auto;" onclick="amExit()"><i class="bi bi-door-open"></i> EXIT</button>
+  </div>
+
+  <!-- MAIN WORKSPACE -->
+  <div class="am-workspace">
+
+    <!-- LIST STATE -->
+    <div id="am-list-state">
+      <div class="am-grid">
+        <table class="am-table" id="am-table">
+          <thead>
+            <tr>
+              <th style="width:36px;text-align:center;" id="am-th-chk"><input type="checkbox" id="am-chk-all" onclick="amToggleAll(this.checked)" style="accent-color:#1565C0;display:none;"></th>
+              <th style="width:130px;">ACCOUNT CODE</th>
+              <th>ACCOUNT NAME</th>
+              <th>NAME IN B/SHEET</th>
+              <th style="width:140px;">MAIN GROUP</th>
+              <th style="width:180px;">PRIMARY GROUP</th>
+            </tr>
+          </thead>
+          <tbody id="am-tbody">
+            <tr><td colspan="6" style="text-align:center;padding:30px;color:#808080;">
+              <i class="bi bi-hourglass-split"></i> Loading ledger accounts...
+            </td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- FORM STATE -->
+    <div id="am-form-state">
+      <input type="hidden" id="am-edit-id" value="0">
+      <input type="hidden" id="am-group-id" value="0">
+      <input type="hidden" id="am-main-id" value="1">
+
+      <div class="am-form-grid">
+        
+        <!-- LEFT COLUMN: Identification & Classification -->
+        <div>
+          <div class="am-frame" style="margin-bottom:10px;">
+            <div class="am-frame-title" id="am-frame-title">Account Identification &amp; Classification</div>
+            <div class="am-frame-body">
+              <label>Primary Group *</label>
+              <div style="display:flex;gap:0;">
+                <input type="text" id="am-group-name" readonly placeholder="Click select button..." class="am-input" style="flex:1;border-top-right-radius:0;border-bottom-right-radius:0;">
+                <button type="button" class="am-btn" onclick="amOpenGroupModal()" style="border-top-left-radius:0;border-bottom-left-radius:0;border-left:none;"><i class="bi bi-search"></i> SELECT</button>
+              </div>
+
+              <label>Account Code *</label>
+              <input type="text" id="am-code" class="am-input" maxlength="20" placeholder="Auto-generated if empty">
+
+              <label>Account Name *</label>
+              <input type="text" id="am-name" class="am-input" maxlength="80" placeholder="Enter ledger name..." oninput="amOnNameInput(this.value)">
+
+              <label>Name in B/Sheet</label>
+              <input type="text" id="am-bs-name" class="am-input" maxlength="80" placeholder="Alternative name in balance sheet">
+            </div>
+          </div>
+
+          <!-- Depreciation Section (Fixed Assets only) -->
+          <div class="am-frame" id="am-dep-section" style="display:none;margin-bottom:10px;">
+            <div class="am-frame-title" style="background:#e65100;">Rate of Depreciation</div>
+            <div class="am-frame-body">
+              <label>Annual Rate (%)</label>
+              <input type="number" id="am-dep-annual" class="am-input" style="width:100px;" value="0" step="0.01" oninput="amUpdateHalfYearDep()">
+
+              <label>Half Yearly (%)</label>
+              <input type="number" id="am-dep-half" class="am-input" style="width:100px;" value="0" readonly>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT COLUMN: Contact & Statutory Details -->
+        <div>
+          <div class="am-frame" style="margin-bottom:10px;">
+            <div class="am-frame-title">Contact &amp; Statutory Details</div>
+            <div class="am-frame-body">
+              <label>Address</label>
+              <input type="text" id="am-add" class="am-input" maxlength="120" placeholder="Address...">
+
+              <label>Phone 1 / Phone 2</label>
+              <div style="display:flex;gap:4px;">
+                <input type="text" id="am-contact" class="am-input" style="flex:1;" placeholder="Phone 1">
+                <input type="text" id="am-contact2" class="am-input" style="flex:1;" placeholder="Phone 2">
+              </div>
+
+              <label>Email Address</label>
+              <input type="email" id="am-email" class="am-input" maxlength="80" placeholder="Email address...">
+
+              <label>PAN / GSTIN</label>
+              <div style="display:flex;gap:4px;">
+                <input type="text" id="am-pan" class="am-input" style="flex:1;" maxlength="10" placeholder="PAN Number">
+                <input type="text" id="am-gstin" class="am-input" style="flex:1;" maxlength="15" placeholder="GSTIN Number">
+              </div>
+
+              <label>TDS Rate &amp; Section</label>
+              <div style="display:flex;gap:4px;align-items:center;">
+                <input type="number" id="am-tds-rate" class="am-input" style="width:70px;" placeholder="0" step="0.01">
+                <span style="font-size:11px;font-weight:bold;color:#64748b;">%</span>
+                <select id="am-tds-section" class="am-select" style="flex:1;">
+                  <option value="None">None (Exempt)</option>
+                  <option value="194C">Sec 194C (1% / 2%)</option>
+                  <option value="194J">Sec 194J (2% / 10%)</option>
+                  <option value="194I">Sec 194I (10%)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- BOTTOM ROW: Opening & Previous Year Balances -->
+      <div class="am-frame">
+        <div class="am-frame-title" style="background:#ffffff;color:#1565C0;font-weight:700;font-size:11px;border-bottom:1px solid #e2e8f0;padding:6px 14px;letter-spacing:0.5px;">OPENING BALANCES (LEDGER BASE)</div>
+        <div style="padding:12px 14px;display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;">
+          
+          <div style="display:grid;grid-template-columns:140px 1fr;gap:8px;align-items:start;">
+            <label id="am-lbl-opbal" style="font-size:11px;font-weight:700;color:#0f172a;text-transform:uppercase;margin-top:5px;transition:color 0.15s;">OPENING BALANCE</label>
+            <div>
+              <div style="display:flex;gap:4px;">
+                <input type="number" id="am-opbal" class="am-input" value="0" step="0.01" style="flex:1;text-align:right;">
+                <select id="am-opdrcr" class="am-select" style="width:60px;">
+                  <option value="Dr">Dr</option>
+                  <option value="Cr">Cr</option>
+                </select>
+              </div>
+              <div id="am-hint-opbal" style="font-size:10px;color:#334155;margin-top:4px;">(<b>Asset - Debit</b> / <b>Liability - Credit</b>)</div>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:150px 1fr;gap:8px;align-items:start;">
+            <label id="am-lbl-prbal" style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-top:5px;transition:color 0.15s;">PREV. YEAR BALANCE</label>
+            <div>
+              <div style="display:flex;gap:4px;">
+                <input type="number" id="am-prbal" class="am-input" value="0" step="0.01" style="flex:1;text-align:right;">
+                <select id="am-prdrcr" class="am-select" style="width:60px;">
+                  <option value="Dr">Dr</option>
+                  <option value="Cr">Cr</option>
+                </select>
+              </div>
+              <div id="am-hint-prbal" style="font-size:10px;color:#334155;margin-top:4px;display:none;">(<b>Income - Credit</b> / <b>Expenditure - Debit</b>)</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<!-- GROUP SELECTOR MODAL DIALOG -->
+<div class="am-overlay" id="am-group-overlay" style="display:none;">
+  <div class="am-dialog" style="width:440px;">
+    <div class="am-dialog-title">
+      <span><i class="bi bi-search"></i> SELECT PRIMARY GROUP</span>
+      <button onclick="amCloseGroupModal()">✕</button>
+    </div>
+    <div style="padding:10px;display:flex;flex-direction:column;gap:8px;height:360px;">
+      <input type="text" id="am-group-search" placeholder="Type group name to filter..." class="am-input" style="width:100%;" oninput="amRenderGroupModal()">
+      <div class="am-grid" style="flex:1;border:1px solid #cbd5e1;">
+        <table class="am-table">
+          <thead>
+            <tr>
+              <th>GROUP NAME</th>
+              <th style="width:120px;">MAIN TYPE</th>
+            </tr>
+          </thead>
+          <tbody id="am-group-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="am-dialog-footer">
+      <button class="am-btn" onclick="amSelectCurrentModalGroup()">OK</button>
+      <button class="am-btn" onclick="amCloseGroupModal()">CANCEL</button>
+    </div>
+  </div>
+</div>
+
+<!-- ALERT DIALOG -->
+<div class="am-overlay" id="am-alert-overlay" style="display:none;">
+  <div class="am-dialog" style="width:400px;">
+    <div class="am-dialog-title">
+      <span id="am-alert-title"><i class="bi bi-info-circle-fill"></i> INFORMATION</span>
+      <button onclick="amCloseAlert()">✕</button>
+    </div>
+    <div class="am-dialog-body">
+      <i class="bi bi-info-circle-fill" id="am-alert-icon"></i>
+      <div class="am-dialog-msg" id="am-alert-msg"></div>
+    </div>
+    <div class="am-dialog-footer">
+      <button class="am-btn" onclick="amCloseAlert()">OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM DIALOG -->
+<div class="am-overlay" id="am-confirm-overlay" style="display:none;">
+  <div class="am-dialog" style="width:400px;">
+    <div class="am-dialog-title">
+      <span><i class="bi bi-question-circle-fill"></i> CONFIRMATION</span>
+      <button onclick="amCloseConfirm(false)">✕</button>
+    </div>
+    <div class="am-dialog-body">
+      <i class="bi bi-question-circle-fill"></i>
+      <div class="am-dialog-msg" id="am-confirm-msg"></div>
+    </div>
+    <div class="am-dialog-footer">
+      <button class="am-btn" id="am-confirm-yes" style="font-weight:bold;">OK</button>
+      <button class="am-btn" onclick="amCloseConfirm(false)">CANCEL</button>
+    </div>
+  </div>
+</div>
+
+<script src="../../../config.js"></script>
+<script src="../../../assets/js/api.js"></script>
+<script src="../../../assets/js/auth.js"></script>
+<script src="./account-master.js"></script>
+</body>
+</html>

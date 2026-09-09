@@ -1,0 +1,252 @@
+/* ═══════════════════════════════════════════════════════════
+   JEEVIKA ERP v2 — Opening Bank Reconciliation CSS
+   Clean Flat ERP Layout matching reference visual specs
+   ═══════════════════════════════════════════════════════════ */
+
+#obr-panel {
+  background: #FFFFFF !important;
+  font-family: 'Inter', 'Segoe UI', sans-serif !important;
+  font-size: 12px !important;
+  color: #333333 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  overflow: hidden !important;
+}
+
+/* Modern Header & Search Toolbar */
+.obr-search-strip {
+  background: #F5F5F5;
+  border-bottom: 1px solid #E0E0E0;
+  padding: 6px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Modern Flat Command Strip Toolbar */
+.obr-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: #1565C0;
+  border: none;
+  flex-shrink: 0;
+}
+
+.obr-toolbar-sep {
+  width: 1px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.2);
+  margin: 0 4px;
+}
+
+.obr-btn-modern {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 14px;
+  min-height: 28px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: inherit;
+  color: #FFFFFF;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  outline: none;
+  white-space: nowrap;
+  border-radius: 4px;
+  text-transform: uppercase;
+  transition: all 0.2s;
+  letter-spacing: 0.3px;
+}
+
+.obr-btn-modern:hover {
+  background: #FFFFFF;
+  color: #1565C0;
+  border-color: #FFFFFF;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.obr-btn-modern.btn-danger {
+  color: #FFF !important;
+  background: #D32F2F !important;
+  border-color: #D32F2F !important;
+}
+
+.obr-btn-modern.btn-danger:hover {
+  background: #C62828 !important;
+  border-color: #C62828 !important;
+}
+
+/* Dropdown Menus */
+.obr-menu-wrap {
+  position: relative;
+}
+
+.obr-menu-wrap:hover .obr-menu-content {
+  display: block !important;
+}
+
+.obr-menu-content {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 180px;
+  background: #FFFFFF;
+  border: 1px solid #E0E0E0;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 9999;
+  padding: 4px 0;
+  margin-top: 2px;
+}
+
+.obr-menu-item {
+  padding: 6px 16px;
+  font-size: 11px;
+  cursor: pointer;
+  color: #424242;
+  white-space: nowrap;
+  font-weight: 600;
+  transition: background 0.15s;
+}
+
+.obr-menu-item:hover {
+  background: #E3F2FD;
+  color: #1565C0;
+}
+
+/* DataGrid Table */
+.obr-grid-container {
+  flex: 1;
+  overflow: auto;
+  background: #FFFFFF;
+  padding: 6px;
+}
+
+#obr-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+#obr-table th {
+  position: sticky;
+  top: 0;
+  background: #1565C0;
+  color: #FFFFFF;
+  padding: 8px 10px;
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  border-right: 1px solid rgba(255, 255, 255, 0.15);
+  border-bottom: 2px solid #0D47A1;
+  z-index: 2;
+  white-space: nowrap;
+}
+
+#obr-table td {
+  border-bottom: 1px solid #F0F0F0;
+  border-right: 1px solid #F0F0F0;
+  padding: 6px 10px;
+  height: 28px;
+  vertical-align: middle;
+  color: #424242;
+}
+
+#obr-table tbody tr:hover td {
+  background: #E3F2FD;
+}
+
+#obr-table tbody tr.selected td {
+  background: #bae6fd !important;
+  color: #0f172a !important;
+  font-weight: 600;
+}
+
+/* Modals */
+.obr-modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(1px);
+  z-index: 10002;
+  align-items: center;
+  justify-content: center;
+}
+
+.obr-modal-overlay.active {
+  display: flex !important;
+}
+
+.obr-modal {
+  background: #FFFFFF;
+  border: 1px solid #E0E0E0;
+  border-radius: 6px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.obr-modal-titlebar {
+  background: #1565C0;
+  color: #FFF;
+  padding: 10px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  user-select: none;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.obr-modal-close {
+  background: transparent;
+  border: none;
+  color: #FFF;
+  opacity: 0.8;
+  width: 20px;
+  height: 20px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: opacity 0.2s;
+}
+
+.obr-modal-close:hover {
+  opacity: 1;
+}
+
+.obr-modal-body {
+  padding: 16px;
+  flex: 1;
+  overflow: auto;
+  background: #FFFFFF;
+}
+
+.obr-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #F5F5F5;
+  border-top: 1px solid #E0E0E0;
+}

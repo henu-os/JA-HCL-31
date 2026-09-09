@@ -1,0 +1,77 @@
+/* ═══════════════════════════════════════════════════════
+   JEEVIKA ERP v2 — FIXED DEPOSIT (FD) STYLESHEET
+   Clean Accounting ERP Component Styles
+   ═══════════════════════════════════════════════════════ */
+
+/* Section Switching */
+.fd-section { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+
+/* ── LIST VIEW ── */
+.fd-list-toolbar {
+  padding: 6px 14px; background: #0D47A1; display: flex; gap: 6px; align-items: center; flex-shrink: 0; position: relative; z-index: 20; border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+.fd-list-toolbar .tbar-btn {
+  background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25); color: white;
+  padding: 5px 12px; font-size: 11px; font-weight: 700; border-radius: 4px; cursor: pointer;
+  display: flex; align-items: center; gap: 6px; text-transform: uppercase;
+}
+.fd-list-toolbar .tbar-btn:hover { background: white; color: #0D47A1; }
+
+.fd-filter-bar {
+  padding: 8px 14px; background: #F5F5F5; border-bottom: 1px solid #E0E0E0;
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap; flex-shrink: 0;
+}
+.fd-filter-group { display: flex; align-items: center; gap: 4px; }
+.fd-filter-label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #616161; }
+.fd-filter-input, .fd-filter-select { height: 28px; border: 1px solid #BDBDBD; border-radius: 3px; padding: 2px 8px; font-size: 12px; }
+.fd-filter-clear-btn { background: none; border: 1px solid #BDBDBD; color: #616161; padding: 3px 10px; font-size: 11px; font-weight: 600; border-radius: 3px; cursor: pointer; }
+
+.fd-search-bar { padding: 6px 14px; background: #FAFAFA; border-bottom: 1px solid #E0E0E0; display: flex; align-items: center; gap: 8px; }
+.fd-search-input { flex: 1; height: 30px; border: 1px solid #BDBDBD; border-radius: 4px; padding: 4px 10px; font-size: 13px; }
+
+.erp-table-wrap { flex: 1; overflow: auto; }
+.erp-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.erp-table th {
+  background: #1565C0; color: white; padding: 7px 10px; font-size: 10px; font-weight: 700;
+  text-transform: uppercase; position: sticky; top: 0; white-space: nowrap; border-right: 1px solid rgba(255,255,255,0.15); cursor: pointer;
+}
+.erp-table td { padding: 6px 10px; border-bottom: 1px solid #F0F0F0; border-right: 1px solid #E0E0E0; color: #424242; }
+.erp-table tr:nth-child(even) { background: #FAFAFA; }
+.erp-table tr:hover { background: #E3F2FD !important; cursor: pointer; }
+.fd-row-active { background: #BBDEFB !important; }
+
+.fd-status-badge { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+.fd-status-live { background: #E8F5E9; color: #2E7D32; border: 1px solid #A5D6A7; }
+.fd-status-closed { background: #FFEBEE; color: #C62828; border: 1px solid #EF9A9A; }
+.fd-status-renewed { background: #E3F2FD; color: #1565C0; border: 1px solid #90CAF9; }
+.fd-status-matured { background: #FFF8E1; color: #F57F17; border: 1px solid #FFE082; }
+
+.fd-list-summary-bar { padding: 8px 14px; background: #E3F2FD; border-top: 1px solid #BBDEFB; display: flex; gap: 24px; align-items: center; }
+.fd-summary-item { font-size: 12px; color: #0D47A1; }
+
+/* ── FORM VIEW (FDR MASTER ENTRY) ── */
+.fdr-workspace-header {
+  background: #1565C0; color: #FFFFFF; text-align: center; font-weight: 700; font-size: 14px; letter-spacing: 1px; padding: 8px 12px; text-transform: uppercase; width: 100%; box-sizing: border-box;
+}
+
+.fdr-workspace-body {
+  padding: 12px 16px; background: #F4F6F9; display: flex; flex-direction: column; gap: 10px; flex: 1; width: 100%; box-sizing: border-box;
+}
+
+.fdr-field-row-3col { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 28px; }
+.fdr-label-3col { font-size: 12px; font-weight: 600; color: #212121; display: flex; align-items: center; gap: 4px; white-space: nowrap; min-width: 120px; }
+.fdr-num-3col { font-weight: 700; color: #1565C0; width: 22px; }
+.fdr-input-3col, .fdr-select-3col { height: 28px; border: 1px solid #D0D7DE; border-radius: 3px; padding: 2px 6px; font-size: 12px; color: #1F2937; background: #FFFFFF; outline: none; width: 100%; box-sizing: border-box; }
+.fdr-input-3col:focus, .fdr-select-3col:focus { border-color: #1565C0; box-shadow: 0 0 0 2px rgba(21,101,192,0.15); }
+
+.fdr-ib-input { width: 100%; height: 26px; border: 1px solid #D0D7DE; border-radius: 3px; padding: 2px 6px; font-size: 12px; text-align: right; outline: none; box-sizing: border-box; }
+.fdr-ib-input:focus { border-color: #1565C0; }
+
+.fdr-btn-cancel { background: #FFFFFF; color: #D32F2F; border: 1px solid #D32F2F; padding: 6px 22px; border-radius: 4px; font-size: 13px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.fdr-btn-cancel:hover { background: #FFEBEE; }
+.fdr-btn-save { background: #1565C0; color: #FFFFFF; border: 1px solid #1565C0; padding: 6px 26px; border-radius: 4px; font-size: 13px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.fdr-btn-save:hover { background: #0D47A1; }
+
+/* ── PREVIEW VIEW ── */
+.fd-preview-wrap { flex: 1; overflow-y: auto; padding: 20px; background: #525659; display: flex; justify-content: center; }
+.fd-preview-card { width: 100%; max-width: 850px; background: white; padding: 30px; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); color: #212121; font-family: 'Inter', sans-serif; }

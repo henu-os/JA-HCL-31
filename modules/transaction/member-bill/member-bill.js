@@ -142,6 +142,15 @@
         uniqueList.push(bt);
       }
     });
+
+    uniqueList.sort(function (a, b) {
+      var aName = (a.billTypeName || a.name || '').trim().toUpperCase();
+      var bName = (b.billTypeName || b.name || '').trim().toUpperCase();
+      if (aName === 'MAINTENANCE') return -1;
+      if (bName === 'MAINTENANCE') return 1;
+      return aName.localeCompare(bName);
+    });
+
     billTypes = uniqueList;
 
     renderBillTypePills();
@@ -1150,68 +1159,304 @@
     return months[d.getMonth()] + ' ' + d.getFullYear();
   }
 
-  window.updateAutoGenerateFields = function () {
+  window.selectAgFrequency = function (freq) {
+    ['monthly', 'quarterly', 'custom'].forEach(function (f) {
+      var btn = document.getElementById('ag-freq-' + f);
+      if (btn) {
+        if (f === freq.toLowerCase()) btn.classList.add('active');
+        else btn.classList.remove('active');
+      }
+    });
+
+    var monthsInp = document.getElementById('ag-months');
+    if (freq === 'Monthly') {
+      if (monthsInp) monthsInp.value = 1;
+    } else if (freq === 'Quarterly') {
+      if (monthsInp) monthsInp.value = 3;
+    } else {
+      if (monthsInp) {
+        monthsInp.focus();
+        monthsInp.select();
+      }
+    }
+
+    updateAutoGenerateNarration();
+    recalcAgSummary();
+  };
+
+  window.onAgBillDateChange = function () {
+    var bDateVal = document.getElementById('ag-bill-date').value;
+    if (bDateVal) {
+      try {
+        var d = new Date(bDateVal);
+        d.setDate(d.getDate() + 19);
+        var yyyy = d.getFullYear();
+        var mm = String(d.getMonth() + 1).padStart(2, '0');
+        var dd = String(d.getDate()).padStart(2, '0');
+        document.getElementById('ag-due-date').value = yyyy + '-' + mm + '-' + dd;
+      } catch (e) {}
+    }
+  };
+
+  window.onAgPeriodSelectChange = function (val) {
+    var pInp = document.getElementById('ag-period');
+    if (pInp) pInp.value = val;
+    updateAutoGenerateNarration();
+    recalcAgSummary();
+  };
+
+  window.onAgMonthsInput = function (val) {
+    var m = parseInt(val, 10) || 1;
+    ['monthly', 'quarterly', 'custom'].forEach(function (f) {
+      var btn = document.getElementById('ag-freq-' + f);
+      if (btn) btn.classList.remove('active');
+    });
+    if (m === 1) {
+      var b1 = document.getElementById('ag-freq-monthly');
+      if (b1) b1.classList.add('active');
+    } else if (m === 3) {
+      var b3 = document.getElementById('ag-freq-quarterly');
+      if (b3) b3.classList.add('active');
+    } else {
+      var bc = document.getElementById('ag-freq-custom');
+      if (bc) bc.classList.add('active');
+    }
+
+    updateAutoGenerateNarration();
+    recalcAgSummary();
+  };
+
+  function updateAutoGenerateNarration() {
     var sel = document.getElementById('ag-bill-type');
     var selectedType = sel ? sel.value : (activeBillType || 'Maintenance');
-    var curPeriod = getCurrentPeriodName();
-
-    var activeVoucherNo = (typeof getTxNextVoucherNo === 'function') ? getTxNextVoucherNo('bill', bills) : 'MBIL/2025-26/01';
-
-    var startInp = document.getElementById('ag-start-no');
-    if (startInp) startInp.value = activeVoucherNo;
-
-    var periodInp = document.getElementById('ag-period');
-    if (periodInp) periodInp.value = curPeriod;
+    var periodSel = document.getElementById('ag-period-select');
+    var curPeriod = (periodSel && periodSel.value) ? periodSel.value : getCurrentPeriodName();
+    var pInp = document.getElementById('ag-period');
+    if (pInp) pInp.value = curPeriod;
 
     var partInp = document.getElementById('ag-particular');
     if (partInp) partInp.value = selectedType + ' Charges for ' + curPeriod;
+  }
+
+  window.updateAutoGenerateFields = function () {
+    var sel = document.getElementById('ag-bill-type');
+    var selectedType = sel ? sel.value : (activeBillType || 'Maintenance');
+
+    var activeVoucherNo = (typeof getTxNextVoucherNo === 'function') ? getTxNextVoucherNo('bill', bills) : 'MBIL/2026-27/01';
+    var startInp = document.getElementById('ag-start-no');
+    if (startInp) startInp.value = activeVoucherNo;
+
+    updateAutoGenerateNarration();
+    recalcAgSummary();
+  };
+
+  window.onAgMemberRangeChange = function () {
+    recalcAgSummary();
+  };
+
+  function getFilteredAgMembers() {
+    if (!members || members.length === 0) return [];
+    var fromVal = document.getElementById('ag-member-from') ? document.getElementById('ag-member-from').value : 'ALL';
+    var toVal = document.getElementById('ag-member-to') ? document.getElementById('ag-member-to').value : 'ALL';
+
+    var fromIdx = 0;
+    var toIdx = members.length - 1;
+
+    if (fromVal !== 'ALL') {
+      var f = members.findIndex(function (m) { return (m.memberId || m.socMemId) == fromVal; });
+      if (f >= 0) fromIdx = f;
+    }
+    if (toVal !== 'ALL') {
+      var t = members.findIndex(function (m) { return (m.memberId || m.socMemId) == toVal; });
+      if (t >= 0) toIdx = t;
+    }
+
+    if (fromIdx > toIdx) {
+      var temp = fromIdx;
+      fromIdx = toIdx;
+      toIdx = temp;
+    }
+
+    return members.slice(fromIdx, toIdx + 1);
+  }
+
+  window.recalcAgSummary = function () {
+    var totalMems = members ? members.length : 0;
+    var subMems = getFilteredAgMembers();
+    var count = subMems.length;
+
+    var months = parseInt(document.getElementById('ag-months')?.value || '1', 10) || 1;
+    var incArrears = document.getElementById('ag-opt-arrears')?.checked !== false;
+    var incInterest = document.getElementById('ag-opt-interest')?.checked !== false;
+
+    var totalAmt = 0;
+    var totalInt = 0;
+    var totalArr = 0;
+
+    subMems.forEach(function (m) {
+      var prin = parseFloat(m.opPrincipal || m.opPrin || m.maintenanceAmount || 2500) || 2500;
+      totalAmt += (prin * months);
+
+      if (incInterest) {
+        var intAmt = parseFloat(m.opInterest || m.interest || 0) || 0;
+        if (intAmt <= 0 && prin > 0) intAmt = Math.round(prin * 0.015);
+        totalInt += intAmt;
+      }
+
+      if (incArrears) {
+        var arrAmt = parseFloat(m.arrears || m.dueAmount || 0) || 0;
+        if (arrAmt <= 0 && m.totalOpening && m.totalOpening > 0) arrAmt = parseFloat(m.totalOpening);
+        totalArr += arrAmt;
+      }
+    });
+
+    var grandTotal = totalAmt + totalInt + totalArr;
+
+    var elMems = document.getElementById('ag-sum-total-members');
+    if (elMems) elMems.textContent = totalMems;
+
+    var elBills = document.getElementById('ag-sum-bills-count');
+    if (elBills) elBills.textContent = count;
+
+    var elAmt = document.getElementById('ag-sum-amount');
+    if (elAmt) elAmt.textContent = '₹ ' + totalAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    var elInt = document.getElementById('ag-sum-interest');
+    if (elInt) elInt.textContent = '₹ ' + totalInt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    var elArr = document.getElementById('ag-sum-arrears');
+    if (elArr) elArr.textContent = '₹ ' + totalArr.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    var elGrand = document.getElementById('ag-sum-grand');
+    if (elGrand) elGrand.textContent = '₹ ' + grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  window.openAgBatchPreviewModal = function () {
+    var subMems = getFilteredAgMembers();
+    var tbody = document.getElementById('ag-batch-preview-tbody');
+    var startNo = document.getElementById('ag-start-no')?.value || 'MBIL/2026-27/01';
+    var prefix = startNo.replace(/\d+$/, '');
+    var startNumMatch = startNo.match(/(\d+)$/);
+    var startNum = startNumMatch ? parseInt(startNumMatch[1], 10) : 1;
+    var padLen = startNumMatch ? startNumMatch[1].length : 2;
+
+    var months = parseInt(document.getElementById('ag-months')?.value || '1', 10) || 1;
+    var incArrears = document.getElementById('ag-opt-arrears')?.checked !== false;
+    var incInterest = document.getElementById('ag-opt-interest')?.checked !== false;
+
+    var html = '';
+    var totalSum = 0;
+
+    subMems.forEach(function (m, idx) {
+      var curNum = startNum + idx;
+      var bNo = prefix + String(curNum).padStart(padLen, '0');
+      var flat = (m.wing ? m.wing + '-' : '') + (m.flatNo || m.memCode || '—');
+      var name = m.memName || m.name || 'Member ' + (idx + 1);
+
+      var prin = (parseFloat(m.opPrincipal || m.opPrin || m.maintenanceAmount || 2500) || 2500) * months;
+      var intAmt = incInterest ? (parseFloat(m.opInterest || m.interest || 0) || Math.round(prin * 0.015)) : 0;
+      var arrAmt = incArrears ? (parseFloat(m.arrears || m.dueAmount || m.totalOpening || 0) || 0) : 0;
+      var rowTot = prin + intAmt + arrAmt;
+      totalSum += rowTot;
+
+      html += '<tr>' +
+        '<td style="font-weight:700; color:#1565C0;">' + bNo + '</td>' +
+        '<td>' + flat + '</td>' +
+        '<td style="font-weight:600;">' + name + '</td>' +
+        '<td style="text-align:right;">' + prin.toFixed(2) + '</td>' +
+        '<td style="text-align:right;">' + intAmt.toFixed(2) + '</td>' +
+        '<td style="text-align:right;">' + arrAmt.toFixed(2) + '</td>' +
+        '<td style="text-align:right; font-weight:800; color:#16a34a;">' + rowTot.toFixed(2) + '</td>' +
+        '</tr>';
+    });
+
+    if (tbody) tbody.innerHTML = html || '<tr><td colspan="7" style="text-align:center; padding:20px;">No members selected</td></tr>';
+    var fEl = document.getElementById('ag-batch-preview-footer');
+    if (fEl) fEl.textContent = subMems.length + ' Bills Preview — Grand Total: ₹ ' + totalSum.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+
+    var modal = document.getElementById('modal-ag-batch-preview');
+    if (modal) modal.style.display = 'flex';
   };
 
   window.openAutoGenerateModal = function () {
-    var titleEl = document.getElementById('ag-modal-title');
-    var activeTypeName = (activeBillType === 'ALL' ? 'MAINTENANCE' : activeBillType.toUpperCase());
-    if (titleEl) {
-      titleEl.innerHTML = '<i class="bi bi-lightning-charge-fill"></i> Auto Generate Bill | ' + activeTypeName;
-    }
-
     var sel = document.getElementById('ag-bill-type');
+    var activeTypeName = (activeBillType === 'ALL' ? 'MAINTENANCE' : activeBillType.toUpperCase());
+
     if (sel) {
       var html = '';
       billTypes.forEach(function (bt) {
         var name = bt.billTypeName || bt.name || 'Maintenance';
+        var btid = bt.billTypeId || bt.id || '';
         var selected = (name.toUpperCase() === activeTypeName ? ' selected' : '');
-        html += '<option value="' + escHtml(name) + '"' + selected + '>' + name + '</option>';
+        html += '<option value="' + escHtml(name) + '" data-id="' + btid + '"' + selected + '>' + name + '</option>';
       });
       if (!html) html = '<option value="Maintenance">Maintenance</option>';
       sel.innerHTML = html;
     }
 
-    document.getElementById('ag-bill-date').value = todayISO();
-    document.getElementById('ag-due-date').value = futureISO(15);
+    var pSel = document.getElementById('ag-period-select');
+    if (pSel) {
+      var monthNames = ['April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December', 'January', 'February', 'March'];
+      var dNow = new Date();
+      var curMonthIdx = dNow.getMonth();
+      var curYear = dNow.getFullYear();
+      var pHtml = '';
 
-    updateAutoGenerateFields();
+      var fyStartYear = curMonthIdx >= 3 ? curYear : (curYear - 1);
+      monthNames.forEach(function (mName, idx) {
+        var mYear = (idx < 9) ? fyStartYear : (fyStartYear + 1);
+        var pVal = mName + ' ' + mYear;
+        var isCur = (pVal.toUpperCase() === getCurrentPeriodName().toUpperCase() || (idx === 5));
+        pHtml += '<option value="' + pVal + '"' + (isCur ? ' selected' : '') + '>' + pVal + '</option>';
+      });
+      pSel.innerHTML = pHtml;
+      var curP = pSel.value;
+      if (document.getElementById('ag-period')) document.getElementById('ag-period').value = curP;
+    }
+
+    document.getElementById('ag-bill-date').value = todayISO();
+    document.getElementById('ag-due-date').value = futureISO(20);
+
+    selectAgFrequency('Monthly');
 
     var fromSel = document.getElementById('ag-member-from');
     var toSel = document.getElementById('ag-member-to');
-    if (fromSel && toSel) {
-      var mHtml = '<option value="ALL">All Members</option>';
-      members.forEach(function (m) {
-        var code = m.memCode || m.memberCode || '';
-        var name = m.memName || m.name || '';
-        mHtml += '<option value="' + (m.memberId || m.socMemId) + '">' + code + ' - ' + name + '</option>';
+    if (fromSel && toSel && members && members.length > 0) {
+      var fromHtml = '<option value="ALL">All Members (Start)</option>';
+      var toHtml = '<option value="ALL">All Members (End)</option>';
+
+      var sortedMems = members.slice().sort(function (a, b) {
+        var fA = (a.wing ? a.wing + '-' : '') + (a.flatNo || a.memCode || '');
+        var fB = (b.wing ? b.wing + '-' : '') + (b.flatNo || b.memCode || '');
+        return fA.localeCompare(fB, undefined, { numeric: true });
       });
-      fromSel.innerHTML = mHtml;
-      toSel.innerHTML = mHtml;
+
+      sortedMems.forEach(function (m) {
+        var flat = (m.wing ? m.wing + '-' : '') + (m.flatNo || m.memCode || '');
+        var name = m.memName || m.name || '';
+        var val = m.memberId || m.socMemId;
+        var label = '[' + flat + '] ' + name;
+        fromHtml += '<option value="' + val + '">' + escHtml(label) + '</option>';
+        toHtml += '<option value="' + val + '">' + escHtml(label) + '</option>';
+      });
+
+      fromSel.innerHTML = fromHtml;
+      toSel.innerHTML = toHtml;
     }
+
+    updateAutoGenerateFields();
+    recalcAgSummary();
 
     document.getElementById('modal-auto-generate').style.display = 'flex';
   };
 
   window.runAutoGenerate = async function () {
-    var billTypeVal = document.getElementById('ag-bill-type').value || 'Maintenance';
-    var startNo = document.getElementById('ag-start-no').value || 'MBIL/25-26/1';
+    var sel = document.getElementById('ag-bill-type');
+    var billTypeVal = (sel && sel.value) ? sel.value : 'Maintenance';
+    var billTypeIdVal = (sel && sel.options && sel.selectedIndex >= 0) ? sel.options[sel.selectedIndex].getAttribute('data-id') : null;
+    var startNo = document.getElementById('ag-start-no').value || 'MBIL/2026-27/01';
     var billDateVal = document.getElementById('ag-bill-date').value || todayISO();
-    var dueDateVal = document.getElementById('ag-due-date').value || futureISO(15);
+    var dueDateVal = document.getElementById('ag-due-date').value || futureISO(20);
     var periodVal = document.getElementById('ag-period').value || getCurrentPeriodName();
     var particularVal = document.getElementById('ag-particular').value || (billTypeVal + ' Charges for ' + periodVal);
 
@@ -1235,6 +1480,7 @@
           societyId: sid,
           fyId: fyid,
           billType: billTypeVal,
+          billTypeId: billTypeIdVal ? parseInt(billTypeIdVal, 10) : null,
           startNo: startNo,
           period: periodVal,
           particular1: particularVal,
@@ -1481,6 +1727,260 @@
     d.setDate(d.getDate() + days);
     return d.toISOString().split('T')[0];
   }
+
+  function numToWords(n) {
+    var num = Math.round(n);
+    if (num <= 0) return 'Zero';
+    var a = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+    var b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+    function inWords(num) {
+      if ((num = num.toString()).length > 9) return 'overflow';
+      var n = ('000000000' + num).substr(-9).match(/^(\d{2})(\d{2})(\d{2})(\d{1})(\d{2})$/);
+      if (!n) return '';
+      var str = '';
+      str += (n[1] != 0) ? (a[Number(n[1])] || b[n[1][0]] + ' ' + a[n[1][1]]) + ' Crore ' : '';
+      str += (n[2] != 0) ? (a[Number(n[2])] || b[n[2][0]] + ' ' + a[n[2][1]]) + ' Lakh ' : '';
+      str += (n[3] != 0) ? (a[Number(n[3])] || b[n[3][0]] + ' ' + a[n[3][1]]) + ' Thousand ' : '';
+      str += (n[4] != 0) ? (a[Number(n[4])] || b[n[4][0]] + ' ' + a[n[4][1]]) + ' Hundred ' : '';
+      str += (n[5] != 0) ? ((str != '') ? 'and ' : '') + (a[Number(n[5])] || b[n[5][0]] + ' ' + a[n[5][1]]) : '';
+      return str.trim();
+    }
+    return inWords(num);
+  }
+
+  window.previewInvoice = async function (targetBillId) {
+    var bId = targetBillId || selectedBillId;
+    if (!bId && bills && bills.length > 0) {
+      bId = bills[0].billId || bills[0].billNo;
+    }
+    if (!bId) {
+      toast('Please select a bill to preview.', false);
+      return;
+    }
+
+    var bill = bills.find(function (x) { return String(x.billId) === String(bId) || String(x.billNo) === String(bId); });
+    var items = [];
+
+    var numericId = parseInt(bId, 10);
+    if (numericId > 0) {
+      try {
+        var detail = await fetchApiData('/api/member-bills/' + numericId);
+        if (detail) {
+          if (detail.data) bill = Object.assign({}, bill || {}, detail.data);
+          if (detail.items && Array.isArray(detail.items)) items = detail.items;
+        }
+      } catch (e) {}
+    }
+
+    if (!bill) {
+      toast('Bill details not found.', false);
+      return;
+    }
+
+    var sid = getActiveSocietyId();
+    var socInfo = {};
+    try {
+      var socRes = await fetchApiData('/api/societies/' + sid);
+      if (socRes && socRes.data) socInfo = socRes.data;
+      else if (socRes && !socRes.data && socRes.societyName) socInfo = socRes;
+    } catch (e) {}
+
+    var btHeads = [];
+    var btId = bill.billTypeId;
+    if (!btId && billTypes) {
+      var matchBt = billTypes.find(function (t) { return (t.billTypeName || '').toLowerCase() === (bill.billType || '').toLowerCase(); });
+      if (matchBt) btId = matchBt.billTypeId || matchBt.id;
+    }
+    if (btId) {
+      try {
+        var btRes = await fetchApiData('/api/bill-types/' + btId);
+        if (btRes && btRes.heads) btHeads = btRes.heads;
+      } catch (e) {}
+    }
+
+    // Categorize items into NON-GST, EXEMPT-GST, and GST APPLICABLE
+    var nonGstItems = [];
+    var exemptGstItems = [];
+    var gstAppItems = [];
+    var cgstAmt = 0;
+    var sgstAmt = 0;
+    var cgstPct = socInfo.cgstPct || 9;
+    var sgstPct = socInfo.sgstPct || 9;
+
+    items.forEach(function (it) {
+      var c = (it.accountCode || '').toUpperCase().trim();
+      var n = (it.accountName || '').toLowerCase().trim();
+      var amt = parseFloat(it.amount) || 0;
+
+      if (c === 'LIA-1032' || n.includes('cgst')) {
+        cgstAmt += amt;
+        return;
+      }
+      if (c === 'LIA-1033' || n.includes('sgst')) {
+        sgstAmt += amt;
+        return;
+      }
+      if (c === 'INC-1008' || n === 'interest') {
+        return;
+      }
+
+      var headDef = btHeads.find(function (h) {
+        return (h.accCode && h.accCode.toUpperCase().trim() === c) ||
+               (h.accName && h.accName.toLowerCase().trim() === n);
+      });
+
+      if (headDef) {
+        if (headDef.gstApp) gstAppItems.push({ name: it.accountName, amount: amt });
+        else if (headDef.gstExm) exemptGstItems.push({ name: it.accountName, amount: amt });
+        else nonGstItems.push({ name: it.accountName, amount: amt });
+      } else {
+        if (n.includes('tax') || n.includes('water') || n.includes('electricity') || n.includes('n.a.')) {
+          nonGstItems.push({ name: it.accountName, amount: amt });
+        } else if (n.includes('service') || n.includes('sinking') || n.includes('repair') || n.includes('welfare')) {
+          exemptGstItems.push({ name: it.accountName, amount: amt });
+        } else {
+          gstAppItems.push({ name: it.accountName, amount: amt });
+        }
+      }
+    });
+
+    var nonGstTotal = nonGstItems.reduce(function (sum, x) { return sum + x.amount; }, 0);
+    var exemptGstTotal = exemptGstItems.reduce(function (sum, x) { return sum + x.amount; }, 0);
+    var gstAppTotal = gstAppItems.reduce(function (sum, x) { return sum + x.amount; }, 0);
+
+    // If GST amounts were not in line items but society has GST enabled
+    if (cgstAmt <= 0 && sgstAmt <= 0) {
+      var limit = socInfo.exemptLimit || 7500;
+      var taxBase = ((gstAppTotal + exemptGstTotal) > limit) ? (gstAppTotal + exemptGstTotal) : gstAppTotal;
+      if (taxBase > 0) {
+        cgstAmt = Math.round((taxBase * cgstPct) / 100);
+        sgstAmt = Math.round((taxBase * sgstPct) / 100);
+      }
+    }
+
+    var totalGstHeadWithTax = gstAppTotal + cgstAmt + sgstAmt;
+    var totalNonAndExempt = nonGstTotal + exemptGstTotal;
+    var currentBill = totalGstHeadWithTax + totalNonAndExempt;
+    var interestAmt = parseFloat(bill.interestAmount || 0);
+    var totalDues = currentBill + interestAmt;
+
+    // Member info
+    var mFlat = bill.flatNo || '';
+    var mWing = bill.wing || '';
+    var mName = bill.memberName || '';
+    var mArea = '550';
+    var matchedM = members.find(function (m) { return (m.memberId || m.socMemId) === bill.memberId; });
+    if (matchedM) {
+      if (matchedM.carpetArea || matchedM.sqft || matchedM.areaSqft) {
+        mArea = matchedM.carpetArea || matchedM.sqft || matchedM.areaSqft;
+      }
+    }
+
+    var socName = socInfo.societyName || getSocietyName() || 'SHREE SAI USHA COMPLEX CO-OP. HOUSING SOCIETY LTD.';
+    var socReg = socInfo.registrationNo ? ('Registration No.: ' + socInfo.registrationNo) : 'Registration No.: BOM/WSG/TC/9121/2001-2005 DT.17.08.2004';
+    var socAddr = socInfo.address ? ('Address: ' + socInfo.address + (socInfo.city ? ', ' + socInfo.city : '') + (socInfo.pincode ? ' - ' + socInfo.pincode : '')) : 'Address: KHANDELWAL MARG, NEAR USHA NAGAR, BHANDUP (WEST), MUMBAI - 400 078.';
+    var socEmail = socInfo.email || socInfo.contactEmail1 || 'shreesaiushachsl@gmail.com';
+    var socPhone = socInfo.phone || socInfo.contactPhone1 || '+91 9987962108';
+    var socPan = socInfo.panNumber || 'AACAS3185R';
+    var socGstin = socInfo.gstNumber || '27AACAS3185R1ZR';
+
+    var periodTxt = bill.period || getCurrentPeriodName();
+    var billNoTxt = bill.billNo || '1274';
+    var billDateTxt = bill.billDate || todayISO();
+    var dueDateTxt = bill.dueDate || futureISO(15);
+
+    var wordsTxt = numToWords(totalDues);
+
+    var win = window.open('', '_blank');
+    win.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>GST Invoice - ' + billNoTxt + '</title>' +
+      '<style>' +
+      '* { box-sizing: border-box; margin: 0; padding: 0; }' +
+      'body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #000; background: #fff; padding: 20px; }' +
+      '.bill-box { border: 2px solid #000; width: 850px; margin: 0 auto; }' +
+      '.header-box { text-align: center; padding: 8px 12px; border-bottom: 1px solid #000; }' +
+      '.header-box h1 { font-size: 14px; font-weight: bold; margin-bottom: 3px; }' +
+      '.header-box .sub { font-size: 10px; line-height: 1.35; }' +
+      '.header-pan-gst { font-size: 10.5px; font-weight: bold; margin-top: 4px; display: flex; justify-content: space-around; }' +
+      '.meta-box { display: flex; border-bottom: 1px solid #000; }' +
+      '.meta-left { flex: 1.5; padding: 6px 10px; border-right: 1px solid #000; font-size: 11px; }' +
+      '.meta-left-row { display: flex; justify-content: space-between; margin-bottom: 4px; }' +
+      '.meta-right { flex: 1; border-left: 1px solid #000; }' +
+      '.meta-right-title { text-align: center; font-weight: bold; font-size: 11px; padding: 4px; border-bottom: 1px solid #000; background: #f2f2f2; }' +
+      '.meta-right-grid { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid #000; }' +
+      '.meta-right-grid div { padding: 4px 6px; border-right: 1px solid #000; border-bottom: 1px solid #000; text-align: center; font-size: 10.5px; }' +
+      '.meta-right-grid div:nth-child(2n) { border-right: none; }' +
+      '.meta-right-period { text-align: center; padding: 4px; font-weight: bold; font-size: 10.5px; }' +
+      '.main-grid { display: flex; }' +
+      '.col-left { flex: 1.5; border-right: 1px solid #000; }' +
+      '.col-right { flex: 1; }' +
+      'table.part-table { width: 100%; border-collapse: collapse; }' +
+      'table.part-table th { border-bottom: 1px solid #000; padding: 4px 8px; font-size: 10.5px; text-align: left; }' +
+      'table.part-table td { padding: 2px 8px; font-size: 10.5px; vertical-align: top; }' +
+      '.sec-title { font-weight: bold; font-size: 11px; padding: 5px 8px 3px; text-transform: uppercase; }' +
+      '.sec-subtot { font-weight: bold; text-align: right; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 2px 8px; }' +
+      'table.sum-table { width: 100%; border-collapse: collapse; }' +
+      'table.sum-table th { border-bottom: 1px solid #000; padding: 4px 8px; font-size: 11px; text-align: center; background: #f2f2f2; }' +
+      'table.sum-table td { padding: 3px 8px; font-size: 10.5px; }' +
+      '.sum-highlight { font-weight: bold; border-top: 1px solid #000; border-bottom: 1px solid #000; }' +
+      '.curr-bill-row { font-weight: bold; background: #e8e8e8; border-top: 1px solid #000; border-bottom: 1px solid #000; }' +
+      '.dues-row { font-weight: bold; font-size: 12px; border-top: 1px solid #000; border-bottom: 1px solid #000; }' +
+      '.words-box { background: #f0f0f0; padding: 6px 8px; font-size: 10.5px; font-weight: bold; border-top: 1px solid #000; }' +
+      '.notes-sec { padding: 6px 10px; border-top: 1px solid #000; font-size: 10px; }' +
+      '.print-bar { text-align: center; margin-bottom: 12px; }' +
+      '.print-btn { padding: 6px 18px; font-size: 12px; font-weight: bold; background: #1565C0; color: #fff; border: none; border-radius: 4px; cursor: pointer; }' +
+      '@media print { .print-bar { display: none; } body { padding: 0; } }' +
+      '</style></head><body>' +
+      '<div class="print-bar"><button class="print-btn" onclick="window.print()">Print Invoice (Ctrl+P)</button></div>' +
+      '<div class="bill-box">' +
+      '<div class="header-box">' +
+      '<h1>' + socName + '</h1>' +
+      '<div class="sub">' + socReg + '</div>' +
+      '<div class="sub">' + socAddr + '</div>' +
+      '<div class="sub">email Id: ' + socEmail + ' Tel.No.: ' + socPhone + '</div>' +
+      '<div class="header-pan-gst"><span>PAN No.: ' + socPan + '</span><span>GSTIN: ' + socGstin + ' (SAC - 9995)</span></div>' +
+      '</div>' +
+      '<div class="meta-box">' +
+      '<div class="meta-left">' +
+      '<div class="meta-left-row"><span>Flat No. <strong>' + mFlat + '</strong></span><span>Floor <strong>EIGHT</strong></span><span>Bldg. No. <strong>2</strong></span><span>Wing <strong>\"' + mWing + '\"</strong></span></div>' +
+      '<div style="display:flex; justify-content:space-between; margin-top:8px;"><div>Name: <strong>' + mName + '</strong></div><div>Area: <strong>' + mArea + ' Sq.Ft.</strong></div></div>' +
+      '</div>' +
+      '<div class="meta-right">' +
+      '<div class="meta-right-title">GST INVOICE</div>' +
+      '<div class="meta-right-grid"><div>No.</div><div><strong>' + billNoTxt + '</strong></div><div>Date</div><div><strong>' + billDateTxt + '</strong></div><div>Due Date</div><div><strong>' + dueDateTxt + '</strong></div></div>' +
+      '<div class="meta-right-period">' + periodTxt.toUpperCase() + '</div>' +
+      '</div></div>' +
+      '<div class="main-grid">' +
+      '<div class="col-left">' +
+      '<table class="part-table"><thead><tr><th style="width:65%;">Particulars</th><th style="width:20%; text-align:right;">Amount</th><th style="width:15%; text-align:right;">Total</th></tr></thead><tbody>' +
+      '<tr><td colspan="3" class="sec-title">NON-GST APPLICABLE ACCOUNT :</td></tr>' +
+      nonGstItems.map(function (x) { return '<tr><td style="padding-left:14px;">' + x.name + '</td><td style="text-align:right;">' + x.amount.toFixed(2) + '</td><td></td></tr>'; }).join('') +
+      '<tr><td></td><td></td><td class="sec-subtot">' + nonGstTotal.toFixed(2) + '</td></tr>' +
+      '<tr><td colspan="3" class="sec-title">EXEMPT-GST ACCOUNT :</td></tr>' +
+      exemptGstItems.map(function (x) { return '<tr><td style="padding-left:14px;">' + x.name + '</td><td style="text-align:right;">' + x.amount.toFixed(2) + '</td><td></td></tr>'; }).join('') +
+      '<tr><td></td><td></td><td class="sec-subtot">' + exemptGstTotal.toFixed(2) + '</td></tr>' +
+      '<tr><td colspan="3" class="sec-title">GST APPLICABLE ACCOUNT :</td></tr>' +
+      gstAppItems.map(function (x) { return '<tr><td style="padding-left:14px;">' + x.name + '</td><td style="text-align:right;">' + x.amount.toFixed(2) + '</td><td></td></tr>'; }).join('') +
+      '<tr><td></td><td></td><td class="sec-subtot">' + gstAppTotal.toFixed(2) + '</td></tr>' +
+      '</tbody></table></div>' +
+      '<div class="col-right">' +
+      '<table class="sum-table"><thead><tr><th colspan="2">Bill Summary</th></tr></thead><tbody>' +
+      '<tr><td>Total (GST A/c Head)</td><td style="text-align:right;">' + gstAppTotal.toFixed(2) + '</td></tr>' +
+      '<tr><td>CGST - ' + cgstPct + '%</td><td style="text-align:right;">' + cgstAmt.toFixed(2) + '</td></tr>' +
+      '<tr><td>SGST - ' + sgstPct + '%</td><td style="text-align:right;">' + sgstAmt.toFixed(2) + '</td></tr>' +
+      '<tr class="sum-highlight"><td>Total GST A/c Head + GST</td><td style="text-align:right;">' + totalGstHeadWithTax.toFixed(2) + '</td></tr>' +
+      '<tr><td>Total (Non GST + Exempt GST)</td><td style="text-align:right;">' + totalNonAndExempt.toFixed(2) + '</td></tr>' +
+      '<tr class="curr-bill-row"><td>Current Bill</td><td style="text-align:right;">' + currentBill.toFixed(2) + '</td></tr>' +
+      '<tr><td>Arrears Prin.</td><td style="text-align:right;">0.00</td></tr>' +
+      '<tr><td>Arrears Int.</td><td style="text-align:right;">' + interestAmt.toFixed(2) + '</td></tr>' +
+      '<tr><td>Arrears Total</td><td style="text-align:right;">' + interestAmt.toFixed(2) + '</td></tr>' +
+      '<tr class="dues-row"><td>Total Dues</td><td style="text-align:right;">Rs. ' + totalDues.toFixed(2) + '</td></tr>' +
+      '</tbody></table>' +
+      '<div class="words-box">Rupees ' + wordsTxt + ' Only</div>' +
+      '</div></div>' +
+      '<div class="notes-sec"><strong>Notes:</strong><br>1. Cheques should be drawn in favor of "' + socName + '".<br>2. Late payment interest will be charged on overdue bills as per Society Bye-Laws.<br>3. This is a computer-generated invoice and requires no signature.</div>' +
+      '</div></body></html>');
+    win.document.close();
+  };
 
   function initShortcuts() {
     document.addEventListener('keydown', function (e) {

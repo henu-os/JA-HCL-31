@@ -1,0 +1,403 @@
+/* ═══════════════════════════════════════════════════════════
+   JEEVIKA ERP v2 — Bill Type & Notes Master CSS
+   Clean Flat ERP Split View Layout
+   ═══════════════════════════════════════════════════════════ */
+
+:root {
+  --btm-blue: #1565C0;
+  --btm-darkblue: #0D47A1;
+  --btm-hover: #E3F2FD;
+  --btm-border: #cbd5e1;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  font-size: 12px;
+  background-color: #ffffff;
+  color: #1e293b;
+}
+
+.btm-canvas {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* TOP COMMAND STRIP TOOLBAR */
+.btm-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: var(--btm-blue);
+  flex-shrink: 0;
+}
+
+.btm-toolbar-sep {
+  width: 1px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.3);
+  margin: 0 4px;
+}
+
+.btm-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  min-height: 28px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  cursor: pointer;
+  outline: none;
+  white-space: nowrap;
+  text-transform: uppercase;
+  transition: all 0.15s ease;
+}
+
+.btm-btn:hover {
+  background: #ffffff;
+  color: var(--btm-blue);
+  border-color: #ffffff;
+}
+
+.btm-btn-danger {
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.4);
+}
+.btm-btn-danger:hover {
+  background: #dc2626;
+  color: #ffffff;
+  border-color: #dc2626;
+}
+
+.btm-select {
+  height: 28px;
+  padding: 0 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  outline: none;
+  cursor: pointer;
+}
+.btm-select option {
+  color: #1e293b;
+  background: #ffffff;
+}
+
+/* WORKSPACE SPLIT (38% LEFT, 62% RIGHT) */
+.btm-workspace {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  background: #f8fafc;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.btm-left-panel {
+  flex: 0 0 38%;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-right: 1px solid var(--btm-border);
+  min-width: 0;
+  transition: flex 0.2s ease, width 0.2s ease;
+}
+
+.btm-right-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  min-width: 0;
+  overflow: hidden;
+  transition: flex 0.2s ease;
+}
+
+/* When Notes Master is toggled OFF */
+.btm-workspace.notes-collapsed .btm-left-panel {
+  flex: 1 1 100% !important;
+  width: 100% !important;
+  border-right: none;
+}
+
+.btm-workspace.notes-collapsed .btm-right-panel {
+  display: none !important;
+}
+
+.btm-panel-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  min-height: 22px;
+  font-size: 10.5px;
+  font-weight: 700;
+  font-family: inherit;
+  color: #1A237E;
+  background: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 3px;
+  cursor: pointer;
+  outline: none;
+  text-transform: uppercase;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  line-height: 1;
+}
+
+.btm-panel-toggle-btn:hover {
+  background: #E8EAF6;
+  color: #0D47A1;
+  border-color: #FFFFFF;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.btm-panel-toggle-btn:active {
+  transform: scale(0.96);
+}
+
+.btm-notes-open-quick-btn {
+  color: #1565C0 !important;
+  background: #FFFFFF !important;
+}
+.btm-notes-open-quick-btn:hover {
+  background: #E3F2FD !important;
+  color: #0D47A1 !important;
+}
+
+/* Docked right strip when Notes Master is closed */
+.btm-notes-docked-tab {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  width: 32px;
+  background: #1A237E;
+  color: #FFFFFF;
+  cursor: pointer;
+  border-left: 2px solid #3949AB;
+  user-select: none;
+  transition: background 0.15s ease, width 0.15s ease;
+  padding: 14px 0;
+  flex-shrink: 0;
+  box-shadow: -2px 0 6px rgba(0, 0, 0, 0.15);
+}
+
+.btm-notes-docked-tab:hover {
+  background: #283593;
+  width: 36px;
+}
+
+.btm-notes-docked-tab .docked-icon {
+  font-size: 13px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.btm-notes-docked-tab:hover .docked-icon {
+  transform: translateX(-2px);
+  background: #FFFFFF;
+  color: #1A237E;
+}
+
+.btm-notes-docked-tab .docked-text {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transform: rotate(180deg);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin: 16px 0;
+  white-space: nowrap;
+  color: #E8EAF6;
+}
+
+.btm-notes-docked-tab .docked-badge {
+  font-size: 9px;
+  font-weight: 800;
+  padding: 2px 4px;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.btm-panel-header {
+  background: var(--btm-blue);
+  color: #ffffff;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 800;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
+}
+
+.btm-grid-container {
+  flex: 1;
+  overflow: auto;
+  background: #ffffff;
+}
+
+.btm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.btm-table thead th {
+  position: sticky;
+  top: 0;
+  background: #1e293b;
+  color: #ffffff;
+  border-bottom: 1px solid #0f172a;
+  padding: 8px 10px;
+  font-weight: 700;
+  text-align: left;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  z-index: 2;
+}
+.btm-table tbody td {
+  border-bottom: 1px solid #f1f5f9;
+  padding: 6px 10px;
+  vertical-align: middle;
+  color: #334155;
+}
+.btm-table tbody tr:hover td {
+  background: var(--btm-hover);
+}
+
+.btm-input {
+  height: 26px;
+  padding: 2px 8px;
+  font-size: 11.5px;
+  border: 1px solid #cbd5e1;
+  border-radius: 3px;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+.btm-input:focus {
+  border-color: var(--btm-blue);
+  box-shadow: 0 0 0 2px rgba(21, 101, 192, 0.15);
+}
+
+.btm-notes-container {
+  flex: 1;
+  overflow: auto;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.btm-note-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.btm-note-lbl {
+  width: 100px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+}
+.btm-note-lbl.bank {
+  color: var(--btm-blue);
+}
+
+.btm-qr-box {
+  width: 130px;
+  height: 130px;
+  border: 2px dashed #cbd5e1;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  border-radius: 4px;
+}
+.btm-qr-box:hover {
+  border-color: var(--btm-blue);
+  background: var(--btm-hover);
+}
+
+/* OVERLAY DIALOG MODALS */
+.btm-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(2px);
+  z-index: 10000;
+  align-items: center;
+  justify-content: center;
+}
+.btm-dialog {
+  background: #ffffff;
+  border-radius: 6px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.btm-dialog-title {
+  background: var(--btm-blue);
+  color: #ffffff;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.btm-dialog-title button {
+  background: none;
+  border: none;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+}
+.btm-dialog-body {
+  padding: 14px 18px;
+  flex: 1;
+  overflow: auto;
+}
+.btm-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #f1f5f9;
+  border-top: 1px solid #cbd5e1;
+}

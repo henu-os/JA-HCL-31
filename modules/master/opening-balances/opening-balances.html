@@ -1,0 +1,1653 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Opening Balances — JEEVIKA ERP</title>
+  <script src="../../../config.js"></script>
+  <script src="../../../assets/js/workspace-bridge.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 12px;
+      background: #f4f6f9;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── MODULE WRAPPER ─────────────────────────────── */
+    #ob-panel {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    /* ── MODULE HEADER ──────────────────────────────── */
+    .ob-header {
+      background: #fff;
+      padding: 8px 14px 6px;
+      border-bottom: 1px solid #ccc;
+      flex-shrink: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .ob-header h2 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1a1a2e;
+      letter-spacing: 0.2px;
+      margin: 0 0 2px 0;
+    }
+
+    .ob-header .subtitle {
+      font-size: 10px;
+      color: #555;
+      letter-spacing: 0.2px;
+    }
+
+    .ob-header .tag {
+      font-size: 10px;
+      color: #666;
+      font-style: italic;
+      margin-top: 4px;
+    }
+
+    /* ── TOOLBAR (category selector) ────────────────── */
+    .ob-toolbar {
+      background: #f5f5f5;
+      border-bottom: 1px solid #ccc;
+      padding: 5px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .ob-toolbar .lbl {
+      font-size: 11px;
+      font-weight: 700;
+      color: #333;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      white-space: nowrap;
+    }
+
+    .ob-toolbar .hint {
+      margin-left: auto;
+      font-size: 10px;
+      color: #777;
+    }
+
+    /* Radio tab buttons */
+    .ob-tab-group {
+      display: flex;
+      gap: 4px;
+    }
+
+    .ob-tab-group label {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border: 1px solid #bbb;
+      background: #fff;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 600;
+      color: #444;
+      border-radius: 2px;
+      user-select: none;
+      transition: background 0.1s;
+    }
+
+    .ob-tab-group label:hover {
+      background: #e8f0fe;
+      border-color: #5a9be8;
+    }
+
+    .ob-tab-group label.active {
+      background: #1565C0;
+      color: #fff;
+      border-color: #1565C0;
+    }
+
+    .ob-tab-group label input[type="radio"] {
+      accent-color: #1565C0;
+      width: 12px;
+      height: 12px;
+    }
+
+    .ob-tab-group label.active input[type="radio"] {
+      accent-color: #fff;
+    }
+
+    /* ── BILL TYPE ROW (injected for MB) ─────────────── */
+    #ob-bill-type-anchor {
+      flex-shrink: 0;
+    }
+
+    #ob-bill-type-row {
+      background: #f5f5f5;
+      border-bottom: 1px solid #ccc;
+      padding: 4px 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    #ob-bill-type-row .bt-lbl {
+      font-size: 11px;
+      font-weight: 700;
+      color: #333;
+      text-transform: uppercase;
+    }
+
+    /* ── GRID AREA ───────────────────────────────────── */
+    .ob-grid-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    #ob-grid-pane {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .ob-table-scroll {
+      flex: 1;
+      overflow: auto;
+    }
+
+    /* TABLE */
+    #ob-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11.5px;
+    }
+
+    #ob-table thead th {
+      background: #1565C0;
+      color: #fff;
+      font-weight: 700;
+      padding: 5px 8px;
+      border: 1px solid #1255a3;
+      text-transform: uppercase;
+      font-size: 10.5px;
+      letter-spacing: 0.3px;
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      white-space: nowrap;
+    }
+
+    #ob-table thead th.text-right {
+      text-align: right;
+    }
+
+    #ob-table tbody td {
+      padding: 2px 8px;
+      border: 1px solid #ddd;
+      color: #222;
+      height: 22px;
+    }
+
+    #ob-table tbody tr:hover td {
+      background: #e8f4ff !important;
+    }
+
+    #ob-table tbody tr.ob-selected td {
+      background: #bae6fd !important;
+      color: #0f172a !important;
+      font-weight: 600;
+    }
+
+    #ob-table tbody tr.ob-selected td input {
+      background: #ffffff !important;
+      color: #0f172a !important;
+      border-color: #0284c7 !important;
+    }
+
+    /* Row types */
+    #ob-table tbody tr.row-header td {
+      background: #dce3f0;
+      font-weight: 700;
+      color: #1a3a6e;
+      font-size: 11px;
+      letter-spacing: 0.3px;
+      border-bottom: 1px solid #bbb;
+    }
+
+    #ob-table tbody tr.row-total td {
+      background: #f0f0f0;
+      font-weight: 700;
+      color: #333;
+      border-bottom: 2px solid #999;
+    }
+
+    /* TFOOT */
+    #ob-table tfoot td {
+      background: #f5f5f5;
+      border-top: 2px solid #999;
+      border: 1px solid #ccc;
+      padding: 3px 6px;
+      font-weight: 700;
+      position: sticky;
+      bottom: 0;
+      z-index: 4;
+    }
+
+    .tfoot-diff-label {
+      color: #C62828;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    /* Cream total inputs */
+    .tot-input {
+      width: 100%;
+      height: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      font-family: 'Courier New', monospace;
+      text-align: right;
+      background: #FFFFF0;
+      border: 1px solid #bbb;
+      color: #000080;
+      padding: 0 5px;
+      outline: none;
+      box-sizing: border-box;
+    }
+
+    .tot-input.diff {
+      color: #C62828;
+    }
+
+    /* Inline editing input */
+    .ob-inline-input {
+      width: 100%;
+      height: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      font-family: 'Courier New', monospace;
+      text-align: right;
+      background: #FFFFF0;
+      border: 1px solid #888;
+      color: #000080;
+      padding: 0 4px;
+      outline: none;
+      box-sizing: border-box;
+    }
+
+    /* Hide number input spinner arrows across Chrome, Edge, Safari, Firefox */
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    input[type="number"] {
+      -moz-appearance: textfield;
+      appearance: textfield;
+    }
+
+    /* ── INLINE FORM PANE ─────────────────────────────  */
+    #ob-form-pane {
+      display: none;
+      flex-direction: column;
+      flex: 1;
+      overflow: auto;
+      padding: 14px;
+      background: #f9f9f9;
+    }
+
+    .ob-form-card {
+      background: #fff;
+      border: 1px solid #ccc;
+      max-width: 480px;
+    }
+
+    .ob-form-card-header {
+      background: #1565C0;
+      color: #fff;
+      font-weight: 700;
+      font-size: 12px;
+      padding: 5px 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .ob-form-body {
+      padding: 14px 16px;
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: 7px;
+      align-items: center;
+      font-size: 12px;
+    }
+
+    .ob-form-body label {
+      font-weight: 600;
+      color: #333;
+    }
+
+    .ob-form-body input[type="text"],
+    .ob-form-body input[type="number"] {
+      height: 24px;
+      padding: 0 6px;
+      border: 1px solid #bbb;
+      font-size: 12px;
+      font-family: inherit;
+      outline: none;
+      width: 100%;
+    }
+
+    .ob-form-body input[type="number"] {
+      text-align: right;
+      font-family: 'Courier New', monospace;
+    }
+
+    .ob-form-body input:focus {
+      border-color: #1565C0;
+    }
+
+    .ob-form-footer {
+      padding: 8px 12px;
+      background: #f5f5f5;
+      border-top: 1px solid #ddd;
+      display: flex;
+      justify-content: flex-end;
+      gap: 6px;
+    }
+
+    /* ── BOTTOM COMMAND STRIP ─────────────────────────── */
+    .ob-cmd-strip {
+      background: #f5f5f5;
+      border-top: 1px solid #ccc;
+      padding: 5px 10px;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      flex-shrink: 0;
+    }
+
+    .ob-cmd-strip .sep {
+      border-right: 1px solid #bbb;
+      height: 16px;
+      margin: 0 5px;
+    }
+
+    /* Command buttons */
+    .cmd-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      background: #fff;
+      border: 1px solid #bbb;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: #333;
+      cursor: pointer;
+      border-radius: 2px;
+      white-space: nowrap;
+      font-family: inherit;
+      transition: background 0.1s;
+    }
+
+    .cmd-btn:hover {
+      background: #e8f0fe;
+      border-color: #5a9be8;
+      color: #1565C0;
+    }
+
+    .cmd-btn.primary {
+      color: #1565C0;
+      border-color: #1565C0;
+    }
+
+    .cmd-btn.primary:hover {
+      background: #1565C0;
+      color: #fff;
+    }
+
+    .cmd-btn.danger:hover {
+      background: #fde8e8;
+      border-color: #e53e3e;
+      color: #C62828;
+    }
+
+    /* OTHER dropdown */
+    .ob-dropdown {
+      position: relative;
+      display: inline-block;
+    }
+
+    .ob-dropdown-content {
+      display: none;
+      position: absolute;
+      bottom: 30px;
+      left: 0;
+      background: #fff;
+      border: 1px solid #bbb;
+      box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.15);
+      z-index: 500;
+      min-width: 170px;
+    }
+
+    .ob-dropdown-content a {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      color: #333;
+      text-decoration: none;
+      font-size: 11.5px;
+      font-weight: 600;
+      border-bottom: 1px solid #eee;
+    }
+
+    .ob-dropdown-content a:last-child {
+      border-bottom: none;
+    }
+
+    .ob-dropdown-content a:hover {
+      background: #e8f0fe;
+      color: #1565C0;
+    }
+
+    .ob-dropdown:hover .ob-dropdown-content {
+      display: block;
+    }
+
+    /* EXIT button (right aligned) */
+    .cmd-btn-exit {
+      margin-left: auto;
+      background: #fff;
+      border: 1px solid #bbb;
+      color: #555;
+    }
+
+    .cmd-btn-exit:hover {
+      background: #fff3cd;
+      border-color: #e0a800;
+      color: #856404;
+    }
+
+    /* ── BULK UPDATE MODAL ────────────────────────────── */
+    .ob-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 900;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .ob-modal {
+      background: #fff;
+      border: 1px solid #bbb;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+      width: 360px;
+    }
+
+    .ob-modal-hdr {
+      background: #1565C0;
+      color: #fff;
+      font-weight: 700;
+      font-size: 12px;
+      padding: 6px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .ob-modal-hdr button {
+      background: none;
+      border: none;
+      color: #fff;
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 1;
+    }
+
+    .ob-modal-body {
+      padding: 14px 16px;
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 8px;
+      align-items: center;
+      font-size: 12px;
+    }
+
+    .ob-modal-body label {
+      font-weight: 600;
+      color: #333;
+    }
+
+    .ob-modal-body select {
+      height: 26px;
+      border: 1px solid #bbb;
+      font-size: 12px;
+      font-family: inherit;
+      outline: none;
+      width: 100%;
+    }
+
+    .ob-modal-footer {
+      padding: 8px 14px;
+      background: #f5f5f5;
+      border-top: 1px solid #ddd;
+      display: flex;
+      justify-content: flex-end;
+      gap: 6px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="ob-panel">
+
+    <!-- ── HEADER ──────────────────────────────────────── -->
+    <div class="ob-header">
+      <div>
+        <h2>LEDGER &amp; MEMBER OPENING BALANCE</h2>
+        
+      </div>
+      <div class="tag">[Opening Trial Balance &amp; Ledger Aggregates]</div>
+    </div>
+
+    <!-- ── CATEGORY SELECTOR ───────────────────────────── -->
+    <div class="ob-toolbar">
+      <span class="lbl">Select Balance Category:</span>
+      <div class="ob-tab-group">
+        <label class="active" id="ob-lbl-BS">
+          <input type="radio" name="balType" value="BS" checked
+            onchange="OB.changeType(); OB.updateActiveTypeBtn('BS')">
+          1. BALANCE SHEET
+        </label>
+        <label id="ob-lbl-IE">
+          <input type="radio" name="balType" value="IE" onchange="OB.changeType(); OB.updateActiveTypeBtn('IE')">
+          2. INCOME &amp; EXPEN.
+        </label>
+        <label id="ob-lbl-MB">
+          <input type="radio" name="balType" value="MB" onchange="OB.changeType(); OB.updateActiveTypeBtn('MB')">
+          3. MEMBER BALANCE
+        </label>
+      </div>
+      <span class="hint">
+        <i class="bi bi-info-circle"></i>
+        Double-click any row to edit values directly, or use bottom action strip.
+      </span>
+    </div>
+
+    <!-- ── BILL TYPE ANCHOR (for MB) ─────────────────── -->
+    <div id="ob-bill-type-anchor"></div>
+
+    <!-- ── GRID AREA ─────────────────────────────────── -->
+    <div class="ob-grid-area">
+
+      <!-- Grid Pane -->
+      <div id="ob-grid-pane">
+        <div class="ob-table-scroll">
+          <table id="ob-table">
+            <thead id="ob-thead"></thead>
+            <tbody id="ob-tbody">
+              <tr>
+                <td colspan="5" style="padding:20px;text-align:center;color:#aaa;">Loading...</td>
+              </tr>
+            </tbody>
+            <tfoot id="ob-tfoot"></tfoot>
+          </table>
+        </div>
+      </div>
+
+      <!-- Form Pane (ADD/ALTER for MB) -->
+      <div id="ob-form-pane">
+        <div class="ob-form-card">
+          <div class="ob-form-card-header" id="ob-form-title">
+            <i class="bi bi-pencil-square"></i> Opening Balance Entry
+          </div>
+          <div class="ob-form-body" id="ob-form-body">
+            <!-- injected dynamically -->
+          </div>
+          <div class="ob-form-footer">
+            <button class="cmd-btn" onclick="OB.closeForm()">
+              <i class="bi bi-x-lg"></i> CANCEL
+            </button>
+            <button class="cmd-btn primary" onclick="OB.saveForm()">
+              <i class="bi bi-check-lg"></i> SAVE
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /ob-grid-area -->
+
+    <!-- ── BOTTOM COMMAND STRIP ──────────────────────── -->
+    <div class="ob-cmd-strip">
+      <button class="cmd-btn" id="ob-btn-add" onclick="OB.openAdd()">
+        <i class="bi bi-plus-lg"></i> ADD
+      </button>
+      <button class="cmd-btn" onclick="OB.openAlter()">
+        <i class="bi bi-pencil"></i> ALTER
+      </button>
+
+      <div class="sep"></div>
+
+      <button class="cmd-btn primary" onclick="OB.saveGrid()">
+        <i class="bi bi-arrow-repeat"></i> UPDATE BALANCES
+      </button>
+      <button class="cmd-btn" onclick="OB.renderGrid()">
+        <i class="bi bi-slash-circle"></i> CANCEL
+      </button>
+      <button class="cmd-btn" onclick="OB.printReport()">
+        <i class="bi bi-printer"></i> PRINT REGISTER
+      </button>
+
+      <!-- OTHER Dropdown -->
+      <div class="ob-dropdown">
+        <button class="cmd-btn">
+          OTHER <i class="bi bi-chevron-down" style="font-size:9px;"></i>
+        </button>
+        <div class="ob-dropdown-content">
+          <a href="#" onclick="event.preventDefault(); OB.multiDeleteMode()">
+            <i class="bi bi-trash"></i> Multi Delete
+          </a>
+          <a href="#" onclick="event.preventDefault(); OB.multiChangeMode()">
+            <i class="bi bi-input-cursor-text"></i> Bulk Update
+          </a>
+          <a href="#" onclick="event.preventDefault(); OB.importData()">
+            <i class="bi bi-file-earmark-excel"></i> Import Excel
+          </a>
+          <a href="#" onclick="event.preventDefault(); OB.exportData('excel')">
+            <i class="bi bi-download"></i> Export Excel
+          </a>
+          <a href="#" onclick="event.preventDefault(); OB.exportData('csv')">
+            <i class="bi bi-filetype-csv"></i> Export CSV
+          </a>
+        </div>
+      </div>
+
+      <button class="cmd-btn cmd-btn-exit" onclick="OB.exit()">
+        <i class="bi bi-door-open"></i> EXIT
+      </button>
+    </div>
+
+  </div><!-- /ob-panel -->
+
+  <!-- ── BULK UPDATE MODAL ──────────────────────────── -->
+  <div class="ob-overlay" id="ob-mc-modal">
+    <div class="ob-modal">
+      <div class="ob-modal-hdr">
+        <span><i class="bi bi-layers"></i> BULK UPDATE BALANCES</span>
+        <button onclick="document.getElementById('ob-mc-modal').style.display='none'">✕</button>
+      </div>
+      <div class="ob-modal-body">
+        <label>Update Action</label>
+        <select id="ob-mc-action">
+          <option value="zero">Set Selected to Zero (0.00)</option>
+          <option value="simulate">Simulate Reset Operations</option>
+        </select>
+      </div>
+      <div class="ob-modal-footer">
+        <button class="cmd-btn" onclick="document.getElementById('ob-mc-modal').style.display='none'">
+          CANCEL
+        </button>
+        <button class="cmd-btn primary" onclick="OB.applyMultiChange()">
+          <i class="bi bi-check-lg"></i> APPLY
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── CONTROL ACCOUNT NOTICE MODAL ──────────────── -->
+  <div class="ob-overlay" id="ob-control-modal" style="display:none;">
+    <div class="ob-modal" style="width:440px;">
+      <div class="ob-modal-hdr" style="background:#0284c7;">
+        <span><i class="bi bi-shield-lock-fill"></i> CONTROL ACCOUNT NOTICE</span>
+        <button onclick="document.getElementById('ob-control-modal').style.display='none'">✕</button>
+      </div>
+      <div class="ob-modal-body" style="display:flex;flex-direction:column;gap:10px;padding:16px;font-size:12px;color:#334155;line-height:1.5;">
+        <div style="display:flex;gap:12px;align-items:flex-start;">
+          <i class="bi bi-info-circle-fill" style="font-size:24px;color:#0284c7;flex-shrink:0;"></i>
+          <div>
+            <div style="font-weight:700;font-size:13px;color:#0f172a;margin-bottom:4px;" id="ob-control-modal-accname">Dues From Members</div>
+            <div>The opening balance for this account is <b>automatically calculated and managed</b> from individual member opening balances in <b>3. MEMBER BALANCE</b>.</div>
+            <div style="margin-top:8px;color:#64748b;font-size:11px;">To adjust or update this balance, please update individual member balances under the <b>3. MEMBER BALANCE</b> tab.</div>
+          </div>
+        </div>
+      </div>
+      <div class="ob-modal-footer" style="gap:8px;">
+        <button class="cmd-btn" onclick="document.getElementById('ob-control-modal').style.display='none'" style="cursor:pointer;padding:6px 14px;">
+          CANCEL
+        </button>
+        <button class="cmd-btn" onclick="OB.goToMemberBalance()" style="background:#0284c7;color:#ffffff !important;font-weight:700;padding:6px 14px;border:none;border-radius:3px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+          <i class="bi bi-arrow-right-circle" style="color:#ffffff;"></i> GO TO MEMBER BALANCE
+        </button>
+      </div>
+    </div>
+  </div>
+  <script src="../../../assets/js/api.js"></script>
+  <script src="../../../assets/js/auth.js"></script>
+  <script src="../../../assets/js/utils.js"></script>
+  <script>
+    (function () {
+      'use strict';
+
+      var bsData = [];
+      var ieData = [];
+      var mbData = [];
+      var currentBillType = 'Maintenance';
+      var billTypes = [];
+      var multiMode = false;
+      var selectedIdx = -1;
+
+      // ── Utility ────────────────────────────────────────
+      function esc(s) {
+        if (s == null) return '';
+        return String(s)
+          .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+      }
+
+      function toast(msg, ok) {
+        if (typeof window.showToast === 'function') {
+          window.showToast(msg, ok ? 'success' : 'error');
+        } else {
+          var el = document.createElement('div');
+          el.style.cssText = 'position:fixed;top:14px;right:14px;z-index:99999;padding:9px 18px;font-size:12px;font-weight:600;color:#fff;border-radius:3px;box-shadow:0 3px 12px rgba(0,0,0,0.2);background:' + (ok !== false ? '#2e7d32' : '#c62828') + ';';
+          el.textContent = msg;
+          document.body.appendChild(el);
+          setTimeout(function () { el.remove(); }, 2800);
+        }
+      }
+
+      function getApiBase() {
+        if (window.API_BASE_URL) return window.API_BASE_URL;
+        if (window.AppConfig && window.AppConfig.apiBase) return window.AppConfig.apiBase;
+        if (window.CONFIG && window.CONFIG.apiBase) return window.CONFIG.apiBase;
+        return 'http://localhost:5002';
+      }
+
+      function getAuthHeaders() {
+        var headers = { 'Content-Type': 'application/json' };
+        var token = (typeof Auth !== 'undefined' && Auth.getToken)
+          ? Auth.getToken()
+          : (sessionStorage.getItem('jwtToken') || localStorage.getItem('jwtToken'));
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        return headers;
+      }
+
+      function getActiveSocietyId() {
+        var sid = (typeof Auth !== 'undefined' && Auth.getSocietyId)
+          ? Auth.getSocietyId()
+          : (sessionStorage.getItem('activeSocietyId') || localStorage.getItem('activeSocietyId') || sessionStorage.getItem('societyId') || localStorage.getItem('societyId'));
+        return (sid && parseInt(sid, 10) > 0) ? String(sid) : '1';
+      }
+
+      function updateSocietyHeader() {
+        var sn = (typeof Auth !== 'undefined' && Auth.getSocietyName)
+          ? Auth.getSocietyName()
+          : (sessionStorage.getItem('activeSocietyName') || localStorage.getItem('activeSocietyName') || 'SHREE SAI SOCIETY');
+
+        var fy = (typeof Auth !== 'undefined' && Auth.getFYLabel)
+          ? Auth.getFYLabel()
+          : (sessionStorage.getItem('activeFYLabel') || localStorage.getItem('activeFYLabel') || '2025-26');
+
+        var snEl = document.getElementById('obSocName');
+        var fyEl = document.getElementById('obFyLabel');
+        if (snEl) snEl.textContent = sn;
+        if (fyEl) fyEl.textContent = fy;
+      }
+
+      async function loadBillTypes() {
+        var socId = getActiveSocietyId();
+        var types = [];
+
+        // 1. Load from LocalStorage bill types (real-time sync with Bill Type & Notes Master)
+        try {
+          var localKey = 'jeevika_bill_types_' + socId;
+          var localRaw = localStorage.getItem(localKey) || localStorage.getItem('jeevika_bill_types_global');
+          if (!localRaw) {
+            for (var k in localStorage) {
+              if (k.indexOf('jeevika_bill_types_') === 0 && k !== 'jeevika_bill_types_sync_ts') {
+                localRaw = localStorage.getItem(k);
+                if (localRaw) break;
+              }
+            }
+          }
+          if (localRaw) {
+            var parsed = JSON.parse(localRaw);
+            if (parsed && typeof parsed === 'object') {
+              Object.keys(parsed).forEach(function (name) {
+                var cleanName = (name || '').trim();
+                if (cleanName && types.indexOf(cleanName) === -1) {
+                  types.push(cleanName);
+                }
+              });
+            }
+          }
+        } catch (e) {
+          console.warn("Local bill types load error", e);
+        }
+
+        // 2. Load from API /api/bill-types
+        try {
+          var url = getApiBase() + (parseInt(socId, 10) > 0 ? '/api/bill-types?societyId=' + socId : '/api/bill-types');
+          var res = await fetch(url, { headers: getAuthHeaders() });
+          if (res.ok) {
+            var json = await res.json();
+            if (json && json.success && Array.isArray(json.data) && json.data.length > 0) {
+              json.data.forEach(function (b) {
+                var name = (b.billTypeName || b.BillTypeName || '').trim();
+                if (name && types.indexOf(name) === -1) {
+                  types.push(name);
+                }
+              });
+            }
+          }
+        } catch (e) {
+          console.warn("API bill types load error", e);
+        }
+
+        if (types.length === 0) {
+          types = ['Maintenance'];
+        }
+
+        billTypes = types;
+        if (!currentBillType || types.indexOf(currentBillType) === -1) {
+          currentBillType = types[0];
+        }
+        return types;
+      }
+
+      async function showBillTypeRow() {
+        await loadBillTypes();
+        var existing = document.getElementById('ob-bill-type-row');
+        if (existing) existing.remove(); // Rebuild fresh with all active types
+        var anchor = document.getElementById('ob-bill-type-anchor');
+        if (!anchor) return;
+        var row = document.createElement('div');
+        row.id = 'ob-bill-type-row';
+        var types = billTypes.length ? billTypes : ['Maintenance'];
+        if (types.indexOf(currentBillType) === -1) {
+          currentBillType = types[0];
+        }
+        row.innerHTML = '<span class="bt-lbl">Select Bill Type:</span>' +
+          '<div style="display:flex;gap:4px;" id="ob-bill-type-pills">' +
+          types.map(function (t, i) {
+            var isChecked = (t === currentBillType);
+            return '<label class="ob-tab-group' + (isChecked ? ' active' : '') + '" style="display:inline-flex;" id="ob-lbl-bt-' + i + '">' +
+              '<input type="radio" name="obBillType" value="' + esc(t) + '"' + (isChecked ? ' checked' : '') +
+              ' onchange="OB.changeBillType(\'' + esc(t) + '\',' + i + ')" style="accent-color:#1565C0;margin-right:4px;"> ' +
+              esc(t).toUpperCase() + '</label>';
+          }).join('') + '</div>';
+        anchor.parentNode.insertBefore(row, anchor.nextSibling);
+      }
+
+      function hideBillTypeRow() {
+        var r = document.getElementById('ob-bill-type-row');
+        if (r) r.remove();
+      }
+
+      // ── API ────────────────────────────────────────────
+      async function loadFromServer() {
+        updateSocietyHeader();
+        var t = OB.getType();
+        var socId = getActiveSocietyId();
+        var headers = getAuthHeaders();
+        var apiBase = getApiBase();
+
+        if (t === 'BS' || t === 'IE') {
+          var accUrl = apiBase + '/api/accounts?societyId=' + socId;
+          var memSummaryUrl = apiBase + '/api/opening-balances/member-summary?societyId=' + socId;
+          try {
+            var accPromise = fetch(accUrl, { headers: headers });
+            var memSummaryPromise = (t === 'BS') ? fetch(memSummaryUrl, { headers: headers }).catch(function () { return null; }) : Promise.resolve(null);
+            var results = await Promise.all([accPromise, memSummaryPromise]);
+            var res = results[0];
+            var memSummaryRes = results[1];
+
+            var memSummary = { totalDues: 0, totalAdvance: 0 };
+            if (memSummaryRes && memSummaryRes.ok) {
+              try {
+                var sumJson = await memSummaryRes.json();
+                if (sumJson && sumJson.success) {
+                  memSummary.totalDues = parseFloat(sumJson.totalDues) || 0;
+                  memSummary.totalAdvance = parseFloat(sumJson.totalAdvance) || 0;
+                }
+              } catch (e) { }
+            }
+
+            var json = await res.json();
+            if (json && json.success && Array.isArray(json.data) && json.data.length > 0) {
+              var filtered = json.data.filter(function (a) {
+                var code = (a.accCode || a.AccCode || a.accountCode || '').toUpperCase().trim();
+                var grpId = a.grpMainId || a.GrpMainId || a.groupId || 0;
+                var grpName = (a.groupName || a.GroupName || '').toUpperCase();
+
+                if (t === 'BS') {
+                  // Assets & Liabilities (ASS-, AST-, LIA-, grpMainId 1, 2)
+                  if (code.startsWith('INC') || code.startsWith('EXP') || grpId === 3 || grpId === 4) return false;
+                  return code.startsWith('ASS') || code.startsWith('AST') || code.startsWith('LIA') || grpId === 1 || grpId === 2 || grpName.includes('ASSET') || grpName.includes('LIABIL') || grpName.includes('PROVISION') || grpName.includes('RESERVE') || grpName.includes('CAPITAL') || grpName.includes('INVESTMENT') || grpName.includes('FUND') || grpName.includes('BANK') || grpName.includes('CASH');
+                } else {
+                  // Income & Expenditure (INC-, EXP-, grpMainId 3, 4)
+                  if (code.startsWith('ASS') || code.startsWith('AST') || code.startsWith('LIA') || grpId === 1 || grpId === 2) return false;
+                  return code.startsWith('INC') || code.startsWith('EXP') || grpId === 3 || grpId === 4 || (!code.startsWith('ASS') && !code.startsWith('AST') && !code.startsWith('LIA') && (grpName.includes('INCOME') || grpName.includes('EXPEND')));
+                }
+              });
+
+              // Sort: grpMainId, then groupName, then accCode
+              filtered.sort(function (a, b) {
+                var gA = a.grpMainId || 0, gB = b.grpMainId || 0;
+                if (gA !== gB) return gA - gB;
+                var sgA = (a.groupName || '').toUpperCase(), sgB = (b.groupName || '').toUpperCase();
+                if (sgA < sgB) return -1; if (sgA > sgB) return 1;
+                return (a.accCode || '').localeCompare(b.accCode || '');
+              });
+
+              // Build grouped rows: header → accounts → sub-total per sub-group
+              var rowData = [];
+              var lastSubGroup = null;
+
+              filtered.forEach(function (a) {
+                var code    = (a.accCode || a.AccCode || a.accountCode || '').trim();
+                var name    = (a.accName || a.AccName || a.accountName || '').trim();
+                var subGrp  = (a.groupName || '').trim() || 'General';
+                var opBal   = parseFloat((t === 'IE' ? (a.prBal ?? a.PrBal ?? a.opBal ?? a.OpBal) : (a.opBal ?? a.OpBal)) || 0) || 0;
+                var opDrCr  = ((t === 'IE' ? (a.prDrCr || a.PrDrCr || a.opDrCr || a.OpDrCr) : (a.opDrCr || a.OpDrCr)) || 'Dr').trim().toLowerCase();
+                var dr  = (t === 'BS' ? (opDrCr === 'dr' ? opBal : 0) : 0);
+                var cr  = (t === 'BS' ? (opDrCr === 'cr' ? opBal : 0) : 0);
+                var pDr = (t === 'IE' ? (opDrCr === 'dr' ? opBal : 0) : 0);
+                var pCr = (t === 'IE' ? (opDrCr === 'cr' ? opBal : 0) : 0);
+
+                var isDuesControl = (code === 'ASS-1025' || (code.startsWith('ASS') && name.toLowerCase().includes('dues from member')));
+                var isAdvanceControl = (code === 'LIA-1025' || (code.startsWith('LIA') && name.toLowerCase().includes('advance from member')));
+                var isControl = (t === 'BS' && (isDuesControl || isAdvanceControl));
+                var controlType = isDuesControl ? 'Dues from Members' : (isAdvanceControl ? 'Advance from Members' : '');
+
+                if (isDuesControl) {
+                  dr = memSummary.totalDues;
+                  cr = 0;
+                } else if (isAdvanceControl) {
+                  dr = 0;
+                  cr = memSummary.totalAdvance;
+                }
+
+                // Insert sub-group header + placeholder total when sub-group changes
+                if (subGrp !== lastSubGroup) {
+                  // Close previous group's total row
+                  if (lastSubGroup !== null) {
+                    rowData.push({ type: 'total', name: 'Sub-Total: ' + lastSubGroup, debit: 0, credit: 0, pDr: 0, pCr: 0 });
+                  }
+                  rowData.push({ type: 'header', name: '\u25B6 ' + subGrp });
+                  lastSubGroup = subGrp;
+                }
+
+                rowData.push({
+                  type: 'row',
+                  id: a.socAccId || a.accountId || a.AccountId,
+                  code: code, name: name,
+                  dr: dr, cr: cr, pDr: pDr, pCr: pCr,
+                  isControl: isControl,
+                  controlType: controlType
+                });
+              });
+
+              // Close last group
+              if (lastSubGroup !== null) {
+                rowData.push({ type: 'total', name: 'Sub-Total: ' + lastSubGroup, debit: 0, credit: 0, pDr: 0, pCr: 0 });
+              }
+
+              if (t === 'BS') bsData = rowData;
+              else ieData = rowData;
+            } else {
+              setDefault(t);
+            }
+          } catch (e) {
+            console.error("Error loading accounts:", e);
+            setDefault(t);
+          }
+        } else if (t === 'MB') {
+          var memUrl = apiBase + '/api/opening-balances/member?billType=' + encodeURIComponent(currentBillType) + '&societyId=' + socId;
+          try {
+            var res = await fetch(memUrl, { headers: headers });
+            var json = await res.json();
+            if (json && json.success && Array.isArray(json.data)) {
+              mbData = json.data;
+            } else {
+              setDefault(t);
+            }
+          } catch (e) {
+            console.error("Error loading member opening balances:", e);
+            setDefault(t);
+          }
+        }
+        OB.renderGrid();
+      }
+
+      function setDefault(t) {
+        if (t === 'BS') bsData = [];
+        else if (t === 'IE') ieData = [];
+        else mbData = [];
+      }
+
+      async function saveToServer() {
+        var t = OB.getType();
+        var d = OB.getData();
+        var socId = getActiveSocietyId();
+        var fyId = (typeof Auth !== 'undefined' && Auth.getFYId) 
+          ? Auth.getFYId() 
+          : (sessionStorage.getItem('activeFYId') || localStorage.getItem('activeFYId') || '1');
+        var url = t === 'MB'
+          ? getApiBase() + '/api/opening-balances/member?billType=' + encodeURIComponent(currentBillType) + '&societyId=' + socId
+          : getApiBase() + '/api/opening-balances/ledger?category=' + t + '&societyId=' + socId + '&fyId=' + fyId;
+        try {
+          var res = await fetch(url, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(d)
+          });
+          var json = await res.json();
+          if (json && json.success) { toast('Balances updated successfully.', true); return true; }
+          toast((json && json.message) || 'Error saving.', false); return false;
+        } catch (e) {
+          toast('Failed to save to server.', false); return false;
+        }
+      }
+
+      // ── OB Public Object ───────────────────────────────
+      window.OB = {
+
+        getType: function () {
+          var el = document.querySelector('#ob-panel input[name="balType"]:checked');
+          return el ? el.value : 'BS';
+        },
+
+        getData: function () {
+          var t = OB.getType();
+          return t === 'BS' ? bsData : t === 'IE' ? ieData : mbData;
+        },
+
+        updateActiveTypeBtn: function (v) {
+          ['BS', 'IE', 'MB'].forEach(function (x) {
+            var el = document.getElementById('ob-lbl-' + x);
+            if (el) el.classList.toggle('active', x === v);
+          });
+        },
+
+        changeType: async function () {
+          selectedIdx = -1;
+          var t = OB.getType();
+          OB.updateActiveTypeBtn(t);
+          if (t === 'MB') {
+            await showBillTypeRow();
+          } else {
+            hideBillTypeRow();
+          }
+          await loadFromServer();
+        },
+
+        changeBillType: async function (val, idx) {
+          currentBillType = val;
+          (billTypes.length ? billTypes : ['Maintenance']).forEach(function (t, i) {
+            var el = document.getElementById('ob-lbl-bt-' + i);
+            if (el) el.classList.toggle('active', t === val);
+          });
+          selectedIdx = -1;
+          await loadFromServer();
+        },
+
+        onCellInput: function (idx, field, val) {
+          var d = OB.getData();
+          var num = parseFloat(val) || 0;
+          if (d[idx]) d[idx][field] = num;
+          if (OB.getType() === 'MB' && d[idx]) {
+            d[idx].total = (d[idx].prin || 0) + (d[idx].int || 0);
+            var totCell = document.getElementById('ob-total-cell-' + idx);
+            if (totCell) totCell.textContent = (d[idx].total || 0).toFixed(2);
+          }
+          OB.updateFooterOnly();
+        },
+
+        updateVal: function (idx, field, val) {
+          var d = OB.getData();
+          var num = parseFloat(val) || 0;
+          if (d[idx]) d[idx][field] = num;
+          if (OB.getType() === 'MB' && d[idx]) {
+            d[idx].total = (d[idx].prin || 0) + (d[idx].int || 0);
+            var totCell = document.getElementById('ob-total-cell-' + idx);
+            if (totCell) totCell.textContent = (d[idx].total || 0).toFixed(2);
+          }
+          OB.updateFooterOnly();
+        },
+
+        updateFooterOnly: function () {
+          OB.recalcTotals();
+          var t = OB.getType();
+          var d = OB.getData();
+          var tfoot = document.getElementById('ob-tfoot');
+          if (!tfoot) return;
+
+          var gT1 = 0, gT2 = 0, gT3 = 0;
+          if (t === 'BS') {
+            d.forEach(function (r) { if (r.type === 'row') { gT1 += r.dr || 0; gT2 += r.cr || 0; } });
+            var diffBS = Math.abs(gT1 - gT2).toFixed(2);
+            tfoot.innerHTML = '<tr>' +
+              (multiMode ? '<td></td>' : '') +
+              '<td></td>' +
+              '<td style="text-align:right;padding-right:8px;">' +
+              '<span class="tfoot-diff-label">DIFFERENCE (DR-CR):</span> ' +
+              '<input readonly value="' + diffBS + '" class="tot-input diff" style="width:100px;display:inline-block;margin-left:6px;">' +
+              '</td>' +
+              '<td style="padding:2px 4px;width:150px;"><input readonly value="' + gT1.toFixed(2) + '" class="tot-input"></td>' +
+              '<td style="padding:2px 4px;width:150px;"><input readonly value="' + gT2.toFixed(2) + '" class="tot-input"></td>' +
+              '</tr>';
+          } else if (t === 'IE') {
+            d.forEach(function (r) { if (r.type === 'row') { gT1 += r.pDr || 0; gT2 += r.pCr || 0; } });
+            var diffIE = Math.abs(gT1 - gT2).toFixed(2);
+            tfoot.innerHTML = '<tr>' +
+              (multiMode ? '<td></td>' : '') +
+              '<td></td>' +
+              '<td style="text-align:right;padding-right:8px;">' +
+              '<span class="tfoot-diff-label">DIFFERENCE:</span> ' +
+              '<input readonly value="' + diffIE + '" class="tot-input diff" style="width:100px;display:inline-block;margin-left:6px;">' +
+              '</td>' +
+              '<td style="padding:2px 4px;width:150px;"><input readonly value="' + gT1.toFixed(2) + '" class="tot-input"></td>' +
+              '<td style="padding:2px 4px;width:150px;"><input readonly value="' + gT2.toFixed(2) + '" class="tot-input"></td>' +
+              '</tr>';
+          } else {
+            d.forEach(function (r) { if (r.type === 'row') { gT1 += r.prin || 0; gT2 += r.int || 0; gT3 += r.total || 0; } });
+            tfoot.innerHTML = '<tr>' +
+              (multiMode ? '<td></td>' : '') +
+              '<td></td>' +
+              '<td style="text-align:right;padding-right:8px;font-weight:700;color:#1565C0;">TOTALS:</td>' +
+              '<td style="padding:2px 4px;width:130px;"><input readonly value="' + gT1.toFixed(2) + '" class="tot-input"></td>' +
+              '<td style="padding:2px 4px;width:130px;"><input readonly value="' + gT2.toFixed(2) + '" class="tot-input"></td>' +
+              '<td style="padding:2px 4px;width:140px;"><input readonly value="' + gT3.toFixed(2) + '" class="tot-input"></td>' +
+              '</tr>';
+          }
+        },
+
+        recalcTotals: function () {
+          var d = OB.getData();
+          var t = OB.getType();
+          var s1 = 0, s2 = 0;
+          for (var i = 0; i < d.length; i++) {
+            var r = d[i];
+            if (!r) continue;
+            if (r.type === 'header') { s1 = 0; s2 = 0; }
+            else if (r.type === 'row') {
+              if (t === 'BS') { s1 += r.dr || 0; s2 += r.cr || 0; }
+              else if (t === 'IE') { s1 += r.pDr || 0; s2 += r.pCr || 0; }
+              else { s1 += r.prin || 0; s2 += r.int || 0; }
+            } else if (r.type === 'total') {
+              if (t === 'BS') { r.debit = s1; r.credit = s2; }
+              else if (t === 'IE') { r.pDr = s1; r.pCr = s2; }
+              else { r.prin = s1; r.int = s2; r.total = s1 + s2; }
+              s1 = 0; s2 = 0;
+            }
+          }
+        },
+
+        renderGrid: function () {
+          OB.recalcTotals();
+          var t = OB.getType();
+          var d = OB.getData();
+          var thead = document.getElementById('ob-thead');
+          var tbody = document.getElementById('ob-tbody');
+          var tfoot = document.getElementById('ob-tfoot');
+          if (!thead || !tbody || !tfoot) return;
+
+          var gT1 = 0, gT2 = 0, gT3 = 0;
+          var chkTh = multiMode ? '<th style="width:28px;text-align:center;"><input type="checkbox" onclick="OB.toggleAll(this.checked)"></th>' : '';
+          var cs = multiMode ? 3 : 2;
+
+          // ── THEAD & TFOOT ─────────────────────────────
+          if (t === 'BS') {
+            thead.innerHTML = '<tr>' + chkTh +
+              '<th style="width:90px;">LEDGER CODE</th>' +
+              '<th>LEDGER ACCOUNT NAME</th>' +
+              '<th class="text-right" style="width:150px;">OP. DEBIT BALANCE<br>(DR)</th>' +
+              '<th class="text-right" style="width:150px;">OP. CREDIT BALANCE<br>(CR)</th></tr>';
+            d.forEach(function (r) { if (r.type === 'row') { gT1 += r.dr || 0; gT2 += r.cr || 0; } });
+            var diffBS = Math.abs(gT1 - gT2).toFixed(2);
+            tfoot.innerHTML = '<tr>' +
+              (multiMode ? '<td></td>' : '') +
+              '<td></td>' +
+              '<td style="text-align:right;padding-right:8px;">' +
+              '<span class="tfoot-diff-label">DIFFERENCE (DR-CR):</span> ' +
+              '<input readonly value="' + diffBS + '" class="tot-input diff" style="width:100px;display:inline-block;margin-left:6px;">' +
+              '</td>' +
+              '<td style="padding:2px 4px;width:150px;"><input readonly value="' + gT1.toFixed(2) + '" class="tot-input"></td>' +
+              '<td style="padding:2px 4px;width:150px;"><input readonly value="' + gT2.toFixed(2) + '" class="tot-input"></td>' +
+              '</tr>';
+          } else if (t === 'IE') {
+            thead.innerHTML = '<tr>' + chkTh +
+              '<th style="width:90px;">CODE</th>' +
+              '<th>INCOME / EXPENSE LEDGER ACCOUNT</th>' +
+              '<th class="text-right" style="width:150px;">PREV. DEBIT<br>(EXPENSE)</th>' +
+              '<th class="text-right" style="width:150px;">PREV. CREDIT<br>(INCOME)</th></tr>';
+            d.forEach(function (r) { if (r.type === 'row') { gT1 += r.pDr || 0; gT2 += r.pCr || 0; } });
+            var diffIE = Math.abs(gT1 - gT2).toFixed(2);
+            tfoot.innerHTML = '<tr>' +
+              (multiMode ? '<td></td>' : '') +
+              '<td></td>' +
+              '<td style="text-align:right;padding-right:8px;">' +
+              '<span class="tfoot-diff-label">DIFFERENCE:</span> ' +
+              '<input readonly value="' + diffIE + '" class="tot-input diff" style="width:100px;display:inline-block;margin-left:6px;">' +
+              '</td>' +
+              '<td style="padding:2px 4px;width:150px;"><input readonly value="' + gT1.toFixed(2) + '" class="tot-input"></td>' +
+              '<td style="padding:2px 4px;width:150px;"><input readonly value="' + gT2.toFixed(2) + '" class="tot-input"></td>' +
+              '</tr>';
+          } else {
+            thead.innerHTML = '<tr>' + chkTh +
+              '<th style="width:90px;">MEMBER NO</th>' +
+              '<th>MEMBER NAME</th>' +
+              '<th class="text-right" style="width:130px;">OP. PRINCIPLE DUE</th>' +
+              '<th class="text-right" style="width:130px;">OP. INTEREST DUE</th>' +
+              '<th class="text-right" style="width:140px;">GRAND TOTAL DUE</th></tr>';
+            d.forEach(function (r) { if (r.type === 'row') { gT1 += r.prin || 0; gT2 += r.int || 0; gT3 += r.total || 0; } });
+            tfoot.innerHTML = '<tr>' +
+              (multiMode ? '<td></td>' : '') +
+              '<td></td>' +
+              '<td style="text-align:right;padding-right:8px;font-weight:700;color:#1565C0;">TOTALS:</td>' +
+              '<td style="padding:2px 4px;width:130px;"><input readonly value="' + gT1.toFixed(2) + '" class="tot-input"></td>' +
+              '<td style="padding:2px 4px;width:130px;"><input readonly value="' + gT2.toFixed(2) + '" class="tot-input"></td>' +
+              '<td style="padding:2px 4px;width:140px;"><input readonly value="' + gT3.toFixed(2) + '" class="tot-input"></td>' +
+              '</tr>';
+          }
+
+          // ── ROW BOUNDS ────────────────────────────────
+          if (selectedIdx >= d.length) selectedIdx = d.length - 1;
+
+          // ── RENDER ROWS ───────────────────────────────
+          if (!d || d.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="padding:24px;text-align:center;color:#aaa;font-style:italic;">No opening balance data. Accounts will appear here after being added in Account Master.</td></tr>';
+            return;
+          }
+
+          var html = '';
+          d.forEach(function (row, idx) {
+            var isSel = (idx === selectedIdx);
+
+            if (row.type === 'header') {
+              html += '<tr class="row-header" onclick="OB.selectRow(' + idx + ')">';
+              if (multiMode) html += '<td></td>';
+              html += '<td colspan="' + (t === 'MB' ? 5 : 4) + '" style="padding:3px 8px;">' + row.name + '</td></tr>';
+
+            } else if (row.type === 'total') {
+              html += '<tr class="row-total" onclick="OB.selectRow(' + idx + ')">';
+              if (multiMode) html += '<td></td>';
+              html += '<td colspan="2" style="text-align:right;padding:2px 8px;font-size:11px;">' + row.name + '</td>';
+              if (t === 'BS') {
+                html += '<td style="text-align:right;padding:2px 8px;font-family:monospace;color:#000080;">' + (row.debit || 0).toFixed(2) + '</td>';
+                html += '<td style="text-align:right;padding:2px 8px;font-family:monospace;color:#000080;">' + (row.credit || 0).toFixed(2) + '</td>';
+              } else if (t === 'IE') {
+                html += '<td style="text-align:right;padding:2px 8px;font-family:monospace;color:#000080;">' + (row.pDr || 0).toFixed(2) + '</td>';
+                html += '<td style="text-align:right;padding:2px 8px;font-family:monospace;color:#000080;">' + (row.pCr || 0).toFixed(2) + '</td>';
+              } else {
+                html += '<td style="text-align:right;padding:2px 8px;font-family:monospace;color:#000080;">' + (row.prin || 0).toFixed(2) + '</td>';
+                html += '<td style="text-align:right;padding:2px 8px;font-family:monospace;color:#000080;">' + (row.int || 0).toFixed(2) + '</td>';
+                html += '<td style="text-align:right;padding:2px 8px;font-family:monospace;font-weight:700;color:#000080;">' + (row.total || 0).toFixed(2) + '</td>';
+              }
+              html += '</tr>';
+
+            } else {
+              var chkCell = multiMode
+                ? '<td style="text-align:center;"><input type="checkbox" ' + (row.checked ? 'checked' : '') +
+                ' onclick="OB.checkRow(' + idx + ',this.checked);event.stopPropagation()"></td>'
+                : '';
+              var lockBadge = row.isControl ? ' <i class="bi bi-shield-lock-fill" style="color:#0284c7;font-size:11px;margin-left:4px;" title="Managed by Member Balance (Tab 3)"></i>' : '';
+              html += '<tr class="' + (isSel ? 'ob-selected' : '') + '" ' +
+                'onclick="OB.selectRow(' + idx + ')" ondblclick="OB.openAlter()" ' +
+                'style="cursor:pointer;">';
+              html += chkCell;
+              html += '<td style="font-family:monospace;font-weight:700;padding:2px 8px;">' + esc(row.code) + '</td>';
+              html += '<td style="padding:2px 8px;">' + esc(row.name) + lockBadge + '</td>';
+
+              if (t === 'BS') {
+                var ctrlTitle = row.isControl ? ' title="Control Account - Auto-synced from Member Balances"' : '';
+                html += '<td style="padding:1px 2px;"><input type="number" step="0.01" class="ob-inline-input" value="' + (row.dr || '') + '" placeholder="0.00" oninput="OB.onCellInput(' + idx + ',\'dr\',this.value)" onchange="OB.updateVal(' + idx + ',\'dr\',this.value)" onkeydown="OB.handleKey(event,' + idx + ',\'dr\')"' + ctrlTitle + '></td>';
+                html += '<td style="padding:1px 2px;"><input type="number" step="0.01" class="ob-inline-input" value="' + (row.cr || '') + '" placeholder="0.00" oninput="OB.onCellInput(' + idx + ',\'cr\',this.value)" onchange="OB.updateVal(' + idx + ',\'cr\',this.value)" onkeydown="OB.handleKey(event,' + idx + ',\'cr\')"' + ctrlTitle + '></td>';
+              } else if (t === 'IE') {
+                html += '<td style="padding:1px 2px;"><input type="number" step="0.01" class="ob-inline-input" value="' + (row.pDr || '') + '" placeholder="0.00" oninput="OB.onCellInput(' + idx + ',\'pDr\',this.value)" onchange="OB.updateVal(' + idx + ',\'pDr\',this.value)" onkeydown="OB.handleKey(event,' + idx + ',\'pDr\')"></td>';
+                html += '<td style="padding:1px 2px;"><input type="number" step="0.01" class="ob-inline-input" value="' + (row.pCr || '') + '" placeholder="0.00" oninput="OB.onCellInput(' + idx + ',\'pCr\',this.value)" onchange="OB.updateVal(' + idx + ',\'pCr\',this.value)" onkeydown="OB.handleKey(event,' + idx + ',\'pCr\')"></td>';
+              } else {
+                html += '<td style="padding:1px 2px;"><input type="number" step="0.01" class="ob-inline-input" value="' + (row.prin || '') + '" placeholder="0.00" oninput="OB.onCellInput(' + idx + ',\'prin\',this.value)" onchange="OB.updateVal(' + idx + ',\'prin\',this.value)" onkeydown="OB.handleKey(event,' + idx + ',\'prin\')"></td>';
+                html += '<td style="padding:1px 2px;"><input type="number" step="0.01" class="ob-inline-input" value="' + (row.int || '') + '" placeholder="0.00" oninput="OB.onCellInput(' + idx + ',\'int\',this.value)" onchange="OB.updateVal(' + idx + ',\'int\',this.value)" onkeydown="OB.handleKey(event,' + idx + ',\'int\')"></td>';
+                html += '<td id="ob-total-cell-' + idx + '" style="text-align:right;font-family:monospace;font-weight:700;padding:2px 8px;color:#0D47A1;">' + (row.total || 0).toFixed(2) + '</td>';
+              }
+              html += '</tr>';
+            }
+          });
+          tbody.innerHTML = html;
+        },
+
+        handleKey: function (e, idx, field) {
+          if (e.key === 'Enter') {
+            OB.saveGrid();
+            var d = OB.getData();
+            var next = idx + 1;
+            while (next < d.length && d[next].type !== 'row') next++;
+            if (next < d.length) { selectedIdx = next; }
+          }
+        },
+
+        selectRow: function (idx, e) {
+          if (e && e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT')) return;
+          selectedIdx = idx;
+          var rows = document.querySelectorAll('#ob-tbody tr');
+          rows.forEach(function(r, i) { r.classList.toggle('ob-selected', i === idx); });
+        },
+        checkRow: function (idx, val) { var d = OB.getData(); if (d[idx]) d[idx].checked = val; },
+        toggleAll: function (val) { OB.getData().forEach(function (r) { if (r.type === 'row') r.checked = val; }); OB.renderGrid(); },
+
+        saveGrid: function () { saveToServer(); },
+
+        // ── ADD / ALTER ──────────────────────────────────
+        buildForm: function (row) {
+          var t = OB.getType();
+          var v1 = 0, v2 = 0;
+          var existingId = row ? (row.id || 0) : 0;
+          if (row) { 
+            v1 = (t === 'BS' ? row.dr : t === 'IE' ? row.pDr : row.prin) || 0; 
+            v2 = (t === 'BS' ? row.cr : t === 'IE' ? row.pCr : row.int) || 0; 
+          }
+          var html = '<input type="hidden" id="ob-f-idx" value="' + (row ? selectedIdx : -1) + '">';
+          html += '<input type="hidden" id="ob-f-id" value="' + existingId + '">';
+          html += '<label>CODE *</label><input type="text" id="ob-f-code" value="' + esc(row ? row.code : '') + '" placeholder="Account / Member code"' + (row ? ' readonly style="background:#f1f5f9;"' : '') + '>';
+          html += '<label>NAME *</label><input type="text" id="ob-f-name" value="' + esc(row ? row.name : '') + '" placeholder="Account or Member Name"' + (row ? ' readonly style="background:#f1f5f9;"' : '') + '>';
+          if (t === 'BS') {
+            html += '<label>OP. DEBIT (DR) ₹</label><input type="number" step="0.01" id="ob-f-v1" value="' + v1 + '" style="font-weight:700; color:#166534;" onkeydown="if(event.key===\'Enter\') OB.saveForm()">';
+            html += '<label>OP. CREDIT (CR) ₹</label><input type="number" step="0.01" id="ob-f-v2" value="' + v2 + '" style="font-weight:700; color:#991b1b;" onkeydown="if(event.key===\'Enter\') OB.saveForm()">';
+          } else if (t === 'IE') {
+            html += '<label>PREV. DEBIT (EXP) ₹</label><input type="number" step="0.01" id="ob-f-v1" value="' + v1 + '" style="font-weight:700; color:#166534;" onkeydown="if(event.key===\'Enter\') OB.saveForm()">';
+            html += '<label>PREV. CREDIT (INC) ₹</label><input type="number" step="0.01" id="ob-f-v2" value="' + v2 + '" style="font-weight:700; color:#991b1b;" onkeydown="if(event.key===\'Enter\') OB.saveForm()">';
+          } else {
+            html += '<label>OP. PRINCIPLE ₹</label><input type="number" step="0.01" id="ob-f-v1" value="' + v1 + '" style="font-weight:700; color:#0D47A1;" onkeydown="if(event.key===\'Enter\') OB.saveForm()">';
+            html += '<label>OP. INTEREST ₹</label><input type="number" step="0.01" id="ob-f-v2" value="' + v2 + '" style="font-weight:700; color:#0D47A1;" onkeydown="if(event.key===\'Enter\') OB.saveForm()">';
+          }
+          document.getElementById('ob-form-body').innerHTML = html;
+        },
+
+        openTargetModule: function (moduleId, query) {
+          if (typeof window.WorkspaceBridge !== 'undefined' && typeof window.WorkspaceBridge.openModule === 'function') {
+            window.WorkspaceBridge.openModule(moduleId, query);
+          } else if (window.parent && window.parent.WorkspaceManager && typeof window.parent.WorkspaceManager.openModule === 'function') {
+            window.parent.WorkspaceManager.openModule(moduleId, query);
+          } else if (window.top && window.top.WorkspaceManager && typeof window.top.WorkspaceManager.openModule === 'function') {
+            window.top.WorkspaceManager.openModule(moduleId, query);
+          } else if (window.parent && typeof window.parent.postMessage === 'function') {
+            window.parent.postMessage({ action: 'openModule', moduleId: moduleId, queryParams: query }, '*');
+          } else {
+            window.location.href = '../' + moduleId + '/' + moduleId + '.html?' + query;
+          }
+        },
+
+        openAdd: function () {
+          var t = OB.getType();
+          if (t === 'BS' || t === 'IE') {
+            OB.openTargetModule('account-master', 'action=add');
+          } else {
+            OB.openTargetModule('member-master', 'action=add');
+          }
+        },
+
+        showControlAccountNotice: function (accName, controlType) {
+          var nameEl = document.getElementById('ob-control-modal-accname');
+          if (nameEl) nameEl.textContent = accName || controlType || 'Dues / Advance from Members';
+          var modal = document.getElementById('ob-control-modal');
+          if (modal) modal.style.display = 'flex';
+        },
+
+        goToMemberBalance: function () {
+          var modal = document.getElementById('ob-control-modal');
+          if (modal) modal.style.display = 'none';
+          var mbRadio = document.querySelector('#ob-panel input[name="balType"][value="MB"]');
+          if (mbRadio) {
+            mbRadio.checked = true;
+            OB.changeType();
+          }
+        },
+
+        openAlter: function () {
+          var d = OB.getData(); 
+          var t = OB.getType();
+          if (selectedIdx < 0 || !d[selectedIdx] || d[selectedIdx].type !== 'row') { 
+            toast('Select a valid row to alter.', false); 
+            return; 
+          }
+          var row = d[selectedIdx];
+          if (row.isControl) {
+            OB.showControlAccountNotice(row.name, row.controlType);
+            return;
+          }
+          if (t === 'BS' || t === 'IE') {
+            sessionStorage.setItem('jeevika_account_master_pending_alter', JSON.stringify({
+              id: row.id || 0,
+              code: row.code || '',
+              name: row.name || ''
+            }));
+            OB.openTargetModule('account-master', 'action=alter&id=' + (row.id || 0) + '&code=' + encodeURIComponent(row.code || ''));
+          } else {
+            sessionStorage.setItem('jeevika_member_master_pending_alter', JSON.stringify({
+              id: row.id || 0,
+              code: row.code || '',
+              flatNo: row.code || '',
+              name: row.name || ''
+            }));
+            OB.openTargetModule('member-master', 'action=alter&id=' + (row.id || 0) + '&code=' + encodeURIComponent(row.code || ''));
+          }
+        },
+
+        closeForm: function () {
+          document.getElementById('ob-form-pane').style.display = 'none';
+          document.getElementById('ob-grid-pane').style.display = 'flex';
+          OB.renderGrid();
+        },
+
+        saveForm: function () {
+          var idx = parseInt(document.getElementById('ob-f-idx').value, 10);
+          var hidId = parseInt(document.getElementById('ob-f-id').value, 10) || 0;
+          var code = (document.getElementById('ob-f-code').value || '').trim();
+          var name = (document.getElementById('ob-f-name').value || '').trim();
+          var v1 = parseFloat(document.getElementById('ob-f-v1').value) || 0;
+          var v2 = parseFloat(document.getElementById('ob-f-v2').value) || 0;
+          var t = OB.getType(); 
+          var d = OB.getData();
+
+          if (!code || !name) { toast('Code and Name are required.', false); return; }
+
+          var existingId = hidId > 0 ? hidId : (idx >= 0 && d[idx] && d[idx].id ? d[idx].id : 0);
+          var row = { type: 'row', id: existingId, code: code, name: name, checked: false };
+
+          if (t === 'BS') { 
+            row.dr = v1; row.cr = v2; 
+          } else if (t === 'IE') { 
+            row.pDr = v1; row.pCr = v2; 
+          } else { 
+            row.prin = v1; row.int = v2; row.total = v1 + v2; 
+          }
+
+          if (idx === -1) d.push(row); else d[idx] = row;
+
+          document.getElementById('ob-form-pane').style.display = 'none';
+          document.getElementById('ob-grid-pane').style.display = 'flex';
+
+          saveToServer().then(function (ok) { 
+            if (ok) loadFromServer(); else OB.renderGrid(); 
+          });
+        },
+
+        // ── Delete / Multi ─────────────────────────────
+        deleteSelected: function () {
+          var d = OB.getData();
+          if (multiMode) {
+            var count = 0;
+            for (var i = d.length - 1; i >= 0; i--) { if (d[i].type === 'row' && d[i].checked) { d.splice(i, 1); count++; } }
+            if (count > 0) { saveToServer().then(function () { multiMode = false; OB.resetAddBtn(); loadFromServer(); }); }
+            else toast('No rows checked.', false);
+          } else {
+            if (selectedIdx < 0 || !d[selectedIdx] || d[selectedIdx].type !== 'row') return;
+            if (confirm('Delete "' + d[selectedIdx].name + '"?')) { d.splice(selectedIdx, 1); saveToServer().then(function () { loadFromServer(); }); }
+          }
+        },
+
+        multiDeleteMode: function () {
+          multiMode = true;
+          OB.getData().forEach(function (r) { if (r.type === 'row') r.checked = false; });
+          OB.renderGrid();
+          toast('Multi-Delete: check rows then use DELETE CHECKED button.', true);
+          var btn = document.getElementById('ob-btn-add');
+          btn.innerHTML = '<i class="bi bi-trash"></i> DELETE CHECKED';
+          btn.onclick = function () { OB.deleteSelected(); };
+        },
+
+        multiChangeMode: function () {
+          var hasChecked = OB.getData().some(function (r) { return r.type === 'row' && r.checked; });
+          if (!multiMode || !hasChecked) { multiMode = true; OB.renderGrid(); toast('Check rows first, then click Bulk Update again.', true); return; }
+          document.getElementById('ob-mc-modal').style.display = 'flex';
+        },
+
+        applyMultiChange: function () {
+          var action = document.getElementById('ob-mc-action').value;
+          var d = OB.getData(); var t = OB.getType();
+          if (action === 'zero') {
+            d.forEach(function (r) {
+              if (r.type === 'row' && r.checked) {
+                if (t === 'BS') { r.dr = 0; r.cr = 0; }
+                if (t === 'IE') { r.pDr = 0; r.pCr = 0; }
+                if (t === 'MB') { r.prin = 0; r.int = 0; r.total = 0; }
+              }
+            });
+            saveToServer().then(function (ok) {
+              if (ok) {
+                document.getElementById('ob-mc-modal').style.display = 'none';
+                multiMode = false; OB.resetAddBtn();
+                d.forEach(function (r) { if (r.type === 'row') r.checked = false; });
+                toast('Selected balances set to zero.', true);
+                loadFromServer();
+              }
+            });
+          } else {
+            document.getElementById('ob-mc-modal').style.display = 'none';
+            multiMode = false; OB.resetAddBtn();
+            OB.getData().forEach(function (r) { if (r.type === 'row') r.checked = false; });
+            OB.renderGrid();
+          }
+        },
+
+        resetAddBtn: function () {
+          var btn = document.getElementById('ob-btn-add');
+          if (btn) { btn.innerHTML = '<i class="bi bi-plus-lg"></i> ADD'; btn.onclick = function () { OB.openAdd(); }; }
+        },
+
+        // ── Print ────────────────────────────────────────
+        printReport: function () {
+          var d = OB.getData(); var t = OB.getType();
+          var soc = document.getElementById('obSocName').textContent;
+          var fy = document.getElementById('obFyLabel').textContent;
+          var ttl = t === 'BS' ? 'Balance Sheet Opening Balances' : t === 'IE' ? 'Income & Expense Opening Balances' : 'Member Opening Balances';
+          var w = window.open('', '_blank', 'width=900,height=700');
+          if (!w) { toast('Popup blocked.', false); return; }
+          var html = '<!DOCTYPE html><html><head><title>' + ttl + '</title>' +
+            '<style>body{font-family:Arial,sans-serif;font-size:11px;}h2,h3{text-align:center;margin:4px 0;}' +
+            'table{width:100%;border-collapse:collapse;margin-top:8px;}' +
+            'th,td{border:1px solid #999;padding:3px 6px;}th{background:#1565C0;color:#fff;}' +
+            '.hdr td{background:#dce3f0;font-weight:700;} .tot td{background:#ffffd0;font-weight:700;} .num{text-align:right;}</style>' +
+            '</head><body><h2>JEEVIKA ERP — ' + ttl + '</h2><h3>' + soc + ' | FY: ' + fy + '</h3><table>';
+          if (t === 'BS') html += '<thead><tr><th>Code</th><th>Account Name</th><th>Op. Debit (DR)</th><th>Op. Credit (CR)</th></tr></thead><tbody>';
+          else if (t === 'IE') html += '<thead><tr><th>Code</th><th>Account Name</th><th>Prev. Debit</th><th>Prev. Credit</th></tr></thead><tbody>';
+          else html += '<thead><tr><th>Member No</th><th>Member Name</th><th>Principle</th><th>Interest</th><th>Total</th></tr></thead><tbody>';
+          d.forEach(function (r) {
+            if (r.type === 'header') html += '<tr class="hdr"><td colspan="5">' + r.name + '</td></tr>';
+            else if (r.type === 'total') {
+              html += '<tr class="tot"><td colspan="2" class="num">' + r.name + '</td>';
+              if (t === 'BS') html += '<td class="num">' + (r.debit || 0).toFixed(2) + '</td><td class="num">' + (r.credit || 0).toFixed(2) + '</td>';
+              else if (t === 'IE') html += '<td class="num">' + (r.pDr || 0).toFixed(2) + '</td><td class="num">' + (r.pCr || 0).toFixed(2) + '</td>';
+              else html += '<td class="num">' + (r.prin || 0).toFixed(2) + '</td><td class="num">' + (r.int || 0).toFixed(2) + '</td><td class="num">' + (r.total || 0).toFixed(2) + '</td>';
+              html += '</tr>';
+            } else {
+              html += '<tr><td>' + r.code + '</td><td>' + r.name + '</td>';
+              if (t === 'BS') html += '<td class="num">' + (r.dr || 0).toFixed(2) + '</td><td class="num">' + (r.cr || 0).toFixed(2) + '</td>';
+              else if (t === 'IE') html += '<td class="num">' + (r.pDr || 0).toFixed(2) + '</td><td class="num">' + (r.pCr || 0).toFixed(2) + '</td>';
+              else html += '<td class="num">' + (r.prin || 0).toFixed(2) + '</td><td class="num">' + (r.int || 0).toFixed(2) + '</td><td class="num">' + (r.total || 0).toFixed(2) + '</td>';
+              html += '</tr>';
+            }
+          });
+          html += '</tbody></table></body></html>';
+          w.document.write(html); w.document.close();
+          setTimeout(function () { w.print(); }, 400);
+        },
+
+        importData: function () { toast('Excel/CSV Import — coming soon.', true); },
+        exportData: function (fmt) { toast('Exporting as ' + fmt.toUpperCase() + ' — coming soon.', true); },
+
+        exit: function () {
+          if (typeof window.WorkspaceBridge !== 'undefined') window.WorkspaceBridge.closeTab('opening-balances');
+          else { var p = document.getElementById('ob-panel'); if (p) p.style.display = 'none'; }
+        }
+      };
+
+      // ── Keyboard ─────────────────────────────────────
+      document.addEventListener('keydown', function (e) {
+        var fp = document.getElementById('ob-form-pane');
+        if (fp && fp.style.display === 'flex') { if (e.key === 'Escape') OB.closeForm(); return; }
+        var m = document.getElementById('ob-mc-modal');
+        if (m && m.style.display === 'flex') { if (e.key === 'Escape') m.style.display = 'none'; return; }
+        var d = OB.getData();
+        if (e.key === 'ArrowDown') { e.preventDefault(); selectedIdx = Math.min(selectedIdx + 1, d.length - 1); OB.renderGrid(); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); selectedIdx = Math.max(selectedIdx - 1, 0); OB.renderGrid(); }
+        else if (e.key === 'Escape') OB.exit();
+      });
+
+      // ── Init ──────────────────────────────────────────
+      (async function () {
+        // Context from Auth
+        if (window.Auth) {
+          try {
+            var sn = Auth.getSocietyName ? Auth.getSocietyName() : null;
+            var fy = Auth.getFYLabel ? Auth.getFYLabel() : null;
+            if (sn) document.getElementById('obSocName').textContent = sn;
+            if (fy) document.getElementById('obFyLabel').textContent = fy;
+          } catch (e) { }
+        }
+
+        await loadBillTypes();
+
+        var bsRadio = document.querySelector('#ob-panel input[value="BS"]');
+        if (bsRadio) bsRadio.checked = true;
+        OB.updateActiveTypeBtn('BS');
+        await loadFromServer();
+      })();
+
+    })();
+  </script>
+</body>
+
+</html>

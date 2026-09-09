@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Purchase Order (Inventory Booking) - PO — JEEVIKA ERP</title>
+  <script src="../../../config.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="css/purchase-order.css">
+  <style>
+    /* EXACT STYLING & ALIGNMENT MATCHING ATTACHED SCREENSHOTS */
+    body {
+      margin: 0; padding: 0; height: 100vh; overflow: hidden;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #ffffff; color: #1e293b;
+    }
+
+    .module-header {
+      background: #ffffff;
+      padding: 10px 16px 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .module-title { font-size: 16px; font-weight: 800; color: #0f172a; margin: 0 0 2px 0; }
+    .module-subtitle { font-size: 11px; color: #64748b; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+
+    .btn-tb-blue {
+      background: #ffffff;
+      color: #0D47A1;
+      border: none;
+      padding: 5px 12px;
+      font-size: 11px;
+      font-weight: 800;
+      border-radius: 4px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      text-transform: uppercase;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.12);
+    }
+    .btn-tb-blue:hover { background: #f0f7ff; color: #0a3880; }
+    
+    .btn-tb-outline {
+      background: rgba(255,255,255,0.15);
+      color: #ffffff;
+      border: 1px solid rgba(255,255,255,0.3);
+      padding: 5px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 4px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      text-transform: uppercase;
+    }
+    .btn-tb-outline:hover { background: rgba(255,255,255,0.25); }
+
+    /* TABLE SCROLLING & RESIZING */
+    .erp-table-wrap {
+      flex: 1;
+      overflow: auto;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+    }
+    table.erp-table {
+      width: 100%;
+      min-width: 1150px;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
+    table.erp-table th {
+      background: #0D47A1;
+      color: #ffffff;
+      padding: 7px 10px;
+      font-size: 10.5px;
+      font-weight: 800;
+      text-transform: uppercase;
+      text-align: left;
+      border: 1px solid #0a3880;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      white-space: nowrap;
+      user-select: none;
+    }
+    table.erp-table td {
+      padding: 6px 10px;
+      border-bottom: 1px solid #e2e8f0;
+      border-right: 1px solid #e2e8f0;
+      white-space: nowrap;
+    }
+    table.erp-table tr:hover td { background: #f0f9ff !important; cursor: pointer; }
+    table.erp-table tr.row-active td { background: #dbeafe !important; color: #1e40af; font-weight: 700; }
+
+    /* COLUMN RESIZER HANDLE */
+    th { position: relative; }
+    .col-resizer {
+      position: absolute; right: 0; top: 0; bottom: 0; width: 5px; cursor: col-resize; z-index: 10;
+    }
+    .col-resizer:hover, .col-resizer.resizing { background: #60a5fa; }
+
+    /* FORM LAYOUT */
+    .form-main-container {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+      height: calc(100vh - 54px);
+      max-height: calc(100vh - 54px);
+      overflow: hidden;
+      background: #ffffff;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .form-left-col {
+      flex: 1 1 0%;
+      min-width: 0;
+      height: 100%;
+      max-height: 100%;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid #cbd5e1;
+      overflow: hidden;
+      box-sizing: border-box;
+    }
+    .form-left-panel {
+      flex: 1 1 0%;
+      min-width: 0;
+      min-height: 0;
+      height: 100%;
+      overflow-y: scroll;
+      overflow-x: hidden;
+      padding: 14px 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      border-right: none;
+      box-sizing: border-box;
+      scrollbar-width: thin;
+      scrollbar-color: #64748b #f1f5f9;
+    }
+    .form-left-panel > * {
+      flex-shrink: 0 !important;
+    }
+    .form-left-panel::-webkit-scrollbar {
+      width: 8px;
+    }
+    .form-left-panel::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    .form-left-panel::-webkit-scrollbar-thumb {
+      background: #64748b;
+      border-radius: 4px;
+    }
+    .form-left-panel::-webkit-scrollbar-thumb:hover {
+      background: #334155;
+    }
+
+    .form-right-sidebar {
+      width: 280px;
+      min-width: 280px;
+      max-width: 280px;
+      flex-shrink: 0;
+      min-height: 0;
+      height: 100%;
+      max-height: 100%;
+      background: #ffffff;
+      border-left: 1px solid #cbd5e1;
+      display: flex;
+      flex-direction: column;
+      overflow-y: scroll;
+      overflow-x: hidden;
+      box-sizing: border-box;
+      scrollbar-width: thin;
+      scrollbar-color: #64748b #f1f5f9;
+    }
+    .form-right-sidebar::-webkit-scrollbar {
+      width: 8px;
+    }
+    .form-right-sidebar::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    .form-right-sidebar::-webkit-scrollbar-thumb {
+      background: #64748b;
+      border-radius: 4px;
+    }
+    .form-right-sidebar::-webkit-scrollbar-thumb:hover {
+      background: #334155;
+    }
+
+    /* SIDEBAR TAB STRIP */
+    .sidebar-tabs { display: flex; background: #0D47A1; padding: 0; margin: 0; }
+    .sidebar-tab {
+      flex: 1; padding: 8px 4px; font-size: 11px; font-weight: 800; color: #ffffff; opacity: 0.75; text-align: center; cursor: pointer; border-bottom: 2px solid transparent; text-transform: uppercase;
+    }
+    .sidebar-tab.active { opacity: 1; background: #1565C0; border-bottom: 2px solid #ffffff; }
+
+    .sidebar-header-bar {
+      background: #0D47A1; color: #ffffff; padding: 7px 10px; font-weight: 800; font-size: 11.5px; display: flex; align-items: center; justify-content: center; gap: 6px; text-transform: uppercase;
+    }
+
+    /* CHECKLIST PANEL */
+    .checklist-card {
+      border: 1px solid #fecaca; background: #fff5f5; border-radius: 4px; padding: 10px; margin: 10px; display: flex; flex-direction: column; gap: 6px;
+    }
+    .checklist-title { font-size: 11px; font-weight: 800; color: #dc2626; display: flex; align-items: center; gap: 4px; border-bottom: 1px solid #fee2e2; padding-bottom: 4px; }
+    .checklist-item { font-size: 10px; font-weight: 700; color: #475569; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+    .checklist-item input { cursor: pointer; }
+
+    /* GRID TABLE IN FORM */
+    table.po-grid-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    table.po-grid-table th { background: #0D47A1; color: #ffffff; padding: 7px 10px; font-size: 10px; font-weight: 800; text-transform: uppercase; border: 1px solid #0a3880; }
+    table.po-grid-table td { padding: 6px 10px; border: 1px solid #cbd5e1; }
+
+    .form-label { font-size: 10.5px; font-weight: 800; color: #475569; text-transform: uppercase; margin-bottom: 4px; display: block; letter-spacing: 0.2px; }
+    .form-label-orange { color: #d97706 !important; }
+    .form-label-blue { color: #0D47A1 !important; }
+
+    .form-inp, .form-sel { height: 30px; border: 1px solid #cbd5e1; border-radius: 4px; padding: 2px 10px; font-size: 11.5px; width: 100%; outline: none; box-sizing: border-box; }
+    .form-inp:focus, .form-sel:focus { border-color: #0D47A1; box-shadow: 0 0 0 1px #0D47A1; }
+
+    .btn-icon-attached {
+      height: 30px; width: 32px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 4px; font-weight: 800; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .btn-icon-attached:hover { background: #e2e8f0; }
+  </style>
+</head>
+<body>
+
+<div style="display:flex; flex-direction:column; height:100vh; overflow:hidden;">
+
+  <!-- MODULE HEADER (MATCHING IMAGE 1) -->
+  <div class="module-header">
+    <div>
+      <h1 class="module-title">Purchase Order (Inventory Booking) - PO</h1>
+      
+    </div>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <div style="font-size:10px; color:#64748b; font-weight:700;">
+        Alt+A Add  F2 Edit  Del Delete  Ctrl+P Print  Alt+S Save
+      </div>
+      <button class="btn-tb-blue" style="background:#0D47A1; color:#fff;"><i class="bi bi-gear-fill"></i> SA PATH</button>
+    </div>
+  </div>
+
+  <!-- SECTION 1: REGISTER LIST VIEW (MATCHING IMAGE 1) -->
+  <div id="po-section-list" style="display:flex; flex-direction:column; flex:1; overflow:hidden;">
+    
+    <!-- TOOLBAR STRIP -->
+    <div style="background:#0D47A1; padding:6px 14px; display:flex; gap:6px; align-items:center; flex-shrink:0;">
+      <button class="btn-tb-blue" onclick="openAddPoForm()"><i class="bi bi-plus-lg"></i> ADD PURCHASE ORDER</button>
+      <button class="btn-tb-outline" onclick="editSelectedPo()"><i class="bi bi-pencil-square"></i> EDIT</button>
+      <button class="btn-tb-outline" onclick="deleteSelectedPo()"><i class="bi bi-trash-fill"></i> DELETE</button>
+
+      <div style="border-right:1px solid rgba(255,255,255,0.3); height:16px; margin:0 4px;"></div>
+
+      <button class="btn-tb-outline" onclick="previewSelectedPo()"><i class="bi bi-eye-fill"></i> PREVIEW</button>
+      <button class="btn-tb-outline" onclick="window.print()"><i class="bi bi-printer-fill"></i> PRINT</button>
+      <button class="btn-tb-outline" onclick="toggleFilterBar()"><i class="bi bi-funnel-fill"></i> FILTERS</button>
+      <button class="btn-tb-outline" id="btn-multi-change" onclick="openMultiChangeModal()"><i class="bi bi-check2-square"></i> MULTI CHANGE <span id="mc-sel-badge" class="mc-sel-badge" style="display:none; background:#22c55e; color:#fff; border-radius:10px; padding:1px 6px; font-size:10px; margin-left:4px;">0</span></button>
+
+      <span style="font-weight:700; color:#ffffff; font-size:11px; margin-left:auto; margin-right:10px;" id="po-list-count">0 entries</span>
+      <button class="btn-tb-outline" onclick="showList()" style="background:#C62828; border-color:#C62828; color:#fff;"><i class="bi bi-x-circle"></i> EXIT</button>
+    </div>
+
+    <!-- COLLAPSIBLE FILTER PANEL -->
+    <div id="po-filter-bar" style="display:none; background:#f1f5f9; padding:8px 14px; border-bottom:1px solid #cbd5e1; gap:12px; align-items:center;">
+      <div style="display:flex; align-items:center; gap:6px;">
+        <span style="font-size:10px; font-weight:800; color:#475569;">PO NO</span>
+        <input type="text" class="form-inp" id="flt-vno" placeholder="PO/..." oninput="applyFilters()" style="width:110px; height:26px;">
+      </div>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <span style="font-size:10px; font-weight:800; color:#475569;">VENDOR NAME</span>
+        <input type="text" class="form-inp" id="flt-person" placeholder="Vendor name..." oninput="applyFilters()" style="width:140px; height:26px;">
+      </div>
+      <button class="btn-tb-outline" onclick="clearFilters()" style="color:#C62828; border-color:#C62828; height:26px; padding:0 8px;"><i class="bi bi-x-circle"></i> Clear</button>
+    </div>
+
+    <!-- MAIN DATA TABLE GRID (EXACT COLUMNS: PO NO., DATE, VENDOR NAME, AMOUNT, INVOICE NO, INVOICE DATE, PERIOD, NARRATION, STATUS) -->
+    <div class="erp-table-wrap">
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th style="width:36px; text-align:center;"><input type="checkbox" id="chk-select-all" onclick="ERP_MultiChange.toggleSelectAll(this.checked, pos.map(r=>r.poId||r.voucherId))" title="Select / Deselect All"></th>
+            <th style="width:130px; cursor:pointer;" onclick="togglePoNoSort()" title="Click to sort Top to Bottom / Bottom to Top">
+              PO NO. <span id="sort-vno-icon">▲</span>
+            </th>
+            <th style="width:95px;">DATE</th>
+            <th style="width:180px;">VENDOR NAME</th>
+            <th style="width:110px; text-align:right;">AMOUNT</th>
+            <th style="width:110px;">INVOICE NO</th>
+            <th style="width:100px;">INVOICE DATE</th>
+            <th style="width:100px;">PERIOD</th>
+            <th>NARRATION</th>
+            <th style="width:100px; text-align:center;">STATUS</th>
+          </tr>
+        </thead>
+        <tbody id="po-list-tbody">
+          <!-- Rendered rows -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- SUMMARY FOOTER BAR -->
+    <div style="background:#e2e8f0; border-top:1px solid #cbd5e1; padding:6px 14px; display:flex; gap:24px; align-items:center; font-size:11px; font-weight:700; color:#1e293b;">
+      <span>Total POs: <span style="color:#0D47A1;" id="sum-po-count">0</span></span>
+      <span>Total Amount: <span style="color:#0D47A1;" id="sum-po-total">₹0.00</span></span>
+    </div>
+  </div>
+
+  <!-- SECTION 2: ADD / EDIT PURCHASE ORDER FORM & RIGHT SIDEBAR (MATCHING IMAGES 2 & 3) -->
+  <div id="po-section-form" style="display:none; flex-direction:column; flex:1; overflow:hidden;">
+    
+    <div class="form-main-container">
+        
+      <!-- LEFT COLUMN -->
+      <div class="form-left-col">
+
+        <!-- SCROLLABLE FORM PANEL -->
+        <div class="form-left-panel">
+          
+          <!-- TOP ROW 1: PURCHASE ORDER NO., DATE, PERSON TYPE, PERSON NAME -->
+          <div style="display:flex; gap:14px; align-items:flex-end; border-bottom:1px solid #e2e8f0; padding-bottom:6px; margin-bottom:2px;">
+            <div style="width:170px; flex-shrink:0;">
+              <label class="form-label">PURCHASE ORDER NO. *</label>
+              <input type="text" class="form-inp" id="frm-vno" readonly style="background:#f8fafc; font-weight:800; color:#0f172a; text-align:center;">
+            </div>
+            <div style="width:140px; flex-shrink:0;">
+              <label class="form-label">DATE *</label>
+              <input type="date" class="form-inp" id="frm-vdate" style="font-weight:700;">
+            </div>
+            <div style="width:145px; flex-shrink:0;">
+              <label class="form-label form-label-orange">PERSON TYPE</label>
+              <select class="form-sel" id="frm-person-type" onchange="onPersonTypeChange()" style="font-weight:700;">
+                <option value="NONE">NONE (Direct PO)</option>
+                <option value="Vendor" selected>Vendor</option>
+                <option value="Member">Member</option>
+                <option value="Staff">Staff</option>
+              </select>
+            </div>
+            <div style="flex:1;">
+              <label class="form-label form-label-blue">PERSON NAME</label>
+              <div style="display:flex; gap:6px;">
+                <select class="form-sel" id="frm-person-name" onchange="onPersonSelect()" style="font-weight:600; flex:1;">
+                  <option value="">— Select Person —</option>
+                </select>
+                <button type="button" id="btn-add-person" class="btn-icon-attached" onclick="openPersonLookupModal('frm-person-name', 'frm-person-type')" style="color:#0D47A1; font-size:14px;" title="Lookup Person (Vendor / Staff / Member Master)"><i class="bi bi-book"></i></button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ROW 2: SELECT ACCOUNT, DR/CR, AMOUNT, CONFIRM BUTTON (CARD BOX) -->
+          <div id="po-entry-card-row" style="border:1px solid #cbd5e1; border-radius:4px; padding:6px 12px; background:#f8fafc; margin-bottom:2px;">
+            <div style="display:flex; gap:12px; align-items:flex-end;">
+              <div style="flex:1;">
+                <label class="form-label">SELECT ACCOUNT</label>
+                <div style="display:flex; gap:4px;">
+                  <select class="form-sel" id="entry-acc-sel" style="font-weight:600; flex:1;"><option value="">— Select Account —</option></select>
+                  <button type="button" class="btn-icon-attached" onclick="openAccountLookupModal('entry-acc-sel')" style="color:#0D47A1; font-size:14px;" title="Lookup Account"><i class="bi bi-book"></i></button>
+                </div>
+              </div>
+              <div style="width:90px; flex-shrink:0;">
+                <label class="form-label">DR / CR</label>
+                <select class="form-sel" id="entry-type" style="font-weight:700; color:#0f172a;">
+                  <option value="Dr" selected>Dr</option>
+                  <option value="Cr">Cr</option>
+                </select>
+              </div>
+              <div style="width:130px; flex-shrink:0;">
+                <label class="form-label">AMOUNT *</label>
+                <input type="number" step="0.01" class="form-inp" id="entry-amount" placeholder="" style="text-align:right; font-family:'Consolas', monospace; font-weight:800;" onkeydown="if(event.key==='Enter'){confirmAddLineItem();}">
+              </div>
+              <button type="button" onclick="confirmAddLineItem()" class="btn-tb-blue" style="height:30px; padding:0 18px; background:#1565C0; color:#ffffff; border-radius:4px; font-weight:800; display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
+                <i class="bi bi-check-circle" style="color:#ffffff;"></i> <span style="color:#ffffff;">Confirm</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- ROW 3: ACCOUNTING LINE ITEMS GRID TABLE (MATCHING SCREENSHOT) -->
+          <div style="border:1px solid #cbd5e1; border-radius:4px; overflow:hidden; margin-bottom:4px;">
+            <table class="po-grid-table" style="width:100%; border-collapse:collapse; font-size:11px;">
+              <thead>
+                <tr style="background:#1565C0; color:#ffffff;">
+                  <th style="width:45px; text-align:center; padding:7px 8px; font-size:10px; font-weight:800; border-right:1px solid rgba(255,255,255,0.2);">SR</th>
+                  <th style="width:110px; text-align:left; padding:7px 10px; font-size:10px; font-weight:800; border-right:1px solid rgba(255,255,255,0.2);">A/C CODE</th>
+                  <th style="text-align:left; padding:7px 10px; font-size:10px; font-weight:800; border-right:1px solid rgba(255,255,255,0.2);">ACCOUNT NAME</th>
+                  <th style="width:130px; text-align:right; padding:7px 10px; font-size:10px; font-weight:800; border-right:1px solid rgba(255,255,255,0.2);">DEBIT</th>
+                  <th style="width:130px; text-align:right; padding:7px 10px; font-size:10px; font-weight:800;">CREDIT</th>
+                </tr>
+              </thead>
+              <tbody id="po-grid-tbody">
+                <!-- Rendered grid rows -->
+              </tbody>
+              <tfoot>
+                <tr style="background:#f0f9ff; font-weight:800; border-top:1px solid #cbd5e1;">
+                  <td colspan="3" style="text-align:right; padding:6px 10px; color:#0f172a; border-right:1px solid #cbd5e1;">TOTAL:</td>
+                  <td style="text-align:right; font-family:'Consolas', monospace; color:#0f172a; font-weight:800; padding:6px 10px; border-right:1px solid #cbd5e1;" id="grid-tot-dr">0.00</td>
+                  <td style="text-align:right; font-family:'Consolas', monospace; color:#0f172a; font-weight:800; padding:6px 10px;" id="grid-tot-cr">0.00</td>
+                </tr>
+                <tr style="background:#f0f9ff; font-weight:800; border-top:1px solid #cbd5e1;">
+                  <td colspan="3" style="text-align:right; padding:6px 10px; color:#0D47A1; border-right:1px solid #cbd5e1;">Net Balance:</td>
+                  <td colspan="2" style="text-align:right; font-family:'Consolas', monospace; font-size:12px; color:#0D47A1; padding:6px 10px;" id="grid-net-bal">0.00</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          <!-- ROW 4: INVOICE DETAILS SECTION (CARD BOX) -->
+          <div style="position:relative; background:#ffffff; padding:16px 12px 10px 12px; border:1px solid #cbd5e1; border-radius:4px; margin-top:6px;">
+            <span style="position:absolute; top:-9px; left:14px; background:#ffffff; padding:0 6px; font-size:10px; font-weight:800; color:#0D47A1; text-transform:uppercase; letter-spacing:0.3px;">
+              INVOICE DETAILS
+            </span>
+            <div style="display:flex; gap:12px; align-items:flex-end;">
+              <div style="width:160px; flex-shrink:0;">
+                <label class="form-label">INVOICE NO.</label>
+                <input type="text" class="form-inp" id="frm-invno">
+              </div>
+              <div style="width:150px; flex-shrink:0;">
+                <label class="form-label">INVOICE DATE</label>
+                <input type="date" class="form-inp" id="frm-invdate">
+              </div>
+              <div style="width:150px; flex-shrink:0;">
+                <label class="form-label">INVOICE DUE DATE</label>
+                <input type="date" class="form-inp" id="frm-invduedate">
+              </div>
+              <div style="flex:1;">
+                <label class="form-label">PERIOD</label>
+                <input type="text" class="form-inp" id="frm-invperiod" placeholder="e.g. July 2026">
+              </div>
+            </div>
+          </div>
+
+          <!-- ROW 5: PARTICULARS SECTION -->
+          <div style="position:relative; background:#ffffff; padding:16px 12px 10px 12px; border:1px solid #cbd5e1; border-radius:4px; margin-top:6px; display:flex; flex-direction:column; gap:8px;">
+            <span style="position:absolute; top:-9px; left:14px; background:#ffffff; padding:0 6px; font-size:10px; font-weight:800; color:#0D47A1; text-transform:uppercase; letter-spacing:0.3px;">
+              PARTICULARS
+            </span>
+            <div style="display:flex; width:100%; gap:8px; align-items:center;">
+              <input type="text" class="form-inp" id="frm-particular1" placeholder="Particulars 1..." style="flex:1;">
+              <button type="button" onclick="appendParticularTag(1)" style="width:90px; height:30px; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:3px; font-size:11px; font-weight:800; cursor:pointer; color:#334155;">Ctrl + L</button>
+            </div>
+            <div style="display:flex; width:100%; gap:8px; align-items:center;">
+              <input type="text" class="form-inp" id="frm-particular2" placeholder="Particulars 2..." style="flex:1;">
+              <button type="button" onclick="appendParticularTag(2)" style="width:90px; height:30px; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:3px; font-size:11px; font-weight:800; cursor:pointer; color:#334155;">Ctrl + L</button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- PINNED STATIC ACTION FOOTER (ALWAYS VISIBLE) -->
+        <div style="padding:10px 18px; background:#ffffff; border-top:1px solid #cbd5e1; display:flex; gap:12px; justify-content:center; align-items:center; flex-shrink:0; box-sizing:border-box; box-shadow:0 -2px 6px rgba(0,0,0,0.04); z-index:10;">
+          <button type="button" class="btn-tb-blue" onclick="savePo()" style="background:#2E7D32; color:#fff; padding:7px 26px; font-size:12px; font-weight:800; border-radius:4px; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+            <i class="bi bi-check-circle"></i> SAVE (ALT + S)
+          </button>
+          <button type="button" class="btn-tb-outline" onclick="showList()" style="background:#fff; color:#C62828; border:1px solid #C62828; padding:7px 26px; font-size:12px; font-weight:800; border-radius:4px; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+            <i class="bi bi-x-circle"></i> EXIT / CANCEL (ESC)
+          </button>
+        </div>
+
+      </div>
+
+      <!-- RIGHT SIDEBAR: INFO PANEL (MATCHING SCREENSHOT) -->
+      <div class="form-right-sidebar">
+        
+        <!-- SIDEBAR HEADER: Info -->
+        <div class="sidebar-header-bar" style="background:#0D47A1; color:#ffffff; padding:7px 10px; font-weight:800; font-size:12px; display:flex; align-items:center; justify-content:center; gap:6px; text-transform:uppercase;">
+          <i class="bi bi-info-circle-fill"></i> Info
+        </div>
+
+        <!-- SIDEBAR TAB STRIP: Member | Vendor | Staff -->
+        <div class="sidebar-tabs" style="display:flex; background:#0D47A1; padding:0; margin:0;">
+          <div class="sidebar-tab" id="tab-member" onclick="switchSidebarTab('Member')">Member</div>
+          <div class="sidebar-tab active" id="tab-vendor" onclick="switchSidebarTab('Vendor')">Vendor</div>
+          <div class="sidebar-tab" id="tab-staff" onclick="switchSidebarTab('Staff')">Staff</div>
+        </div>
+
+        <!-- PERSON DETAILS FORM -->
+        <div style="padding:10px; display:flex; flex-direction:column; gap:8px;">
+          <div>
+            <label class="form-label">PAN NO.</label>
+            <input type="text" class="form-inp" id="sb-pan" placeholder="PAN No.">
+          </div>
+          <div style="display:flex; gap:8px;">
+            <div style="flex:1;">
+              <label class="form-label">TDS %</label>
+              <input type="text" class="form-inp" id="sb-tds" value="0.00 %">
+            </div>
+            <div style="flex:1.4;">
+              <label class="form-label">TDS SECTION CODE</label>
+              <input type="text" class="form-inp" id="sb-tdssec" placeholder="Section">
+            </div>
+          </div>
+
+          <!-- COLLAPSIBLE MORE INFO PANEL -->
+          <div style="border:1px solid #e2e8f0; border-radius:4px; overflow:hidden; background:#ffffff;">
+            <div onclick="toggleMoreInfo()" style="background:#f1f5f9; padding:6px 10px; font-size:10.5px; font-weight:800; color:#1e293b; display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
+              <span>More Info</span>
+              <span id="more-info-toggle-icon" style="font-weight:800;">-</span>
+            </div>
+            <div id="more-info-body" style="padding:8px; display:flex; flex-direction:column; gap:6px;">
+              <div>
+                <label class="form-label">GSTIN NO</label>
+                <input type="text" class="form-inp" id="sb-gstin" placeholder="GSTIN No.">
+              </div>
+              <div>
+                <label class="form-label">CONTACT NO</label>
+                <div style="display:flex; gap:6px;">
+                  <input type="text" class="form-inp" id="sb-mob1" placeholder="Mobile 1">
+                  <input type="text" class="form-inp" id="sb-mob2" placeholder="Mobile 2">
+                </div>
+              </div>
+              <div>
+                <label class="form-label">CONTRACT VALUE</label>
+                <div style="display:flex; align-items:center; gap:4px;">
+                  <span style="font-weight:800; color:#475569;">₹</span>
+                  <input type="text" class="form-inp" id="sb-contract-val" value="0.00" style="text-align:right; font-family:'Consolas', monospace;">
+                </div>
+              </div>
+              <div>
+                <label class="form-label">CONTRACT PERIOD</label>
+                <div style="display:flex; gap:4px; align-items:center;">
+                  <input type="date" class="form-inp" id="sb-period-from" style="font-size:10px;">
+                  <span style="font-size:10px; font-weight:700;">to</span>
+                  <input type="date" class="form-inp" id="sb-period-to" style="font-size:10px;">
+                </div>
+              </div>
+              <div>
+                <label class="form-label"><i class="bi bi-chat-left-text" style="margin-right:3px;"></i>REMARK</label>
+                <textarea class="form-inp" id="sb-remark" rows="2" style="height:44px; resize:none;" placeholder="Remark..."></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- VOUCHER CHECK LIST PANEL -->
+        <div class="checklist-card">
+          <div class="checklist-title">
+            <i class="bi bi-shield-check"></i> VOUCHER CHECK LIST
+          </div>
+          <label class="checklist-item"><input type="checkbox" id="chk-comm"> NO COMMITTEE SIGN</label>
+          <label class="checklist-item"><input type="checkbox" id="chk-recv"> NO RECEIVER SIGN</label>
+          <label class="checklist-item"><input type="checkbox" id="chk-supp"> NO SUPPORTING</label>
+          <label class="checklist-item"><input type="checkbox" id="chk-meet"> NO MEETING APPROV</label>
+          <label class="checklist-item"><input type="checkbox" id="chk-tds"> NO TDS DEDUCTED</label>
+          <label class="checklist-item"><input type="checkbox" id="chk-vouch"> NO VOUCHER</label>
+          <label class="checklist-item"><input type="checkbox" id="chk-cash"> EXCESS CASH LIMIT</label>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 3: PREVIEW PURCHASE ORDER -->
+  <div id="po-section-preview" style="display:none; flex-direction:column; flex:1; overflow:hidden;">
+    <div style="padding:8px 14px; background:#f1f5f9; border-bottom:1px solid #cbd5e1; display:flex; gap:8px;">
+      <button class="btn-tb-blue" onclick="showList()"><i class="bi bi-arrow-left"></i> Back to List</button>
+      <button class="btn-tb-blue" onclick="window.print()" style="background:#2E7D32;"><i class="bi bi-printer-fill"></i> Print PO</button>
+    </div>
+    <div style="flex:1; overflow-y:auto; padding:20px; background:#cbd5e1; display:flex; justify-content:center;">
+      <div id="preview-po-card" style="background:#fff; width:750px; padding:24px; border-radius:6px; box-shadow:0 4px 12px rgba(0,0,0,0.15);"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL: MULTI CHANGE -->
+<div id="modal-multi-change" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.6); backdrop-filter:blur(2px); z-index:999; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:8px; width:440px; box-shadow:0 10px 25px rgba(0,0,0,0.25); overflow:hidden; border:1px solid #cbd5e1;">
+    <div style="background:#0D47A1; color:#fff; padding:12px 16px; font-weight:800; font-size:13px; display:flex; justify-content:space-between; align-items:center;">
+      <span style="display:flex; align-items:center; gap:8px;"><i class="bi bi-check2-square"></i> <span>Multi Change Purchase Orders</span></span>
+      <button onclick="closeModal('modal-multi-change')" style="background:none; border:none; color:#fff; cursor:pointer; font-weight:bold; font-size:16px;">✕</button>
+    </div>
+    <div style="padding:16px; display:flex; flex-direction:column; gap:12px;">
+      <div id="mc-target-info" style="background:#e0f2fe; border:1px solid #bae6fd; border-radius:4px; padding:8px 12px; font-size:11.5px; font-weight:700; color:#0369a1;">
+        Target: <span id="mc-target-text">All checked purchase orders</span>
+      </div>
+      <div id="mc-range-box" style="display:none; grid-template-columns:1fr 1fr; gap:10px;">
+        <div>
+          <label class="form-label">FROM PO NO</label>
+          <input type="text" class="form-inp" id="mc-from" placeholder="PO/...">
+        </div>
+        <div>
+          <label class="form-label">TO PO NO</label>
+          <input type="text" class="form-inp" id="mc-to" placeholder="PO/...">
+        </div>
+      </div>
+      <div>
+        <label class="form-label">FIELD TO CHANGE *</label>
+        <select class="form-sel" id="mc-field" style="font-weight:700;">
+          <option value="vendorName">Vendor Name</option>
+          <option value="voucherDate">PO Date (YYYY-MM-DD)</option>
+          <option value="status">Status (Pending / Approved / Cancelled)</option>
+          <option value="particular1">Particulars 1 / Narration</option>
+          <option value="particular2">Particulars 2 / Period</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">NEW VALUE *</label>
+        <input type="text" class="form-inp" id="mc-value" placeholder="Enter new value..." style="font-weight:700;">
+      </div>
+    </div>
+    <div style="padding:10px 16px; background:#f8fafc; border-top:1px solid #cbd5e1; display:flex; justify-content:flex-end; gap:8px;">
+      <button class="btn-tb-outline" onclick="closeModal('modal-multi-change')" style="color:#475569; border-color:#cbd5e1;">Cancel</button>
+      <button class="btn-tb-blue" onclick="runMultiChange()" style="background:#0D47A1; color:#fff; font-weight:800;"><i class="bi bi-check-lg"></i> Apply Multi Change</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCRIPTS -->
+<script src="../../../assets/js/api.js?v=20260831_0126"></script>
+<script src="../../../assets/js/auth.js?v=20260831_0126"></script>
+<script src="../../../assets/js/utils.js?v=20260831_0126"></script>
+<script src="purchase-order.js?v=20260831_0126"></script>
+</body>
+</html>

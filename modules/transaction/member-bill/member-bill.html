@@ -1,0 +1,1557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bill / Invoice Generation — JEEVIKA ERP</title>
+  <script src="../../../config.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* HIDE SPINNER ARROWS FOR NUMBER INPUTS */
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button {
+      -webkit-appearance: none !important;
+      margin: 0 !important;
+    }
+    input[type=number] {
+      -moz-appearance: textfield !important;
+      appearance: textfield !important;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif;
+      font-size: 11.5px;
+      background: #f8fafc;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      color: #1e293b;
+    }
+
+    #member-bill-panel {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    /* TOP MODULE HEADER */
+    .module-header {
+      background: #fff;
+      padding: 8px 14px 6px;
+      border-bottom: 1px solid #cbd5e1;
+      flex-shrink: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .module-header-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: #0f172a;
+      margin: 0 0 2px 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .module-header-sub {
+      font-size: 10px;
+      color: #64748b;
+      font-weight: 600;
+    }
+    .sa-path-btn {
+      background: #1565C0;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .sa-path-btn:hover { background: #0d47a1; }
+
+    /* BILL TYPE PILL STRIP */
+    .mb-type-strip {
+      background: #f1f5f9;
+      padding: 6px 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid #cbd5e1;
+      flex-shrink: 0;
+    }
+    .mb-type-label {
+      font-size: 10.5px;
+      font-weight: 800;
+      color: #334155;
+      text-transform: uppercase;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .mb-pill-container {
+      display: flex;
+      gap: 6px;
+      flex: 1;
+      align-items: center;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .mb-pill-container::-webkit-scrollbar { display: none; }
+    .mb-type-pill {
+      font-size: 10px;
+      font-weight: 700;
+      color: #475569;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      padding: 3px 12px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-transform: uppercase;
+      white-space: nowrap;
+      user-select: none;
+    }
+    .mb-type-pill:hover { background: #e2e8f0; color: #1565C0; border-color: #94a3b8; }
+    .mb-type-pill.active {
+      background: #1565C0;
+      color: #ffffff;
+      border-color: #1565C0;
+      font-weight: 800;
+      box-shadow: 0 1px 3px rgba(21,101,192,0.3);
+    }
+    .mb-bill-count {
+      font-size: 11px;
+      font-weight: 700;
+      color: #1565C0;
+      margin-left: auto;
+    }
+
+    /* TOOLBAR STRIP & ADD BILL DROPDOWN */
+    .mb-toolbar {
+      background: #ffffff;
+      border-bottom: 1px solid #cbd5e1;
+      padding: 6px 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+    .add-bill-wrap {
+      position: relative;
+      display: inline-block;
+    }
+    .add-bill-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      min-width: 150px;
+      background: #ffffff;
+      border: 1px solid #1565C0;
+      border-radius: 4px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 999;
+      display: none;
+      margin-top: 2px;
+      overflow: hidden;
+    }
+    .add-bill-dropdown-item {
+      padding: 7px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #1e293b;
+      cursor: pointer;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .add-bill-dropdown-item:last-child { border-bottom: none; }
+    .add-bill-dropdown-item:hover {
+      background: #1565C0;
+      color: #ffffff;
+    }
+
+    .btn-tb-blue {
+      background: #1565C0;
+      color: #ffffff;
+      border: 1px solid #0d47a1;
+      padding: 4px 10px;
+      font-size: 10.5px;
+      font-weight: 700;
+      border-radius: 3px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      text-transform: uppercase;
+    }
+    .btn-tb-blue:hover { background: #0d47a1; }
+    .btn-tb-orange {
+      background: #FF8C42;
+      color: #ffffff;
+      border: 1px solid #e67300;
+      padding: 4px 10px;
+      font-size: 10.5px;
+      font-weight: 700;
+      border-radius: 3px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      text-transform: uppercase;
+    }
+    .btn-tb-orange:hover { background: #e67300; }
+    .btn-tb-outline {
+      background: #ffffff;
+      color: #1565C0;
+      border: 1px solid #1565C0;
+      padding: 4px 10px;
+      font-size: 10.5px;
+      font-weight: 700;
+      border-radius: 3px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      text-transform: uppercase;
+    }
+    .btn-tb-outline:hover { background: #f0f7ff; }
+
+    /* COLLAPSIBLE FILTERS PANEL */
+    .mb-filter-panel {
+      background: #f1f5f9;
+      border-bottom: 1px solid #cbd5e1;
+      padding: 6px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+    .filter-group { display: flex; align-items: center; gap: 4px; }
+    .filter-lbl { font-size: 10px; font-weight: 700; color: #475569; text-transform: uppercase; }
+    .filter-inp, .filter-sel {
+      height: 24px;
+      padding: 0 6px;
+      font-size: 11px;
+      border: 1px solid #cbd5e1;
+      border-radius: 3px;
+      background: #fff;
+      outline: none;
+    }
+
+    /* DATA TABLE EXCEL STYLING WITH HORIZONTAL SCROLLBAR & COLUMN RESIZING */
+    .mb-table-wrapper {
+      flex: 1;
+      overflow-x: auto !important;
+      overflow-y: auto !important;
+      background: #ffffff;
+      position: relative;
+    }
+    table.mb-main-table {
+      width: max-content;
+      min-width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+      table-layout: fixed;
+    }
+    table.mb-main-table th {
+      border: 1px solid #cbd5e1;
+      background: #1565C0;
+      color: #ffffff;
+      padding: 6px 12px 6px 8px;
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      text-align: left;
+      white-space: nowrap;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      position: relative;
+      user-select: none;
+      box-sizing: border-box;
+    }
+    .col-resizer {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 6px;
+      height: 100%;
+      cursor: col-resize;
+      user-select: none;
+      z-index: 3;
+    }
+    .col-resizer:hover, .col-resizer.resizing {
+      background: #90caf9;
+    }
+    table.mb-main-table td {
+      border: 1px solid #e2e8f0;
+      padding: 5px 8px;
+      height: 26px;
+      vertical-align: middle;
+      font-size: 11px;
+      white-space: nowrap;
+      color: #334155;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    table.mb-main-table tbody tr:hover td {
+      background-color: #f0f9ff !important;
+    }
+    table.mb-main-table tbody tr.selected td {
+      background-color: #bae6fd !important;
+      color: #0f172a !important;
+      font-weight: 600;
+    }
+
+    /* SUMMARY FOOTER BAR */
+    .mb-footer-bar {
+      background: #e2e8f0;
+      border-top: 1px solid #cbd5e1;
+      padding: 6px 14px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #334155;
+      display: flex;
+      gap: 24px;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .mb-footer-val { font-family: 'Consolas', monospace; color: #1565C0; }
+
+    /* SECTION 2: ADD / ALTER FORM VIEW */
+    .mb-form-container {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      overflow: hidden;
+      background: #ffffff;
+    }
+    .form-top-fields {
+      padding: 12px 14px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      background: #ffffff;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .form-field {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .form-field label {
+      font-size: 10px;
+      font-weight: 800;
+      color: #475569;
+      text-transform: uppercase;
+    }
+    .form-field label span.req { color: #dc2626; }
+    .form-inp {
+      height: 26px;
+      padding: 0 8px;
+      font-size: 11px;
+      border: 1px solid #cbd5e1;
+      border-radius: 3px;
+      background: #ffffff;
+      outline: none;
+      font-family: inherit;
+    }
+    .form-inp[readonly] { background: #f1f5f9; color: #64748b; font-weight: 700; }
+    .form-inp:focus { border-color: #1565C0; box-shadow: 0 0 0 2px rgba(21,101,192,0.15); }
+
+    /* SEARCHABLE COMBOBOX FOR MEMBER SELECT */
+    .combobox-wrap {
+      position: relative;
+      width: 260px;
+    }
+    .combobox-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      width: 100%;
+      max-height: 220px;
+      overflow-y: auto;
+      background: #ffffff;
+      border: 1px solid #1565C0;
+      border-radius: 3px;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+      z-index: 999;
+      display: none;
+    }
+    .combobox-item {
+      padding: 6px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      border-bottom: 1px solid #f1f5f9;
+      color: #1e293b;
+    }
+    .combobox-item:hover, .combobox-item.active {
+      background: #1565C0;
+      color: #ffffff;
+    }
+
+    /* ACCOUNTS GRID TABLE */
+    .form-grid-wrapper {
+      flex: 1;
+      overflow: auto;
+      padding: 10px 14px;
+      background: #ffffff;
+    }
+    table.form-grid-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
+    table.form-grid-table th {
+      border: 1px solid #cbd5e1;
+      background: #1565C0;
+      color: #ffffff;
+      padding: 6px 8px;
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      text-align: left;
+    }
+    table.form-grid-table td {
+      border: 1px solid #cbd5e1;
+      padding: 2px 6px;
+      height: 26px;
+    }
+    .inp-grid-amt {
+      width: 100%;
+      height: 24px;
+      border: none;
+      text-align: right;
+      font-family: 'Consolas', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      outline: none;
+      background: transparent;
+    }
+    .inp-grid-amt:focus { background: #fff; box-shadow: inset 0 0 0 2px #1565C0; }
+
+    /* PARTICULARS SECTION */
+    .particulars-box {
+      margin: 0 14px 10px 14px;
+      padding: 10px 12px;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+    }
+    .particulars-title {
+      font-size: 10px;
+      font-weight: 800;
+      color: #1565C0;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .particular-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .particular-row:last-child { margin-bottom: 0; }
+    .btn-ctrl-l {
+      background: #e2e8f0;
+      color: #475569;
+      border: 1px solid #cbd5e1;
+      border-radius: 3px;
+      padding: 3px 10px;
+      font-size: 10px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-ctrl-l:hover { background: #cbd5e1; }
+
+    /* BOTTOM FORM ACTION BUTTONS */
+    .form-action-bar {
+      background: #f8fafc;
+      border-top: 1px solid #cbd5e1;
+      padding: 8px 14px;
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .btn-save-green {
+      background: #2E7D32;
+      color: #ffffff;
+      border: none;
+      border-radius: 4px;
+      padding: 6px 18px;
+      font-size: 11.5px;
+      font-weight: 800;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      text-transform: uppercase;
+      box-shadow: 0 2px 4px rgba(46,125,50,0.25);
+    }
+    .btn-save-green:hover { background: #1b5e20; }
+    .btn-cancel-red {
+      background: #ffffff;
+      color: #dc2626;
+      border: 1px solid #dc2626;
+      border-radius: 4px;
+      padding: 6px 18px;
+      font-size: 11.5px;
+      font-weight: 800;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      text-transform: uppercase;
+    }
+    .btn-cancel-red:hover { background: #fef2f2; }
+
+    /* MODAL STYLING */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(15,23,42,0.5); z-index: 99999;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .modal-card {
+      background: #ffffff; border-radius: 6px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      overflow: hidden; display: flex; flex-direction: column; width: 440px;
+    }
+    .modal-header {
+      background: #1565C0; color: #ffffff; padding: 10px 14px;
+      display: flex; justify-content: space-between; align-items: center;
+      font-weight: 800; font-size: 12px;
+    }
+    .modal-close { background: none; border: none; color: #ffffff; font-size: 18px; cursor: pointer; }
+    .modal-body { padding: 14px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+    .modal-footer { background: #f8fafc; border-top: 1px solid #cbd5e1; padding: 8px 14px; display: flex; justify-content: flex-end; gap: 8px; }
+
+    /* ── MODERN 2-COLUMN AUTO GENERATE BILLS MODAL (MATCHING REFERENCE IMAGE) ── */
+    .ag-modal-card {
+      width: 960px !important;
+      max-width: 96vw !important;
+      max-height: 94vh !important;
+      border-radius: 12px !important;
+      box-shadow: 0 20px 50px rgba(15, 23, 42, 0.28) !important;
+      border: 1px solid #e2e8f0 !important;
+      display: flex;
+      flex-direction: column;
+      background: #ffffff;
+      overflow: hidden;
+      font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    }
+    .ag-header {
+      background: #2563eb;
+      color: #ffffff;
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      user-select: none;
+    }
+    .ag-header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .ag-header-icon {
+      width: 32px;
+      height: 32px;
+      background: rgba(255,255,255,0.22);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 17px;
+      color: #ffffff;
+      flex-shrink: 0;
+    }
+    .ag-header-title {
+      font-size: 15px;
+      font-weight: 800;
+      line-height: 1.2;
+      color: #ffffff;
+      letter-spacing: -0.2px;
+    }
+    .ag-header-subtitle {
+      font-size: 11px;
+      color: rgba(255,255,255,0.88);
+      margin-top: 2px;
+      font-weight: 500;
+    }
+    .ag-body-layout {
+      display: flex;
+      gap: 20px;
+      padding: 18px 20px 14px;
+      overflow-y: auto;
+      flex: 1;
+      background: #ffffff;
+    }
+    .ag-col-left {
+      flex: 1.35;
+      display: flex;
+      flex-direction: column;
+      gap: 13px;
+    }
+    .ag-col-right {
+      flex: 0.85;
+      min-width: 290px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .ag-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .ag-field {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .ag-field label {
+      font-size: 10px;
+      font-weight: 800;
+      color: #1e3a8a;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      margin: 0;
+    }
+    .ag-input-wrap {
+      display: flex;
+      align-items: center;
+      position: relative;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      height: 34px;
+      transition: all 0.15s ease;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    }
+    .ag-input-wrap:focus-within {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 2.5px rgba(37,99,235,0.15);
+    }
+    .ag-input-wrap i.lead-icon {
+      padding-left: 10px;
+      color: #64748b;
+      font-size: 13px;
+      pointer-events: none;
+    }
+    .ag-input-wrap i.trail-icon {
+      padding-right: 10px;
+      color: #64748b;
+      font-size: 13px;
+      pointer-events: none;
+    }
+    .ag-input-wrap input, .ag-input-wrap select {
+      flex: 1;
+      height: 100%;
+      border: none;
+      background: transparent;
+      padding: 0 10px;
+      font-size: 11.5px;
+      color: #1e293b;
+      font-weight: 600;
+      outline: none;
+      width: 100%;
+    }
+    /* FREQUENCY PILLS */
+    .ag-freq-btn-group {
+      display: flex;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      height: 34px;
+      overflow: hidden;
+      background: #f8fafc;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    }
+    .ag-freq-btn {
+      flex: 1;
+      border: none;
+      background: transparent;
+      font-size: 11px;
+      font-weight: 700;
+      color: #475569;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-right: 1px solid #e2e8f0;
+    }
+    .ag-freq-btn:last-child { border-right: none; }
+    .ag-freq-btn.active {
+      background: #2563eb;
+      color: #ffffff;
+      font-weight: 800;
+    }
+    .ag-freq-btn:not(.active):hover {
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+    /* ADVANCED OPTIONS */
+    .ag-adv-section {
+      margin-top: 4px;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 10px;
+    }
+    .ag-adv-title {
+      font-size: 10px;
+      font-weight: 800;
+      color: #1e3a8a;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      margin-bottom: 8px;
+      display: block;
+    }
+    .ag-adv-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 7px 12px;
+    }
+    .ag-adv-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 10px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      font-size: 11px;
+      color: #334155;
+      font-weight: 600;
+      transition: all 0.15s;
+    }
+    .ag-adv-item:hover {
+      border-color: #cbd5e1;
+      background: #f8fafc;
+    }
+    .ag-adv-item label {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      cursor: pointer;
+      user-select: none;
+      margin: 0;
+      font-weight: 600;
+      font-size: 11px;
+      color: #334155;
+      flex: 1;
+    }
+    .ag-adv-item input[type="checkbox"] {
+      cursor: pointer;
+      accent-color: #2563eb;
+      width: 14px;
+      height: 14px;
+    }
+    /* SLICK TOGGLE SWITCH */
+    .ag-switch {
+      position: relative;
+      display: inline-block;
+      width: 32px;
+      height: 18px;
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+    .ag-switch input { opacity: 0; width: 0; height: 0; }
+    .ag-slider {
+      position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #cbd5e1;
+      transition: .2s;
+      border-radius: 18px;
+    }
+    .ag-slider:before {
+      position: absolute; content: ""; height: 14px; width: 14px; left: 2px; bottom: 2px;
+      background-color: white;
+      transition: .2s;
+      border-radius: 50%;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+    }
+    .ag-switch input:checked + .ag-slider {
+      background-color: #2563eb;
+    }
+    .ag-switch input:checked + .ag-slider:before {
+      transform: translateX(14px);
+    }
+    /* BILL SUMMARY CARD */
+    .ag-summary-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      background: #ffffff;
+      padding: 12px 14px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+    }
+    .ag-sum-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 10.5px;
+      font-weight: 800;
+      color: #1e3a8a;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid #f1f5f9;
+      margin-bottom: 6px;
+    }
+    .ag-sum-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 5px 0;
+      font-size: 11.5px;
+      color: #475569;
+    }
+    .ag-sum-row-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #475569;
+      font-weight: 600;
+    }
+    .ag-sum-row-left i {
+      font-size: 12px;
+      color: #2563eb;
+      width: 14px;
+      text-align: center;
+    }
+    .ag-sum-val {
+      font-weight: 700;
+      color: #1e293b;
+      font-family: 'Consolas', monospace;
+      font-size: 12px;
+    }
+    .ag-sum-grand-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 6px;
+      padding-top: 8px;
+      border-top: 1.5px dashed #cbd5e1;
+    }
+    .ag-sum-grand-val {
+      font-size: 15px;
+      font-weight: 800;
+      color: #16a34a;
+      font-family: 'Consolas', monospace;
+    }
+    /* INFO CARDS */
+    .ag-info-note {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 11px;
+      color: #1e40af;
+      line-height: 1.45;
+    }
+    .ag-info-note ul {
+      margin-left: 16px;
+      margin-top: 4px;
+    }
+    .ag-info-note li { margin-bottom: 2px; }
+    .ag-info-tips {
+      background: #fefce8;
+      border: 1px solid #fef08a;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 11px;
+      color: #854d0e;
+      line-height: 1.45;
+    }
+    .ag-info-tips ul {
+      margin-left: 16px;
+      margin-top: 4px;
+    }
+    .ag-info-tips li { margin-bottom: 2px; }
+    /* FOOTER & BUTTONS */
+    .ag-footer {
+      background: #ffffff;
+      border-top: 1px solid #e2e8f0;
+      padding: 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .btn-ag-preview {
+      background: #ffffff;
+      border: 1px solid #2563eb;
+      color: #2563eb;
+      font-weight: 700;
+      font-size: 11.5px;
+      padding: 7px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s;
+    }
+    .btn-ag-preview:hover {
+      background: #eff6ff;
+    }
+    .btn-ag-cancel {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      color: #475569;
+      font-weight: 700;
+      font-size: 11.5px;
+      padding: 7px 18px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-ag-cancel:hover {
+      background: #f8fafc;
+      color: #1e293b;
+    }
+    .btn-ag-generate {
+      background: #16a34a;
+      border: 1px solid #16a34a;
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 11.5px;
+      padding: 7px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 2px 6px rgba(22,163,74,0.25);
+      transition: all 0.15s;
+    }
+    .btn-ag-generate:hover {
+      background: #15803d;
+    }
+    .ag-help-strip {
+      background: #f0f9ff;
+      border-top: 1px solid #e0f2fe;
+      padding: 6px 20px;
+      font-size: 10.5px;
+      color: #0369a1;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+  </style>
+</head>
+<body class="erp-module">
+
+<div id="member-bill-panel">
+
+  <!-- MODULE HEADER -->
+  <div class="module-header">
+    <div>
+      <h2 class="module-header-title" id="mb-module-title">Bill / Invoice Generation</h2>
+      <div class="module-header-sub">
+        <span></span>
+        <span> | </span>
+        <span></span>
+      </div>
+    </div>
+    <div style="display:flex; gap:12px; align-items:center;">
+      <span style="font-size:10px; color:#64748b; font-weight:600;">
+        Ctrl+G Auto | Ctrl+M Change | Ctrl+D Delete | Ctrl+P Print | Esc Back
+      </span>
+      <button class="sa-path-btn"><i class="bi bi-gear-fill"></i> SA PATH</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       SECTION 1: LIST VIEW
+       ═══════════════════════════════════════════════════════ -->
+  <div id="mb-section-list" style="display:flex; flex-direction:column; flex:1; overflow:hidden;">
+    
+    <!-- BILL TYPE PILLS STRIP -->
+    <div class="mb-type-strip">
+      <span class="mb-type-label"><i class="bi bi-tag-fill" style="color:#1565C0;"></i> BILL TYPE:</span>
+      <div class="mb-pill-container" id="mb-bill-type-pills">
+        <!-- Dynamically populated bill type pills from DB -->
+      </div>
+      <span class="mb-bill-count" id="mb-list-count">0 bills</span>
+    </div>
+
+    <!-- TOOLBAR BUTTONS STRIP -->
+    <div class="mb-toolbar">
+      <div class="add-bill-wrap">
+        <button class="btn-tb-blue" id="btn-add-bill" onclick="handleAddBillClick(event)">
+          <i class="bi bi-plus-circle-fill"></i> ADD BILL <i class="bi bi-caret-down-fill" id="add-bill-caret" style="font-size:9px; margin-left:2px; display:none;"></i>
+        </button>
+        <div class="add-bill-dropdown" id="add-bill-menu"></div>
+      </div>
+
+      <button class="btn-tb-blue" onclick="editSelectedBill()"><i class="bi bi-pencil-square"></i> EDIT</button>
+      <button class="btn-tb-blue" onclick="deleteSelectedBill()"><i class="bi bi-trash-fill"></i> DELETE</button>
+      
+      <button class="btn-tb-orange" onclick="openAutoGenerateModal()"><i class="bi bi-lightning-charge-fill"></i> AUTO GENERATE BILL</button>
+      <button class="btn-tb-orange" onclick="openMultiDeleteModal()"><i class="bi bi-trash3-fill"></i> MULTI DELETE</button>
+      <button class="btn-tb-orange" onclick="openMultiChangeModal()"><i class="bi bi-arrow-left-right"></i> MULTI CHANGE</button>
+      <button class="btn-tb-orange" onclick="openPrintRegisterModal()"><i class="bi bi-printer-fill"></i> PRINT REGISTER</button>
+
+      <button class="btn-tb-outline" onclick="previewInvoice()"><i class="bi bi-eye-fill"></i> PREVIEW</button>
+      <button class="btn-tb-outline" onclick="toggleFilterBar()"><i class="bi bi-funnel-fill"></i> FILTERS</button>
+    </div>
+
+    <!-- COLLAPSIBLE FILTERS PANEL -->
+    <div class="mb-filter-panel" id="mb-filter-bar" style="display:none;">
+      <div class="filter-group">
+        <span class="filter-lbl">Bill No</span>
+        <input type="text" class="filter-inp" id="flt-billno" placeholder="Search Bill No..." oninput="applyFilters()" style="width:100px;">
+      </div>
+      <div class="filter-group">
+        <span class="filter-lbl">Member Code</span>
+        <input type="text" class="filter-inp" id="flt-membercode" placeholder="M001" oninput="applyFilters()" style="width:80px;">
+      </div>
+      <div class="filter-group">
+        <span class="filter-lbl">Member Name</span>
+        <input type="text" class="filter-inp" id="flt-membername" placeholder="Search Member..." oninput="applyFilters()" style="width:140px;">
+      </div>
+      <div class="filter-group">
+        <span class="filter-lbl">Status</span>
+        <select class="filter-sel" id="flt-status" onchange="applyFilters()">
+          <option value="">All</option>
+          <option value="Paid">Paid</option>
+          <option value="Unpaid">Unpaid</option>
+        </select>
+      </div>
+      <button class="btn-tb-outline" onclick="clearFilters()"><i class="bi bi-x-circle"></i> Clear</button>
+    </div>
+
+    <!-- MAIN DATA TABLE GRID -->
+    <div class="mb-table-wrapper">
+      <table class="mb-main-table">
+        <thead>
+          <tr>
+            <th style="width:110px; cursor:pointer;" onclick="toggleBillNoSort()" title="Click to sort Top to Bottom / Bottom to Top">
+              BILL NO <span id="sort-billno-icon">▼</span>
+            </th>
+            <th style="width:85px;">BILL DATE</th>
+            <th class="col-bill-type" style="width:110px;">BILL TYPE</th>
+            <th style="width:95px;">MEMBER CODE</th>
+            <th style="width:60px; text-align:center;">WING</th>
+            <th style="width:80px;">FLAT TYPE</th>
+            <th>MEMBER NAME</th>
+            <th style="width:90px;">PERIOD</th>
+            <th style="width:85px;">DUE DATE</th>
+            <th style="width:105px; text-align:right;">BILL PRINCIPAL</th>
+            <th style="width:100px; text-align:right;">BILL INTEREST</th>
+            <th style="width:105px; text-align:right;">TOTAL</th>
+            <th style="width:130px;">PARTICULAR 1</th>
+            <th style="width:130px;">PARTICULAR 2</th>
+            <th style="width:80px; text-align:center;">STATUS</th>
+          </tr>
+        </thead>
+        <tbody id="mb-list-tbody">
+          <!-- Rendered rows -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- SUMMARY FOOTER BAR -->
+    <div class="mb-footer-bar">
+      <span>Total Bills: <span class="mb-footer-val" id="sum-count">0</span></span>
+      <span>Principal: <span class="mb-footer-val" id="sum-principal">₹0.00</span></span>
+      <span>Interest: <span class="mb-footer-val" id="sum-interest">₹0.00</span></span>
+      <span>Total Amount: <span class="mb-footer-val" id="sum-total">₹0.00</span></span>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       SECTION 2: ADD / ALTER FORM VIEW
+       ═══════════════════════════════════════════════════════ -->
+  <div id="mb-section-form" class="mb-form-container" style="display:none;">
+    
+    <!-- HEADER FIELDS ROW -->
+    <div class="form-top-fields">
+      <div class="form-field">
+        <label>BILL NO <span class="req">*</span></label>
+        <input type="text" id="frm-billno" class="form-inp" style="width:160px;" readonly>
+      </div>
+      <div class="form-field">
+        <label>BILL DATE <span class="req">*</span></label>
+        <input type="date" id="frm-billdate" class="form-inp" style="width:120px;">
+      </div>
+      <div class="form-field">
+        <label>DUE DATE</label>
+        <input type="date" id="frm-duedate" class="form-inp" style="width:120px;">
+      </div>
+      <div class="form-field">
+        <label>BILLING PERIOD</label>
+        <input type="text" id="frm-period" class="form-inp" style="width:160px;" placeholder="May 2025">
+      </div>
+      <div class="form-field">
+        <label>MEMBER NAME <span class="req">*</span></label>
+        <div class="combobox-wrap">
+          <input type="text" id="frm-member-input" class="form-inp" style="width:260px;" placeholder="— Select Member (Code or Name) —" autocomplete="off">
+          <div class="combobox-dropdown" id="frm-member-dropdown"></div>
+        </div>
+        <input type="hidden" id="frm-memberid">
+      </div>
+    </div>
+
+    <!-- ACCOUNTS BREAKDOWN TABLE -->
+    <div class="form-grid-wrapper">
+      <table class="form-grid-table">
+        <thead>
+          <tr>
+            <th style="width:45px; text-align:center;">SR</th>
+            <th style="width:140px;">ACCOUNT CODE</th>
+            <th>ACCOUNT HEAD</th>
+            <th style="width:140px; text-align:right;">AMOUNT</th>
+          </tr>
+        </thead>
+        <tbody id="frm-grid-tbody">
+          <!-- Accounts for active Bill Type -->
+        </tbody>
+        <tfoot>
+          <tr style="background:#f1f5f9; font-weight:800;">
+            <td colspan="3" style="text-align:right; padding:6px 12px; font-size:11px;">TOTAL:</td>
+            <td style="text-align:right; padding:6px 12px; font-family:'Consolas', monospace; font-size:12px; color:#1565C0;" id="frm-total-amount">₹0.00</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <!-- PARTICULARS SECTION -->
+    <div class="particulars-box">
+      <div class="particulars-title">PARTICULARS</div>
+      <div class="particular-row">
+        <input type="text" id="frm-particular1" class="form-inp" style="flex:1;" placeholder="Particulars 1...">
+        <button class="btn-ctrl-l" onclick="appendParticularTag(1)">Ctrl + L</button>
+      </div>
+      <div class="particular-row">
+        <input type="text" id="frm-particular2" class="form-inp" style="flex:1;" placeholder="Particulars 2...">
+        <button class="btn-ctrl-l" onclick="appendParticularTag(2)">Ctrl + L</button>
+      </div>
+    </div>
+
+    <!-- BOTTOM ACTION BUTTONS -->
+    <div class="form-action-bar">
+      <button class="btn-save-green" onclick="saveBill()"><i class="bi bi-check-circle-fill"></i> SAVE (ALT+S)</button>
+      <button class="btn-cancel-red" onclick="showList()"><i class="bi bi-x-circle"></i> CANCEL</button>
+    </div>
+  </div>
+
+  <!-- SECTION 3: INVOICE PREVIEW -->
+  <div id="mb-section-preview" style="display:none; flex-direction:column; flex:1; overflow:hidden;">
+    <div class="mb-toolbar" style="justify-content:space-between;">
+      <button class="btn-tb-outline" onclick="showList()"><i class="bi bi-arrow-left"></i> BACK TO LIST</button>
+      <button class="btn-tb-blue" onclick="window.print()"><i class="bi bi-printer-fill"></i> PRINT INVOICE</button>
+    </div>
+    <div style="flex:1; overflow-y:auto; padding:20px; background:#e2e8f0; display:flex; justify-content:center;">
+      <div id="preview-invoice-card" style="background:#fff; width:210mm; min-height:297mm; padding:20mm; box-shadow:0 4px 12px rgba(0,0,0,0.15);"></div>
+    </div>
+  </div>
+
+  <!-- MODALS -->
+  <!-- 1. AUTO GENERATE BILLS MODAL (MATCHING REFERENCE DESIGN WITH RANGE BOXES) -->
+  <div class="modal-overlay" id="modal-auto-generate" style="display:none;">
+    <div class="modal-card ag-modal-card">
+      <!-- HEADER -->
+      <div class="ag-header">
+        <div class="ag-header-left">
+          <div class="ag-header-icon">
+            <i class="bi bi-lightning-charge-fill"></i>
+          </div>
+          <div>
+            <div class="ag-header-title">Auto Generate Bills</div>
+            <div class="ag-header-subtitle">Generate Maintenance / Quarterly / Custom Bills</div>
+          </div>
+        </div>
+        <button class="modal-close" onclick="closeModal('modal-auto-generate')" style="font-size:22px; opacity:0.9;">&times;</button>
+      </div>
+
+      <!-- 2-COLUMN BODY -->
+      <div class="ag-body-layout">
+        <!-- LEFT COLUMN: FORM CONTROLS -->
+        <div class="ag-col-left">
+          <!-- ROW 1: SELECT BILL MASTER & BILL FREQUENCY -->
+          <div class="ag-grid-2">
+            <div class="ag-field">
+              <label>1. SELECT BILL MASTER</label>
+              <div class="ag-input-wrap">
+                <i class="bi bi-building lead-icon"></i>
+                <select id="ag-bill-type" onchange="updateAutoGenerateFields()"></select>
+              </div>
+            </div>
+            <div class="ag-field">
+              <label>2. BILL FREQUENCY</label>
+              <div class="ag-freq-btn-group">
+                <button type="button" class="ag-freq-btn active" id="ag-freq-monthly" onclick="selectAgFrequency('Monthly')">Monthly</button>
+                <button type="button" class="ag-freq-btn" id="ag-freq-quarterly" onclick="selectAgFrequency('Quarterly')">Quarterly</button>
+                <button type="button" class="ag-freq-btn" id="ag-freq-custom" onclick="selectAgFrequency('Custom')">Custom</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ROW 2: STARTING BILL NO. & BILL DATE -->
+          <div class="ag-grid-2">
+            <div class="ag-field">
+              <label>3. STARTING BILL NO.</label>
+              <div class="ag-input-wrap">
+                <input type="text" id="ag-start-no" placeholder="MBIL/2026-27/01" style="font-family:'Consolas', monospace; font-weight:700;">
+                <i class="bi bi-calculator trail-icon"></i>
+              </div>
+            </div>
+            <div class="ag-field">
+              <label>4. BILL DATE</label>
+              <div class="ag-input-wrap">
+                <i class="bi bi-calendar3 lead-icon"></i>
+                <input type="date" id="ag-bill-date" onchange="onAgBillDateChange()">
+              </div>
+            </div>
+          </div>
+
+          <!-- ROW 3: DUE DATE & BILLING PERIOD -->
+          <div class="ag-grid-2">
+            <div class="ag-field">
+              <label>5. DUE DATE</label>
+              <div class="ag-input-wrap">
+                <i class="bi bi-calendar-check lead-icon"></i>
+                <input type="date" id="ag-due-date">
+              </div>
+            </div>
+            <div class="ag-field">
+              <label>6. BILLING PERIOD</label>
+              <div class="ag-input-wrap">
+                <i class="bi bi-calendar-event lead-icon"></i>
+                <select id="ag-period-select" onchange="onAgPeriodSelectChange(this.value)">
+                  <!-- Dynamically populated periods -->
+                </select>
+                <input type="hidden" id="ag-period" value="">
+              </div>
+            </div>
+          </div>
+
+          <!-- ROW 4: NO. OF MONTHS & PARTICULAR / NARRATION -->
+          <div class="ag-grid-2">
+            <div class="ag-field">
+              <label>7. NO. OF MONTHS</label>
+              <div class="ag-input-wrap">
+                <i class="bi bi-calendar-range lead-icon"></i>
+                <input type="number" id="ag-months" value="1" min="1" max="12" oninput="onAgMonthsInput(this.value)">
+              </div>
+            </div>
+            <div class="ag-field">
+              <label>8. PARTICULAR / NARRATION</label>
+              <div class="ag-input-wrap">
+                <input type="text" id="ag-particular" placeholder="Maintenance Charges for...">
+              </div>
+            </div>
+          </div>
+
+          <!-- ROW 5: MEMBER RANGE BOXES (REPLACING 10. BUILDING/WING) -->
+          <div class="ag-grid-2">
+            <div class="ag-field">
+              <label>9. MEMBER RANGE (FROM)</label>
+              <div class="ag-input-wrap">
+                <i class="bi bi-people lead-icon"></i>
+                <select id="ag-member-from" onchange="onAgMemberRangeChange()">
+                  <option value="ALL">All Members (Start)</option>
+                </select>
+              </div>
+            </div>
+            <div class="ag-field">
+              <label>10. MEMBER RANGE (TO)</label>
+              <div class="ag-input-wrap">
+                <i class="bi bi-people lead-icon"></i>
+                <select id="ag-member-to" onchange="onAgMemberRangeChange()">
+                  <option value="ALL">All Members (End)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- 11. ADVANCED OPTIONS -->
+          <div class="ag-adv-section">
+            <span class="ag-adv-title">11. ADVANCED OPTIONS</span>
+            <div class="ag-adv-grid">
+              <!-- Item 1: Include Arrears (with toggle switch) -->
+              <div class="ag-adv-item">
+                <label for="ag-opt-arrears">
+                  <input type="checkbox" id="ag-opt-arrears" checked onchange="document.getElementById('ag-switch-arrears').checked = this.checked; recalcAgSummary();">
+                  Include Arrears
+                </label>
+                <label class="ag-switch">
+                  <input type="checkbox" id="ag-switch-arrears" checked onchange="document.getElementById('ag-opt-arrears').checked = this.checked; recalcAgSummary();">
+                  <span class="ag-slider"></span>
+                </label>
+              </div>
+
+              <!-- Item 2: Include Interest (with toggle switch) -->
+              <div class="ag-adv-item">
+                <label for="ag-opt-interest">
+                  <input type="checkbox" id="ag-opt-interest" checked onchange="document.getElementById('ag-switch-interest').checked = this.checked; recalcAgSummary();">
+                  Include Interest
+                </label>
+                <label class="ag-switch">
+                  <input type="checkbox" id="ag-switch-interest" checked onchange="document.getElementById('ag-opt-interest').checked = this.checked; recalcAgSummary();">
+                  <span class="ag-slider"></span>
+                </label>
+              </div>
+
+              <!-- Item 3: Include Advance Adjustments -->
+              <div class="ag-adv-item">
+                <label for="ag-opt-adv">
+                  <input type="checkbox" id="ag-opt-adv">
+                  Include Advance Adjustments
+                </label>
+              </div>
+
+              <!-- Item 4: Include TDS -->
+              <div class="ag-adv-item">
+                <label for="ag-opt-tds">
+                  <input type="checkbox" id="ag-opt-tds">
+                  Include TDS (If Applicable)
+                </label>
+              </div>
+
+              <!-- Item 5: Round Off -->
+              <div class="ag-adv-item">
+                <label for="ag-opt-round">
+                  <input type="checkbox" id="ag-opt-round" checked>
+                  Round Off
+                </label>
+              </div>
+
+              <!-- Item 6: Send SMS / WhatsApp -->
+              <div class="ag-adv-item">
+                <label for="ag-opt-sms">
+                  <input type="checkbox" id="ag-opt-sms" checked>
+                  Send SMS / WhatsApp After Generation
+                </label>
+              </div>
+
+              <!-- Item 7: Email Bills -->
+              <div class="ag-adv-item">
+                <label for="ag-opt-email">
+                  <input type="checkbox" id="ag-opt-email">
+                  Email Bills
+                </label>
+              </div>
+
+              <!-- Item 8: Preview Before Generate -->
+              <div class="ag-adv-item">
+                <label for="ag-opt-preview">
+                  <input type="checkbox" id="ag-opt-preview" checked>
+                  Preview Before Generate
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT COLUMN: BILL SUMMARY, NOTES & TIPS -->
+        <div class="ag-col-right">
+          <!-- 12. BILL SUMMARY CARD -->
+          <div class="ag-summary-card">
+            <div class="ag-sum-header">
+              <span>12. BILL SUMMARY</span>
+              <i class="bi bi-bar-chart-line-fill" style="color:#16a34a; font-size:14px;"></i>
+            </div>
+            
+            <div class="ag-sum-row">
+              <div class="ag-sum-row-left"><i class="bi bi-people-fill"></i> Total Members</div>
+              <div class="ag-sum-val" id="ag-sum-total-members">0</div>
+            </div>
+
+            <div class="ag-sum-row">
+              <div class="ag-sum-row-left"><i class="bi bi-receipt"></i> Bills To Be Generated</div>
+              <div class="ag-sum-val" id="ag-sum-bills-count" style="color:#2563eb;">0</div>
+            </div>
+
+            <div class="ag-sum-row">
+              <div class="ag-sum-row-left"><i class="bi bi-currency-rupee"></i> Total Amount</div>
+              <div class="ag-sum-val" id="ag-sum-amount">₹ 0.00</div>
+            </div>
+
+            <div class="ag-sum-row">
+              <div class="ag-sum-row-left"><i class="bi bi-percent"></i> Total Interest</div>
+              <div class="ag-sum-val" id="ag-sum-interest" style="color:#d97706;">₹ 0.00</div>
+            </div>
+
+            <div class="ag-sum-row">
+              <div class="ag-sum-row-left"><i class="bi bi-x-circle-fill" style="color:#dc2626;"></i> Total Arrears</div>
+              <div class="ag-sum-val" id="ag-sum-arrears" style="color:#dc2626;">₹ 0.00</div>
+            </div>
+
+            <div class="ag-sum-grand-row">
+              <div class="ag-sum-row-left" style="font-weight:800; color:#0f172a;"><i class="bi bi-wallet2" style="color:#16a34a;"></i> Grand Total</div>
+              <div class="ag-sum-grand-val" id="ag-sum-grand">₹ 0.00</div>
+            </div>
+          </div>
+
+          <!-- NOTE CARD -->
+          <div class="ag-info-note">
+            <div style="font-weight:800; display:flex; align-items:center; gap:5px;">
+              <i class="bi bi-info-circle-fill"></i> Note:
+            </div>
+            <ul>
+              <li>Bills will be generated based on the selected period.</li>
+              <li>You can preview the bills before final generation.</li>
+              <li>Once generated, bills can be printed or sent.</li>
+            </ul>
+          </div>
+
+          <!-- TIPS CARD -->
+          <div class="ag-info-tips">
+            <div style="font-weight:800; display:flex; align-items:center; gap:5px;">
+              <i class="bi bi-lightbulb-fill"></i> Tips:
+            </div>
+            <ul>
+              <li>Use range filters to generate bills for specific members.</li>
+              <li>Preview is recommended before final generation.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- FOOTER -->
+      <div class="ag-footer">
+        <div>
+          <button type="button" class="btn-ag-preview" onclick="openAgBatchPreviewModal()">
+            <i class="bi bi-eye"></i> PREVIEW BILLS
+          </button>
+        </div>
+        <div style="display:flex; gap:10px; align-items:center;">
+          <button type="button" class="btn-ag-cancel" onclick="closeModal('modal-auto-generate')">CANCEL</button>
+          <button type="button" class="btn-ag-generate" onclick="runAutoGenerate()">
+            <i class="bi bi-gear-fill"></i> GENERATE BILLS
+          </button>
+        </div>
+      </div>
+
+      <!-- NEED HELP STRIP -->
+      <div class="ag-help-strip">
+        <i class="bi bi-question-circle-fill"></i>
+        <span><strong>Need Help?</strong> Contact support team for any assistance in bill generation.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- BATCH PREVIEW MODAL -->
+  <div class="modal-overlay" id="modal-ag-batch-preview" style="display:none; z-index:100000;">
+    <div class="modal-card" style="width:800px; max-width:92vw; max-height:85vh; border-radius:10px; overflow:hidden;">
+      <div class="modal-header" style="background:#2563eb;">
+        <span id="ag-batch-preview-title"><i class="bi bi-eye"></i> Auto Generate Preview</span>
+        <button class="modal-close" onclick="closeModal('modal-ag-batch-preview')">&times;</button>
+      </div>
+      <div class="modal-body" style="padding:14px; overflow-y:auto;">
+        <table class="mb-main-table" style="width:100%;">
+          <thead>
+            <tr>
+              <th style="width:120px;">Bill No</th>
+              <th style="width:80px;">Flat</th>
+              <th>Member Name</th>
+              <th style="width:90px; text-align:right;">Principal</th>
+              <th style="width:80px; text-align:right;">Interest</th>
+              <th style="width:90px; text-align:right;">Arrears</th>
+              <th style="width:100px; text-align:right;">Total</th>
+            </tr>
+          </thead>
+          <tbody id="ag-batch-preview-tbody"></tbody>
+        </table>
+      </div>
+      <div class="modal-footer" style="justify-content:space-between;">
+        <div style="font-weight:700; color:#1e3a8a; font-size:12px;" id="ag-batch-preview-footer">0 bills in preview</div>
+        <button class="btn-tb-outline" onclick="closeModal('modal-ag-batch-preview')">CLOSE PREVIEW</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. MULTI CHANGE MODAL (MATCHING IMAGE 2) -->
+  <div class="modal-overlay" id="modal-multi-change" style="display:none;">
+    <div class="modal-card" style="width:420px;">
+      <div class="modal-header">
+        <span><i class="bi bi-arrow-left-right"></i> Multi Change</span>
+        <button class="modal-close" onclick="closeModal('modal-multi-change')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="display:flex; gap:10px;">
+          <div class="form-field" style="flex:1;">
+            <label>FROM BILL NO</label>
+            <input type="text" id="mc-from" class="form-inp" placeholder="e.g. MBIL/25-26/001">
+          </div>
+          <div class="form-field" style="flex:1;">
+            <label>TO BILL NO</label>
+            <input type="text" id="mc-to" class="form-inp" placeholder="e.g. MBIL/25-26/100">
+          </div>
+        </div>
+        <div class="form-field">
+          <label>FIELD TO CHANGE</label>
+          <select id="mc-field" class="filter-sel" style="width:100%; height:28px;">
+            <option value="dueDate">Due Date</option>
+            <option value="period">Period</option>
+            <option value="particular1">Particular Narration</option>
+            <option value="billDate">Bill Date</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>NEW VALUE</label>
+          <input type="text" id="mc-value" class="form-inp" placeholder="Enter new value...">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-tb-outline" onclick="closeModal('modal-multi-change')">EXIT</button>
+        <button class="btn-tb-blue" onclick="runMultiChange()"><i class="bi bi-check-lg"></i> UPDATE RANGE</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. MULTI DELETE MODAL -->
+  <div class="modal-overlay" id="modal-multi-delete" style="display:none;">
+    <div class="modal-card" style="width:420px;">
+      <div class="modal-header" style="background:#dc2626;">
+        <span><i class="bi bi-trash-fill"></i> Multi Delete Bills</span>
+        <button class="modal-close" onclick="closeModal('modal-multi-delete')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:11px; color:#dc2626; font-weight:700; margin-bottom:10px;">
+          <i class="bi bi-exclamation-triangle-fill"></i> WARNING: Deletes all bill records within the specified number range across all applicable prefixes (MBIL / MINV).
+        </p>
+        <div style="margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+          <span style="font-size:11px; font-weight:700; color:#475569;">Active Prefix:</span>
+          <span id="md-prefix-badge" style="background:#e2e8f0; color:#0f172a; font-weight:800; padding:2px 8px; border-radius:4px; font-size:11px; font-family:monospace;">MBIL/2025-26/</span>
+        </div>
+        <div style="display:flex; gap:12px;">
+          <div class="form-field" style="flex:1;">
+            <label>FROM BILL NO.</label>
+            <div style="display:flex; align-items:center;">
+              <input type="number" id="md-from" class="form-inp" min="1" step="1" placeholder="e.g. 1" style="font-weight:700; font-size:12px;">
+            </div>
+          </div>
+          <div class="form-field" style="flex:1;">
+            <label>TO BILL NO.</label>
+            <div style="display:flex; align-items:center;">
+              <input type="number" id="md-to" class="form-inp" min="1" step="1" placeholder="e.g. 10" style="font-weight:700; font-size:12px;">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-tb-outline" onclick="closeModal('modal-multi-delete')">CANCEL</button>
+        <button class="btn-cancel-red" onclick="runMultiDelete()"><i class="bi bi-trash-fill"></i> DELETE RANGE</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="../../../assets/js/api.js?v=20260827_113"></script>
+<script src="../../../assets/js/auth.js?v=20260827_113"></script>
+<script src="../../../assets/js/utils.js?v=20260827_113"></script>
+<script src="member-bill.js?v=20260827_113"></script>
+</body>
+</html>

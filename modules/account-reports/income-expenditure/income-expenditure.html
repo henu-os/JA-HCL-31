@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Income & Expenditure — JEEVIKA ERP</title>
+  <script src="../../../config.js"></script>
+  <link rel="stylesheet" href="../../../assets/css/global.css">
+  <link rel="stylesheet" href="../../../assets/css/components.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body class="erp-module">
+  <div class="erp-module-header">
+    <div>
+      <div class="erp-module-title">Income &amp; Expenditure Statement (Profit &amp; Loss)</div>
+      
+    </div>
+    <div class="d-flex gap-6">
+      <button class="erp-btn" onclick="window.print()"><i class="bi bi-printer"></i> Print Statement</button>
+      <button class="erp-btn erp-btn-primary" onclick="loadIE()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+    </div>
+  </div>
+
+  <div class="erp-module-body d-flex gap-12" style="padding:12px;">
+    <!-- Expenditure Column -->
+    <div class="erp-panel flex-1">
+      <div class="erp-panel-title">EXPENDITURE</div>
+      <table class="erp-table striped">
+        <thead><tr><th>Expense Account</th><th class="text-right">Amount (₹)</th></tr></thead>
+        <tbody id="expBody"></tbody>
+        <tfoot>
+          <tr style="background:var(--clr-face);font-weight:bold;">
+            <td>Total Expenditure:</td>
+            <td class="td-num text-danger" id="totExp">0.00</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <!-- Income Column -->
+    <div class="erp-panel flex-1">
+      <div class="erp-panel-title">INCOME</div>
+      <table class="erp-table striped">
+        <thead><tr><th>Income Account</th><th class="text-right">Amount (₹)</th></tr></thead>
+        <tbody id="incBody"></tbody>
+        <tfoot>
+          <tr style="background:var(--clr-face);font-weight:bold;">
+            <td>Total Income:</td>
+            <td class="td-num text-success" id="totInc">0.00</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+  <script src="../../../assets/js/api.js"></script>
+  <script src="../../../assets/js/auth.js"></script>
+  <script src="../../../assets/js/utils.js"></script>
+  <script src="income-expenditure.js"></script>
+</body>
+</html>

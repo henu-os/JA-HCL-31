@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Receipt Entry — JEEVIKA ERP</title>
+  <script src="../../../config.js"></script>
+  <link rel="stylesheet" href="../../../assets/css/global.css">
+  <link rel="stylesheet" href="../../../assets/css/components.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body class="erp-module">
+  <div class="erp-module-header">
+    <div>
+      <div class="erp-module-title">Receipt Voucher Entry (General Cash / Bank Inflow)</div>
+      
+    </div>
+    <div class="d-flex gap-6">
+      <button class="erp-btn erp-btn-primary" onclick="showFormView()"><i class="bi bi-plus-lg"></i> New Receipt Entry</button>
+      <button class="erp-btn" onclick="loadVouchers()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+    </div>
+  </div>
+
+  <div id="listView" class="erp-module-body" style="padding:0;display:flex;flex-direction:column;">
+    <div class="erp-search-bar">
+      <input type="text" id="searchInput" class="erp-input erp-search-input" placeholder="🔍 Search RV No, payer, cheque, amount..." onkeyup="filterList()">
+      <div class="erp-record-count" id="recordCount">Total: 0</div>
+    </div>
+
+    <div class="erp-table-container" style="flex:1;border:none;">
+      <table class="erp-table striped" id="voucherTable">
+        <thead>
+          <tr>
+            <th style="width:40px;" class="td-center">#</th>
+            <th style="width:100px;">RV No</th>
+            <th style="width:100px;">Date</th>
+            <th>Received Into (Cash/Bank)</th>
+            <th>Payer Name</th>
+            <th class="text-right" style="width:110px;">Amount (₹)</th>
+            <th>Cheque / Ref No</th>
+            <th style="width:80px;" class="td-center">Status</th>
+            <th style="width:90px;" class="td-center">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="voucherTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="formView" class="erp-module-body" style="display:none;flex-direction:column;gap:8px;">
+    <div class="d-flex justify-between align-center" style="margin-bottom:4px;">
+      <button class="erp-btn" onclick="showListView()"><i class="bi bi-arrow-left"></i> Back to Receipt List</button>
+      <div class="text-bold text-navy" style="font-size:14px;">Receipt Entry Form</div>
+    </div>
+
+    <form id="voucherForm" onsubmit="saveReceipt(event)" autocomplete="off">
+      <div class="erp-panel">
+        <div class="erp-panel-title">Voucher Header</div>
+        <div class="erp-form-row">
+          <div class="erp-form-group w-33 mb-4">
+            <label class="erp-label required" for="vNo">Receipt Voucher No.</label>
+            <input type="text" id="vNo" class="erp-input text-bold" placeholder="RV-0001" required readonly>
+          </div>
+          <div class="erp-form-group w-33 mb-4">
+            <label class="erp-label required" for="vDate">Voucher Date</label>
+            <input type="date" id="vDate" class="erp-input" required>
+          </div>
+          <div class="erp-form-group flex-1 mb-4">
+            <label class="erp-label required" for="cashBankCode">Deposit Target Account (Cash / Bank)</label>
+            <select id="cashBankCode" class="erp-select" required>
+              <option value="">— Select Cash / Bank Ledger —</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="erp-form-row">
+          <div class="erp-form-group w-50 mb-4">
+            <label class="erp-label" for="personName">Received From (Payer Name)</label>
+            <input type="text" id="personName" class="erp-input" placeholder="e.g. Reliance Jio Infocomm Ltd">
+          </div>
+          <div class="erp-form-group w-25 mb-4">
+            <label class="erp-label" for="chqNo">Cheque / Ref No.</label>
+            <input type="text" id="chqNo" class="erp-input" placeholder="000123">
+          </div>
+          <div class="erp-form-group w-25 mb-4">
+            <label class="erp-label" for="chqDate">Cheque Date</label>
+            <input type="date" id="chqDate" class="erp-input">
+          </div>
+        </div>
+      </div>
+
+      <div class="erp-panel mt-4" style="flex:1;display:flex;flex-direction:column;min-height:200px;">
+        <div class="d-flex justify-between align-center mb-4">
+          <span class="erp-panel-title" style="margin:0;border:none;">Income / Account Particulars</span>
+          <button type="button" class="erp-btn erp-btn-sm" onclick="addRow()"><i class="bi bi-plus-lg"></i> Add Account Row</button>
+        </div>
+
+        <div class="erp-detail-table-container" style="flex:1;">
+          <table class="erp-detail-table" id="gridTable">
+            <thead>
+              <tr>
+                <th style="width:30px;" class="td-center">#</th>
+                <th style="width:200px;">Credit Account</th>
+                <th style="width:130px;" class="text-right">Amount (₹)</th>
+                <th>Line Particulars / Remarks</th>
+                <th style="width:35px;" class="td-center">Del</th>
+              </tr>
+            </thead>
+            <tbody id="gridBody"></tbody>
+          </table>
+        </div>
+
+        <div class="d-flex justify-between align-center mt-8 p-4" style="background:var(--clr-face);border:1.5px solid var(--brd-mid-dark);">
+          <div class="d-flex gap-8 align-center">
+            <span class="text-bold">Total Receipt Amount: ₹</span>
+            <span id="txtTotAmount" class="text-bold text-success" style="font-family:'Courier New';font-size:16px;">0.00</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="erp-panel mt-4">
+        <div class="erp-form-group">
+          <label class="erp-label" for="narration">Overall Narration</label>
+          <input type="text" id="narration" class="erp-input" placeholder="Being amount received towards...">
+        </div>
+      </div>
+
+      <div class="d-flex justify-end gap-6 mt-8">
+        <button type="button" class="erp-btn" onclick="showListView()">Cancel</button>
+        <button type="submit" class="erp-btn erp-btn-primary" id="btnSave"><i class="bi bi-check-circle"></i> Save Receipt Voucher</button>
+      </div>
+    </form>
+  </div>
+
+  <script src="../../../assets/js/api.js"></script>
+  <script src="../../../assets/js/auth.js"></script>
+  <script src="../../../assets/js/utils.js"></script>
+  <script src="receipt-entry.js"></script>
+</body>
+</html>

@@ -38,6 +38,33 @@
   let isPanelActive = true;
   let currentDetailMemberIdx = -1;
 
+  let currentGstSettings = {
+    societyId: 1,
+    gstApplicable: false,
+    cgstPct: 9,
+    sgstPct: 9,
+    exemptLimit: 7500,
+    intDuesGST: 'No'
+  };
+
+  async function loadGstMasterSettings(socId) {
+    try {
+      const res = await fetch(`${bmApiBase()}/api/gst-master/settings?societyId=${socId}`, { headers: getAuthHeaders() });
+      if (res.ok) {
+        const json = await res.json();
+        if (json && json.success && json.data) {
+          currentGstSettings = Object.assign(currentGstSettings, json.data);
+          if (currentGstSettings.gstApplicable !== undefined) {
+            window._billingMasterGstOn = !!currentGstSettings.gstApplicable;
+            sessionStorage.setItem('activeSocietyGSTApplicable', currentGstSettings.gstApplicable ? 'Y' : 'N');
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Could not load GST master settings:', e);
+    }
+  }
+
   let colWidths = {};
   try {
     const savedWidths = localStorage.getItem('jeevika_bm_col_widths');
@@ -61,6 +88,7 @@
   }
 
   function getIsGstEnabled() {
+    if (currentGstSettings && currentGstSettings.gstApplicable) return true;
     const directGst = sessionStorage.getItem('activeSocietyGSTApplicable') || localStorage.getItem('activeSocietyGSTApplicable');
     if (directGst === 'N' || directGst === 'No' || directGst === 'false' || directGst === '0') return false;
     if (directGst === 'Y' || directGst === 'Yes' || directGst === 'true' || directGst === '1') return true;
@@ -70,14 +98,42 @@
     return false;
   }
 
+  function recalcRowGSTAndPrincipal(m) {
+    const isGstEnabled = getIsGstEnabled();
+    const userHeads = cols.filter(c => c !== 'Principal' && c !== 'Interest' && c !== 'CGST' && c !== 'SGST');
+
+    let principalVal = 0;
+    userHeads.forEach(bh => {
+      principalVal += Math.round(parseFloat(m.amounts[bh]) || 0);
+    });
+
+    m.amounts['Principal'] = principalVal;
+
+    const interestVal = Math.round(parseFloat(m.amounts['Interest']) || 0);
+    const cgstVal = isGstEnabled ? Math.round(parseFloat(m.amounts['CGST']) || 0) : 0;
+    const sgstVal = isGstEnabled ? Math.round(parseFloat(m.amounts['SGST']) || 0) : 0;
+
+    return {
+      principalVal,
+      interestVal,
+      cgstVal,
+      sgstVal,
+      rowTotal: principalVal + interestVal + cgstVal + sgstVal
+    };
+  }
+
   function updateColsForCurrentType() {
     const typeData = billTypes[currentBillType];
     const isGstEnabled = getIsGstEnabled();
 
-    // Toggle GST CALC dropdown in toolbar based on GST status
-    const gstWrap = document.getElementById('bm-gst-calc-wrap');
-    if (gstWrap) {
-      gstWrap.style.display = isGstEnabled ? 'inline-flex' : 'none';
+    // Toggle GST controls in toolbar based on GST status
+    const gstControls = document.getElementById('bm-gst-controls');
+    if (gstControls) {
+      gstControls.style.display = isGstEnabled ? 'flex' : 'none';
+    }
+    const gstSep = document.getElementById('bm-gst-sep');
+    if (gstSep) {
+      gstSep.style.display = isGstEnabled ? 'block' : 'none';
     }
 
     let baseHeads = [];
@@ -122,6 +178,8 @@
       }
 
       const socId = getActiveSocietyId();
+      await loadGstMasterSettings(socId);
+      await BM.loadToggles();
       billTypes = {};
 
       // 1. Load active Bill Types & configured heads from LocalStorage first
@@ -279,6 +337,12 @@
             const foundKey = Object.keys(existing.amounts).find(k => k.toLowerCase().trim() === cLower);
             if (foundKey !== undefined) {
               val = Math.round(parseFloat(existing.amounts[foundKey]) || 0);
+            } else if (cLower === 'cgst' && (existing.amounts['LIA-1032'] !== undefined || existing.amounts['lia-1032'] !== undefined)) {
+              val = Math.round(parseFloat(existing.amounts['LIA-1032'] !== undefined ? existing.amounts['LIA-1032'] : existing.amounts['lia-1032']) || 0);
+            } else if (cLower === 'sgst' && (existing.amounts['LIA-1033'] !== undefined || existing.amounts['lia-1033'] !== undefined)) {
+              val = Math.round(parseFloat(existing.amounts['LIA-1033'] !== undefined ? existing.amounts['LIA-1033'] : existing.amounts['lia-1033']) || 0);
+            } else if (cLower === 'interest' && (existing.amounts['INC-1008'] !== undefined || existing.amounts['inc-1008'] !== undefined)) {
+              val = Math.round(parseFloat(existing.amounts['INC-1008'] !== undefined ? existing.amounts['INC-1008'] : existing.amounts['inc-1008']) || 0);
             } else {
               // 2. Head match by code or name
               const allHeads = (typeData && Array.isArray(typeData.heads)) ? typeData.heads : [];
@@ -363,7 +427,7 @@
       headHtml += `<th data-col-key="_chk" style="width:${getColWidth('_chk', 30)}; text-align:center;"><input type="checkbox" id="bm-chk-all" onclick="BM.toggleAll(this.checked)" style="accent-color:#1565C0;"><div class="bm-resizer"></div></th>`;
       headHtml += `<th data-col-key="_membno" style="width:${getColWidth('_membno', 60)}; text-align:center;">MEMB NO<div class="bm-resizer"></div></th>`;
       headHtml += `<th data-col-key="_wing" style="width:${getColWidth('_wing', 50)}; text-align:center;">WING<div class="bm-resizer"></div></th>`;
-      headHtml += `<th data-col-key="_name" style="width:${getColWidth('_name', 150)}; text-align:left;">MEMBER NAME<div class="bm-resizer"></div></th>`;
+      headHtml += `<th data-col-key="_name" style="width:${getColWidth('_name', 150)}; text-align:center;">MEMBER NAME<div class="bm-resizer"></div></th>`;
       headHtml += `<th data-col-key="_area" style="width:${getColWidth('_area', 120)}; text-align:left;">CARPET SQ FT<div class="bm-resizer"></div></th>`;
 
       cols.forEach(c => {
@@ -389,22 +453,14 @@
     const userHeads = cols.filter(c => c !== 'Principal' && c !== 'CGST' && c !== 'SGST' && c !== 'Interest');
 
     members.forEach(m => {
-      let principalVal = 0;
-      userHeads.forEach(bh => {
-        principalVal += Math.round(parseFloat(m.amounts[bh]) || 0);
-      });
-      m.amounts['Principal'] = principalVal;
+      const calc = recalcRowGSTAndPrincipal(m);
 
       cols.forEach(c => {
         const val = Math.round(parseFloat(m.amounts[c]) || 0);
         colTotals[c] += val;
       });
 
-      const interestVal = Math.round(parseFloat(m.amounts['Interest']) || 0);
-      const cgstVal = isGstEnabled ? Math.round(parseFloat(m.amounts['CGST']) || 0) : 0;
-      const sgstVal = isGstEnabled ? Math.round(parseFloat(m.amounts['SGST']) || 0) : 0;
-      const rowTotal = principalVal + interestVal + cgstVal + sgstVal;
-      grandTotal += rowTotal;
+      grandTotal += calc.rowTotal;
     });
 
     let footHtml = '<tr style="background-color:#F5F5F5; font-weight:bold;">';
@@ -431,17 +487,13 @@
 
     members.forEach((m, idx) => {
       const sel = (idx === selectedRow) ? 'style="background-color:#E3F2FD;"' : '';
-      const principalVal = Math.round(parseFloat(m.amounts['Principal']) || 0);
-      const interestVal = Math.round(parseFloat(m.amounts['Interest']) || 0);
-      const cgstVal = isGstEnabled ? Math.round(parseFloat(m.amounts['CGST']) || 0) : 0;
-      const sgstVal = isGstEnabled ? Math.round(parseFloat(m.amounts['SGST']) || 0) : 0;
-      const total = principalVal + interestVal + cgstVal + sgstVal;
+      const calc = recalcRowGSTAndPrincipal(m);
 
       let rowHtml = `<tr ${sel} onclick="BM.selectRow(${idx})">`;
       rowHtml += `<td style="text-align:center;">${multiMode ? `<input type="checkbox" ${m.checked ? 'checked' : ''} onclick="BM.checkMember(${idx}, this.checked)" style="accent-color:#1565C0;">` : ''}</td>`;
       rowHtml += `<td style="text-align:center; font-weight:600; cursor:pointer;" ondblclick="BM.openMemberDetailModal(${idx})" title="Double click to open individual member bill">${m.memNo}</td>`;
       rowHtml += `<td style="text-align:center;">${m.wing || ''}</td>`;
-      rowHtml += `<td style="text-align:left; font-weight:bold; cursor:pointer;" ondblclick="BM.openMemberDetailModal(${idx})" title="Double click to open individual member bill">${m.name}</td>`;
+      rowHtml += `<td class="bm-cell-name" style="text-align:center; font-weight:bold; cursor:pointer; padding:0 8px !important;" ondblclick="BM.openMemberDetailModal(${idx})" title="Double click to open individual member bill">${m.name}</td>`;
       rowHtml += `<td style="text-align:center; font-size:11px; font-weight:600;">${m.sqft || '—'}</td>`;
 
       cols.forEach((c, colIdx) => {
@@ -450,7 +502,7 @@
         rowHtml += `<td><input type="number" step="1" class="bm-grid-input" data-row="${idx}" data-col="${colIdx}" value="${val}" ${isReadOnly} onfocus="this.select()" onclick="event.stopPropagation()" onkeydown="BM.handleGridKeydown(event)" oninput="BM.onAmtInput(${idx}, '${c}', this.value)" onchange="BM.updateAmt(${idx}, '${c}', this.value)"></td>`;
       });
 
-      rowHtml += `<td style="font-weight:900; color:#1565C0; border-left:2px solid #E0E0E0; text-align:center;" id="bm-tot-${idx}">${Math.round(total)}</td>`;
+      rowHtml += `<td style="font-weight:900; color:#1565C0; border-left:2px solid #E0E0E0; text-align:center;" id="bm-tot-${idx}">${Math.round(calc.rowTotal)}</td>`;
       rowHtml += '</tr>';
       html += rowHtml;
     });
@@ -485,9 +537,13 @@
   }
 
   window.BM = {
+    _interestZeroed: false,
+    _interestRecalculated: false,
     loadMatrixData,
     switchBillType: function (type) {
       currentBillType = type;
+      BM._interestZeroed = false;
+      BM._interestRecalculated = false;
       const btn = document.getElementById('bm-current-type');
       if (btn) btn.textContent = type + ' ▾';
       updateColsForCurrentType();
@@ -517,16 +573,13 @@
       let grandTotal = 0;
 
       members.forEach((m, idx) => {
-        const baseHeads = cols.filter(c => c !== 'Principal' && c !== 'Interest' && c !== 'CGST' && c !== 'SGST');
-        let principalVal = 0;
-        baseHeads.forEach(bh => principalVal += Math.round(parseFloat(m.amounts[bh]) || 0));
-        m.amounts['Principal'] = principalVal;
+        const calc = recalcRowGSTAndPrincipal(m);
 
         // Update principal cell in DOM if present
         const pColIdx = cols.indexOf('Principal');
         if (pColIdx !== -1) {
           const pInput = document.querySelector(`.bm-grid-input[data-row="${idx}"][data-col="${pColIdx}"]`);
-          if (pInput && pInput.value !== String(principalVal)) pInput.value = principalVal;
+          if (pInput && pInput.value !== String(calc.principalVal)) pInput.value = calc.principalVal;
         }
 
         cols.forEach(c => {
@@ -534,14 +587,10 @@
           colTotals[c] += val;
         });
 
-        const interestVal = Math.round(parseFloat(m.amounts['Interest']) || 0);
-        const cgstVal = isGstEnabled ? Math.round(parseFloat(m.amounts['CGST']) || 0) : 0;
-        const sgstVal = isGstEnabled ? Math.round(parseFloat(m.amounts['SGST']) || 0) : 0;
-        const rowTotal = principalVal + interestVal + cgstVal + sgstVal;
-        grandTotal += rowTotal;
+        grandTotal += calc.rowTotal;
 
         const totEl = document.getElementById(`bm-tot-${idx}`);
-        if (totEl) totEl.textContent = Math.round(rowTotal);
+        if (totEl) totEl.textContent = Math.round(calc.rowTotal);
       });
 
       cols.forEach((c, colIdx) => {
@@ -703,6 +752,9 @@
           Object.keys(m.amounts || {}).forEach(k => {
             const num = parseFloat(m.amounts[k]) || 0;
             mappedAmounts[k] = num;
+            if (k.toUpperCase() === 'CGST') mappedAmounts['LIA-1032'] = num;
+            if (k.toUpperCase() === 'SGST') mappedAmounts['LIA-1033'] = num;
+            if (k.toUpperCase() === 'INTEREST') mappedAmounts['INC-1008'] = num;
             const allHeads = (typeData && Array.isArray(typeData.heads)) ? typeData.heads : [];
             const h = allHeads.find(x => (x.accName || '').toLowerCase().trim() === k.toLowerCase().trim())
                    || (defaultHeads || []).find(x => (x.accName || '').toLowerCase().trim() === k.toLowerCase().trim());
@@ -841,33 +893,16 @@
     triggerInterestCalc: async function () {
       const socId = sessionStorage.getItem('activeSocietyId') || localStorage.getItem('activeSocietyId') || '1';
       let intConfig = {
-        interestMethod: 'FULL_MONTH',
+        interestMethod: 'M-CM',
         interestRate: '21%',
         interestType: 'Simple',
-        grossDate: '16',
-        overdueDays: 16,
+        billDue: 15,
+        grossDate: '0',
         dayCountBasis: 365,
         interestPriority: 'Interest First'
       };
 
-      // 1. Check Configuration & Notes Master (Primary Config Source)
-      try {
-        const savedCnm = localStorage.getItem('jeevika_config_notes_' + socId) || localStorage.getItem('jeevika_config_notes_global');
-        if (savedCnm) {
-          const cnm = JSON.parse(savedCnm);
-          if (cnm) {
-            if (cnm.interestCalcMethod) intConfig.interestMethod = cnm.interestCalcMethod;
-            if (cnm.interestRate !== undefined) intConfig.interestRate = cnm.interestRate + '%';
-            if (cnm.interestOverdueDays !== undefined) {
-              intConfig.overdueDays = parseInt(cnm.interestOverdueDays, 10) || 16;
-              intConfig.grossDate = String(intConfig.overdueDays);
-            }
-            if (cnm.dayCountBasis !== undefined) intConfig.dayCountBasis = parseInt(cnm.dayCountBasis, 10) || 365;
-          }
-        }
-      } catch (e) { }
-
-      // 2. Query database for bill type notes override if applicable
+      // Query database for the active Bill Type's settings strictly from Bill Type & Notes Master
       const curBt = billTypes[currentBillType];
       let btId = curBt ? (curBt.billTypeId || curBt.id) : null;
 
@@ -890,26 +925,38 @@
           if (res.ok) {
             const json = await res.json();
             if (json && json.notes) {
-              if (json.notes.interestMethod && !intConfig.interestMethod) intConfig.interestMethod = json.notes.interestMethod;
-              if (json.notes.interestRate && !intConfig.interestRate) intConfig.interestRate = json.notes.interestRate;
+              if (json.notes.interestMethod) intConfig.interestMethod = json.notes.interestMethod;
+              if (json.notes.interestRate) intConfig.interestRate = json.notes.interestRate;
               if (json.notes.interestType) intConfig.interestType = json.notes.interestType;
-              if (json.notes.grossDays) intConfig.grossDate = json.notes.grossDays;
+              if (json.notes.grossDays !== undefined) intConfig.grossDate = json.notes.grossDays;
+              if (json.notes.billDue !== undefined) intConfig.billDue = parseInt(json.notes.billDue, 10) || 15;
               if (json.notes.interestPriority) intConfig.interestPriority = json.notes.interestPriority;
             }
           }
         } catch (e) { }
       }
 
-      const isDaily = (intConfig.interestMethod === 'DAILY_PRO_RATA' || intConfig.interestMethod === 'D-DD' || intConfig.interestMethod === 'M-DDME');
-      const methodName = isDaily
-        ? `Method 2 – Daily / Pro-Rata Interest (${intConfig.overdueDays || 16} Days)`
-        : 'Method 1 – Full Month Interest';
+      // Map method code to user-friendly label
+      const mCode = (intConfig.interestMethod || 'M-CM').toUpperCase().trim();
+      const dueDay = parseInt(intConfig.billDue, 10) || 15;
+      const grossDays = parseInt(intConfig.grossDate, 10) || 0;
+
+      let methodName = 'Monthly | Full Month Charge';
+      if (mCode === 'M-DDME') {
+        const days = Math.max(1, 30 - dueDay);
+        methodName = `Monthly | Due Date → Month-End Only (${days} Days)`;
+      } else if (mCode === 'D-DD' || mCode === 'DAILY_PRO_RATA') {
+        const days = grossDays > 0 ? grossDays : 2;
+        methodName = `Day-Wise | Delayed Days Only (${days} Days)`;
+      } else {
+        methodName = 'Monthly | Full Month Charge';
+      }
 
       let rateStr = (intConfig.interestRate || '21%').toString().trim();
       if (!rateStr.endsWith('%') && !rateStr.toLowerCase().includes('p.a.')) rateStr += '%';
       if (!rateStr.toLowerCase().includes('p.a.')) rateStr += ' p.a.';
 
-      const grossStr = isDaily ? `${intConfig.overdueDays || 16} Days Overdue` : 'Full Month (15th Due Date)';
+      const grossStr = grossDays > 0 ? `${grossDays} Days Grace` : 'None (Due on ' + dueDay + 'th)';
 
       const typeNameEl = document.getElementById('bm-int-type-name');
       const methodEl = document.getElementById('bm-int-method-txt');
@@ -925,38 +972,105 @@
       document.getElementById('bm-interest-confirm-overlay').classList.add('active');
     },
 
+    resetInterestToZero: function () {
+      let count = 0;
+      members.forEach(m => {
+        if (!m.amounts) m.amounts = {};
+        m.amounts['Interest'] = 0;
+        count++;
+      });
+      BM._interestZeroed = true;
+      BM._interestRecalculated = false;
+      hasChanges = true;
+      BM.recalcTotalsDom();
+      renderMatrix();
+      toast(`Interest set to 0 for ${count} member(s).`, true);
+    },
+
+    resetGstToZero: function () {
+      let count = 0;
+      members.forEach(m => {
+        if (!m.amounts) m.amounts = {};
+        m.amounts['CGST'] = 0;
+        m.amounts['SGST'] = 0;
+        count++;
+      });
+      hasChanges = true;
+      BM.recalcTotalsDom();
+      renderMatrix();
+      toast(`GST (CGST & SGST) set to 0 for ${count} member(s).`, true);
+    },
+
+    closeGstMustZeroModal: function () {
+      const el = document.getElementById('bm-gst-must-zero-overlay');
+      if (el) el.classList.remove('active');
+    },
+
+    actionSetZeroFromModal: function () {
+      BM.closeGstMustZeroModal();
+      BM.resetInterestToZero();
+    },
+
+    closeGstZeroConfirmModal: function (confirmed) {
+      const el = document.getElementById('bm-gst-zero-confirm-overlay');
+      if (el) el.classList.remove('active');
+      if (confirmed) {
+        BM.executeGstCalculation();
+      }
+    },
+
     closeInterestConfirm: function (confirmed) {
       document.getElementById('bm-interest-confirm-overlay').classList.remove('active');
       if (confirmed) {
-        const cfg = BM._activeIntConfig || { interestMethod: 'FULL_MONTH', interestRate: '21%' };
+        BM._interestRecalculated = true;
+        const cfg = BM._activeIntConfig || { interestMethod: 'M-CM', interestRate: '21%' };
         const rateNum = parseFloat((cfg.interestRate || '21').toString().replace(/[^0-9.]/g, '')) || 21;
-        const isDaily = (cfg.interestMethod === 'DAILY_PRO_RATA' || cfg.interestMethod === 'D-DD' || cfg.interestMethod === 'M-DDME');
-        const overdueDays = parseInt(cfg.overdueDays || cfg.grossDate, 10) || 16;
+        const mCode = (cfg.interestMethod || 'M-CM').toUpperCase().trim();
+        const dueDay = parseInt(cfg.billDue, 10) || 15;
+        const grossDays = parseInt(cfg.grossDate, 10) || 0;
         const dayBasis = parseInt(cfg.dayCountBasis, 10) || 365;
 
         let count = 0;
         members.forEach(m => {
+          const isGstEnabled = getIsGstEnabled();
           const opPrin = parseFloat(m.Op_Prin) || 0;
+          const currPrin = Math.round(parseFloat(m.amounts['Principal']) || 0);
+          const cgstAmt = isGstEnabled ? (Math.round(parseFloat(m.amounts['CGST']) || 0)) : 0;
+          const sgstAmt = isGstEnabled ? (Math.round(parseFloat(m.amounts['SGST']) || 0)) : 0;
+          const gstAmt = cgstAmt + sgstAmt;
+
           // Negative Op_Prin OR explicit 'Cr' tag means member paid in advance — skip interest
           const isCredit = (opPrin < 0) || ((m.OpDrCr || '').toUpperCase() === 'CR');
 
-          // Only charge interest on debit (dues) balances
-          const baseAmt = (!isCredit && opPrin > 0) ? opPrin : 0;
+          let basePrin = 0;
+          if (!isCredit && opPrin > 0) {
+            basePrin = opPrin;
+          } else if (!isCredit && currPrin > 0) {
+            basePrin = currPrin;
+          }
 
-          if (baseAmt <= 0) {
+          if (basePrin <= 0) {
             // Credit or zero balance → no interest
             m.amounts['Interest'] = 0.00;
             return;
           }
 
+          // Count interest on SUM of [PRINCIPAL + GST]
+          const baseAmt = basePrin + gstAmt;
+
           let interest = 0;
           const annualRate = rateNum / 100;
 
-          if (isDaily) {
-            // METHOD 2: Daily / Pro-Rata Interest = (Principal * Annual Rate * Overdue Days) / 365
-            interest = (baseAmt * annualRate * overdueDays) / dayBasis;
+          if (mCode === 'M-DDME') {
+            // Monthly | Due Date → Month-End Only
+            const daysToMonthEnd = Math.max(1, 30 - dueDay);
+            interest = (baseAmt * annualRate * daysToMonthEnd) / dayBasis;
+          } else if (mCode === 'D-DD' || mCode === 'DAILY_PRO_RATA') {
+            // Day-Wise | Delayed Days Only
+            const delayedDays = grossDays > 0 ? grossDays : 2;
+            interest = (baseAmt * annualRate * delayedDays) / dayBasis;
           } else {
-            // METHOD 1: Full Month Interest = (Principal * Annual Rate) / 12
+            // Monthly | Full Month Charge (M-CM)
             interest = (baseAmt * annualRate) / 12;
           }
 
@@ -966,34 +1080,219 @@
 
         hasChanges = true;
         renderMatrix();
-        const methodDesc = isDaily ? `Method 2 (Daily/Pro-Rata ${overdueDays}d)` : 'Method 1 (Full Month)';
+        let methodDesc = 'Monthly | Full Month Charge';
+        if (mCode === 'M-DDME') methodDesc = 'Monthly | Due Date → Month-End Only';
+        else if (mCode === 'D-DD' || mCode === 'DAILY_PRO_RATA') methodDesc = 'Day-Wise | Delayed Days Only';
         toast(`Interest calculated for ${count} member(s) via ${methodDesc} @ ${rateNum}% p.a.`, true);
       }
     },
 
-    saveToggles: async function () {
-      const gstVal = document.getElementById('bm-gst-calc').value;
+    triggerGstCalc: function () {
+      const isGstEnabled = getIsGstEnabled();
+      if (!isGstEnabled) {
+        toast('GST is not applicable for this society.', false);
+        return;
+      }
+
+      // Condition B: If someone directly comes and calculates GST without first setting interest to zero
+      if (!BM._interestZeroed) {
+        const modalB = document.getElementById('bm-gst-must-zero-overlay');
+        if (modalB) modalB.classList.add('active');
+        return;
+      }
+
+      // Condition A: If someone sets interest to zero and before calculating interest again they calculate GST
+      if (BM._interestZeroed && !BM._interestRecalculated) {
+        const modalA = document.getElementById('bm-gst-zero-confirm-overlay');
+        if (modalA) modalA.classList.add('active');
+        return;
+      }
+
+      // Standard flow: Interest zeroed and recalculated
+      BM.executeGstCalculation();
+    },
+
+    executeGstCalculation: async function () {
+      const isGstEnabled = getIsGstEnabled();
+      if (!isGstEnabled) {
+        toast('GST is not applicable for this society.', false);
+        return;
+      }
+
+      const socId = sessionStorage.getItem('activeSocietyId') || localStorage.getItem('activeSocietyId') || '1';
+      const fyId = (window.Auth && Auth.getFYId && Auth.getFYId()) ||
+                   sessionStorage.getItem('activeFYId') ||
+                   localStorage.getItem('activeFYId') ||
+                   (window.parent && window.parent.sessionStorage && window.parent.sessionStorage.getItem('activeFYId')) ||
+                   (window.parent && window.parent.localStorage && window.parent.localStorage.getItem('activeFYId')) ||
+                   '1';
+
+      const limit = currentGstSettings.exemptLimit || 7500;
+      const cgstRate = currentGstSettings.cgstPct !== undefined ? currentGstSettings.cgstPct : 9;
+      const sgstRate = currentGstSettings.sgstPct !== undefined ? currentGstSettings.sgstPct : 9;
+
+      const typeData = billTypes[currentBillType];
+      const currentTypeId = typeData ? (typeData.id || 0) : 0;
+      let allHeads = (typeData && Array.isArray(typeData.heads)) ? typeData.heads : [];
+      const userHeads = cols.filter(c => c !== 'Principal' && c !== 'Interest' && c !== 'CGST' && c !== 'SGST');
+
+      // Fetch fresh bill type heads configuration to ensure latest gstApp & gstExm flags
+      if (currentTypeId > 0) {
+        try {
+          const detailRes = await fetch(`${bmApiBase()}/api/bill-types/${currentTypeId}`, { headers: getAuthHeaders() });
+          if (detailRes.ok) {
+            const detailJson = await detailRes.json();
+            if (detailJson && detailJson.success && Array.isArray(detailJson.heads)) {
+              allHeads = detailJson.heads;
+            }
+          }
+        } catch (e) { }
+      }
+
+      toast('Fetching Accumulated Principal from Member Account Head-Wise...', true);
+
+      // Fetch headwise ledger to resolve exact Accumulated Principal for each member
+      let memberAccMap = {};
       try {
-        await fetch(`${bmApiBase()}/api/billing-master/settings`, {
-          method: 'POST',
-          headers: getAuthHeaders(),
-          body: JSON.stringify({ billType: currentBillType, gstCalc: gstVal })
+        const ledgerUrl = `${bmApiBase()}/api/reports/member-headwise-ledger?societyId=${socId}&fyId=${fyId}&billTypeId=${currentTypeId}`;
+        const res = await fetch(ledgerUrl, { headers: getAuthHeaders() });
+        if (res.ok) {
+          const json = await res.json();
+          const ledgers = (json && json.memberLedgers) ? json.memberLedgers : [];
+          ledgers.forEach(function (l) {
+            const info = l.memberInfo || {};
+            const mId = info.memberId;
+            const mCode = (info.memberCode || '').trim().toLowerCase();
+            const mFlat = (info.flatNo || '').trim().toLowerCase();
+
+            const op = l.openingBalance || {};
+            const txs = l.transactions || [];
+            const opHeadMap = op.headWise || {};
+            const opInt = parseFloat(opHeadMap['Interest'] || opHeadMap['INTEREST'] || op.interest || 0);
+            let opPrinc = (parseFloat(op.totalOpening) || 0) - opInt;
+            if (opPrinc < 0) opPrinc = 0;
+
+            let curAccPrinc = opPrinc;
+            let curAccInt = opInt;
+
+            txs.forEach(function (t) {
+              const drAmt = parseFloat(t.totalDebit) || 0;
+              const crAmt = parseFloat(t.totalCredit) || 0;
+              const hAmts = t.headAmounts || {};
+              const intAmt = parseFloat(hAmts['Interest'] || hAmts['INTEREST'] || 0);
+              const princAmt = drAmt > 0 ? (drAmt - intAmt) : 0;
+
+              if (drAmt > 0) {
+                curAccPrinc += princAmt;
+                curAccInt += intAmt;
+              }
+
+              if (crAmt > 0) {
+                let remCredit = crAmt;
+                if (curAccInt > 0) {
+                  if (remCredit <= curAccInt) {
+                    curAccInt -= remCredit;
+                    remCredit = 0;
+                  } else {
+                    remCredit -= curAccInt;
+                    curAccInt = 0;
+                    curAccPrinc -= remCredit;
+                  }
+                } else {
+                  curAccPrinc -= remCredit;
+                }
+              }
+            });
+
+            const finalAcc = Math.max(0, Math.round(curAccPrinc));
+            if (mId) memberAccMap['id_' + mId] = finalAcc;
+            if (mCode) memberAccMap['code_' + mCode] = finalAcc;
+            if (mFlat) memberAccMap['flat_' + mFlat] = finalAcc;
+          });
+        }
+      } catch (e) {
+        console.warn('Headwise ledger fetch failed, using member Op_Prin fallback:', e);
+      }
+
+      let count = 0;
+      members.forEach(m => {
+        let prinTotal = 0;
+        let gstAppTotal = 0;
+        let gstExmTotal = 0;
+
+        userHeads.forEach(bh => {
+          const v = Math.round(parseFloat(m.amounts[bh]) || 0);
+          prinTotal += v;
+
+          const bhLower = bh.toLowerCase().trim();
+          const hMatch = allHeads.find(h =>
+            (h.accName && h.accName.toLowerCase().trim() === bhLower) ||
+            (h.accCode && h.accCode.toLowerCase().trim() === bhLower) ||
+            (h.accountName && h.accountName.toLowerCase().trim() === bhLower) ||
+            (h.accountCode && h.accountCode.toLowerCase().trim() === bhLower)
+          ) || (defaultHeads || []).find(h =>
+            (h.accName && h.accName.toLowerCase().trim() === bhLower) ||
+            (h.accCode && h.accCode.toLowerCase().trim() === bhLower)
+          );
+
+          if (hMatch) {
+            const isApp = !!(hMatch.gstApp === true || hMatch.gstApp === 1 || hMatch.gstApp === 'true' || hMatch.GSTApplicable === true || hMatch.GSTApplicable === 1 || hMatch.GSTApplicable === 'true');
+            const isExm = !!(hMatch.gstExm === true || hMatch.gstExm === 1 || hMatch.gstExm === 'true' || hMatch.GSTExempted === true || hMatch.GSTExempted === 1 || hMatch.GSTExempted === 'true');
+            if (isApp) {
+              gstAppTotal += v;
+            } else if (isExm) {
+              gstExmTotal += v;
+            }
+          }
         });
-        toast('GST Calculation mode updated to ' + gstVal, true);
-      } catch (e) { }
+
+        // Set row Principal as sum of current bill user heads
+        m.amounts['Principal'] = prinTotal;
+
+        // Base for GST is Accumulated Principal from Member Account | Head Wise
+        let accPrinc = 0;
+        if (m.id && memberAccMap['id_' + m.id] !== undefined) {
+          accPrinc = memberAccMap['id_' + m.id];
+        } else if (m.memNo && memberAccMap['code_' + String(m.memNo).trim().toLowerCase()] !== undefined) {
+          accPrinc = memberAccMap['code_' + String(m.memNo).trim().toLowerCase()];
+        } else if (m.flatNo && memberAccMap['flat_' + String(m.flatNo).trim().toLowerCase()] !== undefined) {
+          accPrinc = memberAccMap['flat_' + String(m.flatNo).trim().toLowerCase()];
+        } else {
+          accPrinc = Math.max(0, Math.round(parseFloat(m.Op_Prin) || 0));
+        }
+
+        // 1. Check if total (Accumulated Principal or GST App + GST Exm) exceeds limit (7500)
+        // 2. If it exceeds 7500 -> both GST Applicable & GST Exempted are taxed (taxableBase = Accumulated Principal)
+        // 3. If it does NOT exceed 7500 -> GST is STILL counted, but ONLY on accounts ticked for "GST Applicable"
+        let taxableBase = 0;
+        const totalToCheck = accPrinc > 0 ? accPrinc : (gstAppTotal + gstExmTotal);
+
+        if (totalToCheck > limit) {
+          taxableBase = accPrinc > 0 ? accPrinc : (gstAppTotal + gstExmTotal);
+        } else {
+          taxableBase = gstAppTotal;
+        }
+
+        const cgstVal = Math.round((taxableBase * cgstRate) / 100);
+        const sgstVal = Math.round((taxableBase * sgstRate) / 100);
+
+        m.amounts['CGST'] = cgstVal;
+        m.amounts['SGST'] = sgstVal;
+        count++;
+      });
+
+      hasChanges = true;
+      BM.recalcTotalsDom();
+      renderMatrix();
+      toast(`GST calculated for ${count} member(s) (CGST ${cgstRate}% + SGST ${sgstRate}% | Limit ₹${limit}).`, true);
+    },
+
+    saveToggles: async function () {
+      // Legacy - GST calculation is now executed on demand via BM.triggerGstCalc()
     },
 
     loadToggles: async function () {
-      try {
-        const res = await fetch(`${bmApiBase()}/api/billing-master/settings?billType=${encodeURIComponent(currentBillType)}`);
-        if (res.ok) {
-          const json = await res.json();
-          if (json.success && json.data) {
-            const gstEl = document.getElementById('bm-gst-calc');
-            if (gstEl) gstEl.value = json.data.gstCalc || 'MANUAL';
-          }
-        }
-      } catch (e) { }
+      // Legacy - GST calculation is now executed on demand via BM.triggerGstCalc()
     },
 
     printList: function () {
@@ -1010,7 +1309,11 @@
         });
         const principalVal = Math.round(parseFloat(m.amounts['Principal']) || 0);
         const interestVal = Math.round(parseFloat(m.amounts['Interest']) || 0);
-        html += `<td style="font-weight:bold; color:#1565C0;">${principalVal + interestVal}</td></tr>`;
+        const cgstVal = Math.round(parseFloat(m.amounts['CGST']) || 0);
+        const sgstVal = Math.round(parseFloat(m.amounts['SGST']) || 0);
+        const isGstEnabled = getIsGstEnabled();
+        const rowTot = principalVal + interestVal + (isGstEnabled ? (cgstVal + sgstVal) : 0);
+        html += `<td style="font-weight:bold; color:#1565C0;">${rowTot}</td></tr>`;
       });
       html += '</tbody></table></body></html>';
       w.document.write(html); w.document.close();

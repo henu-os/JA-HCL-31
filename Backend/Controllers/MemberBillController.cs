@@ -200,22 +200,39 @@ namespace JeevikaERP.Controllers
             }
         }
 
-        private static int ResolveOrCreateBillTypeId(NpgsqlConnection conn, string billType, int societyId, int explicitId = 0)
+        private static int ResolveOrCreateBillTypeId(NpgsqlConnection conn, string billType, int societyId, int explicitId = 0, NpgsqlTransaction? tx = null)
         {
             if (explicitId > 0) return explicitId;
             if (string.IsNullOrWhiteSpace(billType)) billType = "Maintenance";
 
+            string cleanType = System.Text.RegularExpressions.Regex.Replace(billType.Trim(), @"\s+", " ");
+            bool isMajor = cleanType.IndexOf("major", StringComparison.OrdinalIgnoreCase) >= 0;
+            bool isMaint = cleanType.IndexOf("maint", StringComparison.OrdinalIgnoreCase) >= 0;
+
             int billTypeId = 0;
             using (var btCmd = conn.CreateCommand())
             {
+                if (tx != null) btCmd.Transaction = tx;
                 btCmd.CommandText = @"
                     SELECT BillTypeId FROM jeevika_erp.SocBillType
-                    WHERE (SocietyId = @sid OR SocietyId = 1) 
-                      AND (LOWER(TRIM(BillTypeName)) = LOWER(TRIM(@btype)) OR LOWER(TRIM(BillTypeCode)) = LOWER(TRIM(@btype)))
-                    ORDER BY CASE WHEN SocietyId = @sid THEN 0 ELSE 1 END, BillTypeId ASC
+                    WHERE (SocietyId = @sid OR (@sid > 0 AND SocietyId = 1) OR (@sid <= 0 AND SocietyId > 0)) 
+                      AND (
+                          REGEXP_REPLACE(LOWER(TRIM(BillTypeName)), '\s+', ' ', 'g') = LOWER(@cleanType)
+                          OR LOWER(TRIM(BillTypeCode)) = LOWER(@cleanType)
+                          OR LOWER(TRIM(BillTypeName)) ILIKE '%' || LOWER(@cleanType) || '%'
+                          OR LOWER(@cleanType) ILIKE '%' || LOWER(TRIM(BillTypeName)) || '%'
+                          OR (@isMajor = TRUE AND (LOWER(BillTypeName) ILIKE '%major%' OR LOWER(BillTypeCode) ILIKE '%major%'))
+                          OR (@isMaint = TRUE AND (LOWER(BillTypeName) ILIKE '%maint%' OR LOWER(BillTypeCode) ILIKE '%maint%'))
+                      )
+                    ORDER BY 
+                        CASE WHEN SocietyId = @sid THEN 0 ELSE 1 END,
+                        CASE WHEN REGEXP_REPLACE(LOWER(TRIM(BillTypeName)), '\s+', ' ', 'g') = LOWER(@cleanType) THEN 0 ELSE 1 END,
+                        BillTypeId ASC
                     LIMIT 1";
                 btCmd.Parameters.AddWithValue("@sid", societyId > 0 ? societyId : 1);
-                btCmd.Parameters.AddWithValue("@btype", billType.Trim());
+                btCmd.Parameters.AddWithValue("@cleanType", cleanType);
+                btCmd.Parameters.AddWithValue("@isMajor", isMajor);
+                btCmd.Parameters.AddWithValue("@isMaint", isMaint);
                 var obj = btCmd.ExecuteScalar();
                 if (obj != null && obj != DBNull.Value) billTypeId = Convert.ToInt32(obj);
             }
@@ -225,17 +242,21 @@ namespace JeevikaERP.Controllers
                 try
                 {
                     using var insBtCmd = conn.CreateCommand();
+                    if (tx != null) insBtCmd.Transaction = tx;
                     insBtCmd.CommandText = @"
-                        INSERT INTO jeevika_erp.SocBillType (SocietyId, BillTypeCode, BillTypeName, Description, IsActive, CreatedAt, UpdatedAt)
-                        VALUES (@socId, UPPER(SUBSTRING(REGEXP_REPLACE(@name, '\s+', '', 'g') FROM 1 FOR 5)), @name, @name || ' Bill', TRUE, NOW(), NOW())
-                        ON CONFLICT (SocietyId, BillTypeCode) DO UPDATE SET BillTypeName = EXCLUDED.BillTypeName, UpdatedAt = NOW()
+                        INSERT INTO jeevika_erp.SocBillType (SocietyId, BillTypeCode, BillTypeName, Description, IsActive)
+                        VALUES (@socId, UPPER(SUBSTRING(REGEXP_REPLACE(@name, '\s+', '', 'g') FROM 1 FOR 5)), @name, @name || ' Bill', TRUE)
+                        ON CONFLICT (SocietyId, BillTypeCode) DO UPDATE SET BillTypeName = EXCLUDED.BillTypeName, IsActive = TRUE
                         RETURNING BillTypeId";
                     insBtCmd.Parameters.AddWithValue("@socId", societyId > 0 ? societyId : 1);
-                    insBtCmd.Parameters.AddWithValue("@name", billType.Trim());
+                    insBtCmd.Parameters.AddWithValue("@name", cleanType);
                     var obj = insBtCmd.ExecuteScalar();
                     if (obj != null && obj != DBNull.Value) billTypeId = Convert.ToInt32(obj);
                 }
-                catch { }
+                catch (Exception btEx)
+                {
+                    Console.WriteLine($"[ResolveOrCreateBillTypeId Error] {btEx}");
+                }
             }
 
             return billTypeId;
@@ -370,22 +391,20 @@ namespace JeevikaERP.Controllers
             if (model.SocietyId <= 0 || model.FYId <= 0)
                 return BadRequest(new { success = false, message = "SocietyId and FYId are required." });
 
+            NpgsqlTransaction? tx = null;
             try
             {
                 using var conn = DbHelper.GetConn();
-                using var tx   = conn.BeginTransaction();
 
                 int targetSocietyId = model.SocietyId;
                 using (var checkCmd = conn.CreateCommand())
                 {
-                    checkCmd.Transaction = tx;
                     checkCmd.CommandText = "SELECT COUNT(*) FROM jeevika_erp.SocMember WHERE (SocietyId = @sid OR (@sid <= 0 AND SocietyId > 0)) AND IsDeleted = FALSE";
                     checkCmd.Parameters.AddWithValue("@sid", targetSocietyId);
                     int memCount = Convert.ToInt32(checkCmd.ExecuteScalar() ?? 0);
                     if (memCount == 0)
                     {
                         using var fallbackCmd = conn.CreateCommand();
-                        fallbackCmd.Transaction = tx;
                         fallbackCmd.CommandText = "SELECT SocietyId FROM jeevika_erp.SocMember WHERE IsDeleted = FALSE ORDER BY MemberId DESC LIMIT 1";
                         var fSid = fallbackCmd.ExecuteScalar();
                         if (fSid != null && fSid != DBNull.Value) targetSocietyId = Convert.ToInt32(fSid);
@@ -394,7 +413,6 @@ namespace JeevikaERP.Controllers
 
                 // 1. Fetch active members
                 using var cmdM = conn.CreateCommand();
-                cmdM.Transaction = tx;
                 cmdM.CommandText = @"
                     SELECT MemberId, MemCode, MemName, Wing, FlatNo, OpPrincipal, OpInterest
                     FROM jeevika_erp.SocMember
@@ -452,7 +470,7 @@ namespace JeevikaERP.Controllers
 
                 // 2. Fetch Bill Type dynamically
                 string targetType = string.IsNullOrWhiteSpace(model.BillType) ? "Maintenance" : model.BillType.Trim();
-                int billTypeId = ResolveOrCreateBillTypeId(conn, targetType, model.SocietyId);
+                int billTypeId = ResolveOrCreateBillTypeId(conn, targetType, targetSocietyId, model.BillTypeId ?? 0);
 
                 // 3. Fetch GST settings from SocietyInfo
                 bool isGstApp = false;
@@ -460,9 +478,12 @@ namespace JeevikaERP.Controllers
                 string intDuesGST = "No";
                 using (var socCmd = conn.CreateCommand())
                 {
-                    socCmd.Transaction = tx;
-                    socCmd.CommandText = "SELECT GSTApplicable, CGSTPct, SGSTPct, ExemptLimit, IntDuesGST FROM jeevika_erp.SocietyInfo WHERE SocietyId = @sid LIMIT 1";
-                    socCmd.Parameters.AddWithValue("@sid", model.SocietyId);
+                    socCmd.CommandText = @"
+                        SELECT GSTApplicable, CGSTPct, SGSTPct, ExemptLimit, IntDuesGST 
+                        FROM jeevika_erp.SocietyInfo 
+                        WHERE SocietyId = @sid OR (@sid > 0 AND SocietyId = 1) 
+                        ORDER BY CASE WHEN SocietyId = @sid THEN 0 ELSE 1 END LIMIT 1";
+                    socCmd.Parameters.AddWithValue("@sid", targetSocietyId);
                     using var rSoc = socCmd.ExecuteReader();
                     if (rSoc.Read())
                     {
@@ -484,7 +505,6 @@ namespace JeevikaERP.Controllers
                 if (billTypeId > 0)
                 {
                     using var headCmd = conn.CreateCommand();
-                    headCmd.Transaction = tx;
                     headCmd.CommandText = @"
                         SELECT AccountCode, AccountName, GSTApplicable, GSTExempted
                         FROM jeevika_erp.SocBillTypeHead
@@ -509,13 +529,12 @@ namespace JeevikaERP.Controllers
                 if (configuredHeads.Count == 0)
                 {
                     using var accCmd = conn.CreateCommand();
-                    accCmd.Transaction = tx;
                     accCmd.CommandText = @"
                         SELECT AccCode, AccName 
                         FROM jeevika_erp.SocAccount 
-                        WHERE SocietyId = @sid AND IsDeleted = FALSE AND GrpMainId = 3 
+                        WHERE (SocietyId = @sid OR (@sid > 0 AND SocietyId = 1)) AND IsDeleted = FALSE AND GrpMainId = 3 
                         ORDER BY AccName ASC";
-                    accCmd.Parameters.AddWithValue("@sid", model.SocietyId);
+                    accCmd.Parameters.AddWithValue("@sid", targetSocietyId);
                     using var rA = accCmd.ExecuteReader();
                     while (rA.Read())
                     {
@@ -533,12 +552,11 @@ namespace JeevikaERP.Controllers
                 if (billTypeId > 0)
                 {
                     using var matCmd = conn.CreateCommand();
-                    matCmd.Transaction = tx;
                     matCmd.CommandText = @"
                         SELECT MemberId, AccountCode, Amount
                         FROM jeevika_erp.SocBillingMatrix
                         WHERE (SocietyId = @sid OR (@sid > 0 AND SocietyId = 1)) AND BillTypeId = @btId";
-                    matCmd.Parameters.AddWithValue("@sid",  model.SocietyId);
+                    matCmd.Parameters.AddWithValue("@sid",  targetSocietyId);
                     matCmd.Parameters.AddWithValue("@btId", billTypeId);
                     using var rMat = matCmd.ExecuteReader();
                     while (rMat.Read())
@@ -574,9 +592,8 @@ namespace JeevikaERP.Controllers
                 else
                 {
                     using var countCmd = conn.CreateCommand();
-                    countCmd.Transaction = tx;
-                    countCmd.CommandText = "SELECT COUNT(*) FROM jeevika_erp.SocMemberBill WHERE SocietyId = @sid AND FYId = @fyid";
-                    countCmd.Parameters.AddWithValue("@sid",  model.SocietyId);
+                    countCmd.CommandText = "SELECT COUNT(*) FROM jeevika_erp.SocMemberBill WHERE (SocietyId = @sid OR (@sid > 0 AND SocietyId = 1)) AND FYId = @fyid";
+                    countCmd.Parameters.AddWithValue("@sid",  targetSocietyId);
                     countCmd.Parameters.AddWithValue("@fyid", model.FYId);
                     int billSeq = Convert.ToInt32(countCmd.ExecuteScalar() ?? 0);
                     startNum = billSeq + 1;
@@ -589,10 +606,13 @@ namespace JeevikaERP.Controllers
                 string periodStr = !string.IsNullOrWhiteSpace(model.Period) ? model.Period : billDate.ToString("MMMM yyyy");
                 string part1Str  = !string.IsNullOrWhiteSpace(model.Particular1) ? model.Particular1 : $"{targetType} Charges for {periodStr}";
 
+                tx = conn.BeginTransaction();
+
                 foreach (var m in members)
                 {
                     decimal principal = 0m;
-                    decimal taxablePrincipal = 0m;
+                    decimal gstAppTotal = 0m;
+                    decimal gstExmTotal = 0m;
                     decimal interest = 0m;
                     var memberItems = new List<(string code, string name, decimal amount)>();
 
@@ -637,9 +657,10 @@ namespace JeevikaERP.Controllers
                                 {
                                     principal += headAmt;
                                     memberItems.Add((string.IsNullOrEmpty(hCode) ? hName : hCode, hName, headAmt));
-                                    if (isGstApp && head.gstApp && !head.gstEx)
+                                    if (isGstApp)
                                     {
-                                        taxablePrincipal += headAmt;
+                                        if (head.gstApp) gstAppTotal += headAmt;
+                                        else if (head.gstEx) gstExmTotal += headAmt;
                                     }
                                 }
                             }
@@ -664,7 +685,7 @@ namespace JeevikaERP.Controllers
                                 {
                                     principal += amt;
                                     memberItems.Add((k, k, amt));
-                                    taxablePrincipal += amt;
+                                    if (isGstApp) gstAppTotal += amt;
                                 }
                                 seenCodes.Add(k);
                             }
@@ -685,13 +706,28 @@ namespace JeevikaERP.Controllers
                     principal = Math.Round(principal, 0, MidpointRounding.AwayFromZero);
                     interest  = Math.Round(interest, 0, MidpointRounding.AwayFromZero);
 
-                    // Compute GST if applicable and taxable principal exceeds exemption limit
+                    // Compute GST if applicable based on the 7,500 threshold:
+                    // If (GST Applicable + GST Exempt) > 7500 -> Both are taxed
+                    // If (GST Applicable + GST Exempt) <= 7500 -> Only GST Applicable is taxed
                     decimal cgstAmt = 0m;
                     decimal sgstAmt = 0m;
-                    if (isGstApp && taxablePrincipal > exemptLimit)
+                    if (isGstApp)
                     {
-                        cgstAmt = Math.Round(taxablePrincipal * (cgstPct / 100m), 0, MidpointRounding.AwayFromZero);
-                        sgstAmt = Math.Round(taxablePrincipal * (sgstPct / 100m), 0, MidpointRounding.AwayFromZero);
+                        decimal taxableBase = 0m;
+                        if ((gstAppTotal + gstExmTotal) > exemptLimit)
+                        {
+                            taxableBase = gstAppTotal + gstExmTotal;
+                        }
+                        else
+                        {
+                            taxableBase = gstAppTotal;
+                        }
+
+                        if (taxableBase > 0)
+                        {
+                            cgstAmt = Math.Round(taxableBase * (cgstPct / 100m), 0, MidpointRounding.AwayFromZero);
+                            sgstAmt = Math.Round(taxableBase * (sgstPct / 100m), 0, MidpointRounding.AwayFromZero);
+                        }
 
                         if (intDuesGST.Equals("Yes", StringComparison.OrdinalIgnoreCase) && interest > 0)
                         {
@@ -702,7 +738,10 @@ namespace JeevikaERP.Controllers
 
                     if (cgstAmt > 0) memberItems.Add(("LIA-1032", $"CGST {cgstPct}%", cgstAmt));
                     if (sgstAmt > 0) memberItems.Add(("LIA-1033", $"SGST {sgstPct}%", sgstAmt));
-                    decimal total = Math.Round(principal + interest + cgstAmt + sgstAmt, 0, MidpointRounding.AwayFromZero);
+
+                    // Combined Principal includes GST: [Principal Heads + CGST + SGST]
+                    decimal billPrincipal = Math.Round(principal + cgstAmt + sgstAmt, 0, MidpointRounding.AwayFromZero);
+                    decimal total = Math.Round(billPrincipal + interest, 0, MidpointRounding.AwayFromZero);
                     currentBillNum++;
                     string billNo = $"{prefix}{currentBillNum.ToString().PadLeft(padLen, '0')}";
 
@@ -740,7 +779,7 @@ namespace JeevikaERP.Controllers
                     insCmd.Parameters.AddWithValue("@p1",       part1Str);
                     insCmd.Parameters.AddWithValue("@bdate",    billDate);
                     insCmd.Parameters.AddWithValue("@ddate",    dueDate);
-                    insCmd.Parameters.AddWithValue("@prin",     principal);
+                    insCmd.Parameters.AddWithValue("@prin",     billPrincipal);
                     insCmd.Parameters.AddWithValue("@interest", interest);
                     insCmd.Parameters.AddWithValue("@total",    total);
 
@@ -789,7 +828,13 @@ namespace JeevikaERP.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { success = false, message = ex.Message });
+                try { tx?.Rollback(); } catch { }
+                Console.WriteLine($"[GenerateBatch Error] {ex}");
+                return StatusCode(500, new { success = false, message = ex.ToString() });
+            }
+            finally
+            {
+                tx?.Dispose();
             }
         }
 
@@ -945,6 +990,7 @@ namespace JeevikaERP.Controllers
     {
         public int       SocietyId   { get; set; }
         public int       FYId        { get; set; }
+        public int?      BillTypeId  { get; set; }
         public string?   BillType    { get; set; } = "Maintenance";
         public string?   StartNo     { get; set; }
         public string?   Period      { get; set; }

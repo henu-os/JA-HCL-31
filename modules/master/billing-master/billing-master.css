@@ -1,0 +1,311 @@
+/* ═══════════════════════════════════════════════════════════
+   JEEVIKA ERP v2 — Billing Master Matrix CSS
+   Clean Enterprise DataGrid Layout with Sticky & Frozen Columns
+   ═══════════════════════════════════════════════════════════ */
+
+#billing-master-panel {
+  background: #FFFFFF !important;
+  font-family: 'Inter', 'Segoe UI', sans-serif !important;
+  font-size: 12px !important;
+  color: #424242 !important;
+}
+
+/* Modern Flat Toolbar */
+.bm-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: #1565C0;
+  border: none;
+  flex-shrink: 0;
+}
+
+.bm-toolbar-sep {
+  width: 1px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.2);
+  margin: 0 4px;
+}
+
+.bm-btn-modern {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 14px;
+  min-height: 28px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: inherit;
+  color: #424242;
+  background: #FFFFFF;
+  border: 1px solid #BDBDBD;
+  cursor: pointer;
+  outline: none;
+  white-space: nowrap;
+  border-radius: 4px;
+  text-transform: uppercase;
+  transition: all 0.2s;
+  letter-spacing: 0.3px;
+}
+
+.bm-btn-modern:hover {
+  background: #E3F2FD;
+  border-color: #1565C0;
+  color: #1565C0;
+}
+
+.bm-btn-modern:active,
+.bm-btn-modern.pressed {
+  background: #BBDEFB;
+  border-color: #1565C0;
+  color: #0D47A1;
+}
+
+.bm-toolbar .bm-btn-modern {
+  color: #FFF;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.bm-toolbar .bm-btn-modern:hover {
+  background: #FFFFFF;
+  color: #1565C0;
+  border-color: #FFFFFF;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.bm-btn-modern.btn-danger {
+  color: #FFF !important;
+  background: #D32F2F !important;
+  border-color: #D32F2F !important;
+}
+
+.bm-btn-modern.btn-danger:hover {
+  background: #C62828 !important;
+  border-color: #C62828 !important;
+}
+
+/* Stacked Toolbar Buttons */
+.bm-btn-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  justify-content: center;
+}
+
+.bm-toolbar .bm-btn-compact {
+  padding: 3px 8px !important;
+  min-height: 20px !important;
+  height: 20px !important;
+  font-size: 9.5px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  border-radius: 3px !important;
+  letter-spacing: 0.2px !important;
+  gap: 4px !important;
+}
+
+/* Dropdown Menus */
+.bm-menu-wrap {
+  position: relative;
+}
+
+.bm-menu-wrap:hover .bm-menu-content {
+  display: block !important;
+}
+
+.bm-menu-content {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 180px;
+  background: #FFFFFF;
+  border: 1px solid #E0E0E0;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 9999;
+  padding: 4px 0;
+  margin-top: 2px;
+}
+
+.bm-menu-item {
+  padding: 6px 16px;
+  font-size: 11px;
+  cursor: pointer;
+  color: #424242;
+  white-space: nowrap;
+  font-weight: 600;
+  transition: background 0.15s;
+}
+
+.bm-menu-item:hover {
+  background: #E3F2FD;
+  color: #1565C0;
+}
+
+/* Excel-style table overrides */
+#bm-table {
+  border-collapse: collapse !important;
+  border: 1px solid #D0D0D0 !important;
+  table-layout: fixed !important;
+}
+
+#bm-table th {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 13 !important;
+  border: 1px solid #D0D0D0 !important;
+  border-bottom: 2px solid #0D47A1 !important;
+  background: #1565C0 !important;
+  color: #FFFFFF !important;
+  padding: 8px 10px !important;
+  font-size: 11px !important;
+  font-weight: bold !important;
+}
+
+#bm-table td {
+  border: 1px solid #D0D0D0 !important;
+  padding: 0 !important;
+  height: 28px !important;
+  vertical-align: middle !important;
+}
+
+#bm-table td.bm-cell-name {
+  text-align: center !important;
+  padding: 0 8px !important;
+}
+
+/* Resizer handle style */
+.bm-resizer {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  cursor: col-resize;
+  z-index: 20;
+  user-select: none;
+}
+
+.bm-resizer:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Flat Excel cell input styles */
+.bm-grid-input {
+  width: 100% !important;
+  height: 28px !important;
+  border: none !important;
+  background: transparent !important;
+  color: #000000 !important;
+  font-family: 'Consolas', 'Courier New', monospace !important;
+  font-size: 12px !important;
+  text-align: right !important;
+  padding: 4px 8px !important;
+  border-radius: 0 !important;
+  outline: none !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+  transition: background-color 0.15s;
+}
+
+.bm-grid-input:focus {
+  background-color: #FFFFFF !important;
+  box-shadow: inset 0 0 0 2px #1565C0 !important;
+}
+
+/* Modals */
+.bm-modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(1px);
+  z-index: 10002;
+  align-items: center;
+  justify-content: center;
+}
+
+.bm-modal-overlay.active {
+  display: flex !important;
+}
+
+.bm-modal {
+  background: #FFFFFF;
+  border: 1px solid #E0E0E0;
+  border-radius: 6px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.bm-modal-titlebar {
+  background: #1565C0;
+  color: #FFF;
+  padding: 10px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  user-select: none;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.bm-modal-close {
+  background: transparent;
+  border: none;
+  color: #FFF;
+  opacity: 0.8;
+  width: 20px;
+  height: 20px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: opacity 0.2s;
+}
+
+.bm-modal-close:hover {
+  opacity: 1;
+}
+
+.bm-modal-body {
+  padding: 16px;
+  flex: 1;
+  overflow: auto;
+  background: #FFFFFF;
+}
+
+.bm-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #F5F5F5;
+  border-top: 1px solid #E0E0E0;
+}
+
+/* Hide number input spinner arrows across Chrome, Edge, Safari, Firefox */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+

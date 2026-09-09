@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fixed Deposit Entry — JEEVIKA ERP</title>
+  <script src="../../../config.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="css/fixed-deposit.css">
+  <style>
+    /* EXACT STYLING & ALIGNMENT MATCHING ATTACHED SCREENSHOTS */
+    body {
+      margin: 0; padding: 0; height: 100vh; overflow: hidden;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #ffffff; color: #1e293b;
+    }
+
+    .module-header {
+      background: #ffffff;
+      padding: 10px 16px 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .module-title { font-size: 16px; font-weight: 800; color: #0f172a; margin: 0 0 2px 0; }
+    .module-subtitle { font-size: 11px; color: #64748b; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+
+    .btn-tb-blue {
+      background: #ffffff;
+      color: #0D47A1;
+      border: none;
+      padding: 5px 12px;
+      font-size: 11px;
+      font-weight: 800;
+      border-radius: 4px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      text-transform: uppercase;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.12);
+    }
+    .btn-tb-blue:hover { background: #f0f7ff; color: #0a3880; }
+    
+    .btn-tb-outline {
+      background: rgba(255,255,255,0.15);
+      color: #ffffff;
+      border: 1px solid rgba(255,255,255,0.3);
+      padding: 5px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 4px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      text-transform: uppercase;
+    }
+    .btn-tb-outline:hover { background: rgba(255,255,255,0.25); }
+
+    /* TABLE SCROLLING & RESIZING */
+    .erp-table-wrap {
+      flex: 1;
+      overflow: auto;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+    }
+    table.erp-table {
+      width: 100%;
+      min-width: 1550px;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
+    table.erp-table th {
+      background: #0D47A1;
+      color: #ffffff;
+      padding: 7px 10px;
+      font-size: 10.5px;
+      font-weight: 800;
+      text-transform: uppercase;
+      text-align: left;
+      border: 1px solid #0a3880;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      white-space: nowrap;
+      user-select: none;
+    }
+    table.erp-table td {
+      padding: 6px 10px;
+      border-bottom: 1px solid #e2e8f0;
+      border-right: 1px solid #e2e8f0;
+      white-space: nowrap;
+    }
+    table.erp-table tr:hover td { background: #f0f9ff !important; cursor: pointer; }
+    table.erp-table tr.row-active td { background: #dbeafe !important; color: #1e40af; font-weight: 700; }
+
+    /* COLUMN RESIZER HANDLE */
+    th { position: relative; }
+    .col-resizer {
+      position: absolute; right: 0; top: 0; bottom: 0; width: 5px; cursor: col-resize; z-index: 10;
+    }
+    .col-resizer:hover, .col-resizer.resizing { background: #60a5fa; }
+
+    /* FORM STYLES & SCROLLING */
+    #fd-section-form {
+      flex: 1;
+      min-height: 0;
+      height: calc(100vh - 54px);
+      max-height: calc(100vh - 54px);
+      overflow: hidden;
+      background: #ffffff;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+    }
+    .fd-form-scroll-body {
+      flex: 1;
+      min-height: 0;
+      overflow-y: scroll;
+      overflow-x: hidden;
+      padding: 14px 18px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-sizing: border-box;
+      scrollbar-width: thin;
+      scrollbar-color: #64748b #f1f5f9;
+    }
+    .fd-form-scroll-body > * {
+      flex-shrink: 0 !important;
+    }
+    .fd-form-scroll-body::-webkit-scrollbar {
+      width: 8px;
+    }
+    .fd-form-scroll-body::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    .fd-form-scroll-body::-webkit-scrollbar-thumb {
+      background: #64748b;
+      border-radius: 4px;
+    }
+    .fd-form-scroll-body::-webkit-scrollbar-thumb:hover {
+      background: #334155;
+    }
+
+    .form-inp, .form-sel {
+      height: 28px; border: 1px solid #cbd5e1; border-radius: 3px; padding: 2px 8px; font-size: 11.5px; width: 100%; outline: none; box-sizing: border-box;
+    }
+    .form-inp:focus, .form-sel:focus { border-color: #0D47A1; box-shadow: 0 0 0 1px #0D47A1; }
+
+    .fdr-card-header {
+      background: #0D47A1; color: #ffffff; padding: 6px 10px; font-size: 11.5px; font-weight: 800; text-align: center; text-transform: uppercase; letter-spacing: 0.3px;
+    }
+    .fdr-field-row {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 11px; font-weight: 700; color: #334155;
+    }
+    .fdr-label-num { font-weight: 800; color: #0D47A1; margin-right: 4px; }
+  </style>
+</head>
+<body>
+
+<div style="display:flex; flex-direction:column; height:100vh; overflow:hidden;">
+
+  <!-- MODULE HEADER (MATCHING IMAGES 1 & 2) -->
+  <div class="module-header">
+    <div style="display:flex; align-items:center; gap:16px;">
+      <div>
+        <h1 class="module-title">Fixed Deposit Entry</h1>
+        
+      </div>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <button class="btn-tb-blue" style="background:#0D47A1; color:#fff;" onclick="window.parent.WorkspaceManager ? window.parent.WorkspaceManager.openModule('fixed-deposit') : null"><i class="bi bi-box-seam"></i> FIXED DEPOSIT</button>
+        <button class="btn-tb-blue" style="background:#f1f5f9; color:#0D47A1;" onclick="window.parent.WorkspaceManager ? window.parent.WorkspaceManager.openModule('fd-accrued-interest') : (window.location.href='../fd-accrued-interest/fd-accrued-interest.html')"><i class="bi bi-calculator"></i> FD ACCRUED INTEREST</button>
+      </div>
+    </div>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <div style="font-size:10px; color:#64748b; font-weight:700;">
+        Alt+A Add  F2 Edit  Del Delete  Ctrl+P Print  Alt+S Save
+      </div>
+      <button class="btn-tb-blue" style="background:#0D47A1; color:#fff;"><i class="bi bi-gear-fill"></i> SA PATH</button>
+    </div>
+  </div>
+
+  <!-- SECTION 1: REGISTER LIST VIEW (MATCHING IMAGES 1 & 2) -->
+  <div id="fd-section-list" style="display:flex; flex-direction:column; flex:1; overflow:hidden;">
+    
+    <!-- TOOLBAR STRIP -->
+    <div style="background:#0D47A1; padding:6px 14px; display:flex; gap:6px; align-items:center; flex-shrink:0;">
+      <button class="btn-tb-blue" onclick="openAddFdForm()"><i class="bi bi-plus-lg"></i> ADD FIXED DEPOSIT</button>
+      <button class="btn-tb-outline" onclick="editSelectedFd()"><i class="bi bi-pencil-square"></i> EDIT</button>
+      <button class="btn-tb-outline" onclick="deleteSelectedFd()"><i class="bi bi-trash-fill"></i> DELETE</button>
+
+      <div style="border-right:1px solid rgba(255,255,255,0.3); height:16px; margin:0 4px;"></div>
+
+      <button class="btn-tb-outline" onclick="previewSelectedFd()"><i class="bi bi-eye-fill"></i> PREVIEW</button>
+      <button class="btn-tb-outline" onclick="window.print()"><i class="bi bi-printer-fill"></i> PRINT</button>
+      <button class="btn-tb-outline" onclick="toggleFilterBar()"><i class="bi bi-funnel-fill"></i> FILTERS</button>
+
+      <span style="font-weight:700; color:#ffffff; font-size:11px; margin-left:auto; margin-right:10px;" id="fd-list-count">0 entries</span>
+      <button class="btn-tb-outline" onclick="showList()" style="background:#C62828; border-color:#C62828; color:#fff;"><i class="bi bi-x-circle"></i> EXIT</button>
+    </div>
+
+    <!-- COLLAPSIBLE FILTER PANEL -->
+    <div id="fd-filter-bar" style="display:none; background:#f1f5f9; padding:8px 14px; border-bottom:1px solid #cbd5e1; gap:12px; align-items:center;">
+      <div style="display:flex; align-items:center; gap:6px;">
+        <span style="font-size:10px; font-weight:800; color:#475569;">FDR NO</span>
+        <input type="text" class="form-inp" id="flt-fdrno" placeholder="FDR/..." oninput="applyFilters()" style="width:110px;">
+      </div>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <span style="font-size:10px; font-weight:800; color:#475569;">BANK NAME</span>
+        <input type="text" class="form-inp" id="flt-bank" placeholder="Bank name..." oninput="applyFilters()" style="width:140px;">
+      </div>
+      <button class="btn-tb-outline" onclick="clearFilters()" style="color:#C62828; border-color:#C62828; height:26px; padding:0 8px;"><i class="bi bi-x-circle"></i> Clear</button>
+    </div>
+
+    <!-- MAIN DATA TABLE GRID (COLUMNS MATCHING IMAGES 1 & 2) -->
+    <div class="erp-table-wrap">
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th style="width:55px; text-align:center;">SR NO</th>
+            <th style="width:130px; cursor:pointer;" onclick="toggleFdrNoSort()" title="Sort FDR No.">
+              FDR NO. <span id="sort-vno-icon">▼</span>
+            </th>
+            <th style="width:120px;">FDR REC. NO.</th>
+            <th style="width:95px;">FDR DATE</th>
+            <th style="width:180px;">BANK NAME</th>
+            <th style="width:110px; text-align:right;">AMOUNT (₹)</th>
+            <th style="width:75px; text-align:center;">ROI (%)</th>
+            <th style="width:105px;">MATURITY DATE</th>
+            <th style="width:120px; text-align:right;">MATURITY AMT (₹)</th>
+            <th style="width:130px;">EARMARKED</th>
+            <th style="width:85px; text-align:center;">STATUS</th>
+            <th style="width:85px; text-align:center;">STATUS 1</th>
+            <th style="width:85px; text-align:center;">REMINDER</th>
+            <th style="width:120px; text-align:right;">ACCRUED INT (₹)</th>
+            <th style="width:120px; text-align:right;">EARNED INT (₹)</th>
+          </tr>
+        </thead>
+        <tbody id="fd-list-tbody">
+          <!-- Rendered rows -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- SUMMARY FOOTER BAR -->
+    <div style="background:#e2e8f0; border-top:1px solid #cbd5e1; padding:6px 14px; display:flex; gap:24px; align-items:center; font-size:11px; font-weight:700; color:#1e293b;">
+      <span>Total FDRs: <span style="color:#0D47A1;" id="sum-fd-count">0</span></span>
+      <span>Total Deposit Amount: <span style="color:#0D47A1;" id="sum-fd-amount">₹0.00</span></span>
+      <span>Total Maturity Amount: <span style="color:#2E7D32;" id="sum-fd-maturity">₹0.00</span></span>
+    </div>
+  </div>
+
+  <!-- SECTION 2: ADD / EDIT FDR MASTER ENTRY FORM & TABLES (MATCHING IMAGES 3 & 4) -->
+  <div id="fd-section-form" style="display:none; flex-direction:column; flex:1; overflow:hidden; background:#ffffff;">
+
+    <!-- SCROLLABLE FORM BODY -->
+    <div class="fd-form-scroll-body">
+      
+      <!-- THREE COLUMN CARD CONTAINER -->
+      <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:12px;">
+        
+        <!-- CARD 1: DETAILS (1 - 5) -->
+        <div style="border:1px solid #cbd5e1; border-radius:4px; overflow:hidden; background:#ffffff;">
+          <div class="fdr-card-header">DETAILS (1 - 5)</div>
+          <div style="padding:10px; display:flex; flex-direction:column; gap:8px;">
+            <div class="fdr-field-row">
+              <span><span class="fdr-label-num">1.</span> SR. NO.</span>
+              <input type="text" class="form-inp" id="frm-srno" readonly style="width:180px; background:#f8fafc; font-weight:800;">
+            </div>
+            <div class="fdr-field-row">
+              <span><span class="fdr-label-num">2.</span> FDR NO.</span>
+              <input type="text" class="form-inp" id="frm-fdrno" style="width:180px; font-weight:800; color:#0D47A1;">
+            </div>
+            <div class="fdr-field-row">
+              <span><span class="fdr-label-num">3.</span> FD RECEIPT NO.</span>
+              <input type="text" class="form-inp" id="frm-recno" style="width:180px;">
+            </div>
+            <div class="fdr-field-row">
+              <span><span class="fdr-label-num">4.</span> DEPOSIT DATE</span>
+              <input type="date" class="form-inp" id="frm-depdate" style="width:180px; font-weight:700;">
+            </div>
+            <div class="fdr-field-row">
+              <span><span class="fdr-label-num">5.</span> MATURITY DATE</span>
+              <input type="date" class="form-inp" id="frm-matdate" onchange="calcMaturityInterest()" style="width:180px; font-weight:700;">
+            </div>
+          </div>
+        </div>
+
+        <!-- CARD 2: DETAILS (6 - 10) -->
+        <div style="border:1px solid #cbd5e1; border-radius:4px; overflow:hidden; background:#ffffff;">
+          <div class="fdr-card-header">DETAILS (6 - 10)</div>
+          <div style="padding:10px; display:flex; flex-direction:column; gap:8px;">
+            <div class="fdr-field-row">
+              <span><span class="fdr-label-num">6.</span> DEPOSIT AMOUNT</span>
+              <input type="number" step="0.01" class="form-inp" id="frm-depamt" oninput="calcMaturityInterest()" value="0" style="width:180px; text-align:right; font-family:'Consolas', monospace; font-weight:800;">
+            </div>
+            <div class="fdr-field-row">
+              <span><span class="fdr-label-num">7.</span> MATURITY AMOUNT</span>
+              <input type="number" step="0.01" class="form-inp" id="frm-matamt" oninput="calcMaturityInterest()" value="0" style="width:180px; text-align:right; font-family:'Consolas', monospace; font-weight:800; color:#2E7D32;">
+            </div>
+            <div class="fdr-field-row">
+              <span><span class="fdr-label-num">8.</span> RATE OF INT.</span>
+              <div style="display:flex; align-items:center; gap:4px; width:180px;">
+                <input type="number" step="0.01" class="form-inp" id="frm-roi" value="0" style="text-align:right; font-weight:700;">
+                <span style="font-weight:800; font-size:11px;">%</span>
+              </div>
+            </div>
+            <div class="fdr-field-row">
+              <span><span class="fdr-label-num">9.</span> PERIOD</span>
+              <div style="display:flex; gap:4px; width:180px;">
+                <input type="number" class="form-inp" id="frm-period" value="12" style="width:60px;">
+                <select class="form-sel" id="frm-period-unit" style="flex:1;">
+                  <option value="Days/Month/Year" selected>Days/Month/Year</option>
+                  <option value="Months">Months</option>
+                  <option value="Days">Days</option>
+                  <option value="Years">Years</option>
+                </select>
+              </div>
+            </div>
+            <div class="fdr-field-row">
+              <span><span class="fdr-label-num">10.</span> EARMARKED</span>
+              <select class="form-sel" id="frm-earmarked" style="width:180px; font-weight:600;">
+                <option value="">— Select —</option>
+                <option value="Sinking Fund">Sinking Fund</option>
+                <option value="Repair Fund">Repair Fund</option>
+                <option value="General Reserve">General Reserve</option>
+                <option value="Building Fund">Building Fund</option>
+                <option value="Reserve Fund">Reserve Fund</option>
+                <option value="Share Capital Fund">Share Capital Fund</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- CARD 3: DETAILS (11 - 15) -->
+        <div style="border:1px solid #cbd5e1; border-radius:4px; overflow:hidden; background:#ffffff;">
+          <div class="fdr-card-header">DETAILS (11 - 15)</div>
+          <div style="padding:10px; display:flex; flex-direction:column; gap:8px;">
+            <div class="fdr-field-row">
+              <span><span class="fdr-label-num">11.</span> BANK NAME</span>
+              <select class="form-sel" id="frm-bankname" style="width:180px; font-weight:700;"></select>
+            </div>
+            <div class="fdr-field-row">
+              <span><span class="fdr-label-num">12.</span> FDR STATUS</span>
+              <select class="form-sel" id="frm-status" style="width:180px; font-weight:700;">
+                <option value="Live" selected>Live</option>
+                <option value="Matured">Matured</option>
+                <option value="Closed">Closed</option>
+                <option value="Renewed">Renewed</option>
+              </select>
+            </div>
+            <div class="fdr-field-row">
+              <span><span class="fdr-label-num">13.</span> FDR STATUS 1</span>
+              <select class="form-sel" id="frm-status1" style="width:180px; font-weight:700;">
+                <option value="New" selected>New</option>
+                <option value="Existing">Existing</option>
+                <option value="Matured">Matured</option>
+                <option value="Rollover">Rollover</option>
+              </select>
+            </div>
+            <div class="fdr-field-row">
+              <span><span class="fdr-label-num">14.</span> SHOW REMINDER</span>
+              <select class="form-sel" id="frm-reminder" style="width:180px; font-weight:700;">
+                <option value="Yes/No" selected>Yes/No</option>
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
+              </select>
+            </div>
+            <div class="fdr-field-row">
+              <span><span class="fdr-label-num">15.</span> EARNED INTEREST</span>
+              <div style="display:flex; align-items:center; gap:4px; width:180px;">
+                <input type="text" class="form-inp" id="frm-earned-int" readonly value="0.00" style="background:#f8fafc; font-family:'Consolas', monospace; font-weight:800; color:#0D47A1; text-align:right;">
+                <span style="font-size:10px; font-weight:800; background:#e0f2fe; color:#0369a1; padding:3px 6px; border-radius:3px; border:1px solid #bae6fd; flex-shrink:0;">7-5=15</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ROW 16: REMARK -->
+      <div style="border:1px solid #cbd5e1; border-radius:4px; padding:6px 12px; background:#ffffff; display:flex; align-items:center; gap:10px;">
+        <span style="font-size:11px; font-weight:800; color:#334155;"><span class="fdr-label-num">16.</span> Remark <i class="bi bi-chat-left-text-fill" style="color:#0D47A1;"></i></span>
+        <input type="text" class="form-inp" id="frm-remark" placeholder="Enter remark..." style="flex:1;">
+      </div>
+
+      <!-- TABLE 1: ACCRUED INTEREST TABLE (MATCHING IMAGES 3 & 4) -->
+      <div style="border:1px solid #cbd5e1; border-radius:4px; overflow:hidden; background:#ffffff;">
+        <div class="fdr-card-header" style="text-align:left;">ACCRUED INTEREST TABLE</div>
+        <div style="overflow-x:auto;">
+          <table style="width:100%; border-collapse:collapse; font-size:11px;">
+            <thead>
+              <tr style="background:#0D47A1; color:#ffffff; font-weight:800;">
+                <th style="padding:6px 10px; text-align:left; border:1px solid #0a3880; width:180px;">Financial Year &nbsp;&nbsp;&nbsp;&nbsp;--&gt;</th>
+                <th style="padding:6px 10px; text-align:center; border:1px solid #0a3880;">F.Y. 2021-22</th>
+                <th style="padding:6px 10px; text-align:center; border:1px solid #0a3880;">F.Y. 2022-23</th>
+                <th style="padding:6px 10px; text-align:center; border:1px solid #0a3880;">F.Y. 2023-24</th>
+                <th style="padding:6px 10px; text-align:center; border:1px solid #0a3880;">F.Y. 2024-25</th>
+                <th style="padding:6px 10px; text-align:center; border:1px solid #0a3880;">F.Y. 2025-26</th>
+                <th style="padding:6px 10px; text-align:center; border:1px solid #0a3880;">F.Y. 2026-27</th>
+                <th style="padding:6px 10px; text-align:right; border:1px solid #0a3880; background:#e2e8f0; color:#0f172a; width:90px;">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="padding:6px 10px; font-weight:700; border:1px solid #cbd5e1;">1 &nbsp;&nbsp; Net Interest Amount</td>
+                <td style="padding:2px; border:1px solid #cbd5e1;"><input type="number" step="0.01" class="form-inp" id="acc-net-y1" value="0.00" oninput="calcAccruedTable()" style="text-align:right;"></td>
+                <td style="padding:2px; border:1px solid #cbd5e1;"><input type="number" step="0.01" class="form-inp" id="acc-net-y2" value="0.00" oninput="calcAccruedTable()" style="text-align:right;"></td>
+                <td style="padding:2px; border:1px solid #cbd5e1;"><input type="number" step="0.01" class="form-inp" id="acc-net-y3" value="0.00" oninput="calcAccruedTable()" style="text-align:right;"></td>
+                <td style="padding:2px; border:1px solid #cbd5e1;"><input type="number" step="0.01" class="form-inp" id="acc-net-y4" value="0.00" oninput="calcAccruedTable()" style="text-align:right;"></td>
+                <td style="padding:2px; border:1px solid #cbd5e1;"><input type="number" step="0.01" class="form-inp" id="acc-net-y5" value="0.00" oninput="calcAccruedTable()" style="text-align:right;"></td>
+                <td style="padding:2px; border:1px solid #cbd5e1;"><input type="number" step="0.01" class="form-inp" id="acc-net-y6" value="0.00" oninput="calcAccruedTable()" style="text-align:right;"></td>
+                <td style="padding:6px 10px; text-align:right; font-weight:800; font-family:'Consolas', monospace; border:1px solid #cbd5e1; background:#f8fafc;" id="acc-net-tot">0.00</td>
+              </tr>
+              <tr>
+                <td style="padding:6px 10px; font-weight:700; border:1px solid #cbd5e1;">2 &nbsp;&nbsp; TDS Amount</td>
+                <td style="padding:2px; border:1px solid #cbd5e1;"><input type="number" step="0.01" class="form-inp" id="acc-tds-y1" value="0.00" oninput="calcAccruedTable()" style="text-align:right;"></td>
+                <td style="padding:2px; border:1px solid #cbd5e1;"><input type="number" step="0.01" class="form-inp" id="acc-tds-y2" value="0.00" oninput="calcAccruedTable()" style="text-align:right;"></td>
+                <td style="padding:2px; border:1px solid #cbd5e1;"><input type="number" step="0.01" class="form-inp" id="acc-tds-y3" value="0.00" oninput="calcAccruedTable()" style="text-align:right;"></td>
+                <td style="padding:2px; border:1px solid #cbd5e1;"><input type="number" step="0.01" class="form-inp" id="acc-tds-y4" value="0.00" oninput="calcAccruedTable()" style="text-align:right;"></td>
+                <td style="padding:2px; border:1px solid #cbd5e1;"><input type="number" step="0.01" class="form-inp" id="acc-tds-y5" value="0.00" oninput="calcAccruedTable()" style="text-align:right;"></td>
+                <td style="padding:2px; border:1px solid #cbd5e1;"><input type="number" step="0.01" class="form-inp" id="acc-tds-y6" value="0.00" oninput="calcAccruedTable()" style="text-align:right;"></td>
+                <td style="padding:6px 10px; text-align:right; font-weight:800; font-family:'Consolas', monospace; border:1px solid #cbd5e1; background:#f8fafc;" id="acc-tds-tot">0.00</td>
+              </tr>
+              <tr>
+                <td style="padding:6px 10px; font-weight:800; color:#0D47A1; border:1px solid #cbd5e1;">3 &nbsp;&nbsp; Total Interest Amount</td>
+                <td style="padding:2px; border:1px solid #cbd5e1;"><input type="number" step="0.01" class="form-inp" id="acc-tot-y1" readonly value="0.00" style="text-align:right; font-weight:700; color:#0D47A1; background:#f8fafc;"></td>
+                <td style="padding:2px; border:1px solid #cbd5e1;"><input type="number" step="0.01" class="form-inp" id="acc-tot-y2" readonly value="0.00" style="text-align:right; font-weight:700; color:#0D47A1; background:#f8fafc;"></td>
+                <td style="padding:2px; border:1px solid #cbd5e1;"><input type="number" step="0.01" class="form-inp" id="acc-tot-y3" readonly value="0.00" style="text-align:right; font-weight:700; color:#0D47A1; background:#f8fafc;"></td>
+                <td style="padding:2px; border:1px solid #cbd5e1;"><input type="number" step="0.01" class="form-inp" id="acc-tot-y4" readonly value="0.00" style="text-align:right; font-weight:700; color:#0D47A1; background:#f8fafc;"></td>
+                <td style="padding:2px; border:1px solid #cbd5e1;"><input type="number" step="0.01" class="form-inp" id="acc-tot-y5" readonly value="0.00" style="text-align:right; font-weight:700; color:#0D47A1; background:#f8fafc;"></td>
+                <td style="padding:2px; border:1px solid #cbd5e1;"><input type="number" step="0.01" class="form-inp" id="acc-tot-y6" readonly value="0.00" style="text-align:right; font-weight:700; color:#0D47A1; background:#f8fafc;"></td>
+                <td style="padding:6px 10px; text-align:right; font-weight:800; font-family:'Consolas', monospace; border:1px solid #cbd5e1; background:#f8fafc; color:#C62828;" id="acc-tot-tot">0.00</td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr style="background:#e8f5e9; font-weight:800; color:#1b5e20;">
+                <td style="padding:6px 10px; border:1px solid #a7f3d0;">Total</td>
+                <td style="padding:6px 10px; text-align:center; border:1px solid #a7f3d0;" id="acc-sum-y1">0.00</td>
+                <td style="padding:6px 10px; text-align:center; border:1px solid #a7f3d0;" id="acc-sum-y2">0.00</td>
+                <td style="padding:6px 10px; text-align:center; border:1px solid #a7f3d0;" id="acc-sum-y3">0.00</td>
+                <td style="padding:6px 10px; text-align:center; border:1px solid #a7f3d0;" id="acc-sum-y4">0.00</td>
+                <td style="padding:6px 10px; text-align:center; border:1px solid #a7f3d0;" id="acc-sum-y5">0.00</td>
+                <td style="padding:6px 10px; text-align:center; border:1px solid #a7f3d0;" id="acc-sum-y6">0.00</td>
+                <td style="padding:6px 10px; text-align:right; border:1px solid #a7f3d0; color:#C62828;" id="acc-sum-grand">0.00</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <!-- TABLE 2: WORKING TABLE (MATCHING IMAGE 4) -->
+      <div style="border:1px solid #cbd5e1; border-radius:4px; overflow:hidden; background:#ffffff;">
+        <div class="fdr-card-header" style="text-align:left;">WORKING TABLE</div>
+        <div style="overflow-x:auto;">
+          <table style="width:100%; border-collapse:collapse; font-size:11px;">
+            <thead>
+              <tr style="background:#0D47A1; color:#ffffff; font-weight:800;">
+                <th style="padding:6px 10px; text-align:center; border:1px solid #0a3880; width:55px;">Sr. No.</th>
+                <th style="padding:6px 10px; text-align:left; border:1px solid #0a3880;">Particulars</th>
+                <th style="padding:6px 10px; text-align:left; border:1px solid #0a3880;">Reference</th>
+                <th style="padding:6px 10px; text-align:center; border:1px solid #0a3880; width:70px;">(+) / (-)</th>
+                <th style="padding:6px 10px; text-align:left; border:1px solid #0a3880;">Description</th>
+                <th style="padding:6px 10px; text-align:center; border:1px solid #0a3880; width:70px;">Result</th>
+                <th style="padding:6px 10px; text-align:right; border:1px solid #0a3880; width:120px;">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="padding:6px 10px; text-align:center; font-weight:700; border:1px solid #cbd5e1;">1</td>
+                <td style="padding:6px 10px; font-weight:700; border:1px solid #cbd5e1;">Net Interest working</td>
+                <td style="padding:6px 10px; color:#64748b; border:1px solid #cbd5e1;">sr.15 (Earned Interest)</td>
+                <td style="padding:6px 10px; text-align:center; font-weight:800; border:1px solid #cbd5e1;">-</td>
+                <td style="padding:6px 10px; color:#64748b; border:1px solid #cbd5e1;">Total (Net Interest Amount)</td>
+                <td style="padding:6px 10px; text-align:center; font-weight:800; color:#0D47A1; border:1px solid #cbd5e1;">= A</td>
+                <td style="padding:6px 10px; text-align:right; font-weight:800; font-family:'Consolas', monospace; border:1px solid #cbd5e1; background:#f8fafc;" id="wrk-result-a">0.00</td>
+              </tr>
+              <tr>
+                <td style="padding:6px 10px; text-align:center; font-weight:700; border:1px solid #cbd5e1;">2</td>
+                <td style="padding:6px 10px; font-weight:700; border:1px solid #cbd5e1;">Reinvest FDR Difrance</td>
+                <td style="padding:6px 10px; color:#64748b; border:1px solid #cbd5e1;">7. Maturity Amount</td>
+                <td style="padding:6px 10px; text-align:center; font-weight:800; border:1px solid #cbd5e1;">-</td>
+                <td style="padding:6px 10px; color:#64748b; border:1px solid #cbd5e1;">Amount Enter Manual</td>
+                <td style="padding:6px 10px; text-align:center; font-weight:800; color:#0D47A1; border:1px solid #cbd5e1;">= B</td>
+                <td style="padding:6px 10px; text-align:right; font-weight:800; font-family:'Consolas', monospace; border:1px solid #cbd5e1; background:#f8fafc;" id="wrk-result-b">0.00</td>
+              </tr>
+              <tr>
+                <td style="padding:6px 10px; text-align:center; font-weight:700; border:1px solid #cbd5e1;">3</td>
+                <td style="padding:6px 10px; font-weight:700; border:1px solid #cbd5e1;">TDS Difrance Amount</td>
+                <td style="padding:6px 10px; color:#64748b; border:1px solid #cbd5e1;">A</td>
+                <td style="padding:6px 10px; text-align:center; font-weight:800; border:1px solid #cbd5e1;">-</td>
+                <td style="padding:6px 10px; color:#64748b; border:1px solid #cbd5e1;">B</td>
+                <td style="padding:6px 10px; text-align:center; font-weight:800; color:#0D47A1; border:1px solid #cbd5e1;">= C</td>
+                <td style="padding:6px 10px; text-align:right; font-weight:800; font-family:'Consolas', monospace; border:1px solid #cbd5e1; background:#f8fafc;" id="wrk-result-c">0.00</td>
+              </tr>
+              <tr>
+                <td style="padding:6px 10px; text-align:center; font-weight:700; border:1px solid #cbd5e1;">4</td>
+                <td style="padding:6px 10px; font-weight:700; border:1px solid #cbd5e1;">With TDS Intrest</td>
+                <td style="padding:6px 10px; color:#64748b; border:1px solid #cbd5e1;">C</td>
+                <td style="padding:6px 10px; text-align:center; font-weight:800; border:1px solid #cbd5e1;">(+/-)</td>
+                <td style="padding:6px 10px; color:#64748b; border:1px solid #cbd5e1;">Amount Enter Manual</td>
+                <td style="padding:6px 10px; text-align:center; font-weight:800; color:#0D47A1; border:1px solid #cbd5e1;">= D</td>
+                <td style="padding:6px 10px; text-align:right; font-weight:800; font-family:'Consolas', monospace; border:1px solid #cbd5e1; background:#f8fafc;" id="wrk-result-d">0.00</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- FORM ACTION FOOTER BAR (IMAGE 4) -->
+    <div style="padding:10px 18px; background:#f1f5f9; border-top:1px solid #cbd5e1; display:flex; gap:10px; justify-content:flex-end; flex-shrink:0;">
+      <button class="btn-tb-outline" onclick="showList()" style="background:#fff; color:#475569; border-color:#cbd5e1; padding:6px 20px; font-size:11.5px;"><i class="bi bi-x-circle-fill"></i> Cancel</button>
+      <button class="btn-tb-blue" onclick="saveFd()" style="background:#0D47A1; color:#fff; padding:6px 22px; font-size:11.5px;"><i class="bi bi-floppy-fill"></i> Save (Alt+S)</button>
+    </div>
+  </div>
+
+  <!-- SECTION 3: PREVIEW FIXED DEPOSIT -->
+  <div id="fd-section-preview" style="display:none; flex-direction:column; flex:1; overflow:hidden;">
+    <div style="padding:8px 14px; background:#f1f5f9; border-bottom:1px solid #cbd5e1; display:flex; gap:8px;">
+      <button class="btn-tb-blue" onclick="showList()"><i class="bi bi-arrow-left"></i> Back to List</button>
+      <button class="btn-tb-blue" onclick="window.print()" style="background:#2E7D32;"><i class="bi bi-printer-fill"></i> Print FDR</button>
+    </div>
+    <div style="flex:1; overflow-y:auto; padding:20px; background:#cbd5e1; display:flex; justify-content:center;">
+      <div id="preview-fd-card" style="background:#fff; width:750px; padding:24px; border-radius:6px; box-shadow:0 4px 12px rgba(0,0,0,0.15);"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- SCRIPTS -->
+<script src="../../../assets/js/api.js"></script>
+<script src="../../../assets/js/auth.js"></script>
+<script src="../../../assets/js/utils.js"></script>
+<script src="fixed-deposit.js?v=20260827_113"></script>
+</body>
+</html>

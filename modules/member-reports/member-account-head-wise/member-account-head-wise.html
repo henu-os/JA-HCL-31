@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Member Account Ledger | Head wise — JEEVIKA ERP</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    html, body { height: 100% !important; overflow-y: auto !important; box-sizing: border-box !important; background: #f8fafc; color: #0f172a; font-size: 11.5px; padding: 16px; margin: 0; }
+
+    /* MODULE HEADER */
+    .module-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+    .module-title { font-size: 16px; font-weight: 800; color: #0f172a; letter-spacing: -0.2px; }
+    .module-subtitle { font-size: 11px; font-weight: 600; color: #64748b; margin-top: 2px; display: flex; align-items: center; gap: 4px; }
+    .module-subline { font-size: 10px; font-weight: 800; color: #2563eb; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.3px; }
+
+    .btn-print { height: 32px; padding: 0 16px; background: #0f172a; color: #ffffff; border: none; border-radius: 4px; font-size: 11px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; text-transform: uppercase; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+    .btn-print:hover { background: #1e293b; }
+
+    .btn-excel { height: 32px; padding: 0 16px; background: #16a34a; color: #ffffff; border: none; border-radius: 4px; font-size: 11px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; text-transform: uppercase; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+    .btn-excel:hover { background: #15803d; }
+
+    /* FILTER BAR CARD */
+    .filter-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 12px; margin-bottom: 16px; display: flex; flex-wrap: nowrap; gap: 6px; align-items: flex-end; box-shadow: 0 1px 3px rgba(0,0,0,0.03); overflow-x: auto; }
+    .form-group { display: flex; flex-direction: column; gap: 3px; flex-shrink: 0; }
+    .form-label { font-size: 9px; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.2px; white-space: nowrap; }
+    .form-inp, .form-sel { height: 30px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 0 6px; font-size: 11px; outline: none; background: #ffffff; color: #0f172a; font-weight: 600; }
+    .form-inp:focus, .form-sel:focus { border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37,99,235,0.1); }
+
+    .btn-reset { height: 30px; padding: 0 10px; background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 10.5px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; }
+    .btn-reset:hover { background: #e2e8f0; }
+
+    /* WORKSPACE UI SCREEN MEMBER CARD DESIGN */
+    .member-card-ui { background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; margin-bottom: 20px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
+    .member-card-title-ui { padding: 10px 14px; font-size: 12px; font-weight: 800; color: #1e3a8a; display: flex; align-items: center; gap: 8px; text-transform: uppercase; background: #ffffff; border-bottom: 1px solid #f1f5f9; }
+    .member-card-title-ui::before { content: ""; display: inline-block; width: 8px; height: 8px; background: #2563eb; border-radius: 50%; }
+
+    /* WORKSPACE UI DATA GRID TABLE */
+    .table-wrap-ui { overflow-x: auto; width: 100%; }
+    table.headwise-table-ui { width: 100%; border-collapse: collapse; font-size: 11px; }
+    table.headwise-table-ui th { background: #1d4ed8; color: #ffffff; padding: 8px 10px; font-size: 10px; font-weight: 800; text-transform: uppercase; border: 1px solid #1e40af; text-align: center; white-space: nowrap; letter-spacing: 0.2px; }
+    table.headwise-table-ui td { padding: 7px 10px; border: 1px solid #e2e8f0; white-space: nowrap; color: #334155; }
+    table.headwise-table-ui tbody tr:hover { background: #e0f2fe; }
+
+    .col-center { text-align: center; }
+    .col-left { text-align: left; }
+    .col-right { text-align: right; font-family: 'Consolas', monospace; font-weight: 600; }
+    .text-blue { color: #1d4ed8; font-weight: 700; }
+    .text-opening { color: #d97706; font-style: italic; font-weight: 800; }
+    .text-closing { color: #dc2626; font-weight: 800; }
+    .row-closing-ui { background: #ffffff; font-weight: 800; }
+
+    /* PRINT LAYOUT (@media print) — APPLIED ONLY WHEN PRINTING */
+    .print-only { display: none; }
+    @media print {
+      @page {
+        size: A4 landscape;
+        margin: 8mm;
+      }
+      *, *:before, *:after {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      html, body {
+        background: #ffffff !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        font-size: 8pt !important;
+        width: 100% !important;
+      }
+      .module-header, .filter-card, .btn-print, .btn-excel, .ui-only {
+        display: none !important;
+      }
+      .print-only {
+        display: block !important;
+      }
+
+      .print-top-bar { display: flex; justify-content: flex-end; font-size: 9pt; font-weight: 700; color: #333; margin-bottom: 4px; }
+      .print-header { text-align: center; margin-bottom: 6px; }
+      .print-header h2 { font-size: 15pt; font-weight: 900; text-transform: uppercase; margin-bottom: 2px; }
+      .print-header p { font-size: 9.5pt; font-weight: 700; color: #000; }
+      
+      .print-sub-bar { display: flex; justify-content: space-between; font-size: 8.5pt; font-weight: 800; border-top: 2px solid #000; border-bottom: 1px solid #000; padding: 4px 0; margin-bottom: 12px; }
+
+      .member-card-print { border: none !important; box-shadow: none !important; border-radius: 0 !important; padding: 0 !important; margin-bottom: 20px !important; page-break-inside: avoid !important; }
+
+      .print-ledger-title { font-size: 9pt; font-weight: 800; color: #000; text-transform: uppercase; margin-bottom: 2px; }
+      .print-mem-line1 { font-size: 8.5pt; font-weight: 700; color: #000; margin-bottom: 2px; }
+      .print-mem-line2 { font-size: 8.5pt; font-weight: 800; color: #000; margin-bottom: 6px; border-bottom: 1px solid #000; padding-bottom: 3px; }
+
+      .table-wrap-print {
+        overflow: visible !important;
+        overflow-x: visible !important;
+        width: 100% !important;
+      }
+      table.headwise-table-print {
+        width: 100% !important;
+        table-layout: auto !important;
+        font-size: 8pt !important;
+        border-collapse: collapse !important;
+      }
+      table.headwise-table-print th {
+        background: #ffffff !important;
+        color: #000000 !important;
+        border-top: 1px solid #000000 !important;
+        border-bottom: 1px solid #000000 !important;
+        border-left: none !important;
+        border-right: none !important;
+        font-size: 7.5pt !important;
+        padding: 4px 5px !important;
+        font-weight: 800 !important;
+        white-space: normal !important;
+        text-align: right !important;
+      }
+      table.headwise-table-print th.col-left { text-align: left !important; }
+      table.headwise-table-print th.col-center { text-align: center !important; }
+
+      table.headwise-table-print td {
+        border-bottom: 1px solid #cbd5e1 !important;
+        border-left: none !important;
+        border-right: none !important;
+        font-size: 8pt !important;
+        padding: 4px 5px !important;
+        color: #000000 !important;
+        text-align: right !important;
+        font-family: 'Consolas', monospace !important;
+      }
+      table.headwise-table-print td.col-left { text-align: left !important; font-family: inherit !important; }
+      table.headwise-table-print td.col-center { text-align: center !important; font-family: inherit !important; }
+
+      .row-closing-print td {
+        border-top: 1px solid #000000 !important;
+        border-bottom: 2px solid #000000 !important;
+        font-weight: 900 !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- MODULE HEADER -->
+  <div class="module-header ui-only">
+    <div>
+      <h1 class="module-title">Member Account Ledger | Head wise</h1>
+      
+      <div class="module-subline" id="mhlDateSubline">MEMBER ACCOUNT FROM 01-APR-2025 TO 31-MAR-2026</div>
+    </div>
+    <div style="display:flex; gap:10px;">
+      <button class="btn-print" onclick="window.print()"><i class="bi bi-printer-fill"></i> PRINT</button>
+      <button class="btn-excel" onclick="exportToExcel()"><i class="bi bi-file-earmark-excel-fill"></i> EXCEL</button>
+    </div>
+  </div>
+
+  <!-- CONTROL FILTER BAR -->
+  <div class="filter-card ui-only">
+    <div class="form-group" style="width:145px;">
+      <label class="form-label">FROM MEMBER</label>
+      <select class="form-sel" id="flt-from-mem" onchange="onFromMemberChange()">
+        <option value="">-- All Members --</option>
+      </select>
+    </div>
+
+    <div class="form-group" style="width:145px;">
+      <label class="form-label">TO MEMBER</label>
+      <select class="form-sel" id="flt-to-mem" onchange="onToMemberChange()">
+        <option value="">-- All Members --</option>
+      </select>
+    </div>
+
+    <div class="form-group" style="width:125px;">
+      <label class="form-label">BILL TYPE</label>
+      <select class="form-sel" id="flt-bill-type" onchange="loadHeadwiseReport()">
+        <option value="">-- All Bill Types --</option>
+      </select>
+    </div>
+
+    <div class="form-group" style="width:120px;">
+      <label class="form-label">FROM DATE</label>
+      <input type="date" class="form-inp" id="flt-from-date" onchange="loadHeadwiseReport()">
+    </div>
+
+    <div class="form-group" style="width:120px;">
+      <label class="form-label">TO DATE</label>
+      <input type="date" class="form-inp" id="flt-to-date" onchange="loadHeadwiseReport()">
+    </div>
+
+    <button class="btn-reset" onclick="resetFilters()"><i class="bi bi-arrow-counterclockwise"></i> Reset</button>
+
+    <!-- INDIVIDUAL MEMBER DROPDOWN AFTER RESET BUTTON -->
+    <div class="form-group" style="width:145px;">
+      <label class="form-label">INDIVIDUAL</label>
+      <select class="form-sel" id="flt-ind-mem" onchange="onIndividualMemberChange()">
+        <option value="">-- All Members --</option>
+      </select>
+    </div>
+
+    <div class="form-group" style="margin-left: 2px;">
+      <label class="form-label">ACCUMULATE PRINCIPAL/INTEREST</label>
+      <label class="toggle-switch" style="display:inline-flex; align-items:center; cursor:pointer; height:30px; gap:6px;">
+        <input type="checkbox" id="chk-accumulate" onchange="toggleAccumulateColumns(this.checked)" style="display:none;">
+        <span class="toggle-slider" id="toggle-slider-btn" style="width:40px; height:20px; background:#cbd5e1; border-radius:20px; position:relative; transition:background 0.2s; display:inline-block;">
+          <span class="toggle-knob" style="width:14px; height:14px; background:#fff; border-radius:50%; position:absolute; top:3px; left:3px; transition:transform 0.2s; box-shadow:0 1px 3px rgba(0,0,0,0.2);"></span>
+        </span>
+        <span id="lbl-accumulate-status" style="font-size:10.5px; font-weight:800; color:#64748b;">OFF</span>
+      </label>
+    </div>
+  </div>
+
+  <!-- PRINT HEADER (PRINT ONLY - MATCHING IMAGE 1 EXACTLY) -->
+  <div class="print-only">
+    <div class="print-top-bar">Member Account Ledger Print</div>
+    <div class="print-header">
+      <h2 id="prtSocName">SHREE SAI SOCIETY</h2>
+      <p id="prtSubtitle">Member Register from 01/04/2025 to 31/03/2026</p>
+    </div>
+    <div class="print-sub-bar">
+      <span id="prtFyLabel">F.Y. : 01/04/2025-31/03/2026</span>
+      <span>ALL LEDGERS</span>
+    </div>
+  </div>
+
+  <!-- CONTAINER FOR WORKSPACE UI SCREEN CARDS -->
+  <div id="mhl-cards-container" class="ui-only">
+    <div style="text-align:center; padding:40px; color:#64748b; font-weight:700;">
+      Loading Member Account Ledger...
+    </div>
+  </div>
+
+  <!-- CONTAINER FOR PRINT VIEW CARDS (PRINT ONLY) -->
+  <div id="mhl-print-cards-container" class="print-only">
+  </div>
+
+  <!-- DEPENDENCIES -->
+  <script src="../../../config.js"></script>
+  <script src="../../../assets/js/api.js"></script>
+  <script src="../../../assets/js/auth.js"></script>
+  <script src="member-account-head-wise.js"></script>
+</body>
+</html>

@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bill Print Setup — JEEVIKA ERP</title>
+  <script src="../../../config.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 12px;
+      background: #f4f6f9;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #bps-panel {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    /* MODULE HEADER */
+    .bps-header {
+      background: #fff;
+      padding: 8px 14px 6px;
+      border-bottom: 1px solid #ccc;
+      flex-shrink: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .bps-header h2 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1a1a2e;
+      letter-spacing: 0.2px;
+      margin: 0 0 2px 0;
+    }
+
+    .bps-header .subtitle {
+      font-size: 10px;
+      color: #555;
+      letter-spacing: 0.2px;
+    }
+
+    .bps-header .tag {
+      font-size: 10px;
+      color: #666;
+      font-style: italic;
+      margin-top: 4px;
+    }
+
+    /* TOP COMMAND STRIP */
+    .bps-cmd-strip {
+      background: #f5f5f5;
+      border-bottom: 1px solid #ccc;
+      padding: 5px 14px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .bps-cmd-strip .sep {
+      border-right: 1px solid #bbb;
+      height: 16px;
+      margin: 0 5px;
+    }
+
+    /* Command buttons */
+    .cmd-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      background: #fff;
+      border: 1px solid #bbb;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: #333;
+      cursor: pointer;
+      border-radius: 2px;
+      white-space: nowrap;
+      font-family: inherit;
+      transition: background 0.1s;
+    }
+
+    .cmd-btn:hover {
+      background: #e8f0fe;
+      border-color: #5a9be8;
+      color: #1565C0;
+    }
+
+    .cmd-btn.primary {
+      color: #1565C0;
+      border-color: #1565C0;
+    }
+
+    .cmd-btn.primary:hover {
+      background: #1565C0;
+      color: #fff;
+    }
+
+    .cmd-btn.danger:hover {
+      background: #fde8e8;
+      border-color: #e53e3e;
+      color: #C62828;
+    }
+
+    /* OTHER dropdown */
+    .bps-dropdown {
+      position: relative;
+      display: inline-block;
+    }
+
+    .bps-dropdown-content {
+      display: none;
+      position: absolute;
+      top: 28px;
+      left: 0;
+      background: #fff;
+      border: 1px solid #bbb;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      z-index: 500;
+      min-width: 180px;
+      border-radius: 2px;
+    }
+
+    .bps-dropdown-content a {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      color: #333;
+      text-decoration: none;
+      font-size: 11.5px;
+      font-weight: 600;
+      border-bottom: 1px solid #eee;
+    }
+
+    .bps-dropdown-content a:last-child {
+      border-bottom: none;
+    }
+
+    .bps-dropdown-content a:hover {
+      background: #e8f0fe;
+      color: #1565C0;
+    }
+
+    .bps-dropdown:hover .bps-dropdown-content {
+      display: block;
+    }
+
+    .cmd-btn-exit {
+      margin-left: auto;
+      background: #fff;
+      border: 1px solid #bbb;
+      color: #555;
+    }
+
+    .cmd-btn-exit:hover {
+      background: #fff3cd;
+      border-color: #e0a800;
+      color: #856404;
+    }
+
+    /* MAIN CONFIG WORKSPACE */
+    .bps-workspace {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      background: #f9f9f9;
+      padding: 14px;
+    }
+
+    .bps-card {
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 18px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      max-width: 960px;
+    }
+
+    .bps-card-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: #1565C0;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      border-bottom: 1px solid #e0e0e0;
+      padding-bottom: 6px;
+      margin-bottom: 14px;
+    }
+
+    .bps-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    .bps-section-heading {
+      font-size: 11px;
+      font-weight: 700;
+      color: #1565C0;
+      border-bottom: 1px solid #e0e0e0;
+      padding-bottom: 4px;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .bps-field-row {
+      display: grid;
+      grid-template-columns: 180px 1fr;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .bps-field-row label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #424242;
+      margin: 0;
+      text-transform: uppercase;
+    }
+
+    .bps-select,
+    .bps-input {
+      height: 26px;
+      padding: 0 8px;
+      font-size: 12px;
+      font-family: inherit;
+      border: 1px solid #bbb;
+      border-radius: 2px;
+      outline: none;
+      width: 100%;
+      background: #fff;
+    }
+
+    .bps-select:focus,
+    .bps-input:focus {
+      border-color: #1565C0;
+    }
+
+    .bps-check-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 12px;
+      padding-left: 4px;
+    }
+
+    .bps-check-grid label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 600;
+      color: #424242;
+      margin: 0;
+      user-select: none;
+    }
+
+    .bps-check-grid input[type="checkbox"] {
+      accent-color: #1565C0;
+      width: 14px;
+      height: 14px;
+      margin: 0;
+    }
+
+    .bps-card-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      border-top: 1px solid #e0e0e0;
+      padding-top: 14px;
+      margin-top: 20px;
+    }
+
+    /* STATUS BAR */
+    .bps-statusbar {
+      background: #f5f5f5;
+      border-top: 1px solid #ccc;
+      padding: 4px 14px;
+      font-size: 11px;
+      color: #666;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      min-height: 24px;
+      flex-shrink: 0;
+    }
+
+    .bps-statusbar #bps-status-msg {
+      font-weight: 600;
+      color: #333;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="bps-panel">
+
+    <!-- MODULE HEADER -->
+    <div class="bps-header">
+      <div>
+        <h2>BILL PRINT SETUP</h2>
+        
+      </div>
+      <div class="tag">[Layout Configuration]</div>
+    </div>
+
+    <!-- TOP COMMAND STRIP -->
+    <div class="bps-cmd-strip">
+      <button class="cmd-btn primary" onclick="BPS.saveConfig()"><i class="bi bi-save"></i> SAVE</button>
+      <button class="cmd-btn" onclick="BPS.resetConfig()"><i class="bi bi-arrow-counterclockwise"></i> RESET</button>
+      <div class="sep"></div>
+      <button class="cmd-btn" onclick="BPS.previewBill()"><i class="bi bi-eye"></i> PREVIEW</button>
+
+      <!-- OTHER DROPDOWN -->
+      <div class="bps-dropdown">
+        <button class="cmd-btn">OTHER <i class="bi bi-chevron-down" style="font-size:9px;"></i></button>
+        <div class="bps-dropdown-content">
+          <a href="#" onclick="event.preventDefault(); BPS.action('Import Settings')"><i class="bi bi-download"></i>
+            Import Settings</a>
+          <a href="#" onclick="event.preventDefault(); BPS.action('Export Settings')"><i class="bi bi-upload"></i>
+            Export Settings</a>
+          <a href="#" onclick="event.preventDefault(); BPS.action('Reset Default Layout')"><i
+              class="bi bi-arrow-counterclockwise"></i> Reset Default Layout</a>
+          <a href="#" onclick="event.preventDefault(); BPS.action('Duplicate Template')"><i class="bi bi-files"></i>
+            Duplicate Template</a>
+          <a href="#" onclick="event.preventDefault(); BPS.action('Backup Configuration')"><i
+              class="bi bi-shield-lock"></i> Backup Configuration</a>
+          <a href="#" onclick="event.preventDefault(); BPS.action('Restore Configuration')"><i
+              class="bi bi-folder2-open"></i> Restore Configuration</a>
+        </div>
+      </div>
+
+      <button class="cmd-btn cmd-btn-exit" onclick="BPS.exit()"><i class="bi bi-door-open"></i> EXIT</button>
+    </div>
+
+    <!-- MAIN OPERATIONAL WORKSPACE -->
+    <div class="bps-workspace">
+
+      <div class="bps-card">
+        <div class="bps-card-title">PRINT CONFIGURATION PANEL</div>
+
+        <div class="bps-grid">
+
+          <!-- LEFT COLUMN -->
+          <div>
+            <div class="bps-section-heading">Format &amp; Layout</div>
+
+            <div class="bps-field-row">
+              <label for="bps-format">Default Bill Format</label>
+              <select class="bps-select" id="bps-format" tabindex="1">
+                <option value="G01">G01 Half Page</option>
+                <option value="G02">G02 Full Page</option>
+                <option value="GST">GST Bill</option>
+                <option value="Receipt">Bill With Receipt</option>
+                <option value="Thermal">Thermal Receipt</option>
+                <option value="Invoice">Maintenance Invoice</option>
+              </select>
+            </div>
+
+            <div class="bps-field-row">
+              <label for="bps-heading">Heading</label>
+              <input type="text" class="bps-input" id="bps-heading" list="bps-heading-list" tabindex="2"
+                value="MAINTENANCE BILL">
+              <datalist id="bps-heading-list">
+                <option value="GST INVOICE">
+                <option value="MAINTENANCE BILL">
+                <option value="TAX INVOICE">
+                <option value="RECEIPT CUM BILL">
+              </datalist>
+            </div>
+
+            <div class="bps-section-heading" style="margin-top:16px;">Print Options</div>
+
+            <div class="bps-check-grid">
+              <label>
+                <input type="checkbox" id="bps-chk-bldg" tabindex="3" checked> Print Bldg/Wing
+              </label>
+              <label>
+                <input type="checkbox" id="bps-chk-srno" tabindex="4" checked> Show Sr.No.
+              </label>
+              <label>
+                <input type="checkbox" id="bps-chk-newpage" tabindex="5"> New Page for Each Bill
+              </label>
+            </div>
+          </div>
+
+          <!-- RIGHT COLUMN -->
+          <div>
+            <div class="bps-section-heading">Advanced Modules</div>
+
+            <div class="bps-field-row">
+              <label for="bps-qr">Show QR Code</label>
+              <select class="bps-select" id="bps-qr" tabindex="9">
+                <option value="none">None</option>
+                <option value="upi">UPI QR</option>
+                <option value="payment">Payment QR</option>
+                <option value="dynamic">Dynamic Bill QR Rendering</option>
+              </select>
+            </div>
+
+            <div class="bps-field-row">
+              <label for="bps-sign">Show Sign (Identity Settings)</label>
+              <select class="bps-select" id="bps-sign" tabindex="10">
+                <option value="none">None</option>
+                <option value="sig">Signature</option>
+                <option value="stamp">Stamp</option>
+                <option value="seal">Seal</option>
+              </select>
+            </div>
+
+            <div class="bps-section-heading" style="margin-top:16px;">Financial Displays</div>
+
+            <div class="bps-check-grid">
+              <label>
+                <input type="checkbox" id="bps-chk-arrears" tabindex="6" checked> Show Bifurcation in Arrears
+              </label>
+              <label>
+                <input type="checkbox" id="bps-chk-receipt" tabindex="7"> Show Blank Receipt
+              </label>
+              <label>
+                <input type="checkbox" id="bps-chk-blankhead" tabindex="8"> Blank A/c Head
+              </label>
+            </div>
+          </div>
+
+        </div><!-- /bps-grid -->
+
+        <div class="bps-card-footer">
+          <button class="cmd-btn primary" tabindex="11" onclick="BPS.saveConfig()"><i class="bi bi-check-lg"></i> SAVE
+            CONFIG</button>
+          <button class="cmd-btn danger" tabindex="12" onclick="BPS.exit()"><i class="bi bi-x-circle"></i>
+            CANCEL</button>
+        </div>
+      </div>
+
+    </div><!-- /bps-workspace -->
+
+    <!-- STATUS BAR -->
+    <div class="bps-statusbar">
+      <span id="bps-status-msg"><i class="bi bi-info-circle"></i> Ready</span>
+      <span>Use Tab / Enter keys to navigate fields.</span>
+    </div>
+
+  </div>
+
+  <script src="../../../assets/js/api.js"></script>
+  <script src="../../../assets/js/auth.js"></script>
+  <script src="../../../assets/js/utils.js"></script>
+  <script>
+    (function () {
+      'use strict';
+
+      var initialState = {
+        format: 'G01',
+        heading: 'MAINTENANCE BILL',
+        bldg: true,
+        srno: true,
+        newpage: false,
+        arrears: true,
+        receipt: false,
+        blankhead: false,
+        qr: 'upi',
+        sign: 'sig'
+      };
+
+      function toast(m, ok) {
+        if (typeof window.showToast === 'function') {
+          window.showToast(m, ok ? 'success' : 'error');
+        } else {
+          var d = document.createElement('div');
+          d.style.cssText = 'position:fixed;top:12px;right:12px;z-index:99999;padding:9px 18px;font-size:12px;font-weight:600;color:#FFF;border-radius:3px;box-shadow:0 3px 12px rgba(0,0,0,0.2);background:' + (ok !== false ? '#2E7D32' : '#C62828') + ';';
+          d.textContent = m;
+          document.body.appendChild(d);
+          setTimeout(function () { d.remove(); }, 2500);
+        }
+      }
+
+      function getApiBase() {
+        if (window.CONFIG && window.CONFIG.apiBase) return window.CONFIG.apiBase;
+        if (window.APP_CONFIG && window.APP_CONFIG.API_BASE) return window.APP_CONFIG.API_BASE.replace(/\/api\/?$/, '');
+        return 'http://localhost:5002';
+      }
+
+      function loadState(state) {
+        if (!state) return;
+        if (state.format) document.getElementById('bps-format').value = state.format;
+        if (state.heading) document.getElementById('bps-heading').value = state.heading;
+        document.getElementById('bps-chk-bldg').checked = !!state.bldg;
+        document.getElementById('bps-chk-srno').checked = !!state.srno;
+        document.getElementById('bps-chk-newpage').checked = !!state.newpage;
+        document.getElementById('bps-chk-arrears').checked = !!state.arrears;
+        document.getElementById('bps-chk-receipt').checked = !!state.receipt;
+        document.getElementById('bps-chk-blankhead').checked = !!state.blankhead;
+        if (state.qr) document.getElementById('bps-qr').value = state.qr;
+        if (state.sign) document.getElementById('bps-sign').value = state.sign;
+      }
+
+      window.BPS = {
+        saveConfig: async function () {
+          initialState = {
+            format: document.getElementById('bps-format').value,
+            heading: document.getElementById('bps-heading').value,
+            bldg: document.getElementById('bps-chk-bldg').checked,
+            srno: document.getElementById('bps-chk-srno').checked,
+            newpage: document.getElementById('bps-chk-newpage').checked,
+            arrears: document.getElementById('bps-chk-arrears').checked,
+            receipt: document.getElementById('bps-chk-receipt').checked,
+            blankhead: document.getElementById('bps-chk-blankhead').checked,
+            qr: document.getElementById('bps-qr').value,
+            sign: document.getElementById('bps-sign').value
+          };
+          localStorage.setItem('jeevika_bps_config', JSON.stringify(initialState));
+
+          try {
+            await fetch(getApiBase() + '/api/bill-print-setup', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(initialState)
+            });
+          } catch (e) {
+            console.warn("API offline, saved to localStorage.");
+          }
+
+          toast('Bill Print Settings saved globally.', true);
+          document.getElementById('bps-status-msg').innerHTML = '<i class="bi bi-check-circle-fill" style="color:#2E7D32;"></i> Configuration Saved.';
+        },
+
+        resetConfig: function () {
+          loadConfig();
+          toast('Settings reset to last saved state.', true);
+          document.getElementById('bps-status-msg').innerHTML = '<i class="bi bi-info-circle"></i> Configuration Reset.';
+        },
+
+        previewBill: function () {
+          var w = window.open('', '_blank', 'width=820,height=680');
+          if (!w) { toast('Popup blocked. Please allow popups.', false); return; }
+
+          var head = document.getElementById('bps-heading').value || 'SOCIETY BILL';
+          var qrOpt = document.getElementById('bps-qr').value;
+          var format = document.getElementById('bps-format').value;
+          var signOpt = document.getElementById('bps-sign').value;
+
+          var html = '<!DOCTYPE html><html><head><title>Bill Preview — ' + head + '</title><style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px;background:#f9f9f9;} .bill-box{background:#fff;border:1px solid #000;padding:24px;max-width:720px;margin:0 auto;box-shadow:0 2px 10px rgba(0,0,0,0.1);} h2{text-align:center;text-decoration:underline;margin-bottom:20px;font-size:18px;color:#1565C0;} .details{display:flex;justify-content:space-between;margin-bottom:20px;font-size:12px;line-height:1.5;} table{width:100%;border-collapse:collapse;margin-bottom:20px;} th,td{border:1px solid #000;padding:6px;font-size:12px;} th{background:#e8f0fe;} .footer{display:flex;justify-content:space-between;align-items:flex-end;margin-top:40px;height:90px;} .qr{width:90px;height:90px;border:1px solid #999;display:flex;align-items:center;justify-content:center;background:#f0f0f0;font-size:10px;font-weight:bold;text-align:center;} .sign{border-top:1px solid #000;width:160px;text-align:center;padding-top:4px;font-weight:bold;font-size:11px;}</style></head><body>';
+
+          html += '<div class="bill-box">';
+          html += '<h2>' + head + ' (' + format + ')</h2>';
+          html += '<div class="details"><div><strong>Member:</strong> Mr. Sharma<br><strong>Flat:</strong> A-101</div><div><strong>Bill No:</strong> 1001<br><strong>Date:</strong> 01-May-2026</div></div>';
+
+          html += '<table><thead><tr><th>Particulars</th><th style="text-align:right;">Amount (₹)</th></tr></thead><tbody>';
+          html += '<tr><td>Maintenance Charges</td><td style="text-align:right;">2,500.00</td></tr>';
+          html += '<tr><td>Sinking Fund</td><td style="text-align:right;">500.00</td></tr>';
+          html += '<tr><td><strong>Total Amount</strong></td><td style="text-align:right;"><strong>3,000.00</strong></td></tr>';
+          html += '</tbody></table>';
+
+          html += '<div class="footer">';
+          if (qrOpt !== 'none') {
+            html += '<div class="qr">[' + qrOpt.toUpperCase() + ' QR]</div>';
+          } else {
+            html += '<div></div>';
+          }
+
+          if (signOpt !== 'none') {
+            html += '<div class="sign">Authorised ' + signOpt.toUpperCase() + '</div>';
+          } else {
+            html += '<div></div>';
+          }
+
+          html += '</div></div></body></html>';
+
+          w.document.write(html);
+          w.document.close();
+          toast('Generating live ERP bill preview...', true);
+        },
+
+        action: function (name) {
+          toast('Executing: ' + name, true);
+        },
+
+        exit: function () {
+          if (typeof window.WorkspaceBridge !== 'undefined') {
+            window.WorkspaceBridge.closeTab('bill-print-setup');
+          } else {
+            var panel = document.getElementById('bps-panel');
+            if (panel) panel.style.display = 'none';
+          }
+        }
+      };
+
+      // Setup Keyboard Navigation
+      document.addEventListener('keydown', function (e) {
+        var p = document.getElementById('bps-panel');
+        if (!p || !p.offsetParent) return;
+
+        if (e.key === 'Enter') {
+          var act = document.activeElement;
+          if (act.tagName === 'INPUT' || act.tagName === 'SELECT' || act.tagName === 'BUTTON') {
+            if (act.tagName === 'BUTTON') act.click();
+            else {
+              var els = Array.from(document.querySelectorAll('#bps-panel [tabindex]')).sort(function (a, b) {
+                return parseInt(a.getAttribute('tabindex')) - parseInt(b.getAttribute('tabindex'));
+              });
+              var idx = els.indexOf(act);
+              if (idx >= 0 && idx < els.length - 1) els[idx + 1].focus();
+            }
+          }
+        } else if (e.key === 'Escape') {
+          BPS.exit();
+        }
+      });
+
+      async function loadConfig() {
+        try {
+          var res = await fetch(getApiBase() + '/api/bill-print-setup');
+          if (res.ok) {
+            var data = await res.json();
+            if (data) initialState = data;
+          }
+        } catch (e) {
+          var saved = localStorage.getItem('jeevika_bps_config');
+          if (saved) {
+            try { initialState = JSON.parse(saved); } catch (ex) { }
+          }
+        }
+        loadState(initialState);
+      }
+
+      // Init context & config
+      (function init() {
+        function syncHeaderContext() {
+          var sn = (window.Auth && Auth.getSocietyName && Auth.getSocietyName() !== '—') ? Auth.getSocietyName() : null;
+          var fy = (window.Auth && Auth.getFYLabel && Auth.getFYLabel() !== '—') ? Auth.getFYLabel() : null;
+
+          if (!sn || sn === '—') {
+            sn = sessionStorage.getItem('activeSocietyName') || localStorage.getItem('activeSocietyName') || localStorage.getItem('activeSocietyCode') || null;
+          }
+          if (!fy || fy === '—') {
+            fy = sessionStorage.getItem('activeFYLabel') || localStorage.getItem('activeFYLabel') || '2025-26';
+          }
+
+          if (sn && sn !== '—') {
+            var el = document.getElementById('bpsSocName');
+            if (el) el.textContent = sn;
+          }
+          if (fy && fy !== '—') {
+            var el2 = document.getElementById('bpsFyLabel');
+            if (el2) el2.textContent = fy;
+          }
+        }
+
+        syncHeaderContext();
+        setTimeout(syncHeaderContext, 100);
+        setTimeout(syncHeaderContext, 400);
+
+        loadConfig();
+        document.getElementById('bps-format').focus();
+      })();
+
+    })();
+  </script>
+</body>
+
+</html>

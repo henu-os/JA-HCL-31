@@ -1,0 +1,1542 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Configuration & Notes Master — JEEVIKA ERP</title>
+  <script src="../../../config.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* HIDE NUMBER SPINNER ARROWS */
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    input[type=number] {
+      -moz-appearance: textfield;
+      appearance: textfield;
+    }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 12px;
+      background: #f4f6f9;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #cnm-panel {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    /* MODULE HEADER */
+    .cnm-header {
+      background: #fff;
+      padding: 8px 14px 6px;
+      border-bottom: 1px solid #ccc;
+      flex-shrink: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .cnm-header h2 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1a1a2e;
+      letter-spacing: 0.2px;
+      margin: 0 0 2px 0;
+      text-transform: uppercase;
+    }
+
+    .cnm-header .subtitle {
+      font-size: 10px;
+      color: #555;
+      letter-spacing: 0.2px;
+    }
+
+    .cnm-header .tag {
+      font-size: 10px;
+      color: #666;
+      font-style: italic;
+      margin-top: 4px;
+    }
+
+    /* TOP COMMAND STRIP */
+    .cnm-cmd-strip {
+      background: #f5f5f5;
+      border-bottom: 1px solid #ccc;
+      padding: 5px 14px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .cnm-cmd-strip .sep {
+      border-right: 1px solid #bbb;
+      height: 16px;
+      margin: 0 5px;
+    }
+
+    .cmd-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 12px;
+      background: #fff;
+      border: 1px solid #bbb;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: #333;
+      cursor: pointer;
+      border-radius: 2px;
+      white-space: nowrap;
+      font-family: inherit;
+      transition: background 0.1s, border-color 0.1s, color 0.1s;
+    }
+
+    .cmd-btn:hover {
+      background: #e8f0fe;
+      border-color: #5a9be8;
+      color: #1565C0;
+    }
+
+    .cmd-btn.primary {
+      color: #1565C0;
+      border-color: #1565C0;
+      font-weight: 700;
+    }
+
+    .cmd-btn.primary:hover {
+      background: #1565C0;
+      color: #fff;
+    }
+
+    .cmd-btn.tab-btn {
+      background: #eef2f7;
+      border-color: #ccc;
+    }
+
+    .cmd-btn.tab-btn.active {
+      background: #1565C0;
+      color: #fff;
+      border-color: #1565C0;
+    }
+
+    .cmd-btn-exit {
+      margin-left: auto;
+      background: #fff;
+      border: 1px solid #bbb;
+      color: #555;
+    }
+
+    .cmd-btn-exit:hover {
+      background: #fff3cd;
+      border-color: #e0a800;
+      color: #856404;
+    }
+
+    /* MAIN WORKSPACE FULL-BLEED (NO GAP ON 3 SIDES) */
+    .cnm-workspace {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      padding: 0;
+      background: #f9f9f9;
+    }
+
+    #cnm-view-notes,
+    #cnm-view-txtypes,
+    #cnm-view-config {
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    #cnm-view-notes .cnm-card,
+    #cnm-view-txtypes .cnm-card,
+    #cnm-view-config .cnm-card {
+      border-radius: 0;
+      border-left: none;
+      border-right: none;
+      border-top: none;
+      box-shadow: none;
+    }
+
+    /* CARD FRAMES */
+    .cnm-card {
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 14px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .cnm-card-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: #1565C0;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      border-bottom: 1px solid #e0e0e0;
+      padding-bottom: 6px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .cnm-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .cnm-form-grid {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: 8px 10px;
+      align-items: center;
+    }
+
+    .cnm-form-grid label {
+      font-weight: 600;
+      color: #424242;
+    }
+
+    .cnm-input,
+    .cnm-select {
+      height: 26px;
+      padding: 0 8px;
+      font-size: 12px;
+      border: 1px solid #bbb;
+      border-radius: 2px;
+      outline: none;
+      background: #fff;
+      width: 100%;
+    }
+
+    .cnm-input:focus,
+    .cnm-select:focus {
+      border-color: #1565C0;
+    }
+
+    /* UPLOAD BOXES */
+    .cnm-upload-box {
+      width: 100px;
+      height: 80px;
+      border: 2px dashed #bbb;
+      background: #f8f9fa;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+      transition: border-color 0.2s;
+    }
+
+    .cnm-upload-box:hover {
+      border-color: #1565C0;
+    }
+
+    .cnm-upload-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    /* SWITCH TOGGLE */
+    .cnm-switch {
+      position: relative;
+      display: inline-block;
+      width: 40px;
+      height: 22px;
+      flex-shrink: 0;
+    }
+
+    .cnm-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .cnm-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .2s;
+      border-radius: 22px;
+      border: 1px solid #aaa;
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.15);
+    }
+
+    .cnm-slider:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 2px;
+      bottom: 2px;
+      background-color: white;
+      transition: .2s;
+      border-radius: 50%;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    .cnm-switch input:checked+.cnm-slider {
+      background-color: #1565C0;
+      border-color: #0d47a1;
+    }
+
+    .cnm-switch input:checked+.cnm-slider:before {
+      transform: translateX(18px);
+    }
+
+    /* MODULE CARDS & BADGES */
+    .cnm-module-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #ffffff;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      padding: 6px 10px;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .cnm-module-card:hover {
+      background: #f0f4f8;
+      border-color: #90caf9;
+    }
+
+    .cnm-status-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 3px;
+      text-transform: uppercase;
+      min-width: 52px;
+      text-align: center;
+    }
+
+    .cnm-status-badge.auto {
+      background: #e8f5e9;
+      color: #2e7d32;
+      border: 1px solid #a5d6a7;
+    }
+
+    .cnm-status-badge.manual {
+      background: #e8f0fe;
+      color: #1565c0;
+      border: 1px solid #90caf9;
+    }
+
+    .cnm-status-badge.grp-on {
+      background: #e8f5e9;
+      color: #2e7d32;
+      border: 1px solid #a5d6a7;
+    }
+
+    .cnm-status-badge.grp-off {
+      background: #eceff1;
+      color: #546e7a;
+      border: 1px solid #cfd8dc;
+    }
+
+    /* TABLE */
+    .cnm-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11.5px;
+    }
+
+    .cnm-table th {
+      background: #1565C0;
+      color: #fff;
+      font-weight: 700;
+      text-align: left;
+      padding: 6px 10px;
+      border-right: 1px solid #0d47a1;
+      white-space: nowrap;
+    }
+
+    .cnm-table td {
+      padding: 6px 10px;
+      border-bottom: 1px solid #e0e0e0;
+      border-right: 1px solid #eee;
+      white-space: nowrap;
+    }
+
+    .cnm-table tbody tr:hover {
+      background: #f0f7ff;
+    }
+
+    /* STATUSBAR */
+    .cnm-statusbar {
+      background: #f5f5f5;
+      border-top: 1px solid #ccc;
+      padding: 4px 14px;
+      font-size: 11px;
+      color: #666;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      min-height: 24px;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="cnm-panel">
+
+    <!-- MODULE HEADER -->
+    <div class="cnm-header">
+      <div>
+        <h2>CONFIGURATION &amp; NOTES MASTER</h2>
+
+      </div>
+      <div class="tag">[Print Signatures &amp; Branding Setup Workspace]</div>
+    </div>
+
+    <!-- COMMAND BAR -->
+    <div class="cnm-cmd-strip">
+      <button class="cmd-btn primary" id="cnm-btn-save" onclick="cnmSaveSettings()"><i class="bi bi-check-lg"></i>
+        SAVE</button>
+      <button class="cmd-btn" id="cnm-btn-cancel" onclick="cnmCancelSettings()"><i class="bi bi-x-circle"></i>
+        CANCEL</button>
+
+      <div class="sep"></div>
+
+      <button class="cmd-btn tab-btn active" id="cnm-tab-notes" onclick="cnmSwitchView('notes')"><i
+          class="bi bi-file-earmark-text"></i> NOTES MASTER</button>
+      <button class="cmd-btn tab-btn" id="cnm-tab-txtypes" onclick="cnmSwitchView('txtypes')"><i class="bi bi-hash"></i>
+        TRANSACTION TYPES</button>
+      <button class="cmd-btn tab-btn" id="cnm-tab-config" onclick="cnmSwitchView('config')"><i class="bi bi-gear"></i>
+        CONFIGURATION</button>
+
+      <button class="cmd-btn cmd-btn-exit" onclick="cnmExitModule()"><i class="bi bi-door-open"></i> EXIT</button>
+    </div>
+
+    <!-- MAIN OPERATIONAL WORKSPACE -->
+    <div class="cnm-workspace">
+
+      <!-- VIEW 1: NOTES MASTER -->
+      <div id="cnm-view-notes" style="display:flex; flex-direction:column; gap:0; padding:0; margin:0;">
+
+        <div class="cnm-grid-2">
+          <!-- Panel 1: Signatures & Office Bearers -->
+          <div class="cnm-card">
+            <div class="cnm-card-title"><i class="bi bi-pencil-fill"></i> Signatures &amp; Office Bearers</div>
+            <div class="cnm-form-grid">
+              <div
+                style="grid-column:span 2; font-weight:700; color:#1565C0; font-size:10px; text-transform:uppercase; border-bottom:1px dashed #ccc; margin-bottom:4px; padding-bottom:2px;">
+                Voucher Authorization
+              </div>
+
+              <label>Chairman:</label>
+              <input type="text" id="cnm-chairman" class="cnm-input" placeholder="Chairman Name">
+
+              <label>Secretary:</label>
+              <input type="text" id="cnm-secretary" class="cnm-input" placeholder="Secretary Name">
+
+              <label>Treasurer:</label>
+              <input type="text" id="cnm-treasurer" class="cnm-input" placeholder="Treasurer Name">
+
+              <div
+                style="grid-column:span 2; font-weight:700; color:#1565C0; font-size:10px; text-transform:uppercase; border-bottom:1px dashed #ccc; margin-top:8px; margin-bottom:4px; padding-bottom:2px;">
+                Bill / Invoice Print Signatures
+              </div>
+
+              <label>Hon. Chairman:</label>
+              <input type="text" id="cnm-hon-chairman" class="cnm-input" placeholder="Hon. Chairman Signature Title">
+
+              <label>Hon. Secretary:</label>
+              <input type="text" id="cnm-hon-secretary" class="cnm-input" placeholder="Hon. Secretary Signature Title">
+
+              <label>Hon. Treasurer:</label>
+              <input type="text" id="cnm-hon-treasurer" class="cnm-input" placeholder="Hon. Treasurer Signature Title">
+            </div>
+          </div>
+
+          <!-- Right Stack: Seal & Branding Uploads + Share Capital -->
+          <div style="display:flex; flex-direction:column; gap:14px;">
+            <!-- Seal & Branding Uploads -->
+            <div class="cnm-card">
+              <div class="cnm-card-title"><i class="bi bi-image-fill"></i> Seal &amp; Branding Uploads</div>
+
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:6px;">
+                <!-- Crest Logo -->
+                <div style="display:flex; flex-direction:column; gap:6px;">
+                  <label style="font-weight:700; color:#333;">Society Crest / Logo</label>
+                  <input type="file" id="cnm-logo-upload" style="display:none;" accept="image/png,image/jpeg"
+                    onchange="cnmHandleLogoSelect(event)">
+
+                  <div style="display:flex; align-items:flex-end; gap:8px;">
+                    <div id="cnm-logo-preview" class="cnm-upload-box"
+                      onclick="document.getElementById('cnm-logo-upload').click()" title="Click to upload logo">
+                      <div id="cnm-logo-placeholder"
+                        style="display:flex; flex-direction:column; align-items:center; color:#888; font-size:9px; text-align:center;">
+                        <i class="bi bi-image" style="font-size:22px;"></i>
+                        <span>Click to Upload<br>Logo</span>
+                      </div>
+                    </div>
+
+                    <div style="display:flex; flex-direction:column; gap:4px;">
+                      <button type="button" class="cmd-btn"
+                        onclick="document.getElementById('cnm-logo-upload').click()"><i class="bi bi-upload"></i>
+                        Upload</button>
+                      <button type="button" class="cmd-btn danger" id="cnm-logo-remove-btn" onclick="cnmRemoveLogo()"
+                        style="display:none;"><i class="bi bi-trash"></i> Remove</button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Digital Seal -->
+                <div style="display:flex; flex-direction:column; gap:6px;">
+                  <label style="font-weight:700; color:#333;">Digital Seal / Stamp</label>
+                  <input type="file" id="cnm-stamp-upload" style="display:none;" accept="image/png,image/jpeg"
+                    onchange="cnmHandleStampSelect(event)">
+
+                  <div style="display:flex; align-items:flex-end; gap:8px;">
+                    <div id="cnm-stamp-preview" class="cnm-upload-box"
+                      onclick="document.getElementById('cnm-stamp-upload').click()" title="Click to upload stamp">
+                      <div id="cnm-stamp-placeholder"
+                        style="display:flex; flex-direction:column; align-items:center; color:#888; font-size:9px; text-align:center;">
+                        <i class="bi bi-stamp" style="font-size:22px;"></i>
+                        <span>Click to Upload<br>Stamp</span>
+                      </div>
+                    </div>
+
+                    <div style="display:flex; flex-direction:column; gap:4px;">
+                      <button type="button" class="cmd-btn"
+                        onclick="document.getElementById('cnm-stamp-upload').click()"><i class="bi bi-upload"></i>
+                        Upload</button>
+                      <button type="button" class="cmd-btn danger" id="cnm-stamp-remove-btn" onclick="cnmRemoveStamp()"
+                        style="display:none;"><i class="bi bi-trash"></i> Remove</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Share Capital Details -->
+            <div class="cnm-card">
+              <div class="cnm-card-title"><i class="bi bi-bank"></i> Authorised Share Capital Details</div>
+              <div class="cnm-form-grid">
+                <label>Description:</label>
+                <input type="text" id="cnm-share-name" class="cnm-input"
+                  placeholder="e.g. 4000 Shares of Rs. 50/- Each">
+
+                <label>Amount (₹):</label>
+                <input type="text" id="cnm-share-amount" class="cnm-input" placeholder="e.g. 200000">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Balance Sheet Footers & Audit Notes -->
+        <div class="cnm-card">
+          <div class="cnm-card-title">
+            <span><i class="bi bi-file-earmark-text-fill"></i> Balance Sheet Footers &amp; Audit Notes (6 Lines
+              Each)</span>
+          </div>
+
+          <div class="cnm-grid-2">
+            <!-- General Management Footer -->
+            <div>
+              <label
+                style="font-weight:700; color:#1565C0; display:block; border-bottom:1px solid #ccc; margin-bottom:8px; padding-bottom:2px; font-size:10px; text-transform:uppercase;">
+                General / Management Footer
+              </label>
+              <div id="cnm-footer-general" style="display:flex; flex-direction:column; gap:4px;">
+                <!-- Dynamic 6 inputs -->
+              </div>
+            </div>
+
+            <!-- Auditor Disclaimer Footer -->
+            <div>
+              <label
+                style="font-weight:700; color:#1565C0; display:block; border-bottom:1px solid #ccc; margin-bottom:8px; padding-bottom:2px; font-size:10px; text-transform:uppercase;">
+                Auditor Disclaimer / Footer
+              </label>
+              <div id="cnm-footer-auditor" style="display:flex; flex-direction:column; gap:4px;">
+                <!-- Dynamic 6 inputs -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- VIEW 2: TRANSACTION TYPES SEQUENCE -->
+      <div id="cnm-view-txtypes" style="display:none; flex-direction:column; gap:14px;">
+        <div class="cnm-card">
+          <div class="cnm-card-title">
+            <span><i class="bi bi-hash"></i> Transaction Types &amp; Serial Number Configuration</span>
+            <span style="font-size:10px; color:#666; font-weight:normal; text-transform:none;">Configure prefix
+              patterns, Full &amp; Short F.Y., starting sequence numbers, and live previews.</span>
+          </div>
+
+          <table class="cnm-table">
+            <thead>
+              <tr>
+                <th style="width:45px; text-align:center;">Sr. No.</th>
+                <th>TRANSACTION TYPE - MODULE</th>
+                <th style="width:130px; text-align:center;">Full &amp; Short F.Y</th>
+                <th style="width:100px; text-align:center;">F.Y.</th>
+                <th style="width:160px;">PREFIX PATTERN</th>
+                <th style="width:90px; text-align:center;">START NO</th>
+                <th style="width:180px; text-align:center;">LIVE PREVIEW</th>
+              </tr>
+            </thead>
+            <tbody id="cnm-txtypes-tbody">
+              <!-- Dynamic rows -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- VIEW 3: GENERAL CONFIGURATION (100% FULL REFERENCE PARITY) -->
+      <div id="cnm-view-config" style="display:none; flex-direction:column; gap:14px;">
+        <div class="cnm-card">
+          <div class="cnm-card-title"><i class="bi bi-gear-fill"></i> General Configuration</div>
+
+          <div style="display:flex; flex-direction:column; gap:14px; margin-top:4px;">
+
+            <!-- SECTION 1: MANUAL ACCESS FOR TRANSACTION MODULES -->
+            <div style="background:#f8f9fa; padding:12px 14px; border:1px solid #d0d7de; border-radius:4px;">
+              <!-- Master Toggle -->
+              <div style="display:flex; align-items:center; gap:12px;">
+                <label class="cnm-switch">
+                  <input type="checkbox" id="cnm-config-manual-master"
+                    onchange="cnmToggleAllManualModules(this.checked)">
+                  <span class="cnm-slider"></span>
+                </label>
+                <div>
+                  <label for="cnm-config-manual-master"
+                    style="font-weight:700; color:#1565C0; font-size:12px; cursor:pointer;">
+                    1. MANUAL ACCESS FOR TRANSACTION MODULES (ALLOW MANUAL INPUT OF VOUCHER/INVOICE NUMBERS)
+                    <span
+                      style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-size:10px; font-weight:700; padding:1px 6px; border-radius:3px; margin-left:6px; font-family:'Segoe UI', sans-serif; letter-spacing:0.3px; vertical-align:middle;">[TRANSACTION
+                      / ALL TRANSACTION MODULES]</span>
+                  </label>
+                  <div style="color:#666; font-size:11px; margin-top:2px;">
+                    Master toggle enables or disables manual number entry for all transaction modules at once. You can
+                    also turn individual module access ON or OFF below.
+                  </div>
+                </div>
+              </div>
+
+              <!-- Individual Modules Grid (12 Cards) -->
+              <div style="margin-top:12px; padding-top:10px; border-top:1px dashed #ccc;">
+                <div
+                  style="font-weight:700; font-size:11px; color:#333; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
+                  <i class="bi bi-sliders" style="color:#1565C0;"></i> INDIVIDUAL MODULE MANUAL ACCESS CONTROL:
+                </div>
+
+                <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:10px;"
+                  id="cnm-manual-modules-grid">
+                  <!-- Dynamic 12 module cards -->
+                </div>
+              </div>
+            </div>
+
+            <!-- SECTION 2: AUTO SELECT AGAINST BILL FOR MEMBER RECEIPTS -->
+            <div
+              style="display:flex; align-items:flex-start; gap:12px; background:#f8f9fa; padding:12px 14px; border:1px solid #d0d7de; border-radius:4px;">
+              <label class="cnm-switch" style="margin-top:2px;">
+                <input type="checkbox" id="cnm-config-auto-select-bill">
+                <span class="cnm-slider"></span>
+              </label>
+              <div>
+                <label for="cnm-config-auto-select-bill"
+                  style="font-weight:700; color:#1565C0; font-size:12px; cursor:pointer;">
+                  2. AUTO SELECT AGAINST BILL FOR MEMBER RECEIPTS
+                  <span
+                    style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-size:10px; font-weight:700; padding:1px 6px; border-radius:3px; margin-left:6px; font-family:'Segoe UI', sans-serif; letter-spacing:0.3px; vertical-align:middle;">[TRANSACTION
+                    / MEMBER RECEIPT ENTRY]</span>
+                </label>
+                <div style="color:#666; font-size:11px; margin-top:2px; line-height:1.4;">
+                  If enabled, the 'Against Bill' field in the Member Receipt Entry screen will be auto-selected based on
+                  the
+                  receipt's date/month, and the Auto Select button will display ON (read-only). If disabled, it will
+                  display OFF and allow the user to write/type the Bill number manually.
+                </div>
+              </div>
+            </div>
+
+            <!-- SECTION 3: ALLOW MANUAL MODE ENTRY FOR MEMBER RECEIPT REVERSAL -->
+            <div
+              style="display:flex; align-items:flex-start; gap:12px; background:#f8f9fa; padding:12px 14px; border:1px solid #d0d7de; border-radius:4px;">
+              <label class="cnm-switch" style="margin-top:2px;">
+                <input type="checkbox" id="cnm-config-allow-member-manual-mode">
+                <span class="cnm-slider"></span>
+              </label>
+              <div>
+                <label for="cnm-config-allow-member-manual-mode"
+                  style="font-weight:700; color:#1565C0; font-size:12px; cursor:pointer;">
+                  3. ALLOW MANUAL MODE ENTRY FOR MEMBER RECEIPT REVERSAL
+                  <span
+                    style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-size:10px; font-weight:700; padding:1px 6px; border-radius:3px; margin-left:6px; font-family:'Segoe UI', sans-serif; letter-spacing:0.3px; vertical-align:middle;">[TRANSACTION
+                    / MEMBER RECEIPT REVERSAL]</span>
+                </label>
+                <div style="color:#666; font-size:11px; margin-top:2px; line-height:1.4;">
+                  If enabled, the Manual Mode toggle and Manual Entry button will display on the Member Receipt Reversal
+                  screen
+                  to allow switching manual entry ON/OFF per transaction. If disabled, manual entry controls will be
+                  hidden.
+                </div>
+              </div>
+            </div>
+
+            <!-- SECTION 4: ENABLE PO MODE IN PAYMENT ENTRY (PV) -->
+            <div
+              style="display:flex; align-items:flex-start; gap:12px; background:#f8f9fa; padding:12px 14px; border:1px solid #d0d7de; border-radius:4px;">
+              <label class="cnm-switch" style="margin-top:2px;">
+                <input type="checkbox" id="cnm-config-allow-po-mode" checked>
+                <span class="cnm-slider"></span>
+              </label>
+              <div>
+                <label for="cnm-config-allow-po-mode"
+                  style="font-weight:700; color:#1565C0; font-size:12px; cursor:pointer;">
+                  4. ENABLE PO MODE IN PAYMENT ENTRY (PV)
+                  <span
+                    style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-size:10px; font-weight:700; padding:1px 6px; border-radius:3px; margin-left:6px; font-family:'Segoe UI', sans-serif; letter-spacing:0.3px; vertical-align:middle;">[TRANSACTION
+                    / PAYMENT ENTRY (PV)]</span>
+                </label>
+                <div style="color:#666; font-size:11px; margin-top:2px; line-height:1.4;">
+                  If enabled, the "PO Mode:" toggle button will be visible on the Payment Entry form to allow selecting
+                  Purchase Orders. If disabled, the PO Mode toggle button will be hidden.
+                </div>
+              </div>
+            </div>
+
+            <!-- SECTION 5: ALLOW CASH & BANK BALANCE ACCOUNTS IN JOURNAL VOUCHER (JV) -->
+            <div
+              style="display:flex; align-items:flex-start; gap:12px; background:#f8f9fa; padding:12px 14px; border:1px solid #d0d7de; border-radius:4px;">
+              <label class="cnm-switch" style="margin-top:2px;">
+                <input type="checkbox" id="cnm-config-allow-cash-bank-jv">
+                <span class="cnm-slider"></span>
+              </label>
+              <div>
+                <label for="cnm-config-allow-cash-bank-jv"
+                  style="font-weight:700; color:#1565C0; font-size:12px; cursor:pointer;">
+                  5. ALLOW CASH &amp; BANK BALANCE ACCOUNTS IN JOURNAL VOUCHER (JV)
+                  <span
+                    style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-size:10px; font-weight:700; padding:1px 6px; border-radius:3px; margin-left:6px; font-family:'Segoe UI', sans-serif; letter-spacing:0.3px; vertical-align:middle;">[TRANSACTION
+                    / JOURNAL VOUCHER (JV)]</span>
+                </label>
+                <div style="color:#666; font-size:11px; margin-top:2px; line-height:1.4;">
+                  If enabled, accounts under Assets -&gt; Cash &amp; Bank Balance will be visible and selectable in
+                  Journal Voucher (JV). If disabled (default), Cash &amp; Bank Balance accounts are hidden from Journal
+                  Voucher.
+                </div>
+              </div>
+            </div>
+
+            <!-- SECTION 6: ALLOW ACCOUNT SELECTION DIRECTLY IN TABLE GRID COLUMN -->
+            <div
+              style="display:flex; align-items:flex-start; gap:12px; background:#f8f9fa; padding:12px 14px; border:1px solid #d0d7de; border-radius:4px;">
+              <label class="cnm-switch" style="margin-top:2px;">
+                <input type="checkbox" id="cnm-config-allow-grid-account-select">
+                <span class="cnm-slider"></span>
+              </label>
+              <div>
+                <label for="cnm-config-allow-grid-account-select"
+                  style="font-weight:700; color:#1565C0; font-size:12px; cursor:pointer;">
+                  6. ALLOW ACCOUNT SELECTION DIRECTLY IN TABLE GRID COLUMN
+                  <span
+                    style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-size:10px; font-weight:700; padding:1px 6px; border-radius:3px; margin-left:6px; font-family:'Segoe UI', sans-serif; letter-spacing:0.3px; vertical-align:middle;">[TRANSACTION
+                    / VOUCHER ENTRY GRIDS]</span>
+                </label>
+                <div style="color:#666; font-size:11px; margin-top:2px; line-height:1.4;">
+                  If enabled (ON), accounts can also be selected directly by clicking or editing the 'Account Name'
+                  column in transaction entry table grids. If disabled (OFF), accounts can only be selected using the
+                  'SELECT ACCOUNT' dropdown/header control above the grid.
+                </div>
+              </div>
+            </div>
+
+            <!-- SECTION 7: INDIVIDUAL MODULE ACCOUNT GROUPS VISIBILITY CONTROL -->
+            <div style="background:#f8f9fa; padding:14px; border:1px solid #d0d7de; border-radius:4px;">
+              <div
+                style="font-weight:700; color:#1565C0; font-size:12px; margin-bottom:4px; display:flex; align-items:center; gap:6px;">
+                <i class="bi bi-sliders" style="font-size:14px;"></i> 7. INDIVIDUAL MODULE ACCOUNT GROUPS VISIBILITY
+                ('SELECT ACCOUNT')
+                <span
+                  style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-size:10px; font-weight:700; padding:1px 6px; border-radius:3px; margin-left:6px; font-family:'Segoe UI', sans-serif; letter-spacing:0.3px; vertical-align:middle;">[TRANSACTION
+                  / OTHER RECEIPT ENTRY (RV), PAYMENT ENTRY (PV), PURCHASE ORDER (PO)]</span>
+              </div>
+              <div style="color:#666; font-size:11px; margin-bottom:12px; line-height:1.4;">
+                Configure account group visibility individually for <strong>Other Receipt Entry (RV)</strong>,
+                <strong>Payment Entry (PV)</strong>, and <strong>Purchase Order (PO)</strong>. Disabling a group for a
+                module
+                hides its accounts in that module's 'Select Account' dropdown and Lookup modal.
+              </div>
+
+              <div style="display:flex; flex-direction:column; gap:10px;" id="cnm-group-visibility-container">
+                <!-- Dynamic Group Cards -->
+              </div>
+            </div>
+
+
+
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /cnm-workspace -->
+
+    <!-- STATUSBAR -->
+    <div class="cnm-statusbar">
+      <span id="cnm-status-msg"><i class="bi bi-info-circle"></i> Ready</span>
+      <span>Click SAVE to persist all changes to the database.</span>
+    </div>
+
+  </div>
+
+  <script src="../../../assets/js/api.js"></script>
+  <script src="../../../assets/js/auth.js"></script>
+  <script src="../../../assets/js/utils.js"></script>
+  <script>
+    (function () {
+      'use strict';
+
+      var currentView = 'notes';
+      var logoBase64 = '';
+      var stampBase64 = '';
+
+      var txModules = [
+        { id: 'bill', name: 'Member Bill / Invoice', prefix: 'MBIL', altPrefix: 'MINV', useAltPrefix: false, startNo: 1, useShortFy: false },
+        { id: 'receipt', name: 'Member Receipt Entry', prefix: 'MRV', startNo: 1, useShortFy: false },
+        { id: 'reversal', name: 'Member Receipt Reversal', prefix: 'MRV-R', startNo: 1, useShortFy: false },
+        { id: 'debit', name: 'Member Debit Note', prefix: 'MDN', startNo: 1, useShortFy: false },
+        { id: 'credit', name: 'Member Credit Note', prefix: 'MCN', startNo: 1, useShortFy: false },
+        { id: 'transfer', name: 'Member Bill Type Transfer', prefix: 'MTT-B', altPrefix: 'MTT-I', useAltPrefix: false, startNo: 1, useShortFy: false },
+        { id: 'otherReceipt', name: 'Other Receipt Entry (RV)', prefix: 'ORV', startNo: 1, useShortFy: false },
+        { id: 'payCash', name: '(A) Cash Voucher (D)', prefix: 'CASH', startNo: 1, useShortFy: false, isPaymentSub: true },
+        { id: 'payBank', name: '(B) Bank Voucher (D)', prefix: 'PYMT', startNo: 1, useShortFy: false, isPaymentSub: true },
+        { id: 'paySwiss', name: '(C) Bank Voucher (2)', prefix: 'SWIF', startNo: 1, useShortFy: false, isPaymentSub: true },
+        { id: 'contra', name: 'Contra Entry (CV)', prefix: 'CV', startNo: 1, useShortFy: false },
+        { id: 'jv', name: 'Journal Voucher (JV)', prefix: 'JV', startNo: 1, useShortFy: false },
+        { id: 'po', name: 'Purchase Order (PO)', prefix: 'PO', startNo: 1, useShortFy: false }
+      ];
+
+      var manualModules = [
+        { key: 'Bill', label: '1. Member Bill / Invoice', manual: false },
+        { key: 'Receipt', label: '2. Member Receipt Entry', manual: false },
+        { key: 'Reversal', label: '3. Member Receipt Reversal', manual: false },
+        { key: 'Debit', label: '4. Member Debit Note', manual: false },
+        { key: 'Credit', label: '5. Member Credit Note', manual: false },
+        { key: 'Transfer', label: '6. Member Bill Type Transfer', manual: false },
+        { key: 'OtherReceipt', label: '7. Other Receipt Entry (RV)', manual: false },
+        { key: 'Payment', label: '8. Payment Entry (PV)', manual: false },
+        { key: 'Contra', label: '9. Contra Entry (CV)', manual: false },
+        { key: 'JV', label: '10. Journal Voucher (JV)', manual: false },
+        { key: 'PurchaseOrder', label: '11. Purchase Order (PO)', manual: false },
+        { key: 'FixedDeposit', label: '12. Fixed Deposit', manual: false }
+      ];
+
+      var groupVisibilityModules = [
+        { key: 'otherreceipt', title: 'OTHER RECEIPT ENTRY (RV)', icon: 'bi-receipt', color: '#1565C0', groups: { Assets: true, Liabilities: true, Income: true, Expense: true } },
+        { key: 'paymententry', title: 'PAYMENT ENTRY (PV)', icon: 'bi-credit-card', color: '#c62828', groups: { Assets: true, Liabilities: true, Income: true, Expense: true } },
+        { key: 'purchaseorder', title: 'PURCHASE ORDER (PO) ENTRY', icon: 'bi-cart-check', color: '#2e7d32', groups: { Assets: true, Liabilities: true, Income: true, Expense: true } }
+      ];
+
+      function toast(m, ok) {
+        if (typeof window.showToast === 'function') {
+          window.showToast(m, ok ? 'success' : 'error');
+        } else {
+          var d = document.createElement('div');
+          d.style.cssText = 'position:fixed;top:12px;right:12px;z-index:99999;padding:9px 18px;font-size:12px;font-weight:600;color:#FFF;border-radius:3px;box-shadow:0 3px 12px rgba(0,0,0,0.2);background:' + (ok !== false ? '#2E7D32' : '#C62828') + ';';
+          d.textContent = m;
+          document.body.appendChild(d);
+          setTimeout(function () { d.remove(); }, 2500);
+        }
+      }
+
+      function getActiveSocietyId() {
+        return (window.Auth && Auth.getSocietyId) ? Auth.getSocietyId() : (sessionStorage.getItem('activeSocietyId') || localStorage.getItem('activeSocietyId') || '1');
+      }
+
+      function getFyLabel() {
+        return (window.Auth && Auth.getFYLabel) ? Auth.getFYLabel() : (sessionStorage.getItem('activeFYLabel') || localStorage.getItem('activeFYLabel') || '2025-26');
+      }
+
+      function cnmSwitchView(viewName) {
+        currentView = viewName;
+        document.getElementById('cnm-view-notes').style.display = (viewName === 'notes') ? 'flex' : 'none';
+        document.getElementById('cnm-view-txtypes').style.display = (viewName === 'txtypes') ? 'flex' : 'none';
+        document.getElementById('cnm-view-config').style.display = (viewName === 'config') ? 'flex' : 'none';
+
+        document.querySelectorAll('.cmd-btn.tab-btn').forEach(function (b) { b.classList.remove('active'); });
+        if (viewName === 'notes') document.getElementById('cnm-tab-notes').classList.add('active');
+        if (viewName === 'txtypes') document.getElementById('cnm-tab-txtypes').classList.add('active');
+        if (viewName === 'config') document.getElementById('cnm-tab-config').classList.add('active');
+      }
+
+      function renderFooters() {
+        var genBox = document.getElementById('cnm-footer-general');
+        var audBox = document.getElementById('cnm-footer-auditor');
+        genBox.innerHTML = '';
+        audBox.innerHTML = '';
+
+        for (var i = 1; i <= 6; i++) {
+          genBox.innerHTML += '<input type="text" id="cnm-fg-' + i + '" class="cnm-input" placeholder="General Footer Line ' + i + '">';
+          audBox.innerHTML += '<input type="text" id="cnm-fa-' + i + '" class="cnm-input" placeholder="Auditor Footer Line ' + i + '">';
+        }
+      }
+
+      function renderTxTypesTable() {
+        var tbody = document.getElementById('cnm-txtypes-tbody');
+        var fy = getFyLabel();
+        var parts = fy.split('-');
+        var shortFy = (parts[0] ? parts[0].slice(-2) : '25') + '-' + (parts[1] || '26');
+
+        var html = '';
+        var srCount = 1;
+        var paymentHeaderRendered = false;
+
+        txModules.forEach(function (m) {
+          if (m.isPaymentSub && !paymentHeaderRendered) {
+            html += '<tr style="background:#f1f5f9; font-weight:bold; height:32px; border-bottom:1px solid #cbd5e1;">' +
+              '<td style="text-align:center; font-weight:800; color:#0f172a;">' + (srCount++) + '</td>' +
+              '<td colspan="6" style="padding:6px 10px;">' +
+              '<div style="display:flex; align-items:center; justify-content:space-between;">' +
+              '<span style="color:#0D47A1; font-weight:800; font-size:12px;">Payment Entry (PV)</span>' +
+              '<button type="button" class="cmd-btn" onclick="openAddVoucherModal()" style="background:#ffffff; border:1px solid #cbd5e1; color:#0D47A1; font-weight:700; font-size:11px; padding:3px 12px; border-radius:4px; cursor:pointer; display:inline-flex; align-items:center; gap:5px; box-shadow:0 1px 2px rgba(0,0,0,0.05);">' +
+              '<i class="bi bi-plus-circle-fill"></i> (+) ADD VOUCHER' +
+              '</button>' +
+              '</div>' +
+              '</td>' +
+              '</tr>';
+            paymentHeaderRendered = true;
+          }
+
+          var fyStr = m.useShortFy ? shortFy : fy;
+          var curPrefix = (m.useAltPrefix && m.altPrefix) ? m.altPrefix : m.prefix;
+          var pattern = curPrefix + '/' + fyStr + '/';
+          var numPadded = String(m.startNo).padStart(2, '0');
+          var preview = pattern + numPadded;
+
+          var moduleNameCell = '';
+          if (m.id === 'bill' || m.id === 'transfer') {
+            moduleNameCell = '<div style="display:flex; align-items:center; justify-content:space-between; width:100%;">' +
+              '<span style="font-weight:600;">' + m.name + '</span>' +
+              '<div style="display:flex; align-items:center; gap:4px; background:#f0f4f8; padding:2px 6px; border-radius:12px; border:1px solid #d0d7de;">' +
+              '<span style="font-size:10px; font-weight:bold; color:#c62828;">Bill / Inv:</span>' +
+              '<label class="cnm-switch" style="transform:scale(0.8); margin:0;">' +
+              '<input type="checkbox" id="cnm-prefix-toggle-' + m.id + '" ' + (m.useAltPrefix ? 'checked' : '') + ' onchange="cnmToggleAltPrefix(\'' + m.id + '\', this.checked)">' +
+              '<span class="cnm-slider"></span>' +
+              '</label>' +
+              '</div>' +
+              '</div>';
+          } else if (m.isPaymentSub) {
+            var delBtn = m.isCustom ? '<button type="button" onclick="cnmDeleteCustomSub(\'' + m.id + '\')" title="Delete custom voucher sub-type" style="background:none; border:none; color:#ef4444; cursor:pointer; margin-left:8px; font-size:12px;"><i class="bi bi-trash-fill"></i></button>' : '';
+            moduleNameCell = '<div style="padding-left:16px; font-weight:600; color:#333; display:flex; align-items:center; justify-content:space-between;">' +
+              '<span><i class="bi bi-caret-right-fill" style="font-size:9px; color:#888;"></i> ' + m.name + '</span>' +
+              delBtn +
+              '</div>';
+          } else {
+            moduleNameCell = '<span style="font-weight:600;">' + m.name + '</span>';
+          }
+
+          var srCell = m.isPaymentSub ? '' : srCount++;
+
+          html += '<tr style="border-bottom:1px solid #e0e0e0;">' +
+            '<td style="text-align:center; font-weight:bold;">' + srCell + '</td>' +
+            '<td>' + moduleNameCell + '</td>' +
+            '<td style="text-align:center;">' +
+            '<label class="cnm-switch" style="transform:scale(0.85); margin:0;">' +
+            '<input type="checkbox" id="cnm-fy-chk-' + m.id + '" ' + (m.useShortFy ? 'checked' : '') + ' onchange="cnmToggleFy(\'' + m.id + '\', this.checked)">' +
+            '<span class="cnm-slider"></span>' +
+            '</label>' +
+            '</td>' +
+            '<td style="text-align:center; font-weight:600; font-size:10px;">(' + (m.useShortFy ? 'short' : 'full') + ') ' + fyStr + '</td>' +
+            '<td style="font-family:monospace; font-weight:bold; color:#0D47A1;">' + pattern + '</td>' +
+            '<td style="text-align:center;">' +
+            '<input type="text" inputmode="numeric" id="cnm-start-' + m.id + '" class="cnm-input" style="width:70px; text-align:center; height:22px; font-weight:bold;" value="' + m.startNo + '" oninput="cnmChangeStartNo(\'' + m.id + '\', this.value)">' +
+            '</td>' +
+            '<td id="cnm-preview-' + m.id + '" style="text-align:center; font-family:monospace; font-weight:bold; color:#1565C0;">' + preview + '</td>' +
+            '</tr>';
+        });
+        tbody.innerHTML = html;
+      }
+
+      function cnmToggleAltPrefix(id, checked) {
+        var item = txModules.find(function (m) { return m.id === id; });
+        if (item) {
+          item.useAltPrefix = !!checked;
+          if (id === 'bill') item.altPrefix = 'MINV';
+          if (id === 'transfer') item.altPrefix = 'MTT-I';
+        }
+        renderTxTypesTable();
+        cnmSaveSettings();
+      }
+
+      function cnmToggleBillPrefix(checked) {
+        cnmToggleAltPrefix('bill', checked);
+      }
+
+      function cnmToggleTransferPrefix(checked) {
+        cnmToggleAltPrefix('transfer', checked);
+      }
+
+      function cnmToggleFy(id, checked) {
+        var item = txModules.find(function (m) { return m.id === id; });
+        if (item) item.useShortFy = checked;
+        renderTxTypesTable();
+        cnmSaveSettings();
+      }
+
+      function cnmChangeStartNo(id, val) {
+        var item = txModules.find(function (m) { return m.id === id; });
+        if (item) {
+          item.startNo = parseInt(val) || 1;
+        }
+
+        var prevEl = document.getElementById('cnm-preview-' + id);
+        if (prevEl && item) {
+          var fy = getFyLabel();
+          var parts = fy.split('-');
+          var shortFy = (parts[0] ? parts[0].slice(-2) : '25') + '-' + (parts[1] || '26');
+          var fyStr = item.useShortFy ? shortFy : fy;
+          var curPrefix = (item.useAltPrefix && item.altPrefix) ? item.altPrefix : item.prefix;
+          var pattern = curPrefix + '/' + fyStr + '/';
+          var numPadded = String(item.startNo).padStart(2, '0');
+          prevEl.textContent = pattern + numPadded;
+        }
+
+        cnmSaveSettings();
+      }
+
+      function renderManualModulesGrid() {
+        var grid = document.getElementById('cnm-manual-modules-grid');
+        if (!grid) return;
+
+        var html = '';
+        manualModules.forEach(function (m) {
+          var badgeClass = m.manual ? 'manual' : 'auto';
+          var badgeText = m.manual ? 'Manual' : 'Auto';
+
+          html += '<div class="cnm-module-card">' +
+            '<div style="display:flex; align-items:center; gap:8px;">' +
+            '<span id="cnm-badge-' + m.key + '" class="cnm-status-badge ' + badgeClass + '">' + badgeText + '</span>' +
+            '<span style="font-size:11.5px; font-weight:600; color:#333;">' + m.label + '</span>' +
+            '</div>' +
+            '<label class="cnm-switch">' +
+            '<input type="checkbox" id="cnm-chk-manual-' + m.key + '" ' + (m.manual ? 'checked' : '') + ' onchange="cnmOnIndividualModuleToggle(\'' + m.key + '\', this.checked)">' +
+            '<span class="cnm-slider"></span>' +
+            '</label>' +
+            '</div>';
+        });
+        grid.innerHTML = html;
+
+        var allManual = manualModules.every(function (m) { return m.manual; });
+        var masterChk = document.getElementById('cnm-config-manual-master');
+        if (masterChk) masterChk.checked = allManual;
+      }
+
+      function cnmToggleAllManualModules(checked) {
+        manualModules.forEach(function (m) { m.manual = checked; });
+        renderManualModulesGrid();
+      }
+
+      function cnmOnIndividualModuleToggle(key, checked) {
+        var item = manualModules.find(function (m) { return m.key === key; });
+        if (item) item.manual = checked;
+
+        var badge = document.getElementById('cnm-badge-' + key);
+        if (badge) {
+          badge.className = 'cnm-status-badge ' + (checked ? 'manual' : 'auto');
+          badge.textContent = checked ? 'Manual' : 'Auto';
+        }
+
+        var allManual = manualModules.every(function (m) { return m.manual; });
+        var masterChk = document.getElementById('cnm-config-manual-master');
+        if (masterChk) masterChk.checked = allManual;
+      }
+
+      function renderGroupVisibilityCards() {
+        var container = document.getElementById('cnm-group-visibility-container');
+        if (!container) return;
+
+        var html = '';
+        groupVisibilityModules.forEach(function (mod) {
+          html += '<div style="background:#fff; border:1px solid #e0e0e0; border-radius:4px; padding:10px 12px;">' +
+            '<div style="font-weight:700; color:' + mod.color + '; font-size:11.5px; margin-bottom:8px; display:flex; align-items:center; gap:6px;">' +
+            '<i class="bi ' + mod.icon + '"></i> ' + mod.title +
+            '</div>' +
+            '<div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap:8px;">';
+
+          ['Assets', 'Liabilities', 'Income', 'Expense'].forEach(function (grp) {
+            var isChecked = !!mod.groups[grp];
+            var badgeClass = isChecked ? 'grp-on' : 'grp-off';
+            var badgeText = isChecked ? 'ON' : 'OFF';
+
+            html += '<div style="display:flex; align-items:center; justify-content:space-between; background:#f8f9fa; padding:6px 10px; border-radius:4px; border:1px solid #eee;">' +
+              '<div style="display:flex; align-items:center; gap:6px;">' +
+              '<span id="cnm-badge-' + mod.key + '-' + grp + '" class="cnm-status-badge ' + badgeClass + '">' + badgeText + '</span>' +
+              '<span style="font-size:11px; font-weight:600; color:#333;">' + grp + '</span>' +
+              '</div>' +
+              '<label class="cnm-switch">' +
+              '<input type="checkbox" id="cnm-chk-grp-' + mod.key + '-' + grp + '" ' + (isChecked ? 'checked' : '') + ' onchange="cnmOnModuleGroupToggle(\'' + mod.key + '\', \'' + grp + '\', this.checked)">' +
+              '<span class="cnm-slider"></span>' +
+              '</label>' +
+              '</div>';
+          });
+
+          html += '</div></div>';
+        });
+        container.innerHTML = html;
+      }
+
+      function cnmOnModuleGroupToggle(modKey, grpKey, checked) {
+        var mod = groupVisibilityModules.find(function (m) { return m.key === modKey; });
+        if (mod) mod.groups[grpKey] = checked;
+
+        var badge = document.getElementById('cnm-badge-' + modKey + '-' + grpKey);
+        if (badge) {
+          badge.className = 'cnm-status-badge ' + (checked ? 'grp-on' : 'grp-off');
+          badge.textContent = checked ? 'ON' : 'OFF';
+        }
+      }
+
+      function cnmHandleLogoSelect(e) {
+        var file = e.target.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function (evt) {
+          logoBase64 = evt.target.result;
+          var box = document.getElementById('cnm-logo-preview');
+          box.innerHTML = '<img src="' + logoBase64 + '" alt="Logo">';
+          document.getElementById('cnm-logo-remove-btn').style.display = 'inline-flex';
+        };
+        reader.readAsDataURL(file);
+      }
+
+      function cnmRemoveLogo() {
+        logoBase64 = '';
+        document.getElementById('cnm-logo-upload').value = '';
+        var box = document.getElementById('cnm-logo-preview');
+        box.innerHTML = '<div id="cnm-logo-placeholder" style="display:flex; flex-direction:column; align-items:center; color:#888; font-size:9px; text-align:center;"><i class="bi bi-image" style="font-size:22px;"></i><span>Click to Upload<br>Logo</span></div>';
+        document.getElementById('cnm-logo-remove-btn').style.display = 'none';
+      }
+
+      function cnmHandleStampSelect(e) {
+        var file = e.target.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function (evt) {
+          stampBase64 = evt.target.result;
+          var box = document.getElementById('cnm-stamp-preview');
+          box.innerHTML = '<img src="' + stampBase64 + '" alt="Stamp">';
+          document.getElementById('cnm-stamp-remove-btn').style.display = 'inline-flex';
+        };
+        reader.readAsDataURL(file);
+      }
+
+      function cnmRemoveStamp() {
+        stampBase64 = '';
+        document.getElementById('cnm-stamp-upload').value = '';
+        var box = document.getElementById('cnm-stamp-preview');
+        box.innerHTML = '<div id="cnm-stamp-placeholder" style="display:flex; flex-direction:column; align-items:center; color:#888; font-size:9px; text-align:center;"><i class="bi bi-stamp" style="font-size:22px;"></i><span>Click to Upload<br>Stamp</span></div>';
+        document.getElementById('cnm-stamp-remove-btn').style.display = 'none';
+      }
+
+      function loadSavedSettings() {
+        var key = 'jeevika_config_notes_' + getActiveSocietyId();
+        var saved = localStorage.getItem(key);
+        if (!saved) return;
+
+        try {
+          var cfg = JSON.parse(saved);
+          if (cfg.chairman) document.getElementById('cnm-chairman').value = cfg.chairman;
+          if (cfg.secretary) document.getElementById('cnm-secretary').value = cfg.secretary;
+          if (cfg.treasurer) document.getElementById('cnm-treasurer').value = cfg.treasurer;
+          if (cfg.honChairman) document.getElementById('cnm-hon-chairman').value = cfg.honChairman;
+          if (cfg.honSecretary) document.getElementById('cnm-hon-secretary').value = cfg.honSecretary;
+          if (cfg.honTreasurer) document.getElementById('cnm-hon-treasurer').value = cfg.honTreasurer;
+
+          if (cfg.shareName) document.getElementById('cnm-share-name').value = cfg.shareName;
+          if (cfg.shareAmount) document.getElementById('cnm-share-amount').value = cfg.shareAmount;
+
+          if (cfg.genFooters && Array.isArray(cfg.genFooters)) {
+            cfg.genFooters.forEach(function (val, idx) {
+              var el = document.getElementById('cnm-fg-' + (idx + 1));
+              if (el) el.value = val;
+            });
+          }
+          if (cfg.audFooters && Array.isArray(cfg.audFooters)) {
+            cfg.audFooters.forEach(function (val, idx) {
+              var el = document.getElementById('cnm-fa-' + (idx + 1));
+              if (el) el.value = val;
+            });
+          }
+
+          if (cfg.logo) {
+            logoBase64 = cfg.logo;
+            document.getElementById('cnm-logo-preview').innerHTML = '<img src="' + logoBase64 + '" alt="Logo">';
+            document.getElementById('cnm-logo-remove-btn').style.display = 'inline-flex';
+          }
+          if (cfg.stamp) {
+            stampBase64 = cfg.stamp;
+            document.getElementById('cnm-stamp-preview').innerHTML = '<img src="' + stampBase64 + '" alt="Stamp">';
+            document.getElementById('cnm-stamp-remove-btn').style.display = 'inline-flex';
+          }
+
+          if (cfg.txModules && Array.isArray(cfg.txModules)) {
+            txModules = txModules.map(function (def) {
+              var savedMod = cfg.txModules.find(function (sm) { return sm.id === def.id; });
+              if (savedMod) {
+                return Object.assign({}, def, savedMod, { name: def.name });
+              }
+              return def;
+            });
+            txModules.forEach(function (m) {
+              if (m.id === 'bill') {
+                if (!m.altPrefix || m.altPrefix === 'BILL') m.altPrefix = 'MINV';
+              }
+              if (m.id === 'transfer') {
+                if (!m.altPrefix || m.altPrefix === 'MTT') m.altPrefix = 'MTT-I';
+              }
+            });
+            renderTxTypesTable();
+          }
+
+          if (cfg.manualModules && Array.isArray(cfg.manualModules)) {
+            manualModules = manualModules.map(function (def) {
+              var savedMan = cfg.manualModules.find(function (sm) { return sm.key === def.key; });
+              if (savedMan) {
+                return Object.assign({}, def, savedMan, { label: def.label });
+              }
+              return def;
+            });
+            renderManualModulesGrid();
+          }
+
+          if (cfg.groupVisibilityModules && Array.isArray(cfg.groupVisibilityModules)) {
+            groupVisibilityModules = groupVisibilityModules.map(function (def) {
+              var savedGv = cfg.groupVisibilityModules.find(function (sg) { return sg.key === def.key; });
+              if (savedGv) {
+                return Object.assign({}, def, savedGv, { title: def.title });
+              }
+              return def;
+            });
+            renderGroupVisibilityCards();
+          }
+
+          if (cfg.autoSelectBill !== undefined) document.getElementById('cnm-config-auto-select-bill').checked = !!cfg.autoSelectBill;
+          if (cfg.allowMemberManualMode !== undefined) document.getElementById('cnm-config-allow-member-manual-mode').checked = !!cfg.allowMemberManualMode;
+          if (cfg.allowPoMode !== undefined) document.getElementById('cnm-config-allow-po-mode').checked = !!cfg.allowPoMode;
+          if (cfg.allowCashBankJv !== undefined) document.getElementById('cnm-config-allow-cash-bank-jv').checked = !!cfg.allowCashBankJv;
+          if (cfg.allowGridAccountSelect !== undefined) document.getElementById('cnm-config-allow-grid-account-select').checked = !!cfg.allowGridAccountSelect;
+        } catch (e) {
+          console.warn("Failed loading saved config", e);
+        }
+      }
+
+      function cnmSaveSettings() {
+        try {
+          var genFooters = [];
+          var audFooters = [];
+          for (var i = 1; i <= 6; i++) {
+            var g = document.getElementById('cnm-fg-' + i);
+            var a = document.getElementById('cnm-fa-' + i);
+            genFooters.push(g ? g.value.trim() : '');
+            audFooters.push(a ? a.value.trim() : '');
+          }
+
+          var getV = function (id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; };
+          var getC = function (id) { var el = document.getElementById(id); return el ? !!el.checked : false; };
+
+          var cfg = {
+            chairman: getV('cnm-chairman'),
+            secretary: getV('cnm-secretary'),
+            treasurer: getV('cnm-treasurer'),
+            honChairman: getV('cnm-hon-chairman'),
+            honSecretary: getV('cnm-hon-secretary'),
+            honTreasurer: getV('cnm-hon-treasurer'),
+            shareName: getV('cnm-share-name'),
+            shareAmount: getV('cnm-share-amount'),
+            genFooters: genFooters,
+            audFooters: audFooters,
+            logo: logoBase64,
+            stamp: stampBase64,
+            txModules: txModules,
+            manualModules: manualModules,
+            groupVisibilityModules: groupVisibilityModules,
+            autoSelectBill: getC('cnm-config-auto-select-bill'),
+            allowMemberManualMode: getC('cnm-config-allow-member-manual-mode'),
+            allowPoMode: getC('cnm-config-allow-po-mode'),
+            allowCashBankJv: getC('cnm-config-allow-cash-bank-jv'),
+            allowGridAccountSelect: getC('cnm-config-allow-grid-account-select')
+          };
+
+          var activeSid = getActiveSocietyId();
+          var cfgStr = JSON.stringify(cfg);
+
+          localStorage.setItem('jeevika_config_notes_' + activeSid, cfgStr);
+          localStorage.setItem('jeevika_config_notes_global', cfgStr);
+
+          for (var k in localStorage) {
+            if (k.indexOf('jeevika_config_notes_') === 0) {
+              localStorage.setItem(k, cfgStr);
+            }
+          }
+        } catch (e) {
+          console.warn('Error in cnmSaveSettings', e);
+        }
+
+        toast('Configuration & Notes Master saved successfully.', true);
+      }
+
+      function cnmCancelSettings() {
+        loadSavedSettings();
+        toast('Settings reloaded.', true);
+      }
+
+      function cnmExitModule() {
+        if (typeof window.WorkspaceBridge !== 'undefined') {
+          window.WorkspaceBridge.closeTab('config-notes-master');
+        } else {
+          var panel = document.getElementById('cnm-panel');
+          if (panel) panel.style.display = 'none';
+        }
+      }
+
+      function openAddVoucherModal() {
+        document.getElementById('add-vtype-name').value = '';
+        document.getElementById('add-vtype-prefix').value = '';
+        document.getElementById('add-vtype-startno').value = '1';
+        var modal = document.getElementById('cnm-add-voucher-modal');
+        if (modal) modal.style.display = 'flex';
+        setTimeout(function () {
+          var input = document.getElementById('add-vtype-name');
+          if (input) input.focus();
+        }, 50);
+      }
+
+      function closeAddVoucherModal() {
+        var modal = document.getElementById('cnm-add-voucher-modal');
+        if (modal) modal.style.display = 'none';
+      }
+
+      function confirmAddVoucherType() {
+        var nameInput = document.getElementById('add-vtype-name').value.trim();
+        var prefixInput = document.getElementById('add-vtype-prefix').value.trim().toUpperCase();
+        var startNoInput = parseInt(document.getElementById('add-vtype-startno').value.trim()) || 1;
+
+        if (!nameInput) {
+          toast('Please enter Voucher Sub-Type Name.', false);
+          document.getElementById('add-vtype-name').focus();
+          return;
+        }
+        if (!prefixInput) {
+          toast('Please enter Prefix Pattern Code.', false);
+          document.getElementById('add-vtype-prefix').focus();
+          return;
+        }
+
+        var paySubs = txModules.filter(function (m) { return m.isPaymentSub; });
+        var letterIndex = paySubs.length;
+        var letter = String.fromCharCode(65 + letterIndex);
+
+        var formattedName = nameInput;
+        if (!formattedName.startsWith('(')) {
+          formattedName = '(' + letter + ') ' + formattedName;
+        }
+
+        var newSub = {
+          id: 'pay_custom_' + Date.now(),
+          name: formattedName,
+          prefix: prefixInput,
+          startNo: startNoInput,
+          useShortFy: false,
+          isPaymentSub: true,
+          isCustom: true
+        };
+
+        var lastIdx = -1;
+        for (var i = txModules.length - 1; i >= 0; i--) {
+          if (txModules[i].isPaymentSub) {
+            lastIdx = i;
+            break;
+          }
+        }
+
+        if (lastIdx >= 0) {
+          txModules.splice(lastIdx + 1, 0, newSub);
+        } else {
+          txModules.push(newSub);
+        }
+
+        closeAddVoucherModal();
+        renderTxTypesTable();
+        cnmSaveSettings();
+        toast('Added new Payment Voucher Sub-Type: ' + formattedName, true);
+      }
+
+      function cnmDeleteCustomSub(subId) {
+        if (!confirm('Are you sure you want to delete this custom Payment Voucher Sub-Type?')) return;
+        txModules = txModules.filter(function (m) { return m.id !== subId; });
+        renderTxTypesTable();
+        cnmSaveSettings();
+        toast('Custom Payment Voucher Sub-Type deleted.', true);
+      }
+
+      window.cnmSwitchView = cnmSwitchView;
+      window.cnmHandleLogoSelect = cnmHandleLogoSelect;
+      window.cnmRemoveLogo = cnmRemoveLogo;
+      window.cnmHandleStampSelect = cnmHandleStampSelect;
+      window.cnmRemoveStamp = cnmRemoveStamp;
+      window.cnmToggleBillPrefix = cnmToggleBillPrefix;
+      window.cnmToggleTransferPrefix = cnmToggleTransferPrefix;
+      window.cnmToggleAltPrefix = cnmToggleAltPrefix;
+      window.cnmToggleFy = cnmToggleFy;
+      window.cnmChangeStartNo = cnmChangeStartNo;
+      window.cnmToggleAllManualModules = cnmToggleAllManualModules;
+      window.cnmOnIndividualModuleToggle = cnmOnIndividualModuleToggle;
+      window.cnmOnModuleGroupToggle = cnmOnModuleGroupToggle;
+      window.cnmSaveSettings = cnmSaveSettings;
+      window.cnmCancelSettings = cnmCancelSettings;
+      window.cnmExitModule = cnmExitModule;
+      window.openAddVoucherModal = openAddVoucherModal;
+      window.closeAddVoucherModal = closeAddVoucherModal;
+      window.confirmAddVoucherType = confirmAddVoucherType;
+      window.cnmDeleteCustomSub = cnmDeleteCustomSub;
+
+      // Init context & load
+      (function init() {
+        function syncHeaderContext() {
+          var sn = (window.Auth && Auth.getSocietyName && Auth.getSocietyName() !== '—') ? Auth.getSocietyName() : null;
+          var fy = (window.Auth && Auth.getFYLabel && Auth.getFYLabel() !== '—') ? Auth.getFYLabel() : null;
+
+          if (!sn || sn === '—') {
+            sn = sessionStorage.getItem('activeSocietyName') || localStorage.getItem('activeSocietyName') || null;
+          }
+          if (!fy || fy === '—') {
+            fy = sessionStorage.getItem('activeFYLabel') || localStorage.getItem('activeFYLabel') || '2025-26';
+          }
+
+          if (sn && sn !== '—') {
+            var el = document.getElementById('cnmSocName');
+            if (el) el.textContent = sn;
+          }
+          if (fy && fy !== '—') {
+            var el2 = document.getElementById('cnmFyLabel');
+            if (el2) el2.textContent = fy;
+          }
+        }
+
+        syncHeaderContext();
+        setTimeout(syncHeaderContext, 100);
+        setTimeout(syncHeaderContext, 400);
+
+        renderFooters();
+        renderTxTypesTable();
+        renderManualModulesGrid();
+        renderGroupVisibilityCards();
+        loadSavedSettings();
+      })();
+
+    })();
+  </script>
+
+  <!-- MODAL: ADD NEW PAYMENT VOUCHER TYPE -->
+  <div id="cnm-add-voucher-modal"
+    style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(15,23,42,0.6); backdrop-filter:blur(2px); z-index:99999; align-items:center; justify-content:center;">
+    <div
+      style="width:100%; max-width:480px; background:#ffffff; border-radius:8px; box-shadow:0 20px 25px -5px rgba(0,0,0,0.3), 0 8px 10px -6px rgba(0,0,0,0.3); overflow:hidden; border:1px solid #cbd5e1;">
+
+      <!-- Modal Header -->
+      <div
+        style="background:#0D47A1; padding:14px 18px; display:flex; align-items:center; justify-content:space-between;">
+        <div
+          style="display:flex; align-items:center; gap:8px; color:#ffffff; font-weight:800; font-size:13px; text-transform:uppercase; letter-spacing:0.5px;">
+          <i class="bi bi-plus-circle-fill" style="font-size:16px;"></i> ADD NEW PAYMENT VOUCHER TYPE
+        </div>
+        <button type="button" onclick="closeAddVoucherModal()"
+          style="background:transparent; border:none; color:#ffffff; font-size:18px; font-weight:bold; cursor:pointer; padding:0; line-height:1; opacity:0.85;"
+          onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.85'">&times;</button>
+      </div>
+
+      <!-- Modal Body -->
+      <div style="padding:20px 22px; background:#ffffff; display:flex; flex-direction:column; gap:16px;">
+        <div>
+          <label
+            style="font-size:11px; font-weight:800; color:#334155; text-transform:uppercase; margin-bottom:6px; display:block; letter-spacing:0.3px;">
+            VOUCHER SUB-TYPE NAME *
+          </label>
+          <input type="text" id="add-vtype-name" class="cnm-input" placeholder="e.g. Petty Cash Voucher, UPI Voucher"
+            style="height:38px; border-radius:6px; font-size:12.5px; border:1px solid #cbd5e1; padding:0 12px; font-weight:600;"
+            onkeydown="if(event.key==='Enter') confirmAddVoucherType()">
+        </div>
+
+        <div>
+          <label
+            style="font-size:11px; font-weight:800; color:#334155; text-transform:uppercase; margin-bottom:6px; display:block; letter-spacing:0.3px;">
+            PREFIX PATTERN CODE *
+          </label>
+          <input type="text" id="add-vtype-prefix" class="cnm-input" placeholder="E.G. PETY, UPIV"
+            style="height:38px; border-radius:6px; font-size:12.5px; border:1px solid #cbd5e1; padding:0 12px; font-weight:700; font-family:monospace; text-transform:uppercase;"
+            onkeydown="if(event.key==='Enter') confirmAddVoucherType()">
+        </div>
+
+        <div>
+          <label
+            style="font-size:11px; font-weight:800; color:#334155; text-transform:uppercase; margin-bottom:6px; display:block; letter-spacing:0.3px;">
+            STARTING SEQUENCE NUMBER *
+          </label>
+          <input type="number" id="add-vtype-startno" class="cnm-input" value="1" min="1"
+            style="height:38px; border-radius:6px; font-size:12.5px; border:1px solid #cbd5e1; padding:0 12px; font-weight:700;"
+            onkeydown="if(event.key==='Enter') confirmAddVoucherType()">
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div
+        style="background:#f8fafc; border-top:1px solid #e2e8f0; padding:12px 20px; display:flex; justify-content:flex-end; gap:10px;">
+        <button type="button" onclick="closeAddVoucherModal()"
+          style="padding:8px 20px; background:#ffffff; border:1px solid #cbd5e1; border-radius:6px; font-weight:700; font-size:12px; color:#334155; cursor:pointer;">
+          Cancel
+        </button>
+        <button type="button" onclick="confirmAddVoucherType()"
+          style="padding:8px 20px; background:#0D47A1; border:1px solid #0D47A1; border-radius:6px; font-weight:700; font-size:12px; color:#ffffff; cursor:pointer; box-shadow:0 1px 3px rgba(13,71,161,0.3);">
+          Confirm Add
+        </button>
+      </div>
+
+    </div>
+  </div>
+</body>
+
+</html>

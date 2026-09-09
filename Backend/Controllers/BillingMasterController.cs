@@ -30,17 +30,33 @@ namespace JeevikaERP.Controllers
         private static int GetOrCreateBillTypeId(NpgsqlConnection conn, string billType, int societyId)
         {
             if (string.IsNullOrWhiteSpace(billType)) billType = "Maintenance";
+            string cleanType = System.Text.RegularExpressions.Regex.Replace(billType.Trim(), @"\s+", " ");
+            bool isMajor = cleanType.IndexOf("major", StringComparison.OrdinalIgnoreCase) >= 0;
+            bool isMaint = cleanType.IndexOf("maint", StringComparison.OrdinalIgnoreCase) >= 0;
+
             int billTypeId = 0;
             using (var btCmd = conn.CreateCommand())
             {
                 btCmd.CommandText = @"
                     SELECT BillTypeId FROM jeevika_erp.SocBillType 
-                    WHERE (SocietyId = @socId OR SocietyId = 1) 
-                      AND (LOWER(BillTypeName) = LOWER(@name) OR LOWER(BillTypeCode) = LOWER(@name)) 
-                    ORDER BY CASE WHEN SocietyId = @socId THEN 0 ELSE 1 END, BillTypeId ASC 
+                    WHERE (SocietyId = @socId OR (@socId > 0 AND SocietyId = 1) OR (@socId <= 0 AND SocietyId > 0)) 
+                      AND (
+                          REGEXP_REPLACE(LOWER(TRIM(BillTypeName)), '\s+', ' ', 'g') = LOWER(@cleanType)
+                          OR LOWER(TRIM(BillTypeCode)) = LOWER(@cleanType)
+                          OR LOWER(TRIM(BillTypeName)) ILIKE '%' || LOWER(@cleanType) || '%'
+                          OR LOWER(@cleanType) ILIKE '%' || LOWER(TRIM(BillTypeName)) || '%'
+                          OR (@isMajor = TRUE AND (LOWER(BillTypeName) ILIKE '%major%' OR LOWER(BillTypeCode) ILIKE '%major%'))
+                          OR (@isMaint = TRUE AND (LOWER(BillTypeName) ILIKE '%maint%' OR LOWER(BillTypeCode) ILIKE '%maint%'))
+                      ) 
+                    ORDER BY 
+                        CASE WHEN SocietyId = @socId THEN 0 ELSE 1 END,
+                        CASE WHEN REGEXP_REPLACE(LOWER(TRIM(BillTypeName)), '\s+', ' ', 'g') = LOWER(@cleanType) THEN 0 ELSE 1 END,
+                        BillTypeId ASC 
                     LIMIT 1";
                 btCmd.Parameters.AddWithValue("@socId", societyId > 0 ? societyId : 1);
-                btCmd.Parameters.AddWithValue("@name", billType.Trim());
+                btCmd.Parameters.AddWithValue("@cleanType", cleanType);
+                btCmd.Parameters.AddWithValue("@isMajor", isMajor);
+                btCmd.Parameters.AddWithValue("@isMaint", isMaint);
                 var obj = btCmd.ExecuteScalar();
                 if (obj != null && obj != DBNull.Value) billTypeId = Convert.ToInt32(obj);
             }
@@ -51,11 +67,12 @@ namespace JeevikaERP.Controllers
                 {
                     using var insBtCmd = conn.CreateCommand();
                     insBtCmd.CommandText = @"
-                        INSERT INTO jeevika_erp.SocBillType (SocietyId, BillTypeCode, BillTypeName, Description, IsActive, CreatedAt, UpdatedAt)
-                        VALUES (@socId, UPPER(SUBSTRING(@name FROM 1 FOR 5)), @name, @name || ' Bill', TRUE, NOW(), NOW())
+                        INSERT INTO jeevika_erp.SocBillType (SocietyId, BillTypeCode, BillTypeName, Description, IsActive)
+                        VALUES (@socId, UPPER(SUBSTRING(REGEXP_REPLACE(@name, '\s+', '', 'g') FROM 1 FOR 5)), @name, @name || ' Bill', TRUE)
+                        ON CONFLICT (SocietyId, BillTypeCode) DO UPDATE SET BillTypeName = EXCLUDED.BillTypeName, IsActive = TRUE
                         RETURNING BillTypeId";
                     insBtCmd.Parameters.AddWithValue("@socId", societyId > 0 ? societyId : 1);
-                    insBtCmd.Parameters.AddWithValue("@name", billType.Trim());
+                    insBtCmd.Parameters.AddWithValue("@name", cleanType);
                     var obj = insBtCmd.ExecuteScalar();
                     if (obj != null && obj != DBNull.Value) billTypeId = Convert.ToInt32(obj);
                 }

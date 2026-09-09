@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NOMINATION REGISTER (Form 25) — JEEVIKA ERP</title>
+  <script src="../../../config.js"></script>
+  <link rel="stylesheet" href="../../../assets/css/global.css">
+  <link rel="stylesheet" href="../../../assets/css/components.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    body.erp-module {
+      background: #f8fafc;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 12px;
+      color: #1e293b;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .nr-header-container {
+      background: #ffffff;
+      border-bottom: 2px solid #0D47A1;
+      padding: 12px 18px;
+      flex-shrink: 0;
+    }
+
+    .nr-society-block {
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 10px 16px;
+      background: #f1f5f9;
+      text-align: center;
+      margin-top: 8px;
+    }
+
+    .nr-table-wrap {
+      flex: 1;
+      overflow: auto;
+      padding: 14px 18px;
+      background: #ffffff;
+    }
+
+    .nr-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11.5px;
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+    }
+
+    .nr-table th {
+      background: #0D47A1;
+      color: #ffffff;
+      padding: 8px 10px;
+      font-weight: 700;
+      text-align: left;
+      border: 1px solid #1e40af;
+      vertical-align: middle;
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+
+    .nr-table th.th-center {
+      text-align: center;
+    }
+
+    .nr-table th.th-right {
+      text-align: right;
+    }
+
+    .nr-subhdr td {
+      background: #e2e8f0;
+      color: #334155;
+      font-weight: 800;
+      font-size: 11px;
+      text-align: center;
+      padding: 4px 6px;
+      border: 1px solid #cbd5e1;
+    }
+
+    .nr-table td {
+      padding: 8px 10px;
+      border: 1px solid #e2e8f0;
+      color: #334155;
+      vertical-align: top;
+    }
+
+    .nr-table tbody tr:nth-child(even) td {
+      background: #f8fafc;
+    }
+
+    .nr-table tbody tr:hover td {
+      background: #e0f2fe;
+    }
+
+    .nr-mono {
+      font-family: 'Consolas', monospace;
+      font-weight: 600;
+    }
+
+    @media print {
+      .erp-search-bar, .nr-header-actions {
+        display: none !important;
+      }
+      body {
+        background: #fff;
+        height: auto;
+        overflow: visible;
+      }
+      .nr-table-wrap {
+        padding: 0;
+        overflow: visible;
+      }
+    }
+  </style>
+</head>
+<body class="erp-module">
+
+  <!-- TOP HEADER & CONTROLS -->
+  <div class="nr-header-container">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <div style="font-size:16px; font-weight:800; color:#0D47A1; display:flex; align-items:center; gap:8px;">
+          <i class="bi bi-file-earmark-person-fill"></i> NOMINATION REGISTER (FORM 25)
+        </div>
+        <div style="font-size:11px; color:#64748b; font-weight:600; margin-top:2px;">
+          Statutory Register of Member Nominations &amp; Revocations
+        </div>
+      </div>
+      <div class="nr-header-actions" style="display:flex; gap:8px;">
+        <button class="erp-btn erp-btn-outline" onclick="window.print()"><i class="bi bi-printer"></i> PRINT / EXPORT</button>
+        <button class="erp-btn erp-btn-primary" onclick="refreshData()"><i class="bi bi-arrow-clockwise"></i> REFRESH</button>
+      </div>
+    </div>
+
+    <!-- SOCIETY HEADER BLOCK -->
+    <div class="nr-society-block">
+      <h2 id="nr-soc-name" style="font-weight:900; font-size:17px; color:#0f172a; margin:0 0 4px 0; text-transform:uppercase; letter-spacing:0.5px;">[YOUR SOCIETY NAME HERE]</h2>
+      <div style="font-size:11.5px; font-weight:700; color:#334155; margin-bottom:3px;">
+        Society Registration No.: <span id="nr-soc-reg" style="color:#0D47A1;">[REGISTRATION NO.]</span> &nbsp;&nbsp; Date Block: <span id="nr-date" style="color:#0D47A1;">[DATE]</span>
+      </div>
+      <div id="nr-soc-addr" style="font-size:11px; color:#475569; font-weight:500;">
+        Society Full Address Line Block: [FULL ADDRESS, CITY, STATE, ZIP]
+      </div>
+    </div>
+  </div>
+
+  <!-- SEARCH & SEARCH BAR -->
+  <div class="erp-search-bar" style="padding:8px 18px; background:#fff; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center;">
+    <input type="text" id="searchInput" class="erp-input erp-search-input" style="width:320px;" placeholder="🔍 Search Member Name, Nominee, Flat..." onkeyup="filterTable()">
+    <div class="erp-record-count" id="recordCount" style="font-weight:700; color:#0D47A1;">Total Nominations: 0</div>
+  </div>
+
+  <!-- MAIN REGISTER TABLE WRAPPER -->
+  <div class="nr-table-wrap">
+    <table class="nr-table" id="mainTable">
+      <thead>
+        <tr>
+          <th style="width:55px;" class="th-center">Sr. No.</th>
+          <th style="width:200px;">Member Name</th>
+          <th style="width:130px;" class="th-center">Date of<br>Nomination</th>
+          <th>Nominee Name(s)<br>&amp; Address</th>
+          <th style="width:100px;" class="th-right">Percentage %</th>
+          <th style="width:160px;" class="th-center">Managing Committee<br>Meeting Date</th>
+          <th style="width:130px;" class="th-center">Revocation<br>Date</th>
+          <th style="width:160px;">Remarks</th>
+        </tr>
+        <tr class="nr-subhdr">
+          <td>1</td>
+          <td>2</td>
+          <td>3</td>
+          <td>4</td>
+          <td>5</td>
+          <td>6</td>
+          <td>7</td>
+          <td>8</td>
+        </tr>
+      </thead>
+      <tbody id="mainTableBody">
+        <tr>
+          <td colspan="8" class="text-center text-muted" style="padding:30px;">
+            Loading Nomination Register details...
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <script src="../../../assets/js/api.js"></script>
+  <script src="../../../assets/js/auth.js"></script>
+  <script src="../../../assets/js/utils.js"></script>
+  <script src="nomination-register.js"></script>
+</body>
+</html>

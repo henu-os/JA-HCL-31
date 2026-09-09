@@ -1,0 +1,500 @@
+/* ═══════════════════════════════════════════════════════════
+   JEEVIKA ERP v2 — SOCIETY MASTER
+   Clean, flat, modern ERP theme — matching reference UI exactly.
+   Background: white. Buttons: flat. Frames: light border + solid blue title band.
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Module Canvas ───────────────────────────────────────── */
+.sm-canvas {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background: #f4f7f9;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 12px;
+  color: #1e293b;
+}
+
+/* ── Module Header ───────────────────────────────────────── */
+.sm-header {
+  background: #ffffff;
+  padding: 6px 14px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sm-header h2 {
+  font-size: 14px;
+  font-weight: 800;
+  margin: 0;
+  color: #0f172a;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.sm-header-sub {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 1px;
+}
+
+.sm-header-tag {
+  font-size: 11px;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+/* ── Command Strip ───────────────────────────────────────── */
+.sm-cmd-strip {
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 5px 14px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ── Flat ERP Button ─────────────────────────────────────── */
+.sm-btn {
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 3px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  transition: background 0.12s, border-color 0.12s;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+
+.sm-btn:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.sm-btn:active {
+  background: #e2e8f0;
+}
+
+.sm-btn-danger {
+  color: #dc2626;
+  border-color: #fca5a5;
+  background: #fff5f5;
+}
+
+.sm-btn-danger:hover {
+  background: #dc2626;
+  color: #ffffff;
+  border-color: #dc2626;
+}
+
+.sm-btn-hidden {
+  display: none !important;
+}
+
+.sm-sep {
+  border-right: 1px solid #e2e8f0;
+  height: 18px;
+  margin: 0 4px;
+}
+
+/* ── Search Strip ────────────────────────────────────────── */
+.sm-search-strip {
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 5px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Flat Input / Select ─────────────────────────────────── */
+.sm-input,
+.sm-select {
+  height: 26px;
+  border: 1px solid #cbd5e1;
+  border-radius: 3px;
+  padding: 0 8px;
+  font-size: 11px;
+  font-family: inherit;
+  background: #ffffff;
+  color: #1e293b;
+  outline: none;
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+
+.sm-input:focus,
+.sm-select:focus {
+  border-color: #1565C0;
+  box-shadow: 0 0 0 2px rgba(21,101,192,0.12);
+}
+
+.sm-input::placeholder {
+  color: #94a3b8;
+}
+
+.sm-input[readonly] {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+/* ── Main Workspace ──────────────────────────────────────── */
+.sm-workspace {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+  background: #f4f7f9;
+  padding: 10px 14px;
+}
+
+/* ── List State ──────────────────────────────────────────── */
+#sm-list-state {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* ── Grid / Table ────────────────────────────────────────── */
+.sm-grid {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: auto;
+  min-height: 0;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  background: #ffffff;
+}
+
+.sm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.sm-table thead tr {
+  background: #1565C0;
+  color: #ffffff;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.sm-table th {
+  padding: 8px 10px;
+  text-align: left;
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  border-right: 1px solid rgba(255,255,255,0.15);
+  white-space: nowrap;
+}
+
+.sm-table tbody tr {
+  border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.sm-table tbody tr:hover {
+  background: #e0f2fe;
+}
+
+.sm-table tbody tr.selected {
+  background: #bae6fd !important;
+  color: #0f172a !important;
+}
+
+.sm-table tbody tr.selected td {
+  background: #bae6fd !important;
+  color: #0f172a !important;
+  font-weight: 600;
+}
+
+.sm-table td {
+  padding: 6px 10px;
+  font-size: 11px;
+  border-right: 1px solid #f1f5f9;
+  color: #1e293b;
+}
+
+/* ── Form State ──────────────────────────────────────────── */
+#sm-form-state {
+  display: none;
+  flex-direction: column;
+  flex: 1;
+  overflow-y: auto;
+  gap: 0;
+}
+
+.sm-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* ── Frame / Section Card ────────────────────────────────── */
+.sm-frame {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+
+.sm-frame-title {
+  background: #1565C0;
+  color: #ffffff;
+  padding: 5px 12px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.sm-frame-body {
+  padding: 10px 12px;
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 6px 10px;
+  align-items: center;
+}
+
+.sm-frame-body label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+/* ── Area config row ─────────────────────────────────────── */
+.sm-area-row {
+  display: flex;
+  gap: 6px;
+}
+
+.sm-area-row .sm-select {
+  flex: 1;
+}
+
+/* ── GST Toggle ──────────────────────────────────────────── */
+.sm-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px 6px;
+}
+
+.sm-toggle-row label.toggle-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #334155;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.sm-toggle-wrap {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 20px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.sm-toggle-wrap input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.sm-toggle-track {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: #cbd5e1;
+  border-radius: 20px;
+  transition: background 0.2s;
+}
+
+.sm-toggle-thumb {
+  position: absolute;
+  height: 16px;
+  width: 16px;
+  left: 2px;
+  top: 2px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.sm-toggle-status {
+  font-size: 10px;
+  font-weight: 700;
+  color: #94a3b8;
+}
+
+/* ── GST Fields Block ────────────────────────────────────── */
+.sm-gst-fields {
+  display: none;
+  flex-direction: column;
+  gap: 6px;
+  border-top: 1px solid #e2e8f0;
+  padding: 8px 12px;
+  background: #f8fafc;
+}
+
+.sm-gst-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sm-gst-row label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  width: 80px;
+  flex-shrink: 0;
+}
+
+.sm-gst-row label.right {
+  text-align: right;
+  width: 80px;
+}
+
+.sm-gst-row .sm-input {
+  width: 110px;
+}
+
+.sm-gst-row .sm-select {
+  width: 70px;
+}
+
+/* ── Comm Checkboxes ─────────────────────────────────────── */
+.sm-comm-checks {
+  border-top: 1px solid #e2e8f0;
+  padding: 8px 0 2px;
+  margin-top: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.sm-comm-checks label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #334155;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+}
+
+.sm-comm-checks input[type="checkbox"] {
+  accent-color: #1565C0;
+  width: 13px;
+  height: 13px;
+}
+
+/* ── Alert / Confirm Dialog ──────────────────────────────── */
+.sm-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.35);
+  z-index: 99999;
+  align-items: center;
+  justify-content: center;
+}
+
+.sm-dialog {
+  width: 400px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  overflow: hidden;
+}
+
+.sm-dialog-title {
+  background: #1565C0;
+  color: #ffffff;
+  font-weight: 700;
+  padding: 8px 12px;
+  font-size: 11px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sm-dialog-title button {
+  background: none;
+  border: none;
+  color: #ffffff;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 14px;
+  line-height: 1;
+  opacity: 0.8;
+}
+
+.sm-dialog-title button:hover {
+  opacity: 1;
+}
+
+.sm-dialog-body {
+  padding: 16px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: #ffffff;
+}
+
+.sm-dialog-body i {
+  font-size: 26px;
+  color: #1565C0;
+  flex-shrink: 0;
+}
+
+.sm-dialog-body i.err {
+  color: #dc2626;
+}
+
+.sm-dialog-msg {
+  font-size: 12px;
+  color: #1e293b;
+  word-break: break-word;
+  line-height: 1.5;
+}
+
+.sm-dialog-footer {
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  padding: 8px 12px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}

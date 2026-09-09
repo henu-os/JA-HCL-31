@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cash/Bank Book — JEEVIKA ERP</title>
+  <script src="../../../config.js"></script>
+  <link rel="stylesheet" href="../../../assets/css/global.css">
+  <link rel="stylesheet" href="../../../assets/css/components.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    :root {
+      --primary: #0D47A1;
+      --primary-hover: #0a3880;
+      --primary-light: #eff6ff;
+      --border-clr: #cbd5e1;
+      --navy: #0f172a;
+    }
+
+    body.erp-module {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: #f1f5f9;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: #1e293b;
+      overflow: hidden;
+    }
+
+    /* Top Module Bar */
+    .module-top-bar {
+      background: #ffffff;
+      padding: 8px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-clr);
+      flex-shrink: 0;
+    }
+    .module-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .module-subtitle {
+      font-size: 11px;
+      color: #64748b;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-top {
+      background: #ffffff;
+      color: var(--primary);
+      border: 1px solid #bfdbfe;
+      padding: 5px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 4px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s ease;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    }
+    .btn-top:hover {
+      background: var(--primary-light);
+      border-color: var(--primary);
+      color: var(--primary-hover);
+    }
+    .btn-top.primary {
+      background: var(--primary);
+      color: #ffffff;
+      border-color: var(--primary);
+    }
+    .btn-top.primary:hover {
+      background: var(--primary-hover);
+    }
+
+    /* Filters Header Panel */
+    .filter-bar {
+      background: #ffffff;
+      padding: 8px 16px;
+      border-bottom: 1px solid var(--border-clr);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .filter-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .filter-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .filter-lbl {
+      font-size: 10px;
+      font-weight: 700;
+      color: #475569;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .filter-input {
+      height: 28px;
+      padding: 2px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      background: #ffffff;
+      color: #1e293b;
+      outline: none;
+      transition: all 0.15s;
+    }
+    .filter-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(13,71,161,0.12);
+    }
+
+    /* Summary Bar */
+    .summary-strip {
+      background: #f8fafc;
+      border-bottom: 1px solid var(--border-clr);
+      padding: 6px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .kpi-group {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .kpi-item {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      font-size: 11px;
+    }
+    .kpi-label {
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      font-size: 10px;
+    }
+    .kpi-value {
+      font-weight: 800;
+      font-size: 12.5px;
+      font-variant-numeric: tabular-nums;
+    }
+    .kpi-value.debit { color: #16a34a; }
+    .kpi-value.credit { color: #dc2626; }
+    .kpi-value.balance { color: #0D47A1; }
+
+    /* Ledger Table Container */
+    .table-container {
+      flex: 1;
+      overflow: auto;
+      background: #ffffff;
+      position: relative;
+    }
+    table.ledger-grid {
+      width: 100%;
+      min-width: 1050px;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
+    table.ledger-grid th {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: #0D47A1;
+      color: #ffffff;
+      padding: 7px 10px;
+      font-size: 10.5px;
+      font-weight: 700;
+      text-align: left;
+      border-right: 1px solid rgba(255,255,255,0.15);
+      white-space: nowrap;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    table.ledger-grid td {
+      padding: 6px 10px;
+      border-bottom: 1px solid #e2e8f0;
+      border-right: 1px solid #f1f5f9;
+      color: #334155;
+      vertical-align: middle;
+    }
+    table.ledger-grid tbody tr:hover {
+      background: #f0f7ff;
+    }
+
+    /* Row Special Styles */
+    .row-acc-banner {
+      background: #1e3a8a !important;
+      color: #ffffff !important;
+      font-weight: 800;
+      font-size: 11.5px;
+      letter-spacing: 0.3px;
+    }
+    .row-acc-banner td {
+      padding: 6px 12px !important;
+      color: #ffffff !important;
+      border: none !important;
+    }
+
+    .row-opening {
+      background: #f0fdf4 !important;
+      font-weight: 700;
+      color: #166534;
+      border-top: 1px solid #bbf7d0;
+      border-bottom: 1px solid #bbf7d0;
+    }
+    .row-closing {
+      background: #f8fafc !important;
+      font-weight: 800;
+      color: #0f172a;
+      border-top: 1.5px solid #0D47A1;
+      border-bottom: 1.5px solid #0D47A1;
+    }
+
+    /* Badges */
+    .badge-vtype {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 9.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      background: #e2e8f0;
+      color: #334155;
+    }
+    .badge-vtype.rcpt { background: #dcfce7; color: #166534; }
+    .badge-vtype.pmt { background: #fee2e2; color: #991b1b; }
+    .badge-vtype.jv { background: #e0e7ff; color: #3730a3; }
+    .badge-vtype.contra { background: #fef3c7; color: #92400e; }
+
+    .td-num {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+    }
+    .val-debit { color: #16a34a; }
+    .val-credit { color: #dc2626; }
+
+    /* Print Styles */
+    @media print {
+      body.erp-module {
+        height: auto;
+        overflow: visible;
+        background: #ffffff;
+      }
+      .module-top-bar, .filter-bar, .summary-strip, .no-print {
+        display: none !important;
+      }
+      .table-container {
+        overflow: visible;
+      }
+      .print-header {
+        display: block !important;
+        padding-bottom: 8px;
+        margin-bottom: 10px;
+        border-bottom: 1.5px solid #0f172a;
+      }
+      .print-signatures {
+        display: flex !important;
+        justify-content: space-between;
+        margin-top: 35px;
+        padding-top: 15px;
+      }
+      table.ledger-grid th {
+        background: #f1f5f9 !important;
+        color: #0f172a !important;
+        border: 1px solid #94a3b8 !important;
+      }
+      table.ledger-grid td {
+        border: 1px solid #cbd5e1 !important;
+      }
+      .row-acc-banner {
+        background: #e2e8f0 !important;
+        color: #0f172a !important;
+      }
+      .row-acc-banner td {
+        color: #0f172a !important;
+      }
+    }
+    .print-header, .print-signatures {
+      display: none;
+    }
+  </style>
+</head>
+<body class="erp-module">
+
+  <!-- PRINT ONLY HEADER -->
+  <div class="print-header">
+    <div style="text-align:center; margin-bottom:6px;">
+      <h2 style="margin:0; font-size:16px; font-weight:800; color:#0f172a; text-transform:uppercase;" id="prtSocName">Society Name</h2>
+      <div style="font-size:12px; font-weight:700; color:#0D47A1; margin-top:2px;" id="prtReportTitle">Cash/Bank Book Register</div>
+    </div>
+    <div style="display:flex; justify-content:space-between; align-items:center; font-size:10.5px; border-top:1px solid #cbd5e1; padding-top:4px;">
+      <div><strong>F.Y. :</strong> <span id="prtFYLabel">—</span></div>
+      <div><strong>Account :</strong> <span id="prtAccName">—</span></div>
+      <div><strong>Printed On :</strong> <span id="prtPrintDate">—</span></div>
+      <div><strong>Page No :</strong> 1</div>
+    </div>
+  </div>
+
+  <!-- TOP MODULE HEADER -->
+  <header class="module-top-bar no-print">
+    <div>
+      <div class="module-title">
+        <i class="bi bi-bank" style="color:var(--primary);"></i>
+        Cash / Bank Book Register
+      </div>
+      
+    </div>
+    <div class="d-flex align-center gap-6">
+      <button class="btn-top" onclick="exportToExcel()" title="Export Cash/Bank Book to Excel">
+        <i class="bi bi-file-earmark-excel"></i> Export Excel
+      </button>
+      <button class="btn-top" onclick="window.print()" title="Print Cash/Bank Book">
+        <i class="bi bi-printer"></i> Print Book
+      </button>
+      <button class="btn-top primary" onclick="loadCashBankBook()" title="Refresh Book">
+        <i class="bi bi-arrow-clockwise"></i> View Register
+      </button>
+    </div>
+  </header>
+
+  <!-- FILTER & SEARCH PANEL -->
+  <div class="filter-bar no-print">
+    <div class="filter-row">
+      <!-- Select Account (Strictly Asset -> Cash & Bank Balance) -->
+      <div class="filter-item" style="min-width:260px; max-width:340px;">
+        <label class="filter-lbl"><i class="bi bi-wallet2"></i> Cash / Bank Account *</label>
+        <select id="accountSelect" class="filter-input" onchange="loadCashBankBook()" style="font-weight:700; color:#0D47A1;">
+          <option value="">— Loading Cash &amp; Bank accounts... —</option>
+        </select>
+      </div>
+
+      <!-- Date Preset Dropdown -->
+      <div class="filter-item" style="width:130px;">
+        <label class="filter-lbl">Date Preset</label>
+        <select id="datePresetSelect" class="filter-input" onchange="applyDatePreset(this.value)">
+          <option value="full" selected>Full FY</option>
+          <option value="this-month">This Month</option>
+          <option value="last-month">Last Month</option>
+          <option value="q1">Q1 (Apr-Jun)</option>
+          <option value="q2">Q2 (Jul-Sep)</option>
+          <option value="q3">Q3 (Oct-Dec)</option>
+          <option value="q4">Q4 (Jan-Mar)</option>
+          <option value="custom">Custom Range</option>
+        </select>
+      </div>
+
+      <!-- From Date -->
+      <div class="filter-item" style="width:120px;">
+        <label class="filter-lbl">From Date</label>
+        <input type="date" id="fromDate" class="filter-input" onchange="onDateChange()">
+      </div>
+
+      <!-- To Date -->
+      <div class="filter-item" style="width:120px;">
+        <label class="filter-lbl">To Date</label>
+        <input type="date" id="toDate" class="filter-input" onchange="onDateChange()">
+      </div>
+
+      <!-- Voucher Type Filter -->
+      <div class="filter-item" style="width:130px;">
+        <label class="filter-lbl">Voucher Type</label>
+        <select id="vtypeFilter" class="filter-input" onchange="filterLocalGrid()">
+          <option value="ALL">All Vouchers</option>
+          <option value="Receipt">Receipts (MRV / ORV)</option>
+          <option value="Payment">Payments (Vouchers)</option>
+          <option value="Contra">Contras (Cash/Bank)</option>
+          <option value="Journal">Journal Vouchers (JV)</option>
+        </select>
+      </div>
+
+      <!-- Quick Search Filter -->
+      <div class="filter-item" style="flex:1; min-width:180px;">
+        <label class="filter-lbl">Search Particulars / Cheque No</label>
+        <input type="text" id="txtSearch" class="filter-input" placeholder="Type to filter rows..." oninput="filterLocalGrid()">
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI SUMMARY STRIP -->
+  <div class="summary-strip no-print">
+    <div class="kpi-group">
+      <div class="kpi-item">
+        <span class="kpi-label">Opening Bal:</span>
+        <span class="kpi-value" id="kpiOpeningBal">₹ 0.00</span>
+      </div>
+      <div class="kpi-item">
+        <span class="kpi-label">Total Cash/Bank In (Dr):</span>
+        <span class="kpi-value debit" id="kpiTotalDr">₹ 0.00</span>
+      </div>
+      <div class="kpi-item">
+        <span class="kpi-label">Total Cash/Bank Out (Cr):</span>
+        <span class="kpi-value credit" id="kpiTotalCr">₹ 0.00</span>
+      </div>
+      <div class="kpi-item">
+        <span class="kpi-label">Closing Net Balance:</span>
+        <span class="kpi-value balance" id="kpiClosingBal">₹ 0.00</span>
+      </div>
+    </div>
+    <div style="font-size:11px; font-weight:700; color:#475569;" id="kpiRowCount">
+      Showing 0 entries
+    </div>
+  </div>
+
+  <!-- LEDGER DATA GRID -->
+  <div class="table-container">
+    <table class="ledger-grid" id="cashBankTable">
+      <thead>
+        <tr>
+          <th style="width:40px; text-align:center;">#</th>
+          <th style="width:90px;">Date</th>
+          <th style="width:130px;">Voucher No &amp; Type</th>
+          <th style="width:200px;">Contra Account / Head</th>
+          <th>Particulars / Narration</th>
+          <th style="width:140px;">Cheque / Ref No.</th>
+          <th style="width:120px; text-align:right;">Cash/Bank In (₹)</th>
+          <th style="width:120px; text-align:right;">Cash/Bank Out (₹)</th>
+          <th style="width:130px; text-align:right;">Running Balance (₹)</th>
+        </tr>
+      </thead>
+      <tbody id="cashBankTableBody">
+        <tr>
+          <td colspan="9" style="text-align:center; padding:50px; color:#64748b;">
+            <i class="bi bi-bank" style="font-size:26px; color:var(--primary); display:block; margin-bottom:8px;"></i>
+            Please select a Cash or Bank account above to load the register.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- PRINT ONLY SIGNATURE BLOCK -->
+  <div class="print-signatures">
+    <div style="text-align:center; width:200px; border-top:1px solid #64748b; font-size:11px; padding-top:4px;">
+      Prepared By
+    </div>
+    <div style="text-align:center; width:200px; border-top:1px solid #64748b; font-size:11px; padding-top:4px;">
+      Checked By / Accountant
+    </div>
+    <div style="text-align:center; width:200px; border-top:1px solid #64748b; font-size:11px; padding-top:4px;">
+      Hon. Secretary / Treasurer
+    </div>
+  </div>
+
+  <!-- SCRIPTS -->
+  <script src="../../../assets/js/api.js?v=20260831_0200"></script>
+  <script src="../../../assets/js/auth.js?v=20260831_0200"></script>
+  <script src="../../../assets/js/utils.js?v=20260831_0200"></script>
+  <script src="cash-bank-book.js?v=20260831_0200"></script>
+</body>
+</html>

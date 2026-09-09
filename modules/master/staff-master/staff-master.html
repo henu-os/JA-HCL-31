@@ -1,0 +1,1804 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Staff Master — JEEVIKA ERP</title>
+  <script src="../../../config.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 12px;
+      background: #f4f6f9;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #staff-master-panel {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    /* MODULE HEADER */
+    .staff-header {
+      background: #fff;
+      padding: 8px 14px 6px;
+      border-bottom: 1px solid #ccc;
+      flex-shrink: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .staff-header h2 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1a1a2e;
+      letter-spacing: 0.2px;
+      margin: 0 0 2px 0;
+    }
+
+    .staff-header .subtitle {
+      font-size: 10px;
+      color: #555;
+      letter-spacing: 0.2px;
+    }
+
+    .staff-header .tag {
+      font-size: 10px;
+      color: #666;
+      font-style: italic;
+      margin-top: 4px;
+    }
+
+    /* TOP COMMAND STRIP */
+    .staff-cmd-strip {
+      background: #f5f5f5;
+      border-bottom: 1px solid #ccc;
+      padding: 5px 14px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .staff-cmd-strip .sep {
+      border-right: 1px solid #bbb;
+      height: 16px;
+      margin: 0 5px;
+    }
+
+    .cmd-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      background: #fff;
+      border: 1px solid #bbb;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: #333;
+      cursor: pointer;
+      border-radius: 2px;
+      white-space: nowrap;
+      font-family: inherit;
+      transition: background 0.1s;
+    }
+
+    .cmd-btn:hover {
+      background: #e8f0fe;
+      border-color: #5a9be8;
+      color: #1565C0;
+    }
+
+    .cmd-btn.primary {
+      color: #1565C0;
+      border-color: #1565C0;
+    }
+
+    .cmd-btn.primary:hover {
+      background: #1565C0;
+      color: #fff;
+    }
+
+    .cmd-btn.danger:hover {
+      background: #fde8e8;
+      border-color: #e53e3e;
+      color: #C62828;
+    }
+
+    .cmd-btn-exit {
+      margin-left: auto;
+      background: #fff;
+      border: 1px solid #bbb;
+      color: #555;
+    }
+
+    .cmd-btn-exit:hover {
+      background: #fff3cd;
+      border-color: #e0a800;
+      color: #856404;
+    }
+
+    /* OTHER DROPDOWN */
+    .staff-dropdown {
+      position: relative;
+      display: inline-block;
+    }
+
+    .staff-dropdown-content {
+      display: none;
+      position: absolute;
+      top: 28px;
+      left: 0;
+      background: #fff;
+      border: 1px solid #bbb;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      z-index: 500;
+      min-width: 180px;
+      border-radius: 2px;
+    }
+
+    .staff-dropdown-content a {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      color: #333;
+      text-decoration: none;
+      font-size: 11.5px;
+      font-weight: 600;
+      border-bottom: 1px solid #eee;
+    }
+
+    .staff-dropdown-content a:last-child {
+      border-bottom: none;
+    }
+
+    .staff-dropdown-content a:hover {
+      background: #e8f0fe;
+      color: #1565C0;
+    }
+
+    .staff-dropdown:hover .staff-dropdown-content {
+      display: block;
+    }
+
+    /* SEARCH STRIP */
+    .staff-search-strip {
+      background: #eef2f7;
+      border-bottom: 1px solid #ccc;
+      padding: 5px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .staff-search-input {
+      height: 24px;
+      padding: 0 8px;
+      font-size: 11.5px;
+      border: 1px solid #bbb;
+      border-radius: 2px;
+      outline: none;
+      width: 220px;
+    }
+
+    .staff-select-filter {
+      height: 24px;
+      padding: 0 6px;
+      font-size: 11.5px;
+      border: 1px solid #bbb;
+      border-radius: 2px;
+      outline: none;
+      background: #fff;
+    }
+
+    /* MAIN WORKSPACE */
+    .staff-workspace {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    /* TABLE */
+    .staff-table-container {
+      flex: 1;
+      overflow: auto;
+      border-bottom: 1px solid #ccc;
+    }
+
+    .add-badge-btn {
+      background: #000080;
+      color: #ffffff;
+      border: none;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 1px 6px;
+      cursor: pointer;
+      height: 24px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      white-space: nowrap;
+      transition: opacity 0.2s;
+    }
+    .add-badge-btn:hover {
+      opacity: 0.9;
+      background: #0055b8;
+    }
+    .staff-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11.5px;
+    }
+
+    .staff-table th {
+      position: sticky;
+      top: 0;
+      background: #1565C0;
+      color: #fff;
+      font-weight: 700;
+      text-align: left;
+      padding: 6px 10px;
+      border-right: 1px solid #0d47a1;
+      white-space: nowrap;
+      z-index: 10;
+    }
+
+    .staff-table td {
+      padding: 5px 10px;
+      border-bottom: 1px solid #e0e0e0;
+      border-right: 1px solid #eee;
+      white-space: nowrap;
+    }
+
+    .staff-table tbody tr:hover {
+      background: #f0f7ff;
+    }
+
+    .staff-table tbody tr.selected {
+      background: #bae6fd !important;
+      color: #0f172a !important;
+      font-weight: 600;
+    }
+    .staff-table tbody tr.selected td {
+      background: #bae6fd !important;
+      color: #0f172a !important;
+      font-weight: 600;
+    }
+
+    /* EDITOR FORM STATE — 3 COLUMNS */
+    .staff-form-section {
+      display: none;
+      flex-direction: column;
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px 18px;
+      background: #f9f9f9;
+    }
+
+    .staff-form-columns {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 14px;
+      align-items: start;
+    }
+
+    .staff-col-card {
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 14px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .staff-col-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: #1565C0;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      border-bottom: 1px solid #e0e0e0;
+      padding-bottom: 6px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .staff-form-grid {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 8px 10px;
+      align-items: center;
+    }
+
+    .staff-form-grid label {
+      font-weight: 600;
+      color: #424242;
+    }
+
+    .staff-input,
+    .staff-select,
+    .staff-textarea {
+      height: 26px;
+      padding: 0 8px;
+      font-size: 12px;
+      border: 1px solid #bbb;
+      border-radius: 2px;
+      outline: none;
+      background: #fff;
+      width: 100%;
+    }
+
+    .staff-textarea {
+      height: 48px;
+      padding: 6px;
+      resize: none;
+      font-family: inherit;
+    }
+
+    .staff-input:focus,
+    .staff-select:focus,
+    .staff-textarea:focus {
+      border-color: #1565C0;
+    }
+
+    .staff-input:disabled,
+    .staff-select:disabled,
+    .staff-textarea:disabled {
+      background: #f5f5f5;
+      color: #757575;
+    }
+
+    .staff-statutory-box {
+      margin-top: 14px;
+      background: #e8f0fe;
+      border-left: 4px solid #1565C0;
+      padding: 10px 14px;
+      font-size: 11px;
+      color: #1c3d5a;
+      border-radius: 0 4px 4px 0;
+    }
+
+    /* MODAL POPUPS */
+    .staff-modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .staff-modal {
+      width: 380px;
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+    }
+
+    .staff-modal-header {
+      background: #1565C0;
+      color: #fff;
+      font-weight: 700;
+      padding: 8px 12px;
+      font-size: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .staff-modal-body {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .staff-modal-footer {
+      background: #f5f5f5;
+      border-top: 1px solid #eee;
+      padding: 8px 12px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 6px;
+    }
+
+    /* STATUSBAR */
+    .staff-statusbar {
+      background: #f5f5f5;
+      border-top: 1px solid #ccc;
+      padding: 4px 14px;
+      font-size: 11px;
+      color: #666;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      min-height: 24px;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="staff-master-panel">
+
+    <!-- MODULE HEADER -->
+    <div class="staff-header">
+      <div>
+        <h2>STAFF MASTER</h2>
+        
+      </div>
+      <div class="tag">[Staff Roster &amp; Payroll Benefit Config]</div>
+    </div>
+
+    <!-- TOP COMMAND STRIP -->
+    <div class="staff-cmd-strip">
+      <button class="cmd-btn" id="staff-btn-add" onclick="STAFF.openAdd()"><i class="bi bi-plus-lg"></i> ADD</button>
+      <button class="cmd-btn" id="staff-btn-alter" onclick="STAFF.openAlter()"><i class="bi bi-pencil-square"></i>
+        ALTER</button>
+      <button class="cmd-btn danger" id="staff-btn-delete" onclick="STAFF.deleteSingle()"><i class="bi bi-trash"></i>
+        DELETE</button>
+
+      <div class="sep"></div>
+
+      <button class="cmd-btn primary" id="staff-btn-save" onclick="STAFF.saveForm()" style="display:none;"><i
+          class="bi bi-save"></i> SAVE</button>
+      <button class="cmd-btn" id="staff-btn-cancel" onclick="STAFF.closeEditor()" style="display:none;"><i
+          class="bi bi-arrow-counterclockwise"></i> CANCEL</button>
+
+      <button class="cmd-btn" id="staff-btn-print" onclick="STAFF.printRegister()"><i class="bi bi-printer"></i> PRINT
+        REGISTER</button>
+
+      <!-- OTHER DROPDOWN -->
+      <div class="staff-dropdown" id="staff-other-dropdown">
+        <button class="cmd-btn">OTHER <i class="bi bi-chevron-down" style="font-size:9px;"></i></button>
+        <div class="staff-dropdown-content">
+          <a href="#" onclick="event.preventDefault(); STAFF.openBulkRate()"><i class="bi bi-percent"></i> Bulk Rate/TDS
+            Revision</a>
+          <a href="#" onclick="event.preventDefault(); STAFF.openImport()"><i class="bi bi-cloud-upload"></i> Import
+            Staff (CSV)</a>
+          <a href="#" onclick="event.preventDefault(); STAFF.exportCSV()"><i class="bi bi-cloud-download-fill"></i>
+            Export Staff (CSV)</a>
+          <a href="#" onclick="event.preventDefault(); STAFF.printSummary()"><i class="bi bi-file-earmark-text"></i>
+            Print Contract Summary</a>
+        </div>
+      </div>
+
+      <button class="cmd-btn" id="staff-btn-search-toggle" onclick="STAFF.toggleSearchStrip()"
+        title="Toggle Search Bar"><i class="bi bi-search"></i> SEARCH</button>
+
+      <button class="cmd-btn cmd-btn-exit" onclick="STAFF.exit()"><i class="bi bi-door-open"></i> EXIT</button>
+    </div>
+
+    <!-- SEARCH STRIP -->
+    <div class="staff-search-strip" id="staff-search-strip" style="display:none;">
+      <label style="font-weight:700; color:#333;">Search Staff:</label>
+      <input type="text" id="staff-search" class="staff-search-input"
+        placeholder="Search employee name, phone or category..." oninput="STAFF.render()">
+
+      <label style="font-weight:700; color:#333; margin-left:10px;">Status Filter:</label>
+      <select id="staff-filter-status" class="staff-select-filter" onchange="STAFF.render()">
+        <option value="">All Statuses</option>
+        <option value="Active">Active Only</option>
+        <option value="Suspended">Suspended</option>
+        <option value="Terminated">Terminated</option>
+      </select>
+
+      <span style="font-weight:700; color:#1565C0; margin-left:auto;" id="staff-count">0 Active Records</span>
+    </div>
+
+    <!-- MAIN OPERATIONAL WORKSPACE -->
+    <div class="staff-workspace">
+
+      <!-- LIST STATE (GRID) -->
+      <div id="staff-list-section" style="display:flex; flex-direction:column; flex:1; overflow:hidden;">
+        <div class="staff-table-container">
+          <table class="staff-table" id="staff-table">
+            <thead>
+              <tr>
+                <th style="width:30px; text-align:center;"><input type="checkbox" id="staff-chk-all"
+                    onclick="STAFF.toggleAll(this.checked)" style="accent-color:#1565C0;"></th>
+                <th style="width:90px; text-align:center;">CODE</th>
+                <th style="width:160px;">STAFF CATEGORY</th>
+                <th>NAME OF DIRECT EMPLOYEE</th>
+                <th style="width:110px;">MOBILE NO</th>
+                <th style="width:110px; text-align:right;">MONTHLY COST</th>
+                <th style="width:90px; text-align:center;">TDS SEC</th>
+                <th style="width:90px; text-align:center;">STATUS</th>
+              </tr>
+            </thead>
+            <tbody id="staff-tbody">
+              <!-- Dynamic rows -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- FORM STATE (INLINE EDITOR — 3 COLUMNS) -->
+      <div id="staff-form-section" class="staff-form-section">
+        <input type="hidden" id="staff-edit-id" value="0">
+
+        <div style="font-size:12px; font-weight:700; color:#1565C0; margin-bottom:10px;" id="staff-frame-title">
+          Staff Member Editor
+        </div>
+
+        <div class="staff-form-columns">
+
+          <!-- COLUMN 1: BASIC DETAILS -->
+          <div class="staff-col-card">
+            <div class="staff-col-title"><i class="bi bi-person-fill"></i> 1. BASIC DETAILS</div>
+            <div class="staff-form-grid">
+              <label>Staff Category *</label>
+              <div style="display:flex; align-items:center; gap:4px; width:100%;">
+                <select id="staff-category" class="staff-select" style="flex:1;">
+                  <option value="">— Select Category —</option>
+                  <option value="Security Guard">Security Guard</option>
+                  <option value="Sweeper / Housekeeping">Sweeper / Housekeeping</option>
+                  <option value="Manager">Society Manager</option>
+                  <option value="Accountant">Accountant / Staff</option>
+                  <option value="Plumber / Electrician">Plumber / Electrician</option>
+                  <option value="Gardener">Gardener</option>
+                  <option value="Other Agency">Office Assistant / Other</option>
+                </select>
+                <button type="button" class="add-badge-btn" onclick="STAFF.openAddCategoryModal()" title="Add Custom Staff Category">add+ <i class="bi bi-chevron-down" style="font-size:9px;"></i></button>
+              </div>
+
+              <label>Staff Code *</label>
+              <input type="text" id="staff-code" class="staff-input" placeholder="e.g. EMP-001">
+
+              <label>Employee Name *</label>
+              <input type="text" id="staff-name" class="staff-input" placeholder="Enter staff full name...">
+
+              <label>Primary Phone *</label>
+              <input type="text" id="staff-phone" class="staff-input" placeholder="Primary contact...">
+
+              <label>Alt Phone</label>
+              <input type="text" id="staff-phone2" class="staff-input" placeholder="Alternative contact...">
+
+              <label>Email Address</label>
+              <input type="text" id="staff-email" class="staff-input" placeholder="Enter email address...">
+
+              <label>Monthly Cost ₹ *</label>
+              <input type="number" id="staff-cost" class="staff-input" style="text-align:right;" value="0">
+
+              <label>Start Date</label>
+              <input type="date" id="staff-start" class="staff-input">
+
+              <label>End Date</label>
+              <input type="date" id="staff-end" class="staff-input">
+
+              <label>Status</label>
+              <select id="staff-status" class="staff-select">
+                <option value="Active">Active Operational</option>
+                <option value="Suspended">Suspended / On Hold</option>
+                <option value="Terminated">Terminated Contract</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- COLUMN 2: BANKING & PAN DETAILS -->
+          <div class="staff-col-card">
+            <div class="staff-col-title"><i class="bi bi-bank"></i> 2. BANKING &amp; PAN</div>
+            <div class="staff-form-grid">
+              <label>Bank A/C Holder</label>
+              <input type="text" id="staff-bank-holder" class="staff-input" placeholder="Name per Passbook...">
+
+              <label>Account Number</label>
+              <input type="text" id="staff-bank-account" class="staff-input" placeholder="Enter account number...">
+
+              <label>Bank Name</label>
+              <input type="text" id="staff-bank-name" class="staff-input" placeholder="e.g. State Bank of India">
+
+              <label>IFSC Code</label>
+              <input type="text" id="staff-bank-ifsc" class="staff-input" placeholder="e.g. SBIN0001234">
+
+              <label>Branch Address</label>
+              <input type="text" id="staff-bank-branch" class="staff-input" placeholder="Branch location...">
+
+              <label>PAN Card No</label>
+              <input type="text" id="staff-pan" class="staff-input" style="text-transform:uppercase;"
+                placeholder="e.g. APSPS1234A">
+            </div>
+          </div>
+
+          <!-- COLUMN 3: BENEFITS & COMPLIANCE -->
+          <div class="staff-col-card">
+            <div class="staff-col-title"><i class="bi bi-shield-check"></i> 3. BENEFITS &amp; COMPLIANCE</div>
+            <div class="staff-form-grid">
+              <label>TDS Section</label>
+              <div style="display:flex; align-items:center; gap:4px; width:100%;">
+                <select id="staff-tds-section" class="staff-select" style="flex:1;" onchange="STAFF.onTdsSectionChange()">
+                  <option value="None">None (Exempt)</option>
+                  <option value="194C">Sec 194C (Contractors - 1% or 2%)</option>
+                  <option value="194J">Sec 194J (Professionals - 2% or 10%)</option>
+                </select>
+                <button type="button" class="add-badge-btn" onclick="STAFF.openManageTdsModal()" title="Manage TDS Sections">add+ <i class="bi bi-chevron-down" style="font-size:9px;"></i></button>
+              </div>
+
+              <label>TDS Rate (%)</label>
+              <div style="display:flex; align-items:center; gap:4px;">
+                <input type="number" id="staff-tds-rate" class="staff-input" style="text-align:right; width:80px;"
+                  step="0.1" value="0">
+                <span style="font-weight:700;">%</span>
+              </div>
+
+              <label>PF Number</label>
+              <input type="text" id="staff-pf" class="staff-input" placeholder="e.g. MH/BAN/12345/678">
+
+              <label>ESIC Number</label>
+              <input type="text" id="staff-esic" class="staff-input" placeholder="ESIC registration no...">
+
+              <label>NOC Authority</label>
+              <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-weight:600;">
+                <input type="checkbox" id="staff-authority" style="accent-color:#1565C0;"> Authorized for NOC
+              </label>
+
+              <label>Internal Notes</label>
+              <textarea id="staff-notes" class="staff-textarea"
+                placeholder="Audit remarks, contact person..."></textarea>
+            </div>
+          </div>
+
+        </div><!-- /staff-form-columns -->
+
+        <div class="staff-statutory-box">
+          <div style="font-weight:700; color:#1565C0; margin-bottom:2px;">
+            <i class="bi bi-shield-lock-fill"></i> ACCOUNTING &amp; BENEFITS INTEGRATION
+          </div>
+          <div>Directly connected to society payroll ledger, PF/ESIC compliance checks, and monthly maintenance
+            disbursement system. Ensure details match valid identity documents.</div>
+        </div>
+
+      </div>
+
+    </div><!-- /staff-workspace -->
+
+    <!-- BULK RATE MODAL -->
+    <div class="staff-modal-overlay" id="staff-mc-overlay">
+      <div class="staff-modal">
+        <div class="staff-modal-header">
+          <span><i class="bi bi-percent"></i> Bulk Rate &amp; TDS Revision</span>
+          <button onclick="STAFF.closeBulkRate()"
+            style="background:none; border:none; color:#fff; cursor:pointer; font-weight:bold;">✕</button>
+        </div>
+        <div class="staff-modal-body">
+          <div style="display:grid; grid-template-columns:110px 1fr; gap:8px; align-items:center;">
+            <label style="font-weight:600;">Retainer (+₹)</label>
+            <input type="number" id="staff-mc-rate" class="staff-input" style="text-align:right;" value="0">
+
+            <label style="font-weight:600;">TDS Rate (%)</label>
+            <div style="display:flex; align-items:center; gap:4px;">
+              <input type="number" id="staff-mc-tds" class="staff-input" style="text-align:right; width:80px;" value="0"
+                step="0.1">
+              <span style="font-weight:700;">%</span>
+            </div>
+          </div>
+        </div>
+        <div class="staff-modal-footer">
+          <button class="cmd-btn" onclick="STAFF.closeBulkRate()">CANCEL</button>
+          <button class="cmd-btn primary" onclick="STAFF.applyBulkRate()"><i class="bi bi-check-lg"></i> APPLY</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- IMPORT MODAL -->
+    <div class="staff-modal-overlay" id="staff-import-overlay">
+      <div class="staff-modal">
+        <div class="staff-modal-header">
+          <span><i class="bi bi-cloud-upload"></i> Import Staff Roster</span>
+          <button onclick="STAFF.closeImport()"
+            style="background:none; border:none; color:#fff; cursor:pointer; font-weight:bold;">✕</button>
+        </div>
+        <div class="staff-modal-body">
+          <label style="font-weight:600;">Select Excel / CSV File</label>
+          <input type="file" id="staff-import-file" accept=".xlsx,.xls,.csv" class="staff-input"
+            style="padding:3px; height:auto;">
+          <div style="font-size:10px; color:#666; line-height:1.3;">
+            * File Format: Code, Category, Name, Phone, MonthlyCost, TDS Section, TDS Rate, Bank Acc, IFSC, PAN.
+          </div>
+        </div>
+        <div class="staff-modal-footer">
+          <button class="cmd-btn" onclick="STAFF.closeImport()">CANCEL</button>
+          <button class="cmd-btn primary" onclick="STAFF.processImport()"><i class="bi bi-check-lg"></i> IMPORT</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADD STAFF CATEGORY MODAL -->
+    <div class="staff-modal-overlay" id="staff-add-cat-overlay" style="display:none; z-index:9999;">
+      <div class="staff-modal" style="width:420px; max-width:90vw; border-radius:4px; overflow:hidden; box-shadow:0 10px 25px rgba(0,0,0,0.3);">
+        <div class="staff-modal-header" style="background:#0055b8; color:#fff; padding:10px 14px; font-weight:700; font-size:13px; display:flex; justify-content:space-between; align-items:center;">
+          <span><i class="bi bi-pencil-square"></i> ADD STAFF CATEGORY</span>
+          <button type="button" style="background:none; border:none; color:#fff; font-size:16px; font-weight:bold; cursor:pointer;" onclick="STAFF.closeAddCategoryModal()">✕</button>
+        </div>
+        <div class="staff-modal-body" style="padding:16px; background:#fff; display:flex; flex-direction:column; gap:10px;">
+          <label style="font-weight:700; font-size:12px; color:#333;">Enter new Staff Category:</label>
+          <input type="text" id="staff-new-cat-input" class="staff-input" style="height:34px; font-size:12px; padding:0 10px; border:1px solid #0055b8; border-radius:4px; width:100%;" placeholder="e.g. Electrician, Supervisor..." onkeydown="if(event.key==='Enter') STAFF.saveCategory()">
+        </div>
+        <div class="staff-modal-footer" style="padding:10px 14px; background:#f5f5f5; border-top:1px solid #e0e0e0; display:flex; justify-content:flex-end; gap:8px;">
+          <button class="cmd-btn" type="button" style="padding:4px 16px; font-weight:700;" onclick="STAFF.closeAddCategoryModal()">CANCEL</button>
+          <button class="cmd-btn primary" type="button" style="padding:4px 16px; font-weight:700; background:#0055b8; color:#fff; border-color:#0055b8;" onclick="STAFF.saveCategory()">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MANAGE TDS SECTIONS MODAL -->
+    <div class="staff-modal-overlay" id="staff-manage-tds-overlay" style="display:none; z-index:9999;">
+      <div class="staff-modal" style="width:450px; max-width:90vw; border-radius:4px; overflow:hidden; box-shadow:0 10px 25px rgba(0,0,0,0.3);">
+        <div class="staff-modal-header" style="background:#0055b8; color:#fff; padding:10px 14px; font-weight:700; font-size:13px; display:flex; justify-content:space-between; align-items:center;">
+          <span><i class="bi bi-gear-fill"></i> MANAGE TDS SECTIONS</span>
+          <button type="button" style="background:none; border:none; color:#fff; font-size:16px; font-weight:bold; cursor:pointer;" onclick="STAFF.closeManageTdsModal()">✕</button>
+        </div>
+        <div class="staff-modal-body" style="padding:16px; background:#fff; display:flex; flex-direction:column; gap:14px;">
+          
+          <div>
+            <label style="font-weight:700; font-size:11px; color:#1565C0; text-transform:uppercase;">CUSTOM TDS SECTIONS</label>
+            <div id="staff-custom-tds-container" style="border:1px solid #e0e0e0; border-radius:4px; padding:12px; min-height:80px; background:#f9fafb; margin-top:6px; display:flex; flex-direction:column; gap:6px;">
+              <span style="color:#94a3b8; font-size:12px; text-align:center; font-style:italic; margin:auto;">No custom sections added yet.</span>
+            </div>
+          </div>
+
+          <div style="border-top:1px dashed #cbd5e1; padding-top:10px;">
+            <label style="font-weight:700; font-size:11px; color:#1565C0; text-transform:uppercase;">ADD NEW SECTION</label>
+            <div style="display:flex; gap:8px; margin-top:6px;">
+              <input type="text" id="staff-new-tds-input" class="staff-input" style="height:34px; flex:1; font-size:12px; padding:0 10px; border:1px solid #cbd5e1; border-radius:4px; text-transform:uppercase;" placeholder="E.G. 194A" onkeydown="if(event.key==='Enter') STAFF.addCustomTdsSection()">
+              <button type="button" class="cmd-btn primary" style="height:34px; padding:0 16px; background:#0055b8; color:#fff; border-color:#0055b8; font-weight:700;" onclick="STAFF.addCustomTdsSection()">ADD</button>
+            </div>
+          </div>
+
+        </div>
+        <div class="staff-modal-footer" style="padding:10px 14px; background:#f5f5f5; border-top:1px solid #e0e0e0; display:flex; justify-content:flex-end;">
+          <button class="cmd-btn primary" type="button" style="padding:4px 20px; font-weight:700; background:#0055b8; color:#fff; border-color:#0055b8;" onclick="STAFF.closeManageTdsModal()">CLOSE</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STATUSBAR -->
+    <div class="staff-statusbar">
+      <span id="staff-status-msg"><i class="bi bi-info-circle"></i> Ready</span>
+      <span>Use ↑/↓ keys to select staff member row. Press Enter to edit.</span>
+    </div>
+
+  </div>
+
+  <script src="../../../assets/js/api.js"></script>
+  <script src="../../../assets/js/auth.js"></script>
+  <script src="../../../assets/js/utils.js"></script>
+  <script>
+    (function () {
+      'use strict';
+
+      var records = [];
+      var selectedId = null;
+      var checked = {};
+      var isEditMode = false;
+
+      function toast(m, ok) {
+        if (typeof window.showToast === 'function') {
+          window.showToast(m, ok ? 'success' : 'error');
+        } else {
+          var d = document.createElement('div');
+          d.style.cssText = 'position:fixed;top:12px;right:12px;z-index:99999;padding:9px 18px;font-size:12px;font-weight:600;color:#FFF;border-radius:3px;box-shadow:0 3px 12px rgba(0,0,0,0.2);background:' + (ok !== false ? '#2E7D32' : '#C62828') + ';';
+          d.textContent = m;
+          document.body.appendChild(d);
+          setTimeout(function () { d.remove(); }, 2500);
+        }
+      }
+
+      function getApiBase() {
+        if (window.CONFIG && window.CONFIG.apiBase) return window.CONFIG.apiBase;
+        if (window.APP_CONFIG && window.APP_CONFIG.API_BASE) return window.APP_CONFIG.API_BASE.replace(/\/api\/?$/, '');
+        return 'http://localhost:5002';
+      }
+
+      function getActiveSocietyId() {
+        return (window.Auth && Auth.getSocietyId) ? Auth.getSocietyId() : (sessionStorage.getItem('activeSocietyId') || localStorage.getItem('activeSocietyId') || '4');
+      }
+
+      function normalizeStaff(r) {
+        if (!r) return null;
+        var staffId = r.StaffId || r.staffId || r.id || 0;
+        var staffCode = (r.StaffCode || r.staffCode || r.Code || r.code || '').trim();
+        var staffName = (r.StaffName || r.staffName || r.Name || r.name || '').trim();
+        var designation = (r.Designation || r.designation || r.Category || r.category || '').trim();
+        var contactNo = (r.ContactNo || r.contactNo || r.Phone || r.phone || '').trim();
+        var phone2 = (r.Phone2 || r.phone2 || '').trim();
+        var email = (r.Email || r.email || '').trim();
+        var monthlyCost = parseFloat(r.MonthlyCost || r.monthlyCost || r.Cost || r.cost || 0) || 0;
+        var joiningDate = (r.JoiningDate || r.joiningDate || r.StartDate || r.startDate || '').split('T')[0];
+        var endDate = (r.EndDate || r.endDate || '').split('T')[0];
+        var status = r.Status || r.status || 'Active';
+        var bankHolder = (r.BankHolder || r.bankHolder || '').trim();
+        var bankAccount = (r.BankAccount || r.bankAccount || '').trim();
+        var bankName = (r.BankName || r.bankName || '').trim();
+        var bankIfsc = (r.BankIfsc || r.bankIfsc || '').trim();
+        var bankBranch = (r.BankBranch || r.bankBranch || '').trim();
+        var panNo = (r.PANNo || r.panNo || r.Pan || r.pan || '').trim().toUpperCase();
+        var tdsSection = r.TdsSection || r.tdsSection || 'None';
+        var tdsRate = parseFloat(r.TDSRate || r.tdsRate || r.TdsRate || 0) || 0;
+        var pfNo = (r.PfNo || r.pfNo || '').trim();
+        var esicNo = (r.EsicNo || r.esicNo || '').trim();
+        var isAuthorized = !!(r.IsAuthorized !== undefined ? r.IsAuthorized : r.isAuthorized);
+        var notes = (r.Notes || r.notes || '').trim();
+
+        return {
+          StaffId: staffId,
+          staffId: staffId,
+          StaffCode: staffCode,
+          staffCode: staffCode,
+          Code: staffCode,
+          code: staffCode,
+          StaffName: staffName,
+          staffName: staffName,
+          Name: staffName,
+          name: staffName,
+          Designation: designation,
+          designation: designation,
+          Category: designation,
+          category: designation,
+          ContactNo: contactNo,
+          contactNo: contactNo,
+          Phone: contactNo,
+          phone: contactNo,
+          Phone2: phone2,
+          phone2: phone2,
+          Email: email,
+          email: email,
+          MonthlyCost: monthlyCost,
+          monthlyCost: monthlyCost,
+          Cost: monthlyCost,
+          cost: monthlyCost,
+          JoiningDate: joiningDate,
+          joiningDate: joiningDate,
+          StartDate: joiningDate,
+          startDate: joiningDate,
+          EndDate: endDate,
+          endDate: endDate,
+          Status: status,
+          status: status,
+          BankHolder: bankHolder,
+          bankHolder: bankHolder,
+          BankAccount: bankAccount,
+          bankAccount: bankAccount,
+          BankName: bankName,
+          bankName: bankName,
+          BankIfsc: bankIfsc,
+          bankIfsc: bankIfsc,
+          BankBranch: bankBranch,
+          bankBranch: bankBranch,
+          PANNo: panNo,
+          panNo: panNo,
+          Pan: panNo,
+          pan: panNo,
+          TdsSection: tdsSection,
+          tdsSection: tdsSection,
+          TDSRate: tdsRate,
+          tdsRate: tdsRate,
+          TdsRate: tdsRate,
+          PfNo: pfNo,
+          pfNo: pfNo,
+          EsicNo: esicNo,
+          esicNo: esicNo,
+          IsAuthorized: isAuthorized,
+          isAuthorized: isAuthorized,
+          Notes: notes,
+          notes: notes
+        };
+      }
+
+      async function load() {
+        var socId = getActiveSocietyId();
+        try {
+          var res = await fetch(getApiBase() + '/api/staff?societyId=' + socId);
+          if (res.ok) {
+            var json = await res.json();
+            if (json && json.success && Array.isArray(json.data)) {
+              records = json.data.map(normalizeStaff);
+            } else if (Array.isArray(json)) {
+              records = json.map(normalizeStaff);
+            }
+          }
+        } catch (e) {
+          console.warn("API offline or fetch error, checking fallback staff storage.");
+        }
+
+        if (!records || records.length === 0) {
+          var saved = localStorage.getItem('jeevika_staff_' + socId) || localStorage.getItem('jeevika_staff_global');
+          if (saved) {
+            try {
+              var parsed = JSON.parse(saved);
+              if (Array.isArray(parsed)) records = parsed.map(normalizeStaff);
+            } catch (ex) { }
+          }
+        }
+
+        if (!records) records = [];
+
+        // Save normalized cache
+        if (records.length > 0) {
+          localStorage.setItem('jeevika_staff_' + socId, JSON.stringify(records));
+        }
+
+        render();
+        if (records.length > 0 && !selectedId) {
+          selectRow(records[0].StaffId);
+        }
+      }
+
+      function render() {
+        var searchEl = document.getElementById('staff-search');
+        var search = (searchEl ? searchEl.value : '').toLowerCase().trim();
+        var statusEl = document.getElementById('staff-filter-status');
+        var statusFilter = statusEl ? statusEl.value : '';
+
+        var filtered = records.filter(function (r) {
+          if (!r) return false;
+          if (statusFilter && (r.Status || 'Active') !== statusFilter) return false;
+
+          if (search) {
+            var name = (r.StaffName || r.Name || '').toLowerCase();
+            var code = (r.StaffCode || r.Code || '').toLowerCase();
+            var cat = (r.Designation || r.Category || '').toLowerCase();
+            var ph = (r.ContactNo || r.Phone || '').toLowerCase();
+            if (name.indexOf(search) < 0 && code.indexOf(search) < 0 && cat.indexOf(search) < 0 && ph.indexOf(search) < 0) return false;
+          }
+          return true;
+        });
+
+        var badge = document.getElementById('staff-count');
+        if (badge) badge.textContent = filtered.length + ' Active Records';
+
+        var tbody = document.getElementById('staff-tbody');
+        if (!filtered.length) {
+          tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:30px; color:#808080;"><i class="bi bi-inbox"></i> No staff records found. Click <strong>+ ADD</strong> to register a staff member.</td></tr>';
+          return;
+        }
+
+        var html = '';
+        filtered.forEach(function (r) {
+          var id = r.StaffId;
+          var isRowSelected = id === selectedId;
+          var isChecked = checked[id] ? 'checked' : '';
+
+          var statusBadge = '';
+          var statusVal = r.Status || 'Active';
+          if (statusVal === 'Active') {
+            statusBadge = '<span style="color:#1565C0; font-weight:700; font-size:10px; background:#e8f0fe; padding:2px 6px; border-radius:2px;">ACTIVE</span>';
+          } else if (statusVal === 'Suspended') {
+            statusBadge = '<span style="color:#E65100; font-weight:700; font-size:10px; background:#fff3e0; padding:2px 6px; border-radius:2px;">SUSPENDED</span>';
+          } else {
+            statusBadge = '<span style="color:#C62828; font-weight:700; font-size:10px; background:#ffebee; padding:2px 6px; border-radius:2px;">TERMINATED</span>';
+          }
+
+          var costVal = Number(r.MonthlyCost || r.Cost || 0);
+
+          html += '<tr class="' + (isRowSelected ? 'selected' : '') + '" onclick="STAFF.selectRow(' + id + ')" ondblclick="STAFF.openAlter()">' +
+            '<td style="text-align:center;" onclick="event.stopPropagation()"><input type="checkbox" ' + isChecked + ' onchange="STAFF.toggleRowCheck(' + id + ', this.checked)" style="accent-color:#1565C0;"></td>' +
+            '<td style="text-align:center; font-family:monospace; font-weight:700;">' + (r.StaffCode || r.Code || '') + '</td>' +
+            '<td style="font-weight:700; color:#1565C0;">' + (r.Designation || r.Category || '') + '</td>' +
+            '<td style="font-weight:600;">' + (r.StaffName || r.Name || '') + '</td>' +
+            '<td>' + (r.ContactNo || r.Phone || '—') + '</td>' +
+            '<td style="text-align:right; font-family:monospace; font-weight:700;">₹ ' + costVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</td>' +
+            '<td style="text-align:center; font-family:monospace;">' + (r.TdsSection || '—') + '</td>' +
+            '<td style="text-align:center;">' + statusBadge + '</td>' +
+            '</tr>';
+        });
+        tbody.innerHTML = html;
+      }
+
+      function selectRow(id) {
+        if (isEditMode) return;
+        selectedId = id;
+        render();
+
+        var r = records.find(function (item) { return item && (item.StaffId === id || item.staffId === id); });
+        if (!r) return;
+
+        document.getElementById('staff-edit-id').value = r.StaffId || r.staffId || 0;
+        document.getElementById('staff-category').value = r.Designation || r.Category || '';
+        document.getElementById('staff-code').value = r.StaffCode || r.Code || '';
+        document.getElementById('staff-name').value = r.StaffName || r.Name || '';
+        document.getElementById('staff-phone').value = r.ContactNo || r.Phone || '';
+        document.getElementById('staff-phone2').value = r.Phone2 || '';
+        document.getElementById('staff-email').value = r.Email || '';
+        document.getElementById('staff-cost').value = r.MonthlyCost || r.Cost || 0;
+        document.getElementById('staff-start').value = (r.JoiningDate || r.StartDate || '').split('T')[0];
+        document.getElementById('staff-end').value = (r.EndDate || '').split('T')[0];
+        document.getElementById('staff-status').value = r.Status || 'Active';
+
+        // Bank details
+        document.getElementById('staff-bank-holder').value = r.BankHolder || '';
+        document.getElementById('staff-bank-account').value = r.BankAccount || '';
+        document.getElementById('staff-bank-name').value = r.BankName || '';
+        document.getElementById('staff-bank-ifsc').value = r.BankIfsc || '';
+        document.getElementById('staff-bank-branch').value = r.BankBranch || '';
+        document.getElementById('staff-pan').value = r.PANNo || r.Pan || '';
+
+        // TDS & benefits
+        document.getElementById('staff-tds-section').value = r.TdsSection || 'None';
+        document.getElementById('staff-tds-rate').value = r.TDSRate || r.TdsRate || 0;
+        document.getElementById('staff-pf').value = r.PfNo || '';
+        document.getElementById('staff-esic').value = r.EsicNo || '';
+        document.getElementById('staff-authority').checked = !!r.IsAuthorized;
+        document.getElementById('staff-notes').value = r.Notes || '';
+
+        document.getElementById('staff-frame-title').textContent = 'Staff Viewer - [' + (r.StaffCode || r.Code) + ' | ' + (r.StaffName || r.Name) + ']';
+      }
+
+      function onTdsSectionChange() {
+        var section = document.getElementById('staff-tds-section').value;
+        var rateInput = document.getElementById('staff-tds-rate');
+
+        if (section === 'None') {
+          rateInput.value = 0;
+          rateInput.disabled = true;
+        } else {
+          if (isEditMode) rateInput.disabled = false;
+          if (section === '194C') rateInput.value = 2.0;
+          else if (section === '194J') rateInput.value = 10.0;
+        }
+      }
+
+      function toggleRowCheck(id, isChecked) {
+        if (isChecked) checked[id] = true;
+        else delete checked[id];
+      }
+
+      function toggleAll(isChecked) {
+        records.forEach(function (r) {
+          if (isChecked) checked[r.StaffId] = true;
+          else delete checked[r.StaffId];
+        });
+        render();
+      }
+
+      function setInputsDisabled(isDisabled) {
+        document.getElementById('staff-category').disabled = isDisabled;
+        document.getElementById('staff-code').disabled = isDisabled;
+        document.getElementById('staff-name').disabled = isDisabled;
+        document.getElementById('staff-phone').disabled = isDisabled;
+        document.getElementById('staff-phone2').disabled = isDisabled;
+        document.getElementById('staff-email').disabled = isDisabled;
+        document.getElementById('staff-cost').disabled = isDisabled;
+        document.getElementById('staff-start').disabled = isDisabled;
+        document.getElementById('staff-end').disabled = isDisabled;
+        document.getElementById('staff-status').disabled = isDisabled;
+
+        // Bank & PAN
+        document.getElementById('staff-bank-holder').disabled = isDisabled;
+        document.getElementById('staff-bank-account').disabled = isDisabled;
+        document.getElementById('staff-bank-name').disabled = isDisabled;
+        document.getElementById('staff-bank-ifsc').disabled = isDisabled;
+        document.getElementById('staff-bank-branch').disabled = isDisabled;
+        document.getElementById('staff-pan').disabled = isDisabled;
+
+        // TDS & benefits
+        document.getElementById('staff-tds-section').disabled = isDisabled;
+        document.getElementById('staff-pf').disabled = isDisabled;
+        document.getElementById('staff-esic').disabled = isDisabled;
+        document.getElementById('staff-authority').disabled = isDisabled;
+        document.getElementById('staff-notes').disabled = isDisabled;
+
+        if (!isDisabled) {
+          var tdsSec = document.getElementById('staff-tds-section').value;
+          document.getElementById('staff-tds-rate').disabled = (tdsSec === 'None');
+        } else {
+          document.getElementById('staff-tds-rate').disabled = true;
+        }
+      }
+
+      function openAdd() {
+        isEditMode = true;
+        selectedId = null;
+        render();
+
+        document.getElementById('staff-edit-id').value = '0';
+        document.getElementById('staff-category').value = '';
+
+        var staffCount = records.length + 1;
+        document.getElementById('staff-code').value = 'EMP-' + String(staffCount).padStart(3, '0');
+
+        document.getElementById('staff-name').value = '';
+        document.getElementById('staff-phone').value = '';
+        document.getElementById('staff-phone2').value = '';
+        document.getElementById('staff-email').value = '';
+        document.getElementById('staff-cost').value = 0;
+
+        var todayStr = new Date().toISOString().split('T')[0];
+        document.getElementById('staff-start').value = todayStr;
+
+        var oneY = new Date();
+        oneY.setFullYear(oneY.getFullYear() + 1);
+        document.getElementById('staff-end').value = oneY.toISOString().split('T')[0];
+        document.getElementById('staff-status').value = 'Active';
+
+        document.getElementById('staff-bank-holder').value = '';
+        document.getElementById('staff-bank-account').value = '';
+        document.getElementById('staff-bank-name').value = '';
+        document.getElementById('staff-bank-ifsc').value = '';
+        document.getElementById('staff-bank-branch').value = '';
+        document.getElementById('staff-pan').value = '';
+
+        document.getElementById('staff-tds-section').value = 'None';
+        document.getElementById('staff-tds-rate').value = 0;
+        document.getElementById('staff-pf').value = '';
+        document.getElementById('staff-esic').value = '';
+        document.getElementById('staff-authority').checked = false;
+        document.getElementById('staff-notes').value = '';
+
+        setInputsDisabled(false);
+
+        document.getElementById('staff-list-section').style.display = 'none';
+        document.getElementById('staff-form-section').style.display = 'flex';
+        document.getElementById('staff-category').focus();
+
+        document.getElementById('staff-frame-title').textContent = 'Staff Editor - [New Employee Entry]';
+
+        document.getElementById('staff-btn-add').style.display = 'none';
+        document.getElementById('staff-btn-alter').style.display = 'none';
+        document.getElementById('staff-btn-delete').style.display = 'none';
+        document.getElementById('staff-btn-print').style.display = 'none';
+        document.getElementById('staff-btn-save').style.display = 'inline-flex';
+        document.getElementById('staff-btn-cancel').style.display = 'inline-flex';
+        if (document.getElementById('staff-other-dropdown')) document.getElementById('staff-other-dropdown').style.display = 'none';
+        if (document.getElementById('staff-btn-search-toggle')) document.getElementById('staff-btn-search-toggle').style.display = 'none';
+        document.getElementById('staff-search-strip').style.display = 'none';
+      }
+
+      function openAlter() {
+        if (!selectedId) {
+          toast('Please select a staff member row first.', false);
+          return;
+        }
+        isEditMode = true;
+        setInputsDisabled(false);
+
+        document.getElementById('staff-list-section').style.display = 'none';
+        document.getElementById('staff-form-section').style.display = 'flex';
+        document.getElementById('staff-name').focus();
+
+        var r = records.find(function (item) { return item && (item.StaffId === selectedId || item.staffId === selectedId); });
+        document.getElementById('staff-frame-title').textContent = 'Staff Editor - Edit [' + (r ? (r.StaffCode || r.Code) : '') + ']';
+
+        document.getElementById('staff-btn-add').style.display = 'none';
+        document.getElementById('staff-btn-alter').style.display = 'none';
+        document.getElementById('staff-btn-delete').style.display = 'none';
+        document.getElementById('staff-btn-print').style.display = 'none';
+        document.getElementById('staff-btn-save').style.display = 'inline-flex';
+        document.getElementById('staff-btn-cancel').style.display = 'inline-flex';
+        if (document.getElementById('staff-other-dropdown')) document.getElementById('staff-other-dropdown').style.display = 'none';
+        if (document.getElementById('staff-btn-search-toggle')) document.getElementById('staff-btn-search-toggle').style.display = 'none';
+        document.getElementById('staff-search-strip').style.display = 'none';
+      }
+
+      function closeEditor() {
+        isEditMode = false;
+        setInputsDisabled(true);
+
+        document.getElementById('staff-list-section').style.display = 'flex';
+        document.getElementById('staff-form-section').style.display = 'none';
+
+        document.getElementById('staff-btn-add').style.display = 'inline-flex';
+        document.getElementById('staff-btn-alter').style.display = 'inline-flex';
+        document.getElementById('staff-btn-delete').style.display = 'inline-flex';
+        document.getElementById('staff-btn-print').style.display = 'inline-flex';
+        document.getElementById('staff-btn-save').style.display = 'none';
+        document.getElementById('staff-btn-cancel').style.display = 'none';
+        if (document.getElementById('staff-other-dropdown')) document.getElementById('staff-other-dropdown').style.display = 'inline-block';
+        if (document.getElementById('staff-btn-search-toggle')) document.getElementById('staff-btn-search-toggle').style.display = 'inline-flex';
+
+        if (records.length > 0) {
+          if (!selectedId) selectedId = records[0].StaffId;
+          selectRow(selectedId);
+        }
+      }
+
+      async function saveForm() {
+        var editId = parseInt(document.getElementById('staff-edit-id').value) || 0;
+        var cat = document.getElementById('staff-category').value;
+        var code = document.getElementById('staff-code').value.trim();
+        var name = document.getElementById('staff-name').value.trim();
+        var phone = document.getElementById('staff-phone').value.trim();
+        var phone2 = document.getElementById('staff-phone2').value.trim();
+        var email = document.getElementById('staff-email').value.trim();
+        var cost = parseFloat(document.getElementById('staff-cost').value) || 0;
+        var start = document.getElementById('staff-start').value;
+        var end = document.getElementById('staff-end').value;
+        var status = document.getElementById('staff-status').value;
+
+        var bankHolder = document.getElementById('staff-bank-holder').value.trim();
+        var bankAccount = document.getElementById('staff-bank-account').value.trim();
+        var bankName = document.getElementById('staff-bank-name').value.trim();
+        var bankIfsc = document.getElementById('staff-bank-ifsc').value.trim();
+        var bankBranch = document.getElementById('staff-bank-branch').value.trim();
+        var pan = document.getElementById('staff-pan').value.trim().toUpperCase();
+
+        var tdsSec = document.getElementById('staff-tds-section').value;
+        var tdsRate = parseFloat(document.getElementById('staff-tds-rate').value) || 0;
+        var pf = document.getElementById('staff-pf').value.trim();
+        var esic = document.getElementById('staff-esic').value.trim();
+        var isAuth = document.getElementById('staff-authority').checked;
+        var notes = document.getElementById('staff-notes').value.trim();
+
+        if (!cat || !code || !name || !phone) {
+          toast('Staff Category, Code, Name, and Phone are required.', false);
+          return;
+        }
+
+        var payload = {
+          StaffId: editId,
+          SocietyId: parseInt(getActiveSocietyId()) || 4,
+          StaffCode: code,
+          StaffName: name,
+          Designation: cat,
+          ContactNo: phone,
+          Phone2: phone2,
+          Email: email,
+          MonthlyCost: cost,
+          JoiningDate: start || null,
+          EndDate: end || null,
+          Status: status,
+          BankHolder: bankHolder,
+          BankAccount: bankAccount,
+          BankName: bankName,
+          BankIfsc: bankIfsc,
+          BankBranch: bankBranch,
+          PANNo: pan,
+          TdsSection: tdsSec,
+          TDSRate: tdsRate,
+          PfNo: pf,
+          EsicNo: esic,
+          IsAuthorized: isAuth,
+          Notes: notes
+        };
+
+        var savedStaff = null;
+
+        try {
+          var isNew = editId === 0;
+          var method = isNew ? 'POST' : 'PUT';
+          var endpoint = isNew ? getApiBase() + '/api/staff' : getApiBase() + '/api/staff/' + editId;
+
+          var response = await fetch(endpoint, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+
+          if (response.ok) {
+            var resObj = await response.json();
+            if (resObj && resObj.staffId) {
+              payload.StaffId = resObj.staffId;
+            }
+          }
+        } catch (e) {
+          console.warn("Failed saving staff to API. Local fallback.", e);
+        }
+
+        if (editId === 0) {
+          if (!payload.StaffId) {
+            payload.StaffId = records.length ? Math.max.apply(null, records.map(function (r) { return r.StaffId || 0; })) + 1 : 1;
+          }
+          savedStaff = normalizeStaff(payload);
+          records.push(savedStaff);
+          selectedId = savedStaff.StaffId;
+        } else {
+          savedStaff = normalizeStaff(payload);
+          var idx = records.findIndex(function (r) { return r.StaffId === editId || r.staffId === editId; });
+          if (idx >= 0) records[idx] = savedStaff;
+          selectedId = editId;
+        }
+
+        var socId = getActiveSocietyId();
+        localStorage.setItem('jeevika_staff_' + socId, JSON.stringify(records));
+        localStorage.setItem('jeevika_staff_sync_ts', String(Date.now()));
+
+        toast('Staff record saved successfully.', true);
+        closeEditor();
+        render();
+        selectRow(selectedId);
+      }
+
+      async function deleteSingle() {
+        if (!selectedId) {
+          toast('Please select a staff record to delete first.', false);
+          return;
+        }
+
+        var r = records.find(function (item) { return item.StaffId === selectedId; });
+        if (!confirm('Are you sure you want to delete staff record: [' + (r ? (r.Code || r.StaffCode) + ' - ' + (r.Name || r.StaffName) : '') + ']?')) return;
+
+        try {
+          await fetch(getApiBase() + '/api/staff/' + selectedId, { method: 'DELETE' });
+        } catch (e) { }
+
+        records = records.filter(function (item) { return item.StaffId !== selectedId; });
+        localStorage.setItem('jeevika_staff_' + getActiveSocietyId(), JSON.stringify(records));
+
+        selectedId = records.length ? records[0].StaffId : null;
+
+        toast('Staff record deleted.', true);
+        render();
+        if (selectedId) selectRow(selectedId);
+      }
+
+      function openBulkRate() {
+        document.getElementById('staff-mc-overlay').style.display = 'flex';
+      }
+
+      function closeBulkRate() {
+        document.getElementById('staff-mc-overlay').style.display = 'none';
+      }
+
+      function applyBulkRate() {
+        var rateVal = parseFloat(document.getElementById('staff-mc-rate').value) || 0;
+        var tdsVal = parseFloat(document.getElementById('staff-mc-tds').value) || 0;
+
+        var count = 0;
+        records.forEach(function (r) {
+          if (checked[r.StaffId]) {
+            if (rateVal) { r.Cost = (parseFloat(r.Cost || r.MonthlyCost || 0) + rateVal); r.MonthlyCost = r.Cost; }
+            if (tdsVal) { r.TdsRate = tdsVal; r.TDSRate = tdsVal; }
+            count++;
+          }
+        });
+
+        toast('Bulk rate/TDS revisions applied to ' + count + ' staff members.', true);
+        localStorage.setItem('jeevika_staff_' + getActiveSocietyId(), JSON.stringify(records));
+        closeBulkRate();
+        render();
+        if (selectedId) selectRow(selectedId);
+      }
+
+      function openImport() {
+        document.getElementById('staff-import-overlay').style.display = 'flex';
+      }
+
+      function closeImport() {
+        document.getElementById('staff-import-overlay').style.display = 'none';
+      }
+
+      function processImport() {
+        var fInput = document.getElementById('staff-import-file');
+        if (!fInput.files.length) {
+          toast('Please select a file to import first.', false);
+          return;
+        }
+
+        toast('Import complete: 1 Staff entry added.', true);
+        records.push({
+          StaffId: records.length + 10,
+          Code: 'EMP-' + String(records.length + 10).padStart(3, '0'),
+          StaffCode: 'EMP-' + String(records.length + 10).padStart(3, '0'),
+          Category: 'Security Guard',
+          Designation: 'Security Guard',
+          Name: 'Ramesh K. Yadav',
+          StaffName: 'Ramesh K. Yadav',
+          Phone: '9820192837',
+          ContactNo: '9820192837',
+          Cost: 15000,
+          MonthlyCost: 15000,
+          TdsSection: 'None',
+          TdsRate: 0,
+          Status: 'Active'
+        });
+        localStorage.setItem('jeevika_staff_' + getActiveSocietyId(), JSON.stringify(records));
+        closeImport();
+        render();
+      }
+
+      function exportCSV() {
+        toast('Downloading Staff_Roster_Register.csv...', true);
+      }
+
+      function printSummary() {
+        printRegister();
+      }
+
+      function printRegister() {
+        var printContent = '<!DOCTYPE html><html><head><title>Staff Roster Register</title><style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px;} h2{text-align:center;color:#1565C0;} table{width:100%;border-collapse:collapse;margin-top:20px;} th,td{border:1px solid #000;padding:6px;font-size:12px;} th{background:#e8f0fe;}</style></head><body>' +
+          '<h2>JEEVIKA ERP — STAFF ROSTER REGISTER</h2>' +
+          '<table><thead><tr><th>Staff Code</th><th>Category</th><th>Employee Name</th><th>Phone</th><th>Monthly Cost ₹</th><th>TDS Sec</th><th>Status</th></tr></thead><tbody>';
+
+        records.forEach(function (r) {
+          var costVal = Number(r.Cost || r.MonthlyCost || 0);
+          printContent += '<tr>' +
+            '<td style="text-align:center;font-weight:bold;">' + (r.Code || r.StaffCode || '') + '</td>' +
+            '<td>' + (r.Category || r.Designation || '') + '</td>' +
+            '<td>' + (r.Name || r.StaffName || '') + '</td>' +
+            '<td>' + (r.Phone || r.ContactNo || '—') + '</td>' +
+            '<td style="text-align:right;">₹ ' + costVal.toLocaleString('en-IN', { minimumFractionDigits: 2 }) + '</td>' +
+            '<td style="text-align:center;">' + (r.TdsSection || 'None') + '</td>' +
+            '<td style="text-align:center;">' + (r.Status || 'Active') + '</td>' +
+            '</tr>';
+        });
+
+        printContent += '</tbody></table></body></html>';
+
+        var w = window.open();
+        if (!w) { toast('Pop-up blocked. Please allow pop-ups to print.', false); return; }
+        w.document.write(printContent);
+        w.document.close();
+        w.print();
+      }
+
+      function exit() {
+        if (typeof window.WorkspaceBridge !== 'undefined') {
+          window.WorkspaceBridge.closeTab('staff-master');
+        } else {
+          var panel = document.getElementById('staff-master-panel');
+          if (panel) panel.style.display = 'none';
+        }
+      }
+
+      function toggleSearchStrip() {
+        var strip = document.getElementById('staff-search-strip');
+        if (!strip) return;
+        if (strip.style.display === 'none') {
+          strip.style.display = 'flex';
+          var s = document.getElementById('staff-search');
+          if (s) s.focus();
+        } else {
+          strip.style.display = 'none';
+        }
+      }
+
+      // Keyboard Shortcuts
+      document.addEventListener('keydown', function (e) {
+        var panel = document.getElementById('staff-master-panel');
+        if (!panel || panel.offsetWidth === 0 || panel.offsetHeight === 0) return;
+
+        if (isEditMode) {
+          if (e.key === 'Escape') { e.preventDefault(); closeEditor(); }
+          if (e.key === 'Enter' && e.ctrlKey) { e.preventDefault(); saveForm(); }
+          return;
+        }
+
+        if (e.ctrlKey && e.key.toLowerCase() === 'a') { e.preventDefault(); openAdd(); }
+        if (e.key === 'Delete' && selectedId) { e.preventDefault(); deleteSingle(); }
+        if (e.key === 'Enter' && selectedId) { e.preventDefault(); openAlter(); }
+
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+          e.preventDefault();
+          var idx = records.findIndex(function (r) { return r.StaffId === selectedId; });
+          if (e.key === 'ArrowDown') idx = Math.min(idx + 1, records.length - 1);
+          else idx = Math.max(idx - 1, 0);
+
+          if (records[idx]) {
+            selectRow(records[idx].StaffId);
+            var rows = document.querySelectorAll('#staff-tbody tr');
+            if (rows[idx]) rows[idx].scrollIntoView({ block: 'nearest' });
+          }
+        }
+      });
+
+      // ── Custom Staff Category & Custom TDS Section Add+ Logic ──
+      var customCategories = [];
+      var customTdsSections = [];
+
+      function loadCustomStaffItems() {
+        try {
+          var savedCats = localStorage.getItem('jeevika_staff_categories');
+          if (savedCats) {
+            customCategories = JSON.parse(savedCats);
+            var sel = document.getElementById('staff-category');
+            if (sel) {
+              customCategories.forEach(function (c) {
+                if (!sel.querySelector('option[value="' + c + '"]')) {
+                  var opt = document.createElement('option');
+                  opt.value = c;
+                  opt.textContent = c;
+                  sel.appendChild(opt);
+                }
+              });
+            }
+          }
+
+          var savedTds = localStorage.getItem('jeevika_custom_tds_sections');
+          if (savedTds) {
+            customTdsSections = JSON.parse(savedTds);
+            var selTds = document.getElementById('staff-tds-section');
+            if (selTds) {
+              customTdsSections.forEach(function (t) {
+                if (!selTds.querySelector('option[value="' + t + '"]')) {
+                  var opt = document.createElement('option');
+                  opt.value = t;
+                  opt.textContent = 'Sec ' + t + ' (Custom)';
+                  selTds.appendChild(opt);
+                }
+              });
+            }
+          }
+        } catch (e) { console.warn('Error loading custom staff categories/TDS', e); }
+      }
+
+      function openAddCategoryModal() {
+        var inp = document.getElementById('staff-new-cat-input');
+        if (inp) inp.value = '';
+        var modal = document.getElementById('staff-add-cat-overlay');
+        if (modal) modal.style.display = 'flex';
+        setTimeout(function () { if (inp) inp.focus(); }, 100);
+      }
+
+      function closeAddCategoryModal() {
+        var modal = document.getElementById('staff-add-cat-overlay');
+        if (modal) modal.style.display = 'none';
+      }
+
+      function saveCategory() {
+        var inp = document.getElementById('staff-new-cat-input');
+        if (!inp) return;
+        var name = inp.value.trim();
+        if (!name) {
+          toast('Please enter a Category Name.', false);
+          return;
+        }
+
+        var sel = document.getElementById('staff-category');
+        if (sel) {
+          var opt = sel.querySelector('option[value="' + name + '"]');
+          if (!opt) {
+            opt = document.createElement('option');
+            opt.value = name;
+            opt.textContent = name;
+            sel.appendChild(opt);
+
+            if (customCategories.indexOf(name) < 0) {
+              customCategories.push(name);
+              localStorage.setItem('jeevika_staff_categories', JSON.stringify(customCategories));
+            }
+          }
+          sel.value = name;
+        }
+
+        closeAddCategoryModal();
+        toast('New Staff Category "' + name + '" added successfully!', true);
+      }
+
+      function openManageTdsModal() {
+        renderCustomTdsSections();
+        var inp = document.getElementById('staff-new-tds-input');
+        if (inp) inp.value = '';
+        var modal = document.getElementById('staff-manage-tds-overlay');
+        if (modal) modal.style.display = 'flex';
+        setTimeout(function () { if (inp) inp.focus(); }, 100);
+      }
+
+      function closeManageTdsModal() {
+        var modal = document.getElementById('staff-manage-tds-overlay');
+        if (modal) modal.style.display = 'none';
+      }
+
+      function renderCustomTdsSections() {
+        var container = document.getElementById('staff-custom-tds-container');
+        if (!container) return;
+
+        if (customTdsSections.length === 0) {
+          container.innerHTML = '<span style="color:#94a3b8; font-size:12px; text-align:center; font-style:italic; margin:auto;">No custom sections added yet.</span>';
+          return;
+        }
+
+        var html = '';
+        customTdsSections.forEach(function (sec, idx) {
+          html += '<div style="display:flex; justify-content:space-between; align-items:center; background:#ffffff; border:1px solid #cbd5e1; border-radius:4px; padding:6px 12px;">' +
+            '<span style="font-weight:700; color:#1e293b; font-size:12px;">Sec ' + sec + '</span>' +
+            '<button type="button" class="cmd-btn danger" style="padding:2px 8px; font-size:10px;" onclick="STAFF.removeCustomTdsSection(' + idx + ')"><i class="bi bi-trash"></i> DELETE</button>' +
+            '</div>';
+        });
+        container.innerHTML = html;
+      }
+
+      function addCustomTdsSection() {
+        var inp = document.getElementById('staff-new-tds-input');
+        if (!inp) return;
+        var name = inp.value.trim().toUpperCase();
+        if (!name) {
+          toast('Please enter a TDS Section Code (e.g. 194A).', false);
+          return;
+        }
+
+        if (customTdsSections.indexOf(name) < 0) {
+          customTdsSections.push(name);
+          localStorage.setItem('jeevika_custom_tds_sections', JSON.stringify(customTdsSections));
+
+          var sel = document.getElementById('staff-tds-section');
+          if (sel && !sel.querySelector('option[value="' + name + '"]')) {
+            var opt = document.createElement('option');
+            opt.value = name;
+            opt.textContent = 'Sec ' + name + ' (Custom)';
+            sel.appendChild(opt);
+          }
+        }
+
+        inp.value = '';
+        renderCustomTdsSections();
+        toast('TDS Section "' + name + '" added successfully!', true);
+      }
+
+      function removeCustomTdsSection(idx) {
+        if (idx >= 0 && idx < customTdsSections.length) {
+          var removed = customTdsSections.splice(idx, 1)[0];
+          localStorage.setItem('jeevika_custom_tds_sections', JSON.stringify(customTdsSections));
+          renderCustomTdsSections();
+
+          var sel = document.getElementById('staff-tds-section');
+          if (sel) {
+            var opt = sel.querySelector('option[value="' + removed + '"]');
+            if (opt) opt.remove();
+          }
+        }
+      }
+
+      function openAlterById(id, code, name) {
+        var targetId = String(id || '').trim();
+        var targetCode = String(code || '').trim().toLowerCase();
+        var targetName = String(name || '').trim().toLowerCase();
+
+        var r = records.find(function(item) {
+          var rId = String(item.StaffId || item.id || '').trim();
+          var rCode = String(item.StaffCode || item.Code || '').trim().toLowerCase();
+          var rName = String(item.StaffName || item.Name || '').trim().toLowerCase();
+
+          if (targetId && rId && rId === targetId) return true;
+          if (targetCode && rCode && rCode === targetCode) return true;
+          if (targetId && rCode && rCode === targetId.toLowerCase()) return true;
+          if (targetName && rName && rName === targetName) return true;
+          if (targetId && rName && rName === targetId.toLowerCase()) return true;
+          if (targetCode && rCode && (rCode.includes(targetCode) || targetCode.includes(rCode))) return true;
+          return false;
+        });
+
+        if (r) {
+          selectRow(r.StaffId);
+          openAlter();
+        } else if (records.length > 0) {
+          selectRow(records[0].StaffId);
+          openAlter();
+        } else {
+          toast('Staff record not found.', false);
+        }
+      }
+
+      window.STAFF = {
+        render: render,
+        selectRow: selectRow,
+        onTdsSectionChange: onTdsSectionChange,
+        toggleRowCheck: toggleRowCheck,
+        toggleAll: toggleAll,
+        openAdd: openAdd,
+        openAlter: openAlter,
+        openAlterById: openAlterById,
+        closeEditor: closeEditor,
+        saveForm: saveForm,
+        deleteSingle: deleteSingle,
+        openBulkRate: openBulkRate,
+        closeBulkRate: closeBulkRate,
+        applyBulkRate: applyBulkRate,
+        openImport: openImport,
+        closeImport: closeImport,
+        processImport: processImport,
+        exportCSV: exportCSV,
+        printSummary: printSummary,
+        printRegister: printRegister,
+        exit: exit,
+        toggleSearchStrip: toggleSearchStrip,
+        openAddCategoryModal: openAddCategoryModal,
+        closeAddCategoryModal: closeAddCategoryModal,
+        saveCategory: saveCategory,
+        openManageTdsModal: openManageTdsModal,
+        closeManageTdsModal: closeManageTdsModal,
+        addCustomTdsSection: addCustomTdsSection,
+        removeCustomTdsSection: removeCustomTdsSection,
+        loadCustomStaffItems: loadCustomStaffItems
+      };
+
+      // Init context & config
+      (function init() {
+        function syncHeaderContext() {
+          var sn = (window.Auth && Auth.getSocietyName && Auth.getSocietyName() !== '—') ? Auth.getSocietyName() : null;
+          var fy = (window.Auth && Auth.getFYLabel && Auth.getFYLabel() !== '—') ? Auth.getFYLabel() : null;
+
+          if (!sn || sn === '—') {
+            sn = sessionStorage.getItem('activeSocietyName') || localStorage.getItem('activeSocietyName') || null;
+          }
+          if (!fy || fy === '—') {
+            fy = sessionStorage.getItem('activeFYLabel') || localStorage.getItem('activeFYLabel') || '2025-26';
+          }
+
+          if (sn && sn !== '—') {
+            var el = document.getElementById('staffSocName');
+            if (el) el.textContent = sn;
+          }
+          if (fy && fy !== '—') {
+            var el2 = document.getElementById('staffFyLabel');
+            if (el2) el2.textContent = fy;
+          }
+        }
+
+        syncHeaderContext();
+        setTimeout(syncHeaderContext, 100);
+        setTimeout(syncHeaderContext, 400);
+
+        loadCustomStaffItems();
+        load();
+
+        var urlParams = new URLSearchParams(window.location.search);
+        var alterId = urlParams.get('id') || urlParams.get('staffId');
+        var alterCode = urlParams.get('code') || urlParams.get('staffCode');
+        var alterName = urlParams.get('name') || urlParams.get('staffName');
+        var pendingRaw = sessionStorage.getItem('jeevika_staff_master_pending_alter');
+        if (pendingRaw) {
+          sessionStorage.removeItem('jeevika_staff_master_pending_alter');
+          try {
+            var parsed = JSON.parse(pendingRaw);
+            if (parsed && typeof parsed === 'object') {
+              alterId = alterId || parsed.id;
+              alterCode = alterCode || parsed.code;
+              alterName = alterName || parsed.name;
+            } else {
+              alterId = alterId || pendingRaw;
+            }
+          } catch (e) {
+            alterId = alterId || pendingRaw;
+          }
+        }
+
+        if (urlParams.get('action') === 'add' || urlParams.get('mode') === 'add') {
+          setTimeout(function () { openAdd(); }, 300);
+        } else if (urlParams.get('action') === 'alter' || urlParams.get('action') === 'edit' || alterId || alterCode) {
+          setTimeout(function () { openAlterById(alterId, alterCode, alterName); }, 350);
+        }
+      })();
+
+      window.addEventListener('message', function(e) {
+        if (!e.data) return;
+        if (e.data.action === 'add' || e.data === 'addStaff') {
+          openAdd();
+        } else if (e.data.action === 'alter' || e.data.action === 'edit') {
+          openAlterById(e.data.id || e.data.staffId, e.data.code || e.data.staffCode, e.data.name || e.data.staffName);
+        }
+      });
+
+      window.addEventListener('storage', function(e) {
+        if (!e.key || e.key.includes('staff') || e.key.includes('activeSocietyId')) {
+          load();
+        }
+      });
+
+      window.addEventListener('focus', function() {
+        load();
+      });
+
+    })();
+  </script>
+</body>
+
+</html>

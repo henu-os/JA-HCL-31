@@ -1,0 +1,371 @@
+/* ═══════════════════════════════════════════════════════════
+   JEEVIKA ERP v2 — ACCOUNT MASTER
+   Clean, flat, modern ERP theme — matching reference UI & layout.
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Module Canvas ───────────────────────────────────────── */
+.am-canvas {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background: #f4f7f9;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 12px;
+  color: #1e293b;
+}
+
+/* ── Module Header ───────────────────────────────────────── */
+.am-header {
+  background: #ffffff;
+  padding: 6px 14px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.am-header h2 {
+  font-size: 14px;
+  font-weight: 800;
+  margin: 0;
+  color: #0f172a;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.am-header-sub {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 1px;
+}
+
+.am-header-tag {
+  font-size: 11px;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+/* ── Command Strip ───────────────────────────────────────── */
+.am-cmd-strip {
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 5px 14px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ── Flat ERP Button ─────────────────────────────────────── */
+.am-btn {
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 3px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  transition: background 0.12s, border-color 0.12s;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+
+.am-btn:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.am-btn:active {
+  background: #e2e8f0;
+}
+
+.am-btn-danger {
+  color: #dc2626;
+  border-color: #fca5a5;
+  background: #fff5f5;
+}
+
+.am-btn-danger:hover {
+  background: #dc2626;
+  color: #ffffff;
+  border-color: #dc2626;
+}
+
+.am-btn-hidden {
+  display: none !important;
+}
+
+.am-sep {
+  border-right: 1px solid #e2e8f0;
+  height: 18px;
+  margin: 0 4px;
+}
+
+/* ── Search Strip ────────────────────────────────────────── */
+.am-search-strip {
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 5px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Flat Input / Select ─────────────────────────────────── */
+.am-input,
+.am-select {
+  height: 26px;
+  border: 1px solid #cbd5e1;
+  border-radius: 3px;
+  padding: 0 8px;
+  font-size: 11px;
+  font-family: inherit;
+  background: #ffffff;
+  color: #1e293b;
+  outline: none;
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+
+.am-input:focus,
+.am-select:focus {
+  border-color: #1565C0;
+  box-shadow: 0 0 0 2px rgba(21,101,192,0.12);
+}
+
+.am-input::placeholder {
+  color: #94a3b8;
+}
+
+.am-input[disabled],
+.am-select[disabled],
+.am-input[readonly] {
+  background: #f1f5f9;
+  color: #64748b;
+  cursor: not-allowed;
+}
+
+/* ── Main Workspace ──────────────────────────────────────── */
+.am-workspace {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+  background: #f4f7f9;
+  padding: 10px 14px;
+}
+
+/* ── List State ──────────────────────────────────────────── */
+#am-list-state {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* ── Grid / Table ────────────────────────────────────────── */
+.am-grid {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: auto;
+  min-height: 0;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  background: #ffffff;
+}
+
+.am-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.am-table thead tr {
+  background: #1565C0;
+  color: #ffffff;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.am-table th {
+  padding: 8px 10px;
+  text-align: left;
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  border-right: 1px solid rgba(255,255,255,0.15);
+  white-space: nowrap;
+}
+
+.am-table tbody tr {
+  border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.am-table tbody tr:hover {
+  background: #e0f2fe;
+}
+
+.am-table tbody tr.selected {
+  background: #bae6fd !important;
+  color: #0f172a !important;
+}
+
+.am-table tbody tr.selected td {
+  background: #bae6fd !important;
+  color: #0f172a !important;
+  font-weight: 600;
+}
+
+.am-table td {
+  padding: 6px 10px;
+  font-size: 11px;
+  border-right: 1px solid #f1f5f9;
+  color: #1e293b;
+}
+
+/* ── Form State ──────────────────────────────────────────── */
+#am-form-state {
+  display: none;
+  flex-direction: column;
+  flex: 1;
+  overflow-y: auto;
+  gap: 10px;
+}
+
+.am-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* ── Frame / Section Card ────────────────────────────────── */
+.am-frame {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.am-frame-title {
+  background: #1565C0;
+  color: #ffffff;
+  padding: 5px 12px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.am-frame-body {
+  padding: 12px 14px;
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  gap: 6px 10px;
+  align-items: center;
+}
+
+.am-frame-body label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+/* ── Alert / Confirm / Modal Dialogs ─────────────────────── */
+.am-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.35);
+  z-index: 99999;
+  align-items: center;
+  justify-content: center;
+}
+
+.am-dialog {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  overflow: hidden;
+}
+
+.am-dialog-title {
+  background: #1565C0;
+  color: #ffffff;
+  font-weight: 700;
+  padding: 8px 12px;
+  font-size: 11px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.am-dialog-title button {
+  background: none;
+  border: none;
+  color: #ffffff;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.am-dialog-body {
+  padding: 16px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: #ffffff;
+}
+
+.am-dialog-body i {
+  font-size: 26px;
+  color: #1565C0;
+  flex-shrink: 0;
+}
+
+.am-dialog-body i.err {
+  color: #dc2626;
+}
+
+.am-dialog-msg {
+  font-size: 12px;
+  color: #1e293b;
+  word-break: break-word;
+  line-height: 1.5;
+}
+
+.am-dialog-footer {
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  padding: 8px 12px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+/* Hide number input spin buttons */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}

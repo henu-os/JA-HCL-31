@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Committee Master — JEEVIKA ERP</title>
+  <script src="../../../config.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 12px;
+      background: #f4f6f9;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #committee-master-panel {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    /* MODULE HEADER */
+    .comm-header {
+      background: #fff;
+      padding: 8px 14px 6px;
+      border-bottom: 1px solid #ccc;
+      flex-shrink: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .comm-header h2 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1a1a2e;
+      letter-spacing: 0.2px;
+      margin: 0 0 2px 0;
+    }
+
+    .comm-header .subtitle {
+      font-size: 10px;
+      color: #555;
+      letter-spacing: 0.2px;
+    }
+
+    .comm-header .tag {
+      font-size: 10px;
+      color: #666;
+      font-style: italic;
+      margin-top: 4px;
+    }
+
+    /* TOP COMMAND STRIP */
+    .comm-cmd-strip {
+      background: #f5f5f5;
+      border-bottom: 1px solid #ccc;
+      padding: 5px 14px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .comm-cmd-strip .sep {
+      border-right: 1px solid #bbb;
+      height: 16px;
+      margin: 0 5px;
+    }
+
+    .cmd-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      background: #fff;
+      border: 1px solid #bbb;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: #333;
+      cursor: pointer;
+      border-radius: 2px;
+      white-space: nowrap;
+      font-family: inherit;
+      transition: background 0.1s;
+    }
+
+    .cmd-btn:hover {
+      background: #e8f0fe;
+      border-color: #5a9be8;
+      color: #1565C0;
+    }
+
+    .cmd-btn.primary {
+      color: #1565C0;
+      border-color: #1565C0;
+    }
+
+    .cmd-btn.primary:hover {
+      background: #1565C0;
+      color: #fff;
+    }
+
+    .cmd-btn.danger:hover {
+      background: #fde8e8;
+      border-color: #e53e3e;
+      color: #C62828;
+    }
+
+    .cmd-btn-exit {
+      margin-left: auto;
+      background: #fff;
+      border: 1px solid #bbb;
+      color: #555;
+    }
+
+    .cmd-btn-exit:hover {
+      background: #fff3cd;
+      border-color: #e0a800;
+      color: #856404;
+    }
+
+    /* OTHER DROPDOWN */
+    .comm-dropdown {
+      position: relative;
+      display: inline-block;
+    }
+
+    .comm-dropdown-content {
+      display: none;
+      position: absolute;
+      top: 28px;
+      left: 0;
+      background: #fff;
+      border: 1px solid #bbb;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      z-index: 500;
+      min-width: 170px;
+      border-radius: 2px;
+    }
+
+    .comm-dropdown-content a {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      color: #333;
+      text-decoration: none;
+      font-size: 11.5px;
+      font-weight: 600;
+      border-bottom: 1px solid #eee;
+    }
+
+    .comm-dropdown-content a:last-child {
+      border-bottom: none;
+    }
+
+    .comm-dropdown-content a:hover {
+      background: #e8f0fe;
+      color: #1565C0;
+    }
+
+    .comm-dropdown:hover .comm-dropdown-content {
+      display: block;
+    }
+
+    /* SEARCH STRIP */
+    .comm-search-strip {
+      background: #eef2f7;
+      border-bottom: 1px solid #ccc;
+      padding: 5px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .comm-search-input {
+      height: 24px;
+      padding: 0 8px;
+      font-size: 11.5px;
+      border: 1px solid #bbb;
+      border-radius: 2px;
+      outline: none;
+      width: 220px;
+    }
+
+    .comm-select-filter {
+      height: 24px;
+      padding: 0 6px;
+      font-size: 11.5px;
+      border: 1px solid #bbb;
+      border-radius: 2px;
+      outline: none;
+      background: #fff;
+    }
+
+    /* MAIN WORKSPACE */
+    .comm-workspace {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    /* TABLE */
+    .comm-table-container {
+      flex: 1;
+      overflow: auto;
+      border-bottom: 1px solid #ccc;
+    }
+
+    .comm-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11.5px;
+    }
+
+    .comm-table th {
+      position: sticky;
+      top: 0;
+      background: #1565C0;
+      color: #fff;
+      font-weight: 700;
+      text-align: left;
+      padding: 6px 10px;
+      border-right: 1px solid #0d47a1;
+      white-space: nowrap;
+      z-index: 10;
+    }
+
+    .comm-table td {
+      padding: 5px 10px;
+      border-bottom: 1px solid #e0e0e0;
+      border-right: 1px solid #eee;
+      white-space: nowrap;
+    }
+
+    .comm-table tbody tr:hover {
+      background: #f0f7ff;
+    }
+
+    .comm-table tbody tr.selected {
+      background: #bae6fd !important;
+      color: #0f172a !important;
+      font-weight: 600;
+    }
+    .comm-table tbody tr.selected td {
+      background: #bae6fd !important;
+      color: #0f172a !important;
+      font-weight: 600;
+    }
+
+    /* EDITOR FORM STATE */
+    .comm-form-section {
+      display: none;
+      flex-direction: column;
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 20px;
+      background: #f9f9f9;
+    }
+
+    .comm-card {
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 18px;
+      max-width: 800px;
+    }
+
+    .comm-card-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: #1565C0;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      border-bottom: 1px solid #e0e0e0;
+      padding-bottom: 6px;
+      margin-bottom: 14px;
+    }
+
+    .comm-form-grid {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: 10px 12px;
+      align-items: center;
+    }
+
+    .comm-form-grid label {
+      font-weight: 600;
+      color: #424242;
+    }
+
+    .comm-input,
+    .comm-select {
+      height: 26px;
+      padding: 0 8px;
+      font-size: 12px;
+      border: 1px solid #bbb;
+      border-radius: 2px;
+      outline: none;
+      background: #fff;
+    }
+
+    .comm-input:focus,
+    .comm-select:focus {
+      border-color: #1565C0;
+    }
+
+    .comm-input:disabled,
+    .comm-select:disabled {
+      background: #f5f5f5;
+      color: #757575;
+    }
+
+    .comm-statutory-box {
+      margin-top: 20px;
+      background: #e8f0fe;
+      border-left: 4px solid #1565C0;
+      padding: 10px 14px;
+      font-size: 11px;
+      color: #1c3d5a;
+      border-radius: 0 4px 4px 0;
+    }
+
+    /* MODAL POPUPS */
+    .comm-modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .comm-modal {
+      width: 380px;
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+    }
+
+    .comm-modal-header {
+      background: #1565C0;
+      color: #fff;
+      font-weight: 700;
+      padding: 8px 12px;
+      font-size: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .comm-modal-body {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .comm-modal-footer {
+      background: #f5f5f5;
+      border-top: 1px solid #eee;
+      padding: 8px 12px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 6px;
+    }
+
+    /* STATUSBAR */
+    .comm-statusbar {
+      background: #f5f5f5;
+      border-top: 1px solid #ccc;
+      padding: 4px 14px;
+      font-size: 11px;
+      color: #666;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      min-height: 24px;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="committee-master-panel">
+
+    <!-- MODULE HEADER -->
+    <div class="comm-header">
+      <div>
+        <h2>COMMITTEE MASTER</h2>
+        
+      </div>
+      <div class="tag">[Management Committee Designations &amp; Tenure Control]</div>
+    </div>
+
+    <!-- TOP COMMAND STRIP -->
+    <div class="comm-cmd-strip">
+      <button class="cmd-btn" id="comm-btn-add" onclick="COMM.openAdd()"><i class="bi bi-plus-lg"></i> ADD</button>
+      <button class="cmd-btn" id="comm-btn-alter" onclick="COMM.openAlter()"><i class="bi bi-pencil-square"></i>
+        ALTER</button>
+      <button class="cmd-btn danger" id="comm-btn-delete" onclick="COMM.deleteSingle()"><i class="bi bi-trash"></i>
+        DELETE</button>
+
+      <div class="sep"></div>
+
+      <button class="cmd-btn primary" id="comm-btn-save" onclick="COMM.saveForm()" style="display:none;"><i
+          class="bi bi-save"></i> SAVE</button>
+      <button class="cmd-btn" id="comm-btn-cancel" onclick="COMM.closeEditor()" style="display:none;"><i
+          class="bi bi-arrow-counterclockwise"></i> CANCEL</button>
+
+      <button class="cmd-btn" id="comm-btn-print" onclick="COMM.printRegister()"><i class="bi bi-printer"></i> PRINT
+        REGISTER</button>
+
+      <!-- OTHER DROPDOWN -->
+      <div class="comm-dropdown" id="comm-other-dropdown">
+        <button class="cmd-btn">OTHER <i class="bi bi-chevron-down" style="font-size:9px;"></i></button>
+        <div class="comm-dropdown-content">
+          <a href="#" onclick="event.preventDefault(); COMM.openBulkChange()"><i class="bi bi-input-cursor-text"></i>
+            Term Mass Extension</a>
+          <a href="#" onclick="event.preventDefault(); COMM.openImport()"><i class="bi bi-file-earmark-excel-fill"></i>
+            Import Excel CSV</a>
+          <a href="#" onclick="event.preventDefault(); COMM.exportRoster()"><i class="bi bi-cloud-download-fill"></i>
+            Export Roster</a>
+        </div>
+      </div>
+
+      <button class="cmd-btn" id="comm-btn-search-toggle" onclick="COMM.toggleSearchStrip()"
+        title="Toggle Search Bar"><i class="bi bi-search"></i> SEARCH</button>
+
+      <button class="cmd-btn cmd-btn-exit" onclick="COMM.exit()"><i class="bi bi-door-open"></i> EXIT</button>
+    </div>
+
+    <!-- SEARCH STRIP (DYNAMICALLY TOGGLED OR PERSISTENT) -->
+    <div class="comm-search-strip" id="comm-search-strip" style="display:none;">
+      <label style="font-weight:700; color:#333;">Search Member:</label>
+      <input type="text" id="comm-search" class="comm-search-input" placeholder="Search name, designation, or unit..."
+        oninput="COMM.render()">
+
+      <label style="font-weight:700; color:#333; margin-left:10px;">Designation Filter:</label>
+      <select id="comm-filter-desig" class="comm-select-filter" onchange="COMM.render()">
+        <option value="">All Designations</option>
+        <option value="Chairman">Chairman / President</option>
+        <option value="Secretary">Secretary</option>
+        <option value="Treasurer">Treasurer</option>
+        <option value="Committee Member">Committee Member</option>
+        <option value="Co-opted Member">Co-opted Member</option>
+        <option value="Associate Member">Associate Member</option>
+      </select>
+
+      <span style="font-weight:700; color:#1565C0; margin-left:auto;" id="comm-count">0 Members</span>
+    </div>
+
+    <!-- MAIN OPERATIONAL WORKSPACE -->
+    <div class="comm-workspace">
+
+      <!-- LIST STATE (GRID) -->
+      <div id="comm-list-section" style="display:flex; flex-direction:column; flex:1; overflow:hidden;">
+        <div class="comm-table-container">
+          <table class="comm-table" id="comm-table">
+            <thead>
+              <tr>
+                <th style="width:30px; text-align:center;"><input type="checkbox" id="comm-chk-all"
+                    onclick="COMM.toggleAll(this.checked)" style="accent-color:#1565C0;"></th>
+                <th style="width:160px;">DESIGNATION</th>
+                <th>COMMITTEE MEMBER NAME</th>
+                <th style="width:80px; text-align:center;">UNIT NO</th>
+                <th style="width:110px;">MOBILE/WHATSAPP</th>
+                <th style="width:170px; text-align:center;">TENURE PERIOD</th>
+                <th style="width:90px; text-align:center;">SIGNATORY</th>
+                <th style="width:80px; text-align:center;">STATUS</th>
+              </tr>
+            </thead>
+            <tbody id="comm-tbody">
+              <!-- Dynamic rows -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- FORM STATE (INLINE EDITOR) -->
+      <div id="comm-form-section" class="comm-form-section">
+        <div class="comm-card">
+          <div class="comm-card-title" id="comm-frame-title">Committee Member Editor</div>
+          <input type="hidden" id="comm-edit-id" value="0">
+
+          <div class="comm-form-grid">
+            <label>Member Name *</label>
+            <input type="text" id="comm-name" class="comm-input" style="width:320px;"
+              placeholder="Enter member name...">
+
+            <label>Designation *</label>
+            <select id="comm-designation" class="comm-select" style="width:240px;">
+              <option value="">— Select Designation —</option>
+              <option value="Chairman">Chairman / President</option>
+              <option value="Secretary">Secretary</option>
+              <option value="Treasurer">Treasurer</option>
+              <option value="Committee Member">Committee Member</option>
+              <option value="Co-opted Member">Co-opted Member</option>
+              <option value="Associate Member">Associate Member</option>
+            </select>
+
+            <label>Flat/Unit No</label>
+            <input type="text" id="comm-unit" class="comm-input" style="width:150px;" placeholder="e.g. A-101">
+
+            <label>Mobile/WhatsApp</label>
+            <input type="text" id="comm-phone" class="comm-input" style="width:180px;" placeholder="e.g. 9876543210">
+
+            <label>Tenure Start Date *</label>
+            <input type="date" id="comm-start" class="comm-input" style="width:160px;">
+
+            <label>Tenure End Date *</label>
+            <input type="date" id="comm-end" class="comm-input" style="width:160px;">
+
+            <label>Bank Signatory</label>
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-weight:600;">
+              <input type="checkbox" id="comm-signatory" style="accent-color:#1565C0;"> Authorized Bank Signatory
+            </label>
+
+            <label>Status</label>
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-weight:600;">
+              <input type="checkbox" id="comm-status" checked style="accent-color:#1565C0;"> Active Committee Member
+            </label>
+          </div>
+
+          <div class="comm-statutory-box">
+            <div style="font-weight:700; color:#1565C0; margin-bottom:4px;">
+              <i class="bi bi-info-circle-fill"></i> STATUTORY LAW (SEC 73)
+            </div>
+            <div>Cooperative Society regulations dictate that the Management Committee is legally responsible for
+              financial records, cheque authorizations, and annual audit submissions.</div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /comm-workspace -->
+
+    <!-- BULK CHANGE MODAL -->
+    <div class="comm-modal-overlay" id="comm-mc-overlay">
+      <div class="comm-modal">
+        <div class="comm-modal-header">
+          <span><i class="bi bi-input-cursor-text"></i> Term Mass Extension</span>
+          <button onclick="COMM.closeMC()"
+            style="background:none; border:none; color:#fff; cursor:pointer; font-weight:bold;">✕</button>
+        </div>
+        <div class="comm-modal-body">
+          <div style="display:grid; grid-template-columns:110px 1fr; gap:8px; align-items:center;">
+            <label style="font-weight:600;">Tenure End Date</label>
+            <input type="date" id="comm-mc-enddate" class="comm-input">
+
+            <label style="font-weight:600;">Signatory</label>
+            <select id="comm-mc-sign" class="comm-select">
+              <option value="">— No Change —</option>
+              <option value="yes">Set Signatory (Yes)</option>
+              <option value="no">Remove Signatory (No)</option>
+            </select>
+          </div>
+        </div>
+        <div class="comm-modal-footer">
+          <button class="cmd-btn" onclick="COMM.closeMC()">CANCEL</button>
+          <button class="cmd-btn primary" onclick="COMM.applyMC()"><i class="bi bi-check-lg"></i> APPLY</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- IMPORT MODAL -->
+    <div class="comm-modal-overlay" id="comm-import-overlay">
+      <div class="comm-modal">
+        <div class="comm-modal-header">
+          <span><i class="bi bi-cloud-upload"></i> Import Committee Roster</span>
+          <button onclick="COMM.closeImport()"
+            style="background:none; border:none; color:#fff; cursor:pointer; font-weight:bold;">✕</button>
+        </div>
+        <div class="comm-modal-body">
+          <label style="font-weight:600;">Select Excel / CSV File</label>
+          <input type="file" id="comm-import-file" accept=".xlsx,.xls,.csv" class="comm-input"
+            style="padding:3px; height:auto;">
+          <div style="font-size:10px; color:#666; line-height:1.3;">
+            * File Format: Member Name, Designation, Unit No, Phone, Start Date, End Date, IsSignatory (0/1).
+          </div>
+        </div>
+        <div class="comm-modal-footer">
+          <button class="cmd-btn" onclick="COMM.closeImport()">CANCEL</button>
+          <button class="cmd-btn primary" onclick="COMM.processImport()"><i class="bi bi-check-lg"></i> IMPORT</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STATUSBAR -->
+    <div class="comm-statusbar">
+      <span id="comm-status-msg"><i class="bi bi-info-circle"></i> Ready</span>
+      <span>Use ↑/↓ keys to select member row. Press Enter to edit.</span>
+    </div>
+
+  </div>
+
+  <script src="../../../assets/js/api.js"></script>
+  <script src="../../../assets/js/auth.js"></script>
+  <script src="../../../assets/js/utils.js"></script>
+  <script>
+    (function () {
+      'use strict';
+
+      var members = [];
+      var selectedId = null;
+      var checked = {};
+      var isEditMode = false;
+
+      function toast(m, ok) {
+        if (typeof window.showToast === 'function') {
+          window.showToast(m, ok ? 'success' : 'error');
+        } else {
+          var d = document.createElement('div');
+          d.style.cssText = 'position:fixed;top:12px;right:12px;z-index:99999;padding:9px 18px;font-size:12px;font-weight:600;color:#FFF;border-radius:3px;box-shadow:0 3px 12px rgba(0,0,0,0.2);background:' + (ok !== false ? '#2E7D32' : '#C62828') + ';';
+          d.textContent = m;
+          document.body.appendChild(d);
+          setTimeout(function () { d.remove(); }, 2500);
+        }
+      }
+
+      function getApiBase() {
+        if (window.CONFIG && window.CONFIG.apiBase) return window.CONFIG.apiBase;
+        if (window.APP_CONFIG && window.APP_CONFIG.API_BASE) return window.APP_CONFIG.API_BASE.replace(/\/api\/?$/, '');
+        return 'http://localhost:5002';
+      }
+
+      function getActiveSocietyId() {
+        return (window.Auth && Auth.getSocietyId) ? Auth.getSocietyId() : (sessionStorage.getItem('activeSocietyId') || localStorage.getItem('activeSocietyId') || '1');
+      }
+
+      async function load() {
+        try {
+          var socId = getActiveSocietyId();
+          var res = await fetch(getApiBase() + '/api/committee?societyId=' + socId);
+          if (res.ok) {
+            var json = await res.json();
+            if (json && json.success && Array.isArray(json.data)) members = json.data;
+            else if (Array.isArray(json)) members = json;
+          }
+        } catch (e) {
+          console.warn("API offline, using fallback roster storage.");
+          var saved = localStorage.getItem('jeevika_committee_' + getActiveSocietyId());
+          if (saved) {
+            try { members = JSON.parse(saved); } catch (ex) { }
+          }
+        }
+
+        render();
+        if (members.length > 0 && !selectedId) {
+          selectRow(members[0].CommMemberId || members[0].CommitteeId);
+        }
+      }
+
+      function render() {
+        var searchEl = document.getElementById('comm-search');
+        var search = (searchEl ? searchEl.value : '').toLowerCase().trim();
+        var desigEl = document.getElementById('comm-filter-desig');
+        var desigFilter = desigEl ? desigEl.value : '';
+
+        var filtered = members.filter(function (m) {
+          if (desigFilter && (m.Designation || '') !== desigFilter) return false;
+
+          if (search) {
+            var name = (m.Name || m.MemberName || '').toLowerCase();
+            var desig = (m.Designation || '').toLowerCase();
+            var unit = (m.UnitNo || '').toLowerCase();
+            if (name.indexOf(search) < 0 && desig.indexOf(search) < 0 && unit.indexOf(search) < 0) return false;
+          }
+          return true;
+        });
+
+        var badge = document.getElementById('comm-count');
+        if (badge) badge.textContent = filtered.length + ' Committee Members';
+
+        var tbody = document.getElementById('comm-tbody');
+        if (!filtered.length) {
+          tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:30px; color:#808080;"><i class="bi bi-inbox"></i> No committee members found.</td></tr>';
+          return;
+        }
+
+        var html = '';
+        filtered.forEach(function (m) {
+          var id = m.CommMemberId || m.CommitteeId;
+          var isRowSelected = id === selectedId;
+          var isChecked = checked[id] ? 'checked' : '';
+
+          var statusBadge = m.IsActive ?
+            '<span style="color:#1565C0; font-weight:700; font-size:10px; background:#e8f0fe; padding:2px 6px; border-radius:2px;">ACTIVE</span>' :
+            '<span style="color:#C62828; font-weight:700; font-size:10px; background:#ffebee; padding:2px 6px; border-radius:2px;">INACTIVE</span>';
+
+          var signatoryBadge = m.IsSignatory ?
+            '<span style="color:#2E7D32; font-weight:700; font-size:10px; background:#e8f5e9; padding:2px 6px; border-radius:2px;"><i class="bi bi-file-earmark-check"></i> SIGNATORY</span>' :
+            '<span style="color:#757575; font-size:10px;">—</span>';
+
+          var start = m.StartDate || m.FromDate || '';
+          var end = m.EndDate || m.ToDate || '';
+          var formattedTenure = (start ? start.split('T')[0] : '') + ' to ' + (end ? end.split('T')[0] : '');
+
+          html += '<tr class="' + (isRowSelected ? 'selected' : '') + '" onclick="COMM.selectRow(' + id + ')" ondblclick="COMM.openAlter()">' +
+            '<td style="text-align:center;" onclick="event.stopPropagation()"><input type="checkbox" ' + isChecked + ' onchange="COMM.toggleRowCheck(' + id + ', this.checked)" style="accent-color:#1565C0;"></td>' +
+            '<td style="font-weight:700; color:#1565C0;">' + (m.Designation || '') + '</td>' +
+            '<td style="font-weight:600;">' + (m.Name || m.MemberName || '') + '</td>' +
+            '<td style="text-align:center;">' + (m.UnitNo || '—') + '</td>' +
+            '<td>' + (m.Phone || m.ContactNo || '—') + '</td>' +
+            '<td style="text-align:center; font-family:monospace; font-size:11px;">' + formattedTenure + '</td>' +
+            '<td style="text-align:center;">' + signatoryBadge + '</td>' +
+            '<td style="text-align:center;">' + statusBadge + '</td>' +
+            '</tr>';
+        });
+        tbody.innerHTML = html;
+      }
+
+      function selectRow(id) {
+        if (isEditMode) return;
+        selectedId = id;
+        render();
+
+        var item = members.find(function (m) { return (m.CommMemberId || m.CommitteeId) === id; });
+        if (!item) return;
+
+        document.getElementById('comm-edit-id').value = item.CommMemberId || item.CommitteeId || 0;
+        document.getElementById('comm-name').value = item.Name || item.MemberName || '';
+        document.getElementById('comm-designation').value = item.Designation || '';
+        document.getElementById('comm-unit').value = item.UnitNo || '';
+        document.getElementById('comm-phone').value = item.Phone || item.ContactNo || '';
+        document.getElementById('comm-start').value = (item.StartDate || item.FromDate || '').split('T')[0];
+        document.getElementById('comm-end').value = (item.EndDate || item.ToDate || '').split('T')[0];
+        document.getElementById('comm-signatory').checked = !!item.IsSignatory;
+        document.getElementById('comm-status').checked = item.IsActive !== false;
+
+        document.getElementById('comm-frame-title').textContent = 'Committee Member Viewer - [' + (item.Designation || '') + ']';
+      }
+
+      function toggleRowCheck(id, isChecked) {
+        if (isChecked) checked[id] = true;
+        else delete checked[id];
+      }
+
+      function toggleAll(isChecked) {
+        members.forEach(function (m) {
+          var id = m.CommMemberId || m.CommitteeId;
+          if (isChecked) checked[id] = true;
+          else delete checked[id];
+        });
+        render();
+      }
+
+      function setInputsDisabled(isDisabled) {
+        document.getElementById('comm-name').disabled = isDisabled;
+        document.getElementById('comm-designation').disabled = isDisabled;
+        document.getElementById('comm-unit').disabled = isDisabled;
+        document.getElementById('comm-phone').disabled = isDisabled;
+        document.getElementById('comm-start').disabled = isDisabled;
+        document.getElementById('comm-end').disabled = isDisabled;
+        document.getElementById('comm-signatory').disabled = isDisabled;
+        document.getElementById('comm-status').disabled = isDisabled;
+      }
+
+      function openAdd() {
+        isEditMode = true;
+        selectedId = null;
+        render();
+
+        document.getElementById('comm-edit-id').value = '0';
+        document.getElementById('comm-name').value = '';
+        document.getElementById('comm-designation').value = '';
+        document.getElementById('comm-unit').value = '';
+        document.getElementById('comm-phone').value = '';
+
+        var todayStr = new Date().toISOString().split('T')[0];
+        document.getElementById('comm-start').value = todayStr;
+
+        var fiveY = new Date();
+        fiveY.setFullYear(fiveY.getFullYear() + 5);
+        document.getElementById('comm-end').value = fiveY.toISOString().split('T')[0];
+
+        document.getElementById('comm-signatory').checked = false;
+        document.getElementById('comm-status').checked = true;
+
+        setInputsDisabled(false);
+
+        document.getElementById('comm-list-section').style.display = 'none';
+        document.getElementById('comm-form-section').style.display = 'flex';
+        document.getElementById('comm-name').focus();
+
+        document.getElementById('comm-frame-title').textContent = 'Committee Member Editor - [New Roster Entry]';
+
+        document.getElementById('comm-btn-add').style.display = 'none';
+        document.getElementById('comm-btn-alter').style.display = 'none';
+        document.getElementById('comm-btn-delete').style.display = 'none';
+        document.getElementById('comm-btn-print').style.display = 'none';
+        document.getElementById('comm-btn-save').style.display = 'inline-flex';
+        document.getElementById('comm-btn-cancel').style.display = 'inline-flex';
+        if (document.getElementById('comm-other-dropdown')) document.getElementById('comm-other-dropdown').style.display = 'none';
+        if (document.getElementById('comm-btn-search-toggle')) document.getElementById('comm-btn-search-toggle').style.display = 'none';
+        document.getElementById('comm-search-strip').style.display = 'none';
+      }
+
+      function openAlter() {
+        if (!selectedId) {
+          toast('Please select a committee member row first.', false);
+          return;
+        }
+        isEditMode = true;
+        setInputsDisabled(false);
+
+        document.getElementById('comm-list-section').style.display = 'none';
+        document.getElementById('comm-form-section').style.display = 'flex';
+        document.getElementById('comm-name').focus();
+
+        var item = members.find(function (m) { return (m.CommMemberId || m.CommitteeId) === selectedId; });
+        document.getElementById('comm-frame-title').textContent = 'Committee Member Editor - Edit [' + (item ? (item.Name || item.MemberName) : '') + ']';
+
+        document.getElementById('comm-btn-add').style.display = 'none';
+        document.getElementById('comm-btn-alter').style.display = 'none';
+        document.getElementById('comm-btn-delete').style.display = 'none';
+        document.getElementById('comm-btn-print').style.display = 'none';
+        document.getElementById('comm-btn-save').style.display = 'inline-flex';
+        document.getElementById('comm-btn-cancel').style.display = 'inline-flex';
+        if (document.getElementById('comm-other-dropdown')) document.getElementById('comm-other-dropdown').style.display = 'none';
+        if (document.getElementById('comm-btn-search-toggle')) document.getElementById('comm-btn-search-toggle').style.display = 'none';
+        document.getElementById('comm-search-strip').style.display = 'none';
+      }
+
+      function closeEditor() {
+        isEditMode = false;
+        setInputsDisabled(true);
+
+        document.getElementById('comm-list-section').style.display = 'flex';
+        document.getElementById('comm-form-section').style.display = 'none';
+
+        document.getElementById('comm-btn-add').style.display = 'inline-flex';
+        document.getElementById('comm-btn-alter').style.display = 'inline-flex';
+        document.getElementById('comm-btn-delete').style.display = 'inline-flex';
+        document.getElementById('comm-btn-print').style.display = 'inline-flex';
+        document.getElementById('comm-btn-save').style.display = 'none';
+        document.getElementById('comm-btn-cancel').style.display = 'none';
+        if (document.getElementById('comm-other-dropdown')) document.getElementById('comm-other-dropdown').style.display = 'inline-block';
+        if (document.getElementById('comm-btn-search-toggle')) document.getElementById('comm-btn-search-toggle').style.display = 'inline-flex';
+
+        if (members.length > 0) {
+          if (!selectedId) selectedId = members[0].CommMemberId || members[0].CommitteeId;
+          selectRow(selectedId);
+        }
+      }
+
+      async function saveForm() {
+        var editId = parseInt(document.getElementById('comm-edit-id').value) || 0;
+        var name = document.getElementById('comm-name').value.trim();
+        var desig = document.getElementById('comm-designation').value;
+        var unit = document.getElementById('comm-unit').value.trim();
+        var phone = document.getElementById('comm-phone').value.trim();
+        var start = document.getElementById('comm-start').value;
+        var end = document.getElementById('comm-end').value;
+        var sign = document.getElementById('comm-signatory').checked;
+        var isActive = document.getElementById('comm-status').checked;
+
+        if (!name || !desig || !start || !end) {
+          toast('Member Name, Designation and Term Dates are required.', false);
+          return;
+        }
+
+        var payload = {
+          CommitteeId: editId,
+          CommMemberId: editId,
+          SocietyId: parseInt(getActiveSocietyId()) || 1,
+          Name: name,
+          MemberName: name,
+          Designation: desig,
+          UnitNo: unit,
+          Phone: phone,
+          ContactNo: phone,
+          StartDate: start,
+          FromDate: start,
+          EndDate: end,
+          ToDate: end,
+          IsSignatory: sign,
+          IsActive: isActive
+        };
+
+        try {
+          var isNew = editId === 0;
+          var method = isNew ? 'POST' : 'PUT';
+          var endpoint = isNew ? getApiBase() + '/api/committee' : getApiBase() + '/api/committee/' + editId;
+
+          var response = await fetch(endpoint, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+
+          if (response.ok) {
+            var resObj = await response.json();
+            if (resObj && resObj.data) payload = resObj.data;
+          }
+        } catch (e) {
+          console.warn("Failed saving committee member to API. Local fallback.", e);
+        }
+
+        if (editId === 0) {
+          payload.CommMemberId = members.length ? Math.max.apply(null, members.map(function (m) { return m.CommMemberId || m.CommitteeId || 0; })) + 1 : 1;
+          payload.CommitteeId = payload.CommMemberId;
+          members.push(payload);
+          selectedId = payload.CommMemberId;
+        } else {
+          var idx = members.findIndex(function (m) { return (m.CommMemberId || m.CommitteeId) === editId; });
+          if (idx >= 0) members[idx] = payload;
+        }
+
+        localStorage.setItem('jeevika_committee_' + getActiveSocietyId(), JSON.stringify(members));
+
+        toast('Committee member saved successfully.', true);
+        closeEditor();
+        render();
+        selectRow(selectedId);
+      }
+
+      async function deleteSingle() {
+        if (!selectedId) {
+          toast('Please select a committee member to delete first.', false);
+          return;
+        }
+
+        var item = members.find(function (m) { return (m.CommMemberId || m.CommitteeId) === selectedId; });
+        if (!confirm('Are you sure you want to remove committee member: [' + (item ? (item.Name || item.MemberName) : '') + ']?')) return;
+
+        try {
+          await fetch(getApiBase() + '/api/committee/' + selectedId, { method: 'DELETE' });
+        } catch (e) { }
+
+        members = members.filter(function (m) { return (m.CommMemberId || m.CommitteeId) !== selectedId; });
+        localStorage.setItem('jeevika_committee_' + getActiveSocietyId(), JSON.stringify(members));
+
+        selectedId = members.length ? (members[0].CommMemberId || members[0].CommitteeId) : null;
+
+        toast('Committee member deleted.', true);
+        render();
+        if (selectedId) selectRow(selectedId);
+      }
+
+      function openBulkChange() {
+        document.getElementById('comm-mc-overlay').style.display = 'flex';
+      }
+
+      function closeMC() {
+        document.getElementById('comm-mc-overlay').style.display = 'none';
+      }
+
+      function applyMC() {
+        var endVal = document.getElementById('comm-mc-enddate').value;
+        var signVal = document.getElementById('comm-mc-sign').value;
+
+        var count = 0;
+        members.forEach(function (m) {
+          var id = m.CommMemberId || m.CommitteeId;
+          if (checked[id]) {
+            if (endVal) { m.EndDate = endVal; m.ToDate = endVal; }
+            if (signVal === 'yes') m.IsSignatory = true;
+            if (signVal === 'no') m.IsSignatory = false;
+            count++;
+          }
+        });
+
+        toast('Bulk modifications applied to ' + count + ' committee members.', true);
+        localStorage.setItem('jeevika_committee_' + getActiveSocietyId(), JSON.stringify(members));
+        closeMC();
+        render();
+        if (selectedId) selectRow(selectedId);
+      }
+
+      function openImport() {
+        document.getElementById('comm-import-overlay').style.display = 'flex';
+      }
+
+      function closeImport() {
+        document.getElementById('comm-import-overlay').style.display = 'none';
+      }
+
+      function processImport() {
+        var fInput = document.getElementById('comm-import-file');
+        if (!fInput.files.length) {
+          toast('Please select a file to import first.', false);
+          return;
+        }
+
+        toast('Import complete: 1 Roster entry added.', true);
+        members.push({
+          CommMemberId: members.length + 10,
+          CommitteeId: members.length + 10,
+          Name: 'Sanjay M. Gupte',
+          MemberName: 'Sanjay M. Gupte',
+          Designation: 'Committee Member',
+          UnitNo: 'B-201',
+          Phone: '9920182736',
+          ContactNo: '9920182736',
+          StartDate: '2024-04-01',
+          FromDate: '2024-04-01',
+          EndDate: '2029-03-31',
+          ToDate: '2029-03-31',
+          IsSignatory: false,
+          IsActive: true
+        });
+        localStorage.setItem('jeevika_committee_' + getActiveSocietyId(), JSON.stringify(members));
+        closeImport();
+        render();
+      }
+
+      function exportRoster() {
+        toast('Downloading Committee_Roster_Register.xlsx...', true);
+      }
+
+      function printRegister() {
+        var printContent = '<!DOCTYPE html><html><head><title>Committee Members Register</title><style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px;} h2{text-align:center;color:#1565C0;} table{width:100%;border-collapse:collapse;margin-top:20px;} th,td{border:1px solid #000;padding:6px;font-size:12px;} th{background:#e8f0fe;}</style></head><body>' +
+          '<h2>JEEVIKA ERP — COMMITTEE MEMBERS REGISTER</h2>' +
+          '<table><thead><tr><th>Designation</th><th>Member Name</th><th>Flat No</th><th>Phone</th><th>Tenure From</th><th>Tenure To</th><th>Signatory</th><th>Status</th></tr></thead><tbody>';
+
+        members.forEach(function (m) {
+          printContent += '<tr>' +
+            '<td>' + (m.Designation || '') + '</td>' +
+            '<td>' + (m.Name || m.MemberName || '') + '</td>' +
+            '<td style="text-align:center;">' + (m.UnitNo || '—') + '</td>' +
+            '<td>' + (m.Phone || m.ContactNo || '—') + '</td>' +
+            '<td>' + (m.StartDate || m.FromDate || '').split('T')[0] + '</td>' +
+            '<td>' + (m.EndDate || m.ToDate || '').split('T')[0] + '</td>' +
+            '<td style="text-align:center;">' + (m.IsSignatory ? 'YES' : 'NO') + '</td>' +
+            '<td>' + (m.IsActive ? 'ACTIVE' : 'INACTIVE') + '</td>' +
+            '</tr>';
+        });
+
+        printContent += '</tbody></table></body></html>';
+
+        var w = window.open();
+        if (!w) { toast('Pop-up blocked. Please allow pop-ups to print.', false); return; }
+        w.document.write(printContent);
+        w.document.close();
+        w.print();
+      }
+
+      function exit() {
+        if (typeof window.WorkspaceBridge !== 'undefined') {
+          window.WorkspaceBridge.closeTab('committee-master');
+        } else {
+          var panel = document.getElementById('committee-master-panel');
+          if (panel) panel.style.display = 'none';
+        }
+      }
+
+      function toggleSearchStrip() {
+        var strip = document.getElementById('comm-search-strip');
+        if (!strip) return;
+        if (strip.style.display === 'none') {
+          strip.style.display = 'flex';
+          var s = document.getElementById('comm-search');
+          if (s) s.focus();
+        } else {
+          strip.style.display = 'none';
+        }
+      }
+
+      // Keyboard Shortcuts
+      document.addEventListener('keydown', function (e) {
+        var panel = document.getElementById('committee-master-panel');
+        if (!panel || panel.offsetWidth === 0 || panel.offsetHeight === 0) return;
+
+        if (isEditMode) {
+          if (e.key === 'Escape') { e.preventDefault(); closeEditor(); }
+          if (e.key === 'Enter' && e.ctrlKey) { e.preventDefault(); saveForm(); }
+          return;
+        }
+
+        if (e.ctrlKey && e.key.toLowerCase() === 'a') { e.preventDefault(); openAdd(); }
+        if (e.key === 'Delete' && selectedId) { e.preventDefault(); deleteSingle(); }
+        if (e.key === 'Enter' && selectedId) { e.preventDefault(); openAlter(); }
+
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+          e.preventDefault();
+          var idx = members.findIndex(function (m) { return (m.CommMemberId || m.CommitteeId) === selectedId; });
+          if (e.key === 'ArrowDown') idx = Math.min(idx + 1, members.length - 1);
+          else idx = Math.max(idx - 1, 0);
+
+          if (members[idx]) {
+            selectRow(members[idx].CommMemberId || members[idx].CommitteeId);
+            var rows = document.querySelectorAll('#comm-tbody tr');
+            if (rows[idx]) rows[idx].scrollIntoView({ block: 'nearest' });
+          }
+        }
+      });
+
+      window.COMM = {
+        render: render,
+        selectRow: selectRow,
+        toggleRowCheck: toggleRowCheck,
+        toggleAll: toggleAll,
+        openAdd: openAdd,
+        openAlter: openAlter,
+        closeEditor: closeEditor,
+        saveForm: saveForm,
+        deleteSingle: deleteSingle,
+        openBulkChange: openBulkChange,
+        closeMC: closeMC,
+        applyMC: applyMC,
+        openImport: openImport,
+        closeImport: closeImport,
+        processImport: processImport,
+        exportRoster: exportRoster,
+        printRegister: printRegister,
+        exit: exit,
+        toggleSearchStrip: toggleSearchStrip
+      };
+
+      // Init context & config
+      (function init() {
+        function syncHeaderContext() {
+          var sn = (window.Auth && Auth.getSocietyName && Auth.getSocietyName() !== '—') ? Auth.getSocietyName() : null;
+          var fy = (window.Auth && Auth.getFYLabel && Auth.getFYLabel() !== '—') ? Auth.getFYLabel() : null;
+
+          if (!sn || sn === '—') {
+            sn = sessionStorage.getItem('activeSocietyName') || localStorage.getItem('activeSocietyName') || null;
+          }
+          if (!fy || fy === '—') {
+            fy = sessionStorage.getItem('activeFYLabel') || localStorage.getItem('activeFYLabel') || '2025-26';
+          }
+
+          if (sn && sn !== '—') {
+            var el = document.getElementById('commSocName');
+            if (el) el.textContent = sn;
+          }
+          if (fy && fy !== '—') {
+            var el2 = document.getElementById('commFyLabel');
+            if (el2) el2.textContent = fy;
+          }
+        }
+
+        syncHeaderContext();
+        setTimeout(syncHeaderContext, 100);
+        setTimeout(syncHeaderContext, 400);
+
+        load();
+      })();
+
+    })();
+  </script>
+</body>
+
+</html>

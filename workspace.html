@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en" style="height:100%;overflow:hidden;">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JEEVIKA ERP — Society Accounting System</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="assets/css/global.css">
+  <link rel="stylesheet" href="assets/css/components.css">
+  <style>
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      background-color: #f8fafc;
+    }
+
+    .erp-app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+    }
+
+    /* TOP NAVBAR HEADER */
+    .erp-header {
+      height: 42px;
+      background: #ffffff;
+      border-bottom: 1px solid #cbd5e1;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .erp-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+      font-size: 15px;
+      color: #1565C0;
+      width: 235px;
+      min-width: 235px;
+      padding-right: 16px;
+      border-right: 1px solid #cbd5e1;
+      box-sizing: border-box;
+      flex-shrink: 0;
+    }
+
+    .erp-brand-logo {
+      width: 28px;
+      height: 28px;
+      background: #1565C0;
+      color: #ffffff;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    /* TOP BAR CONTEXT & USER CONTROLS */
+    .erp-soc-header-badge {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #0f172a;
+      background: #f1f5f9;
+      padding: 4px 12px;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      max-width: 360px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex-shrink: 0;
+      margin-left: 16px;
+    }
+
+    .erp-soc-header-badge i {
+      color: #1565C0;
+      font-size: 14px;
+    }
+
+    .erp-header-center {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+    }
+
+    .erp-fy-switcher-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: linear-gradient(135deg, #1565C0 0%, #0d47a1 100%);
+      color: #ffffff;
+      border: none;
+      padding: 5px 14px;
+      border-radius: 6px;
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 1px 3px rgba(21, 101, 192, 0.25);
+      transition: all 0.15s ease;
+    }
+
+    .erp-fy-switcher-btn:hover {
+      background: linear-gradient(135deg, #1976d2 0%, #1565C0 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 3px 6px rgba(21, 101, 192, 0.35);
+    }
+
+    .erp-header-user {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .erp-user-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #334155;
+      background: #f8fafc;
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+    }
+
+    .erp-user-badge i {
+      color: #1565C0;
+      font-size: 14px;
+    }
+
+    .erp-logout-btn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: #fef2f2;
+      color: #dc2626;
+      border: 1px solid #fca5a5;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 10.5px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .erp-logout-btn:hover {
+      background: #dc2626;
+      color: #ffffff;
+      border-color: #dc2626;
+    }
+
+    /* MAIN CONTAINER: SIDEBAR + WORKSPACE */
+    .erp-main-body {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    /* LEFT SIDEBAR (LIGHT ICE BLUE MATCHING SCREENSHOT) */
+    .erp-sidebar {
+      width: 235px;
+      background: #eef6fc;
+      border-right: 1px solid #cbd5e1;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    .erp-sidebar-profile {
+      padding: 12px 14px;
+      border-bottom: 1px solid #d0e3f4;
+      background: #e6f1fb;
+    }
+
+    .erp-soc-sub {
+      font-size: 10px;
+      color: #64748b;
+      font-weight: 600;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .erp-profile-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .erp-profile-icon {
+      width: 32px;
+      height: 32px;
+      background: #1565C0;
+      color: #ffffff;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    .erp-profile-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: #0f172a;
+      line-height: 1.1;
+    }
+
+    .erp-profile-sub {
+      font-size: 10px;
+      color: #64748b;
+      font-weight: 600;
+    }
+
+    .erp-sidebar-menu {
+      flex: 1;
+      overflow-y: auto;
+      padding: 6px 0;
+    }
+
+    .erp-sidebar-menu::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .erp-sidebar-menu::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+
+    /* SIDEBAR ACCORDION HEADERS */
+    .sidebar-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 14px;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #334155;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      border-radius: 4px;
+      margin: 1px 6px;
+    }
+
+    .sidebar-head:hover {
+      background: #dcebf8;
+      color: #1565C0;
+    }
+
+    .sidebar-head.active {
+      background: #d0e4f7;
+      color: #1565C0;
+      font-weight: 800;
+    }
+
+    .sidebar-head-left {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .sidebar-head-left i {
+      font-size: 14px;
+      color: #1565C0;
+    }
+
+    .sidebar-head-arrow {
+      font-size: 10px;
+      color: #64748b;
+      transition: transform 0.2s ease;
+    }
+
+    .sidebar-head.open .sidebar-head-arrow {
+      transform: rotate(90deg);
+      color: #1565C0;
+    }
+
+    /* SIDEBAR CHILD SUBMODULES */
+    .sidebar-sub-group {
+      display: none;
+      flex-direction: column;
+      padding: 2px 0 4px 0;
+      background: #e5f0f9;
+      border-radius: 4px;
+      margin: 2px 6px;
+    }
+
+    .sidebar-sub-group.open {
+      display: flex;
+    }
+
+    .sidebar-sub-item {
+      padding: 5px 12px 5px 36px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #475569;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .sidebar-sub-item:hover {
+      color: #1565C0;
+      background: #d8e8f6;
+      font-weight: 700;
+    }
+
+    .sidebar-sub-item.active {
+      color: #1565C0;
+      background: #cbe0f4;
+      font-weight: 800;
+      border-left: 3px solid #1565C0;
+    }
+
+    /* SIDEBAR NESTED GROUPS (e.g. Debit Note >, Credit Note >, Bill Register >) */
+    .sidebar-nested-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 5px 12px 5px 28px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #1e3a8a;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+    .sidebar-nested-head:hover {
+      background: #d8e8f6;
+      color: #1565C0;
+    }
+    .sidebar-nested-head .nested-arrow {
+      font-size: 9px;
+      color: #64748b;
+      transition: transform 0.2s ease;
+    }
+    .sidebar-nested-head.open .nested-arrow {
+      transform: rotate(90deg);
+      color: #1565C0;
+    }
+    .sidebar-nested-children {
+      display: none;
+      flex-direction: column;
+      padding: 2px 0 2px 8px;
+      margin: 1px 4px 3px 20px;
+      border-left: 2px solid #93c5fd;
+      background: rgba(219, 234, 254, 0.4);
+      border-radius: 0 4px 4px 0;
+    }
+    .sidebar-nested-children.open {
+      display: flex;
+    }
+    .sidebar-nested-item {
+      padding: 4px 10px 4px 12px;
+      font-size: 10.5px;
+      font-weight: 600;
+      color: #475569;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .sidebar-nested-item:hover {
+      color: #1565C0;
+      background: #d8e8f6;
+      font-weight: 700;
+    }
+    .sidebar-nested-item.active {
+      color: #1565C0;
+      background: #cbe0f4;
+      font-weight: 800;
+      border-left: 3px solid #1565C0;
+    }
+
+    /* MAIN CENTER WORKSPACE */
+    .erp-workspace-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: #ffffff;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #moduleFrame {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: #ffffff;
+      display: none;
+    }
+
+    /* CENTER WELCOME CANVAS (MATCHING SCREENSHOT) */
+    #modulePlaceholder {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      background: #f8fafc;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .welcome-logo {
+      width: 60px;
+      height: 60px;
+      background: #1565C0;
+      color: #ffffff;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 30px;
+      font-weight: 800;
+      box-shadow: 0 4px 12px rgba(21, 101, 192, 0.25);
+      margin-bottom: 12px;
+    }
+
+    .welcome-title {
+      font-size: 22px;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .welcome-sub {
+      font-size: 12px;
+      color: #64748b;
+      font-weight: 500;
+      margin-bottom: 18px;
+    }
+
+    .welcome-badge {
+      font-size: 11px;
+      color: #475569;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      padding: 6px 14px;
+      border-radius: 6px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .welcome-kbd {
+      background: #e0f2fe;
+      color: #0369a1;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 700;
+      font-size: 10px;
+    }
+
+    /* FINANCIAL YEAR PICKER MODAL (CUSTOM SOFTWARE DESIGN) */
+    .fy-modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15, 23, 42, 0.55);
+      backdrop-filter: blur(4px);
+      z-index: 10000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      animation: fyFadeIn 0.2s ease-out;
+    }
+    .fy-modal-overlay.show { display: flex; }
+    @keyframes fyFadeIn {
+      from { opacity: 0; transform: scale(0.96); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .fy-modal-container {
+      width: 440px;
+      background: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      border: 1px solid #cbd5e1;
+    }
+    .fy-modal-header {
+      background: linear-gradient(135deg, #000080 0%, #1565C0 100%);
+      color: #ffffff;
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .fy-modal-header h3 {
+      font-size: 13.5px;
+      font-weight: 800;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      letter-spacing: 0.3px;
+    }
+    .fy-modal-close {
+      cursor: pointer;
+      font-size: 16px;
+      color: rgba(255, 255, 255, 0.8);
+      transition: color 0.15s;
+    }
+    .fy-modal-close:hover { color: #ffffff; }
+    .fy-modal-body {
+      padding: 16px;
+      max-height: 340px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .fy-card-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 6px;
+      background: #f8fafc;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .fy-card-item:hover {
+      border-color: #3b82f6;
+      background: #eff6ff;
+      transform: translateY(-1px);
+    }
+    .fy-card-item.active-fy {
+      border-color: #1565C0;
+      background: #ebf5ff;
+      box-shadow: 0 2px 8px rgba(21, 101, 192, 0.15);
+    }
+    .fy-card-left {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .fy-card-label {
+      font-size: 13px;
+      font-weight: 800;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .fy-card-dates {
+      font-size: 11px;
+      color: #64748b;
+      font-weight: 500;
+    }
+    .fy-card-badge {
+      font-size: 9.5px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+    .fy-card-badge.current {
+      background: #dcfce7;
+      color: #15803d;
+      border: 1px solid #86efac;
+    }
+    .fy-card-badge.closed {
+      background: #f1f5f9;
+      color: #64748b;
+      border: 1px solid #cbd5e1;
+    }
+    .fy-modal-footer {
+      padding: 10px 16px;
+      background: #f8fafc;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: flex-end;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="erp-app">
+
+    <!-- ── TOP NAVIGATION BAR ─────────────────────────────────── -->
+    <header class="erp-header">
+      <div class="erp-brand">
+        <div class="erp-brand-logo">J</div>
+        <span>JEEVIKA ERP</span>
+      </div>
+
+      <div class="erp-soc-header-badge" title="Active Society">
+        <i class="bi bi-building"></i>
+        <span id="topSocietyName">JEEVIKA SOCIETY</span>
+      </div>
+
+      <div class="erp-header-center">
+        <button type="button" class="erp-fy-switcher-btn" onclick="toggleFYPicker()" title="Click to switch Financial Year">
+          <i class="bi bi-calendar3"></i>
+          <span>F.Y. <strong id="topFYLabel">—</strong></span>
+          <i class="bi bi-chevron-down" style="font-size: 10px; margin-left: 2px;"></i>
+        </button>
+      </div>
+
+      <div class="erp-header-user">
+        <div class="erp-user-badge">
+          <i class="bi bi-person-circle"></i>
+          <span id="topUser">ADMIN</span>
+        </div>
+        <button type="button" class="erp-logout-btn" onclick="doLogout()" title="Logout of Session">
+          <i class="bi bi-box-arrow-right"></i>
+          <span>LOGOUT</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- ── MAIN BODY: SIDEBAR + WORKSPACE ─────────────────────── -->
+    <div class="erp-main-body">
+
+      <!-- LEFT SIDEBAR -->
+      <aside class="erp-sidebar">
+        <div class="erp-sidebar-profile">
+          <div class="erp-soc-sub"><i class="bi bi-building"></i> <span id="sideSocSub">Society Master</span></div>
+          <div class="erp-profile-box">
+            <div class="erp-profile-icon">J</div>
+            <div>
+              <div class="erp-profile-title" id="sideProfileSocName">jeevika</div>
+              <div class="erp-profile-sub">accounting</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="erp-sidebar-menu" id="sidebarMenu">
+          <!-- Accordion tree populated by workspace.js -->
+        </div>
+      </aside>
+
+      <!-- CENTER MAIN WORKSPACE -->
+      <main class="erp-workspace-main">
+
+        <!-- RECENT OPEN MODULE TABS STRIP (TOP) -->
+        <div class="d-flex align-center gap-4"
+          style="background:#F1F5F9; border-bottom:2px solid #1565C0; padding:4px 8px 0 8px; min-height:34px; flex-shrink:0; overflow-x:auto;"
+          id="openTabsStrip">
+          <!-- Open tabs inserted here -->
+        </div>
+
+        <!-- MODULE CONTENT IFRAME -->
+        <iframe id="moduleFrame" title="Module Content"></iframe>
+
+        <!-- CENTER WELCOME CANVAS (MATCHING SCREENSHOT) -->
+        <div id="modulePlaceholder">
+          <div class="welcome-logo">J</div>
+          <div class="welcome-title">JEEVIKA ERP</div>
+          <div class="welcome-sub">Select a module from the menu or sidebar to get started.</div>
+          <div class="welcome-badge">
+            Quick Access: Use <span class="welcome-kbd">Alt+R</span> for Receipt, <span class="welcome-kbd">Alt+M</span>
+            for Member Master
+          </div>
+        </div>
+
+      </main>
+    </div>
+
+    <!-- ── FOOTER STATUSBAR ────────────────────────────────────── -->
+    <footer class="erp-statusbar">
+      <div class="d-flex align-center gap-12">
+        <div>Society: <strong id="sbSocName" style="color:#1565C0;">—</strong></div>
+        <div>FY: <strong id="sbFYLabel" onclick="toggleFYPicker()" style="cursor:pointer; color:#1565C0; text-decoration:underline;" title="Click to switch Financial Year">—</strong></div>
+        <div>User: <strong id="sbUserName">ADMIN</strong></div>
+        <div id="sbClock">16:12:32</div>
+      </div>
+
+      <div class="d-flex align-center gap-6">
+        <span class="erp-badge erp-badge-success">● READY</span>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- ── CUSTOM SOFTWARE FINANCIAL YEAR MODAL ────────────────── -->
+  <div class="fy-modal-overlay" id="fyPickerModal" onclick="closeFYPicker(event)">
+    <div class="fy-modal-container" onclick="event.stopPropagation()">
+      <div class="fy-modal-header">
+        <h3><i class="bi bi-calendar3"></i> SELECT FINANCIAL YEAR</h3>
+        <i class="bi bi-x-lg fy-modal-close" onclick="closeFYPicker()"></i>
+      </div>
+      <div class="fy-modal-body" id="fyModalList">
+        <!-- Dynamic FY Cards inserted here -->
+      </div>
+      <div class="fy-modal-footer">
+        <button class="cmd-btn" onclick="closeFYPicker()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="config.js?v=20260827_99"></script>
+  <script src="assets/js/api.js?v=20260827_99"></script>
+  <script src="assets/js/auth.js?v=20260827_99"></script>
+  <script src="assets/js/workspace.js?v=20260827_99"></script>
+  <script src="assets/js/workspace-bridge.js?v=20260827_99"></script>
+  <script>
+    function updateHeaderAndFooterContext() {
+      let socName = (window.Auth && typeof Auth.getSocietyName === 'function') ? Auth.getSocietyName() : null;
+      if (!socName || socName === '—') {
+        socName = sessionStorage.getItem('activeSocietyName') || localStorage.getItem('activeSocietyName') || 'JEEVIKA SOCIETY';
+      }
+
+      let fyLabel = (window.Auth && typeof Auth.getFYLabel === 'function') ? Auth.getFYLabel() : null;
+      if (!fyLabel || fyLabel === '—') {
+        fyLabel = sessionStorage.getItem('activeFYLabel') || localStorage.getItem('activeFYLabel') || '2024-2025';
+      }
+
+      let userName = (window.Auth && typeof Auth.getUserName === 'function') ? Auth.getUserName() : null;
+      if (!userName) {
+        userName = sessionStorage.getItem('userName') || localStorage.getItem('userName') || 'ADMIN';
+      }
+
+      const topSoc = document.getElementById('topSocietyName');
+      if (topSoc) topSoc.textContent = socName;
+      const topFY = document.getElementById('topFYLabel');
+      if (topFY) topFY.textContent = fyLabel;
+      const topUser = document.getElementById('topUser');
+      if (topUser) topUser.textContent = userName;
+
+      const sbSoc = document.getElementById('sbSocName');
+      if (sbSoc) sbSoc.textContent = socName;
+      const sbFY = document.getElementById('sbFYLabel');
+      if (sbFY) sbFY.textContent = fyLabel;
+      const sbUser = document.getElementById('sbUserName');
+      if (sbUser) sbUser.textContent = userName;
+
+      const sideSoc = document.getElementById('sideSocSub');
+      if (sideSoc) sideSoc.textContent = socName || 'Society Master';
+      const sideProf = document.getElementById('sideProfileSocName');
+      if (sideProf) sideProf.textContent = socName || 'jeevika';
+    }
+
+    (function () {
+      if (!Auth.requireContext()) return;
+      updateHeaderAndFooterContext();
+    })();
+
+    async function toggleFYPicker() {
+      const modal = document.getElementById('fyPickerModal');
+      const bodyEl = document.getElementById('fyModalList');
+      if (!modal || !bodyEl) return;
+
+      const socId = Auth.getSocietyId();
+      if (!socId) return;
+
+      bodyEl.innerHTML = '<div style="text-align:center; padding:20px; color:#64748b; font-weight:600;"><i class="bi bi-arrow-repeat spin"></i> Loading Financial Years...</div>';
+      modal.classList.add('show');
+
+      try {
+        const res = await API.get('/api/financial-years?societyId=' + socId);
+        if (res && res.data && res.data.length > 0) {
+          const list = res.data;
+          const currentLabel = Auth.getFYLabel();
+
+          bodyEl.innerHTML = list.map(f => {
+            const isActive = f.fYLabel === currentLabel;
+            const statusBadge = isActive 
+              ? '<span class="fy-card-badge current">ACTIVE</span>'
+              : (f.isClosed ? '<span class="fy-card-badge closed">CLOSED</span>' : '');
+
+            return `
+              <div class="fy-card-item ${isActive ? 'active-fy' : ''}" onclick="selectFYFromModal(${f.fYId}, '${f.fYLabel}', '${f.fYStart}', '${f.fYEnd}')">
+                <div class="fy-card-left">
+                  <div class="fy-card-label">
+                    <i class="bi ${isActive ? 'bi-check-circle-fill' : 'bi-circle'}" style="color:${isActive ? '#1565C0' : '#94a3b8'};"></i>
+                    F.Y. ${f.fYLabel}
+                    ${statusBadge}
+                  </div>
+                  <div class="fy-card-dates">Period: ${formatDateDisplay(f.fYStart)} to ${formatDateDisplay(f.fYEnd)}</div>
+                </div>
+                <i class="bi bi-chevron-right" style="color:#94a3b8; font-size:14px;"></i>
+              </div>
+            `;
+          }).join('');
+        } else {
+          bodyEl.innerHTML = '<div style="text-align:center; padding:20px; color:#ef4444; font-weight:600;">No Financial Years Found.</div>';
+        }
+      } catch (e) {
+        console.error('FY fetch error:', e);
+        bodyEl.innerHTML = '<div style="text-align:center; padding:20px; color:#ef4444; font-weight:600;">Error loading financial years.</div>';
+      }
+    }
+
+    function selectFYFromModal(fyId, fyLabel, fyStart, fyEnd) {
+      closeFYPicker();
+      WorkspaceManager.setActiveFY(fyId, fyLabel, fyStart, fyEnd);
+    }
+
+    function closeFYPicker(e) {
+      if (e && e.target !== document.getElementById('fyPickerModal')) return;
+      const modal = document.getElementById('fyPickerModal');
+      if (modal) modal.classList.remove('show');
+    }
+
+    function formatDateDisplay(dStr) {
+      if (!dStr) return '—';
+      try {
+        const d = new Date(dStr);
+        return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+      } catch(_) { return dStr; }
+    }
+
+    function doLogout() {
+      if (confirm('Are you sure you want to log out?')) {
+        Auth.logout();
+      }
+    }
+
+    function startClock() {
+      setInterval(() => {
+        const now = new Date();
+        document.getElementById('sbClock').textContent = now.toLocaleTimeString();
+      }, 1000);
+    }
+    startClock();
+
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.location.protocol === 'file:') {
+        const banner = document.createElement('div');
+        banner.id = 'fileProtocolBanner';
+        banner.style.cssText = 'background:#FFF3CD; color:#856404; border-bottom:1px solid #FFEEBA; padding:4px 16px; font-size:11px; font-weight:600; display:flex; align-items:center; justify-content:space-between; flex-shrink:0; z-index:9999;';
+        banner.innerHTML = `
+          <span><i class="bi bi-exclamation-triangle-fill" style="margin-right:6px;color:#D97706;"></i> Opened via file:// protocol. Local storage & frame origins are restricted by browser security policies.</span>
+          <a href="http://localhost:5002/workspace.html" style="background:#856404; color:#FFF; padding:2px 8px; border-radius:3px; text-decoration:none; font-size:10px; font-weight:bold;">
+            Open via HTTP (http://localhost:5002) ➔
+          </a>
+        `;
+        const app = document.querySelector('.erp-app');
+        if (app) app.insertBefore(banner, app.firstChild);
+      }
+      WorkspaceManager.init();
+    });
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,559 @@
+/* ═══════════════════════════════════════════════════════════
+   JEEVIKA ERP v2 — MEMBER MASTER CSS
+   Clean, flat ERP Theme — Matching Reference Screenshots & Aesthetics
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Module Canvas ───────────────────────────────────────── */
+.mm-canvas {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background: #f8fafc;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 11px;
+  color: #1e293b;
+}
+
+/* ── Module Header ───────────────────────────────────────── */
+.mm-header {
+  background: #ffffff;
+  padding: 6px 14px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mm-header h2 {
+  font-size: 14px;
+  font-weight: 800;
+  margin: 0;
+  color: #0f172a;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.mm-header-sub {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 1px;
+}
+
+.mm-header-tag {
+  font-size: 11px;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+/* ── Command Strip ───────────────────────────────────────── */
+.mm-cmd-strip {
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 5px 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── Search Strip ────────────────────────────────────────── */
+.mm-search-strip {
+  background: #f1f5f9;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 5px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ── Buttons ─────────────────────────────────────────────── */
+.mm-btn {
+  height: 26px;
+  padding: 0 12px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  transition: all 0.12s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+}
+
+.mm-btn:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.mm-btn-danger {
+  color: #dc2626;
+  border-color: #fca5a5;
+  background: #fff5f5;
+}
+
+.mm-btn-danger:hover {
+  background: #dc2626;
+  color: #ffffff;
+  border-color: #dc2626;
+}
+
+.mm-btn-hidden {
+  display: none !important;
+}
+
+.mm-sep {
+  border-right: 1px solid #e2e8f0;
+  height: 18px;
+  margin: 0 4px;
+}
+
+/* ── Inputs / Selects ────────────────────────────────────── */
+.mm-input,
+.mm-select {
+  height: 26px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  padding: 0 8px;
+  font-size: 11px;
+  font-family: inherit;
+  background: #ffffff;
+  color: #1e293b;
+  outline: none;
+  transition: border-color 0.12s, box-shadow 0.12s;
+  box-sizing: border-box;
+}
+
+.mm-input:focus,
+.mm-select:focus {
+  border-color: #1565C0;
+  box-shadow: 0 0 0 2px rgba(21,101,192,0.12);
+}
+
+.mm-input::placeholder {
+  color: #94a3b8;
+}
+
+.mm-input[disabled],
+.mm-select[disabled],
+.mm-input[readonly] {
+  background: #f1f5f9;
+  color: #64748b;
+  cursor: not-allowed;
+}
+
+/* Currency Input Wrapper */
+.mm-currency-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.mm-currency-wrapper span {
+  position: absolute;
+  left: 8px;
+  color: #64748b;
+  font-size: 11px;
+  pointer-events: none;
+}
+
+.mm-currency-wrapper input {
+  padding-left: 20px !important;
+  text-align: right;
+}
+
+/* ── Main Workspace ──────────────────────────────────────── */
+.mm-workspace {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+  background: #f8fafc;
+  padding: 8px 12px;
+}
+
+/* ── List View Grid ──────────────────────────────────────── */
+#mm-list-state {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.mm-grid {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: auto;
+  min-height: 0;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  background: #ffffff;
+}
+
+.mm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.mm-table thead tr {
+  background: #1565C0;
+  color: #ffffff;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.mm-table th {
+  padding: 7px 10px;
+  text-align: left;
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  border-right: 1px solid rgba(255,255,255,0.15);
+  white-space: nowrap;
+}
+
+.mm-table tbody tr {
+  border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.mm-table tbody tr:hover {
+  background: #e0f2fe;
+}
+
+.mm-table tbody tr.selected {
+  background: #bae6fd !important;
+  color: #0f172a !important;
+}
+
+.mm-table tbody tr.selected td {
+  background: #bae6fd !important;
+  color: #0f172a !important;
+  font-weight: 600;
+}
+
+.mm-table td {
+  padding: 6px 10px;
+  font-size: 11px;
+  border-right: 1px solid #f1f5f9;
+  color: #1e293b;
+}
+
+/* ── Form State ──────────────────────────────────────────── */
+#mm-form-state {
+  display: none;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+}
+
+/* ── Form Title Banner ───────────────────────────────────── */
+.mm-form-title-bar {
+  background: #ffffff;
+  padding: 6px 12px;
+  border-bottom: 1px solid #cbd5e1;
+  font-weight: 800;
+  font-size: 11px;
+  color: #1565C0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ── Form Tab Headers ────────────────────────────────────── */
+.mm-tabs-header {
+  display: flex;
+  background: #ffffff;
+  border-bottom: 1px solid #cbd5e1;
+  overflow-x: auto;
+  padding-left: 6px;
+}
+
+.mm-tab-btn {
+  padding: 8px 14px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #64748b;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  text-transform: uppercase;
+  transition: all 0.12s;
+  letter-spacing: 0.3px;
+}
+
+.mm-tab-btn:hover {
+  color: #1565C0;
+}
+
+.mm-tab-btn.active {
+  color: #1565C0;
+  border-bottom-color: #1565C0;
+  background: #ffffff;
+}
+
+.mm-tab-btn.mm-tab-hidden {
+  display: none !important;
+}
+
+.mm-tabs-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  min-height: 0;
+  background: #f8fafc;
+}
+
+.mm-tab-page {
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mm-tab-page.active {
+  display: flex;
+}
+
+/* ── Frame / Section Card (Clean Modern Flat Border Title) ── */
+.mm-frame {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 10px 14px;
+  position: relative;
+  margin-top: 4px;
+}
+
+.mm-frame-title {
+  font-size: 10px;
+  font-weight: 800;
+  color: #1565C0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Special Light Blue Frame for Opening Balances */
+.mm-frame-blue {
+  background: #eff6ff !important;
+  border-color: #93c5fd !important;
+}
+
+.mm-frame-blue .mm-frame-title {
+  color: #1d4ed8 !important;
+}
+
+/* Labels inside frames */
+.mm-frame label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #334155;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  margin: 0;
+}
+
+/* Document Upload Preview Box */
+.mm-doc-preview-box {
+  width: 100%;
+  height: 110px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 600;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.mm-doc-preview-box img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+/* ── Dialog Popups ───────────────────────────────────────── */
+.mm-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.35);
+  z-index: 99999;
+  align-items: center;
+  justify-content: center;
+}
+
+.mm-dialog {
+  width: 400px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  overflow: hidden;
+}
+
+.mm-dialog-title {
+  background: #1565C0;
+  color: #ffffff;
+  font-weight: 700;
+  padding: 8px 12px;
+  font-size: 11px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mm-dialog-title button {
+  background: none;
+  border: none;
+  color: #ffffff;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.mm-dialog-body {
+  padding: 16px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: #ffffff;
+}
+
+.mm-dialog-body i {
+  font-size: 24px;
+  color: #1565C0;
+  flex-shrink: 0;
+}
+
+.mm-dialog-body i.err {
+  color: #dc2626;
+}
+
+.mm-dialog-msg {
+  font-size: 12px;
+  color: #1e293b;
+  word-break: break-word;
+  line-height: 1.5;
+}
+
+.mm-dialog-footer {
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  padding: 8px 12px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+/* ── Tab 8: Bill Breakup Pills & UI ──────────────────────── */
+.mm-bb-pill-container {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+}
+
+.mm-bb-pill {
+  padding: 5px 18px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  transition: all 0.15s ease;
+  outline: none;
+  font-family: inherit;
+}
+
+.mm-bb-pill:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: #94a3b8;
+}
+
+.mm-bb-pill.active {
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #0284c7;
+  box-shadow: 0 1px 3px rgba(2, 132, 199, 0.35);
+}
+
+/* ── Tab 3: Parking Slot & RC Upload Controls ────────────── */
+.mm-rc-action-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mm-btn-icon {
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  border-radius: 3px;
+  cursor: pointer;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #1e293b;
+  transition: all 0.12s ease;
+}
+
+.mm-btn-icon:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.mm-btn-danger-outline {
+  border-color: #ef4444 !important;
+  color: #ef4444 !important;
+  background: #ffffff !important;
+}
+
+.mm-btn-danger-outline:hover {
+  background: #fee2e2 !important;
+  border-color: #dc2626 !important;
+  color: #dc2626 !important;
+}
+
+.mm-park-row {
+  display: grid;
+  grid-template-columns: 130px 140px 130px 180px 100px 100px 80px auto;
+  gap: 6px 12px;
+  align-items: center;
+  padding: 2px 0;
+}

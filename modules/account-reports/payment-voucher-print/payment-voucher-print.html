@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Voucher Print — JEEVIKA ERP</title>
+  <script src="../../../config.js"></script>
+  <link rel="stylesheet" href="../../../assets/css/global.css">
+  <link rel="stylesheet" href="../../../assets/css/components.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body class="erp-module">
+  <div class="erp-module-header">
+    <div>
+      <div class="erp-module-title">Payment Voucher (Print / PDF)</div>
+      
+    </div>
+    <button class="erp-btn erp-btn-primary" onclick="window.print()"><i class="bi bi-printer"></i> Print Voucher</button>
+  </div>
+
+  <div class="erp-module-body" style="display:flex;justify-content:center;padding:20px;">
+    <div style="width:100%;max-width:680px;background:white;border:2px solid var(--brd-dark);padding:24px;" class="print-container">
+      <div class="text-center mb-12">
+        <h2 style="font-size:18px;color:var(--clr-navy);margin:0;" id="pSocName">SAI RAM CO-OP HOUSING SOCIETY LTD.</h2>
+        <p style="font-size:11px;color:var(--txt-secondary);" id="pSocAddr">Mumbai - 400067</p>
+        <h3 style="font-size:14px;margin-top:10px;text-decoration:underline;">PAYMENT VOUCHER</h3>
+      </div>
+
+      <table class="erp-table mb-12" style="border:none;">
+        <tr>
+          <td><strong>Voucher No:</strong> <span id="pVNo">PV-0001</span></td>
+          <td class="text-right"><strong>Date:</strong> <span id="pVDate">01/04/2025</span></td>
+        </tr>
+        <tr>
+          <td><strong>Paid To:</strong> <span id="pPayee">Shree Sai Security Agency</span></td>
+          <td class="text-right"><strong>Mode / Chq No:</strong> <span id="pChqNo">000123</span></td>
+        </tr>
+      </table>
+
+      <table class="erp-table striped mb-12" style="border:1px solid var(--brd-mid-dark);">
+        <thead>
+          <tr>
+            <th>Debit Account Particulars</th>
+            <th class="text-right" style="width:120px;">Amount (₹)</th>
+          </tr>
+        </thead>
+        <tbody id="pBody">
+          <tr>
+            <td>Security Charges Expense Account</td>
+            <td class="td-num text-bold">25,000.00</td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr style="font-weight:bold;background:var(--clr-face);">
+            <td>Total Amount Paid:</td>
+            <td class="td-num text-navy" id="pTotalAmt">25,000.00</td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <div class="mb-16" style="font-size:11px;line-height:1.5;">
+        <strong>Amount in words:</strong> <span id="pWords" class="text-bold">Rupees Twenty Five Thousand Only</span><br>
+        <strong>Narration:</strong> <span id="pNarr">Being monthly security guard charges paid for March 2025.</span>
+      </div>
+
+      <div class="d-flex justify-between align-end mt-40" style="padding-top:40px;font-size:11px;">
+        <div class="text-center" style="width:140px;border-top:1px solid black;padding-top:4px;">Prepared By</div>
+        <div class="text-center" style="width:140px;border-top:1px solid black;padding-top:4px;">Passed By / Treasurer</div>
+        <div class="text-center" style="width:140px;border-top:1px solid black;padding-top:4px;">Receiver's Signature</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../../../assets/js/api.js"></script>
+  <script src="../../../assets/js/auth.js"></script>
+  <script src="../../../assets/js/utils.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!Auth.requireContext()) return;
+      document.getElementById('socName').textContent  = Auth.getSocietyName();
+      document.getElementById('pSocName').textContent = Auth.getSocietyName();
+    });
+  </script>
+</body>
+</html>

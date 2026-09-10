@@ -147,10 +147,10 @@
       </div>
       <div style="display:flex; align-items:center; gap:6px;">
         <span style="font-size:10px; font-weight:800; color:#475569;">TRANSACTION TYPE</span>
-        <select class="form-sel" id="flt-txntype" onchange="renderList()" style="width:110px;">
-          <option value="">-- All --</option>
-          <option value="Receipt">Receipts</option>
-          <option value="Payment">Payments</option>
+        <select class="form-sel" id="flt-txntype" onchange="renderList()" style="width:125px;">
+          <option value="">-- All Types --</option>
+          <option value="Receipt">Receipts (Dr)</option>
+          <option value="Payment">Payments (Cr)</option>
         </select>
       </div>
       <div style="display:flex; align-items:center; gap:6px;">
@@ -218,8 +218,8 @@
               <tr>
                 <th style="width:105px;">CLEARING DATE</th>
                 <th style="width:95px;">DATE</th>
-                <th style="width:110px; text-align:right;">DEBIT</th>
-                <th style="width:110px; text-align:right;">CREDIT</th>
+                <th style="width:120px; text-align:right;" title="ERP Books: Bank Debit (Receipts/Inflow) | Statement: Bank Credit (Deposits)">DEBIT (RECEIPTS)</th>
+                <th style="width:120px; text-align:right;" title="ERP Books: Bank Credit (Payments/Outflow) | Statement: Bank Debit (Withdrawals)">CREDIT (PAYMENTS)</th>
                 <th style="width:70px;">TYPE</th>
                 <th style="width:80px;">NO.</th>
                 <th style="width:110px;">MEMBER CODE</th>
@@ -239,11 +239,11 @@
 
         <!-- SUMMARY FOOTER BAR (MATCHING IMAGE 1) -->
         <div style="background:#e2e8f0; border-top:1px solid #cbd5e1; padding:6px 14px; display:flex; gap:20px; align-items:center; font-size:11px; font-weight:700; color:#1e293b;">
-          <span>Total Debit: <span style="color:#0D47A1;" id="sum-tot-dr">₹0.00</span></span>
-          <span>Total Credit: <span style="color:#0D47A1;" id="sum-tot-cr">₹0.00</span></span>
-          <span>Cleared: <span style="color:#2E7D32;" id="sum-cleared">₹0.00</span></span>
-          <span>Uncleared: <span style="color:#dc2626;" id="sum-uncleared">₹0.00</span></span>
-          <span>Diff: <span style="color:#0D47A1;" id="sum-diff">₹0.00</span></span>
+          <span>Total Debit (Receipts): <span style="color:#2E7D32;" id="sum-tot-dr">₹0.00</span></span>
+          <span>Total Credit (Payments): <span style="color:#dc2626;" id="sum-tot-cr">₹0.00</span></span>
+          <span>Cleared: <span style="color:#0D47A1;" id="sum-cleared">₹0.00</span></span>
+          <span>Uncleared: <span style="color:#d97706;" id="sum-uncleared">₹0.00</span></span>
+          <span>Net Books Balance: <span style="color:#0D47A1;" id="sum-diff">₹0.00</span></span>
         </div>
       </div>
 
@@ -329,6 +329,27 @@
     <div style="padding:8px 12px; background:#f8fafc; border-top:1px solid #cbd5e1; display:flex; justify-content:flex-end; gap:8px;">
       <button class="btn-tb-outline" onclick="closeModal('modal-multi-clear')" style="color:#334155;">Cancel</button>
       <button class="btn-tb-blue" onclick="runMultiClear()" style="background:#2E7D32;">Process</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: MULTI UNCLEAR -->
+<div id="modal-multi-unclear" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
+  <div style="background:#FFF; border-radius:6px; width:380px; overflow:hidden; box-shadow:0 4px 15px rgba(0,0,0,0.3);">
+    <div style="background:#C62828; color:#FFF; padding:8px 12px; font-weight:800; font-size:12px; display:flex; justify-content:space-between; align-items:center;">
+      <span><i class="bi bi-arrow-counterclockwise"></i> MULTI UNCLEARED ENTRIES</span>
+      <span onclick="closeModal('modal-multi-unclear')" style="cursor:pointer;">&times;</span>
+    </div>
+    <div style="padding:12px; display:flex; flex-direction:column; gap:8px;">
+      <div style="display:flex; gap:8px;">
+        <div style="flex:1;"><label style="font-size:10px; font-weight:800;">From Voucher No</label><input type="text" class="form-inp" id="muc-from"></div>
+        <div style="flex:1;"><label style="font-size:10px; font-weight:800;">To Voucher No</label><input type="text" class="form-inp" id="muc-to"></div>
+      </div>
+      <div style="font-size:11px; color:#64748b;">This will reset clearing dates for vouchers in the specified range back to Uncleared.</div>
+    </div>
+    <div style="padding:8px 12px; background:#f8fafc; border-top:1px solid #cbd5e1; display:flex; justify-content:flex-end; gap:8px;">
+      <button class="btn-tb-outline" onclick="closeModal('modal-multi-unclear')" style="color:#334155;">Cancel</button>
+      <button class="btn-tb-blue" onclick="runMultiUnclear()" style="background:#C62828;">Unclear Entries</button>
     </div>
   </div>
 </div>

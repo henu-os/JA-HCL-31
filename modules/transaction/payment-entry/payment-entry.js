@@ -657,7 +657,7 @@
       html += '<option value="' + a.accountId + '">' + escHtml((a.accCode || '') + ' - ' + (a.accName || '')) + '</option>';
     });
     if (html === '') {
-      html = isBank ? '<option value="3002">ASS-1002 - The M.D C.C. Bank A/C No.</option>' : '<option value="3001">ASS-1001 - Cash in Hand</option>';
+      html = isBank ? '<option value="">— No Bank Account Found —</option>' : '<option value="">— No Cash Account Found —</option>';
     }
     sel.innerHTML = html;
   };
@@ -1002,8 +1002,9 @@
     if (amt <= 0) { toast('Please enter a valid Entry Amount.', false); return; }
 
     var accObj = accounts.find(function (a) { return String(a.accountId) === String(accId); });
-    var accCode = accObj ? accObj.accCode : 'EXP-5001';
-    var accName = accObj ? accObj.accName : 'Elevator Maintenance Charges';
+    if (!accObj) { toast('Selected account not found in current society chart of accounts.', false); return; }
+    var accCode = accObj.accCode || '';
+    var accName = accObj.accName || '';
 
     gridRows.push({
       sr: gridRows.length + 1,
@@ -1036,6 +1037,54 @@
     return false;
   }
 
+  window.quickApplyTds = function (rate) {
+    var grossDr = gridRows.reduce(function (s, r) { return s + (parseFloat(r.dr) || 0); }, 0);
+    if (grossDr <= 0) {
+      grossDr = parseFloat(document.getElementById('entry-amount').value) || 0;
+    }
+    if (grossDr <= 0) {
+      toast('Please enter or add an expense/party Debit line first before calculating TDS.', false);
+      return;
+    }
+
+    var tdsRate = parseFloat(rate) || 1;
+    var tdsAmt = Math.round(grossDr * (tdsRate / 100) * 100) / 100;
+    if (tdsAmt <= 0) {
+      toast('TDS amount must be greater than 0.', false);
+      return;
+    }
+
+    var tdsAcc = accounts.find(function (a) { 
+      return (a.accCode && a.accCode.toUpperCase() === 'LIA-1008') || 
+             (a.accName && a.accName.toLowerCase().includes('tds payable')); 
+    });
+
+    var code = tdsAcc ? tdsAcc.accCode : 'LIA-1008';
+    var name = tdsAcc ? tdsAcc.accName : 'TDS Payable';
+
+    var existingIdx = gridRows.findIndex(function (r) { 
+      return (r.code && r.code.toUpperCase() === 'LIA-1008') || 
+             (r.name && r.name.toLowerCase().includes('tds payable')); 
+    });
+
+    if (existingIdx >= 0) {
+      gridRows[existingIdx].cr = tdsAmt;
+    } else {
+      gridRows.push({
+        sr: gridRows.length + 1,
+        code: code,
+        name: name,
+        dr: 0,
+        cr: tdsAmt,
+        particulars: 'TDS @ ' + tdsRate + '% on ' + grossDr.toFixed(2)
+      });
+    }
+
+    renderGridTable();
+    var netPay = Math.max(0, grossDr - tdsAmt);
+    toast('Applied ' + tdsRate + '% TDS (₹' + tdsAmt.toFixed(2) + '). Net Bank Outflow: ₹' + netPay.toFixed(2), true);
+  };
+
   function updateGridTotals() {
     var totDr = 0;
     var totCr = 0;
@@ -1047,9 +1096,29 @@
     if (elDr) elDr.textContent = totDr.toFixed(2);
     var elCr = document.getElementById('grid-tot-cr');
     if (elCr) elCr.textContent = totCr.toFixed(2);
-    var diff = totDr - totCr;
+    var diff = Math.round((totDr - totCr) * 100) / 100;
     var elNet = document.getElementById('grid-net-bal');
-    if (elNet) elNet.textContent = Math.abs(diff).toFixed(2) + (diff >= 0 ? ' Dr' : ' Cr');
+    var elStatusLbl = document.getElementById('grid-status-label');
+
+    if (elNet) {
+      if (diff > 0.01) {
+        if (elStatusLbl) elStatusLbl.textContent = 'Net Bank/Cash Outflow Needed:';
+        elNet.textContent = '₹' + diff.toFixed(2) + ' (Cr to Bank)';
+        elNet.style.color = '#0D47A1';
+      } else if (diff < -0.01) {
+        if (elStatusLbl) elStatusLbl.textContent = 'Credits exceed Debits:';
+        elNet.textContent = '₹' + Math.abs(diff).toFixed(2) + ' (Unbalanced)';
+        elNet.style.color = '#dc2626';
+      } else if (totDr > 0) {
+        if (elStatusLbl) elStatusLbl.textContent = 'Double-Entry Status:';
+        elNet.textContent = '✓ BALANCED (₹' + totDr.toFixed(2) + ')';
+        elNet.style.color = '#15803d';
+      } else {
+        if (elStatusLbl) elStatusLbl.textContent = 'Net Balance:';
+        elNet.textContent = '0.00';
+        elNet.style.color = '#0D47A1';
+      }
+    }
   }
 
   function findAccountByCodeOrName(val, list) {
@@ -1333,15 +1402,52 @@
         }
       }
 
-      if (loadedItems && loadedItems.length > 0) {
-        // Filter out withdrawal line (credit line) for user grid
-        var debitLines = loadedItems.filter(function(r) { return (parseFloat(r.debit || r.dr) || 0) > 0; });
-        var linesToMap = debitLines.length > 0 ? debitLines : loadedItems;
-        gridRows = linesToMap.map(function (r, i) {
+      // Helper to identify Cash & Bank Asset accounts
+      function isCashBankAcc(item) {
+        if (!item) return false;
+        var code = String(item.accountCode || item.code || '').trim().toUpperCase();
+        var name = String(item.accountName || item.name || '').trim().toLowerCase();
+        if (code.startsWith('ASS-1001') || code.startsWith('ASS-1002') || code.startsWith('ASS-1003') || code.startsWith('ASS-1004') || code.startsWith('ASS-1005')) return true;
+        if (name.includes('cash in hand') || name.includes('bank a/c') || name.includes('bank account') || name.includes('current a/c') || name.includes('saving a/c')) return true;
+        var found = (accounts || []).find(function(a) {
+          return (item.accountId && a.accountId === item.accountId) ||
+                 (code && String(a.accCode || '').toUpperCase() === code) ||
+                 (name && String(a.accName || '').toLowerCase() === name);
+        });
+        if (found) {
+          var isAsset = (found.grpMainId === 1) || String(found.mainGroup || '').toLowerCase() === 'asset';
+          var grp = String(found.groupName || found.grpPrimaryName || '').toLowerCase();
+          var isCBGrp = grp.includes('cash & bank') || grp.includes('cash and bank') || grp.includes('bank account') || grp.includes('cash-in-hand') || grp.includes('cash in hand');
+          return isAsset && isCBGrp;
+        }
+        return false;
+      }
+
+      var allItems = (loadedItems && loadedItems.length > 0) ? loadedItems : (b.items || []);
+      var bankItem = null;
+      if (allItems && allItems.length > 0) {
+        // Find the credit item that is a Cash/Bank account
+        bankItem = allItems.find(function(r) {
+          return (parseFloat(r.credit || r.cr) || 0) > 0 && isCashBankAcc(r);
+        });
+        // Fallback: if not matched by group, find any credit item that is not a tax/tds liability
+        if (!bankItem) {
+          bankItem = allItems.find(function(r) {
+            var c = (parseFloat(r.credit || r.cr) || 0);
+            var nm = String(r.accountName || r.name || '').toLowerCase();
+            return c > 0 && !nm.includes('tds') && !nm.includes('tax') && !nm.includes('gst');
+          });
+        }
+      }
+
+      // Grid rows are ALL non-bank items (both Expense Debits and TDS Credits)
+      if (allItems && allItems.length > 0) {
+        var nonBankItems = bankItem ? allItems.filter(function(r) { return r !== bankItem; }) : allItems;
+        gridRows = nonBankItems.map(function (r, i) {
           return {
             sr: i + 1,
-            code: r.accountCode || '',
-            name: r.accountName || '',
+            code: r.accountCode || r.code || '',
+            name: r.accountName || r.name || '',
             dr: parseFloat(r.debit || r.dr) || 0,
             cr: parseFloat(r.credit || r.cr) || 0
           };
@@ -1356,55 +1462,79 @@
             cr: parseFloat(r.cr) || 0
           };
         });
-      } else if (b.items && Array.isArray(b.items) && b.items.length > 0) {
-        var dbDebit = b.items.filter(function(r) { return (parseFloat(r.debit) || 0) > 0; });
-        var src = dbDebit.length > 0 ? dbDebit : b.items;
-        gridRows = src.map(function (r, i) {
-          return {
-            sr: i + 1,
-            code: r.accountCode || r.code || '',
-            name: r.accountName || r.name || '',
-            dr: parseFloat(r.debit || r.dr) || 0,
-            cr: parseFloat(r.credit || r.cr) || 0
-          };
-        });
       } else {
         gridRows = [
-          { sr: 1, code: b.accountCode || 'EXP-5001', name: b.accountName || b.particular1 || 'Elevator Maintenance Charges', dr: b.amount || 12500, cr: 0 }
+          { sr: 1, code: b.accountCode || '', name: b.accountName || b.particular1 || 'Expense', dr: b.amount || 0, cr: 0 }
         ];
       }
       renderGridTable();
 
       // Restore Withdrawal Account (Cash/Bank)
-      var creditItem = loadedItems ? loadedItems.find(function(r) { return (parseFloat(r.credit || r.cr) || 0) > 0; }) : null;
-      var targetAccCode = creditItem ? creditItem.accountCode : (b.cashBankCode || '');
-      var targetAccName = creditItem ? creditItem.accountName : (b.cashBankName || b.cashBank || '');
-      var targetAccId = creditItem ? creditItem.accountId : null;
+      var targetAccCode = bankItem ? bankItem.accountCode : (b.cashBankCode || '');
+      var targetAccName = bankItem ? (bankItem.accountName || bankItem.name) : (b.cashBankName || b.cashBank || '');
+      var targetAccId = bankItem ? (bankItem.accountId || bankItem.id) : null;
+
+      // Determine Cash vs Bank paymode
+      var isCashAcc = false;
+      if (targetAccCode && targetAccCode.toUpperCase() === 'ASS-1001') isCashAcc = true;
+      else if (targetAccName && targetAccName.toLowerCase().includes('cash')) isCashAcc = true;
+      else if (b.voucherType && b.voucherType.toLowerCase().includes('cash')) isCashAcc = true;
+
+      var credCash = document.getElementById('cred-cash');
+      var credBank = document.getElementById('cred-bank');
+      if (isCashAcc) {
+        if (credCash) credCash.checked = true;
+        if (credBank) credBank.checked = false;
+      } else {
+        if (credBank) credBank.checked = true;
+        if (credCash) credCash.checked = false;
+      }
+      if (typeof onCreditTypeChange === 'function') onCreditTypeChange(true);
 
       var matchedAcc = (accounts || []).find(function(a) {
         if (targetAccId && a.accountId === targetAccId) return true;
         if (targetAccCode && String(a.accCode || '').toUpperCase() === String(targetAccCode).toUpperCase()) return true;
-        if (targetAccName && String(a.accName || '').toLowerCase() === String(targetAccName).toLowerCase()) return true;
-        if (targetAccName && (targetAccCode + ' - ' + targetAccName).toLowerCase() === String(a.accCode + ' - ' + a.accName).toLowerCase()) return true;
+        if (targetAccName) {
+          var cleanTgt = targetAccName.toLowerCase().replace(/\[.*?\]\s*/g, '').replace(/^[a-z]+-\d+\s*-\s*/g, '').trim();
+          var cleanA = String(a.accName || '').toLowerCase().replace(/\[.*?\]\s*/g, '').replace(/^[a-z]+-\d+\s*-\s*/g, '').trim();
+          if (cleanTgt && cleanA && (cleanTgt === cleanA || cleanTgt.includes(cleanA) || cleanA.includes(cleanTgt))) return true;
+        }
         return false;
       });
 
       var withdrawSel = document.getElementById('frm-withdraw-acc');
       if (withdrawSel) {
+        var resolvedVal = null;
         if (matchedAcc && matchedAcc.accountId) {
-          withdrawSel.value = String(matchedAcc.accountId);
+          resolvedVal = String(matchedAcc.accountId);
         } else if (targetAccId) {
-          withdrawSel.value = String(targetAccId);
+          resolvedVal = String(targetAccId);
         }
+        if (resolvedVal) withdrawSel.value = resolvedVal;
+
         if (!withdrawSel.value || withdrawSel.selectedIndex < 0) {
           for (var optIdx = 0; optIdx < withdrawSel.options.length; optIdx++) {
             var opt = withdrawSel.options[optIdx];
-            if ((targetAccCode && opt.text.includes(targetAccCode)) || 
-                (targetAccName && opt.text.toLowerCase().includes(targetAccName.toLowerCase()))) {
+            if (targetAccCode && opt.text.toUpperCase().includes(targetAccCode.toUpperCase())) {
+              withdrawSel.selectedIndex = optIdx;
+              break;
+            }
+            if (targetAccName && opt.text.toLowerCase().includes(targetAccName.toLowerCase())) {
               withdrawSel.selectedIndex = optIdx;
               break;
             }
           }
+        }
+
+        // Failsafe: Never allow bank field to be blank if bank details exist
+        if ((!withdrawSel.value || withdrawSel.selectedIndex < 0) && (targetAccName || targetAccCode)) {
+          var optVal = resolvedVal || targetAccCode || Date.now();
+          var optLabel = (targetAccCode ? ('[' + targetAccCode + '] ') : '') + (targetAccName || 'Bank Account');
+          var newOpt = document.createElement('option');
+          newOpt.value = optVal;
+          newOpt.textContent = optLabel;
+          withdrawSel.appendChild(newOpt);
+          withdrawSel.value = optVal;
         }
       }
 
@@ -1461,36 +1591,46 @@
 
       var validRows = gridRows.filter(function (r) { return r.code || r.name || (parseFloat(r.dr) || 0) > 0 || (parseFloat(r.cr) || 0) > 0; });
       var totAmt = validRows.reduce(function (sum, r) { return sum + (parseFloat(r.dr) || 0); }, 0);
-      if (totAmt <= 0) totAmt = parseFloat(document.getElementById('entry-amount').value) || 12500;
+      if (totAmt <= 0) {
+        toast('Please enter a valid amount and add at least one line item.', false);
+        return;
+      }
 
       var withdrawSel = document.getElementById('frm-withdraw-acc');
       var withdrawText = (withdrawSel && withdrawSel.selectedIndex >= 0 && withdrawSel.options[withdrawSel.selectedIndex])
         ? withdrawSel.options[withdrawSel.selectedIndex].text
-        : 'ASS-1002 - Bank of Baroda';
+        : '';
+      if (!withdrawSel || !withdrawSel.value) {
+        toast('Please select a valid Withdrawal Account (Cash/Bank).', false);
+        return;
+      }
 
       var isPoMode = document.getElementById('chk-po-mode') ? document.getElementById('chk-po-mode').checked : false;
       var invNo = document.getElementById('frm-invno') ? document.getElementById('frm-invno').value : '';
 
       var items = [];
-      var totalCreditSum = 0;
-
-      // Line item debit entries
       validRows.forEach(function(r) {
         var accId = null;
-        var found = accounts.find(function(a) { return a.accCode === r.code; });
+        var found = accounts.find(function(a) { 
+          return (a.accCode && a.accCode === r.code) || 
+                 (a.accName && a.accName === r.name) ||
+                 (a.accountId && String(a.accountId) === String(r.code)); 
+        });
         if (found) accId = found.accountId;
         var drVal = parseFloat(r.dr) || 0;
         var crVal = parseFloat(r.cr) || 0;
-        if (drVal > 0) totalCreditSum += drVal;
         items.push({
           accountId: accId,
-          accountCode: r.code || '',
-          accountName: r.name || '',
+          accountCode: r.code || (found ? found.accCode : ''),
+          accountName: r.name || (found ? found.accName : ''),
           debit: drVal,
           credit: crVal,
           narration: r.particulars || r.narration || ''
         });
       });
+
+      var totDr = Math.round(items.reduce(function(s, i) { return s + (parseFloat(i.debit) || 0); }, 0) * 100) / 100;
+      var totCr = Math.round(items.reduce(function(s, i) { return s + (parseFloat(i.credit) || 0); }, 0) * 100) / 100;
 
       // Withdrawal Cash/Bank credit entry
       var withdrawAccId = withdrawSel ? parseInt(withdrawSel.value, 10) : null;
@@ -1504,17 +1644,38 @@
         });
       }
 
-      if (totalCreditSum <= 0) totalCreditSum = totAmt;
-      if (!items.some(function(it) { return it.credit > 0; })) {
-        var isCashPay = (withdrawText.toLowerCase().includes('cash') || (document.getElementById('cred-cash') && document.getElementById('cred-cash').checked));
-        items.push({
-          accountId: (withdrawAcc && typeof withdrawAcc.accountId === 'number' && withdrawAcc.accountId < 1000000) ? withdrawAcc.accountId : null,
-          accountCode: withdrawAcc ? (withdrawAcc.accCode || '') : (isCashPay ? 'ASS-1001' : 'ASS-1002'),
-          accountName: withdrawAcc ? (withdrawAcc.accName || '') : withdrawText,
-          debit: 0,
-          credit: totalCreditSum,
-          narration: 'Payment via ' + (withdrawAcc ? withdrawAcc.accName : withdrawText)
-        });
+      // Check if withdrawal account is already explicitly included with credit in items
+      var hasBankCredit = items.some(function(it) {
+        return it.credit > 0 && (
+          (withdrawAcc && it.accountId === withdrawAcc.accountId) ||
+          (withdrawAcc && it.accountCode && it.accountCode.toLowerCase() === withdrawAcc.accCode.toLowerCase()) ||
+          (it.accountName && it.accountName.toLowerCase().includes('bank')) ||
+          (it.accountName && it.accountName.toLowerCase().includes('cash in hand'))
+        );
+      });
+
+      if (!hasBankCredit) {
+        var netCrNeeded = Math.round((totDr - totCr) * 100) / 100;
+        if (netCrNeeded > 0) {
+          var isCashPay = (withdrawText.toLowerCase().includes('cash') || (document.getElementById('cred-cash') && document.getElementById('cred-cash').checked));
+          items.push({
+            accountId: (withdrawAcc && typeof withdrawAcc.accountId === 'number' && withdrawAcc.accountId < 1000000) ? withdrawAcc.accountId : null,
+            accountCode: withdrawAcc ? (withdrawAcc.accCode || '') : (isCashPay ? 'ASS-1001' : 'ASS-1002'),
+            accountName: withdrawAcc ? (withdrawAcc.accName || '') : withdrawText,
+            debit: 0,
+            credit: netCrNeeded,
+            narration: 'Payment via ' + (withdrawAcc ? withdrawAcc.accName : withdrawText)
+          });
+          totCr += netCrNeeded;
+        }
+      }
+
+      var finalDr = Math.round(items.reduce(function(s, i) { return s + (parseFloat(i.debit) || 0); }, 0) * 100) / 100;
+      var finalCr = Math.round(items.reduce(function(s, i) { return s + (parseFloat(i.credit) || 0); }, 0) * 100) / 100;
+
+      if (Math.abs(finalDr - finalCr) > 0.01) {
+        toast('Double-entry unbalanced: Total Debit (₹' + finalDr.toFixed(2) + ') must equal Total Credit (₹' + finalCr.toFixed(2) + '). Difference: ₹' + Math.abs(finalDr - finalCr).toFixed(2), false);
+        return;
       }
 
       var rawChqDate = document.getElementById('frm-chqdate') ? document.getElementById('frm-chqdate').value : '';

@@ -84,14 +84,6 @@ namespace JeevikaERP.Controllers
                 EnsureSchema(conn);
 
                 if (societyId <= 0)
-                {
-                    using var sCmd = conn.CreateCommand();
-                    sCmd.CommandText = "SELECT SocietyId FROM jeevika_erp.SocMember WHERE IsDeleted = FALSE ORDER BY MemberId DESC LIMIT 1";
-                    var res = sCmd.ExecuteScalar();
-                    if (res != null && res != DBNull.Value) societyId = Convert.ToInt32(res);
-                }
-
-                if (societyId <= 0)
                     return Ok(new { success = true, data = new List<object>(), count = 0 });
 
                 using var cmd = conn.CreateCommand();
@@ -107,17 +99,6 @@ namespace JeevikaERP.Controllers
                 using (var r = cmd.ExecuteReader())
                 {
                     while (r.Read()) list.Add(MapMember(r, opBalMap));
-                }
-
-                if (list.Count == 0 && societyId > 0)
-                {
-                    using var fbCmd = conn.CreateCommand();
-                    fbCmd.CommandText = @"
-                        SELECT * FROM jeevika_erp.SocMember
-                        WHERE IsDeleted = FALSE
-                        ORDER BY Wing, FlatNo, MemName";
-                    using var r2 = fbCmd.ExecuteReader();
-                    while (r2.Read()) list.Add(MapMember(r2, opBalMap));
                 }
 
                 return Ok(new { success = true, data = list, count = list.Count });
@@ -172,15 +153,11 @@ namespace JeevikaERP.Controllers
                 using var conn = DbHelper.GetConn();
                 EnsureSchema(conn);
 
-                int sid = model.SocietyId;
-                if (sid <= 0)
+                if (model.SocietyId <= 0)
                 {
-                    using var sCmd = conn.CreateCommand();
-                    sCmd.CommandText = "SELECT SocietyId FROM jeevika_erp.SocietyInfo WHERE IsActive = TRUE ORDER BY SocietyId LIMIT 1";
-                    var res = sCmd.ExecuteScalar();
-                    if (res != null && res != DBNull.Value) sid = Convert.ToInt32(res);
+                    return BadRequest(new { success = false, message = "societyId is required." });
                 }
-                model.SocietyId = sid;
+                int sid = model.SocietyId;
 
                 if (string.IsNullOrWhiteSpace(model.MemCode))
                 {
@@ -1378,15 +1355,7 @@ namespace JeevikaERP.Controllers
 
                 int sid = req.SocietyId;
                 if (sid <= 0)
-                {
-                    using var sCmd = conn.CreateCommand();
-                    sCmd.CommandText = "SELECT SocietyId FROM jeevika_erp.SocietyInfo WHERE IsActive = TRUE ORDER BY SocietyId LIMIT 1";
-                    var res = sCmd.ExecuteScalar();
-                    if (res != null && res != DBNull.Value) sid = Convert.ToInt32(res);
-                }
-
-                if (sid <= 0)
-                    return BadRequest(new { success = false, message = "Active Society ID could not be identified." });
+                    return BadRequest(new { success = false, message = "societyId is required for member bulk import." });
 
                 // Load existing members for fast matching
                 var existingByCode = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);

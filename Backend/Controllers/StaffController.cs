@@ -22,14 +22,6 @@ namespace JeevikaERP.Controllers
             {
                 using var conn = DbHelper.GetConn();
                 if (societyId <= 0)
-                {
-                    using var sCmd = conn.CreateCommand();
-                    sCmd.CommandText = "SELECT SocietyId FROM jeevika_erp.SocStaff WHERE IsDeleted = FALSE ORDER BY StaffId DESC LIMIT 1";
-                    var res = sCmd.ExecuteScalar();
-                    if (res != null && res != DBNull.Value) societyId = Convert.ToInt32(res);
-                }
-
-                if (societyId <= 0)
                     return Ok(new { success = true, data = new List<object>(), count = 0 });
 
                 using var cmd = conn.CreateCommand();
@@ -48,22 +40,6 @@ namespace JeevikaERP.Controllers
                 using (var r = cmd.ExecuteReader())
                 {
                     while (r.Read()) list.Add(MapStaff(r));
-                }
-
-                if (list.Count == 0 && societyId > 0)
-                {
-                    using var fbCmd = conn.CreateCommand();
-                    fbCmd.CommandText = @"
-                        SELECT StaffId, SocietyId, StaffCode, StaffName, Designation,
-                               PANNo, TDSRate, ContactNo, Email, JoiningDate,
-                               Phone2, MonthlyCost, EndDate, Status, BankHolder, BankAccount,
-                               BankName, BankIfsc, BankBranch, TdsSection, PfNo, EsicNo,
-                               IsAuthorized, Notes, IsDeleted, CreatedAt
-                        FROM jeevika_erp.SocStaff
-                        WHERE IsDeleted = FALSE
-                        ORDER BY StaffName";
-                    using var r2 = fbCmd.ExecuteReader();
-                    while (r2.Read()) list.Add(MapStaff(r2));
                 }
 
                 return Ok(new { success = true, data = list, count = list.Count });

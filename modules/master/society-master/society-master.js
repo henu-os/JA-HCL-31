@@ -429,19 +429,19 @@ function smOpenWorkspace(code, name) {
     sessionStorage.setItem('activeSocietyName', name);
     sessionStorage.setItem('activeSocietyGSTApplicable', gstOn ? 'Y' : 'N');
 
-    if (s && (s.societyId || s.SocietyId)) {
-      const socId = (s.societyId || s.SocietyId).toString();
+    const socId = (s && (s.societyId || s.SocietyId)) ? (s.societyId || s.SocietyId).toString() : '';
+    if (socId) {
       localStorage.setItem('activeSocietyId', socId);
       sessionStorage.setItem('activeSocietyId', socId);
     }
 
     if (typeof WorkspaceBridge !== 'undefined') {
-      WorkspaceBridge.setActiveSociety(code, name, gstOn);
+      WorkspaceBridge.setActiveSociety(socId ? parseInt(socId, 10) : null, code, name, gstOn);
     } else if (window.parent && window.parent !== window) {
       window.parent.postMessage({
         type: 'JEEVIKA_WORKSPACE_CMD',
         action: 'setActiveSociety',
-        payload: { code: code, name: name, gstOn: gstOn }
+        payload: { societyId: socId ? parseInt(socId, 10) : null, code: code, name: name, gstOn: gstOn }
       }, '*');
     }
 

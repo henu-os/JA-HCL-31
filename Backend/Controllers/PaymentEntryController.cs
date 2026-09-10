@@ -207,30 +207,59 @@ namespace JeevikaERP.Controllers
                     }
                 }
 
-                // Insert Credit row for Header Cash/Bank (Net Balance)
-                if (cbAccId > 0)
-                {
-                    using var dCb = conn.CreateCommand();
-                    dCb.Transaction = tx;
-                    dCb.CommandText = @"
-                        INSERT INTO jeevika_erp.SocVoucherDetail
-                            (VoucherId, SrNo, AccountId, AccountCode, AccountName, Debit, Credit, Narration)
-                        VALUES
-                            (@vid, 1, @aid, @code, @name, 0, @amt, @narr)";
-                    dCb.Parameters.AddWithValue("@vid",   voucherId);
-                    dCb.Parameters.AddWithValue("@aid",   cbAccId);
-                    dCb.Parameters.AddWithValue("@code",  cbAccCode);
-                    dCb.Parameters.AddWithValue("@name",  cbAccName);
-                    dCb.Parameters.AddWithValue("@amt",   model.Amount);
-                    dCb.Parameters.AddWithValue("@narr",  narration);
-                    dCb.ExecuteNonQuery();
-                }
-
-                // 4. Insert Table Line Accounts (Debit)
-                int srNo = 2;
+                // 4. Resolve details and ensure balanced compound double-entry
                 var details = model.Details ?? model.Items;
+                int srNo = 1;
+
                 if (details != null && details.Count > 0)
                 {
+                    decimal sumDr = Math.Round(details.Sum(d => d != null ? (d.Debit > 0 ? d.Debit : (d.Amount > 0 ? d.Amount : 0)) : 0), 2);
+                    decimal sumCr = Math.Round(details.Sum(d => d != null ? d.Credit : 0), 2);
+
+                    // Check if bank/cash withdrawal account is already included in items
+                    bool hasBankCredit = details.Any(d => d != null && d.Credit > 0 && 
+                        ((cbAccId > 0 && d.AccountId == cbAccId) || 
+                         (!string.IsNullOrWhiteSpace(cbAccCode) && string.Equals(d.AccountCode, cbAccCode, StringComparison.OrdinalIgnoreCase)) ||
+                         (!string.IsNullOrWhiteSpace(cbAccName) && string.Equals(d.AccountName, cbAccName, StringComparison.OrdinalIgnoreCase))));
+
+                    // If bank row not already in details, compute net payable = total debits - other credits (e.g. TDS)
+                    if (!hasBankCredit && cbAccId > 0)
+                    {
+                        decimal netBankCr = Math.Round(sumDr - sumCr, 2);
+                        if (netBankCr > 0)
+                        {
+                            using var dCb = conn.CreateCommand();
+                            dCb.Transaction = tx;
+                            dCb.CommandText = @"
+                                INSERT INTO jeevika_erp.SocVoucherDetail
+                                    (VoucherId, SrNo, AccountId, AccountCode, AccountName, Debit, Credit, Narration)
+                                VALUES
+                                    (@vid, @sr, @aid, @code, @name, 0, @amt, @narr)";
+                            dCb.Parameters.AddWithValue("@vid",   voucherId);
+                            dCb.Parameters.AddWithValue("@sr",    srNo++);
+                            dCb.Parameters.AddWithValue("@aid",   cbAccId);
+                            dCb.Parameters.AddWithValue("@code",  cbAccCode);
+                            dCb.Parameters.AddWithValue("@name",  cbAccName);
+                            dCb.Parameters.AddWithValue("@amt",   netBankCr);
+                            dCb.Parameters.AddWithValue("@narr",  narration);
+                            dCb.ExecuteNonQuery();
+
+                            sumCr += netBankCr;
+                        }
+                    }
+
+                    // Strict balance validation
+                    if (Math.Abs(sumDr - sumCr) > 0.01m)
+                    {
+                        tx.Rollback();
+                        return BadRequest(new 
+                        { 
+                            success = false, 
+                            message = $"Double-entry validation failed: Total Debit (₹{sumDr:N2}) does not match Total Credit (₹{sumCr:N2}). Difference: ₹{Math.Abs(sumDr - sumCr):N2}." 
+                        });
+                    }
+
+                    // Insert detail line items
                     foreach (var d in details)
                     {
                         if (d == null) continue;
@@ -277,10 +306,36 @@ namespace JeevikaERP.Controllers
                         dLine.Parameters.AddWithValue("@narr", !string.IsNullOrWhiteSpace(d.Narration) ? d.Narration : narration);
                         dLine.ExecuteNonQuery();
                     }
+
+                    // Update header amount to sum of debits
+                    using var updH = conn.CreateCommand();
+                    updH.Transaction = tx;
+                    updH.CommandText = "UPDATE jeevika_erp.SocVoucherHeader SET Amount = @amt WHERE VoucherId = @vid";
+                    updH.Parameters.AddWithValue("@amt", sumDr);
+                    updH.Parameters.AddWithValue("@vid", voucherId);
+                    updH.ExecuteNonQuery();
                 }
                 else
                 {
                     // Fallback single line item if no details array provided
+                    if (cbAccId > 0)
+                    {
+                        using var dCb = conn.CreateCommand();
+                        dCb.Transaction = tx;
+                        dCb.CommandText = @"
+                            INSERT INTO jeevika_erp.SocVoucherDetail
+                                (VoucherId, SrNo, AccountId, AccountCode, AccountName, Debit, Credit, Narration)
+                            VALUES
+                                (@vid, 1, @aid, @code, @name, 0, @amt, @narr)";
+                        dCb.Parameters.AddWithValue("@vid",   voucherId);
+                        dCb.Parameters.AddWithValue("@aid",   cbAccId);
+                        dCb.Parameters.AddWithValue("@code",  cbAccCode);
+                        dCb.Parameters.AddWithValue("@name",  cbAccName);
+                        dCb.Parameters.AddWithValue("@amt",   model.Amount);
+                        dCb.Parameters.AddWithValue("@narr",  narration);
+                        dCb.ExecuteNonQuery();
+                    }
+
                     int lineAccId = 0;
                     string lineName = !string.IsNullOrWhiteSpace(model.AccountName) ? model.AccountName : "General Expense";
                     string lineCode = "";

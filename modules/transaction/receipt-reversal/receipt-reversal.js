@@ -177,20 +177,8 @@
       }
     }
 
-    if (!accounts || accounts.length === 0) {
-      accounts = [
-        { accountId: 3001, accCode: 'ASS-1001', accName: 'Cash in Hand', groupName: 'Cash & Bank Balance', grpMainId: 1, mainGroup: 'Asset' },
-        { accountId: 3002, accCode: 'ASS-1002', accName: 'The M.D C.C. Bank A/C No.', groupName: 'Cash & Bank Balance', grpMainId: 1, mainGroup: 'Asset' },
-        { accountId: 3003, accCode: 'ASS-1003', accName: 'The Saraswat Bank A/C No.', groupName: 'Cash & Bank Balance', grpMainId: 1, mainGroup: 'Asset' },
-        { accountId: 3004, accCode: 'ASS-1004', accName: 'HDFC Bank A/c 9482', groupName: 'Cash & Bank Balance', grpMainId: 1, mainGroup: 'Asset' },
-        { accountId: 3005, accCode: 'ASS-1005', accName: 'SBI Current A/c 0184', groupName: 'Cash & Bank Balance', grpMainId: 1, mainGroup: 'Asset' },
-        { accountId: 1001, accCode: 'INC-1001', accName: 'Property Tax', groupName: 'Rent & Taxes', grpMainId: 3, mainGroup: 'Income' },
-        { accountId: 1004, accCode: 'INC-1004', accName: 'Service Charges', groupName: 'Maintenance & Service Charges', grpMainId: 3, mainGroup: 'Income' },
-        { accountId: 1008, accCode: 'INC-1008', accName: 'Interest From Member', groupName: 'Interest Received From', grpMainId: 3, mainGroup: 'Income' },
-        { accountId: 2001, accCode: 'EXP-1001', accName: 'Property Tax Exp.', groupName: 'Rent, Rates & Taxes', grpMainId: 4, mainGroup: 'Expenditure' },
-        { accountId: 2010, accCode: 'EXP-1010', accName: 'Repair & Maintenance Exp.', groupName: 'Maintenance', grpMainId: 4, mainGroup: 'Expenditure' },
-        { accountId: 4001, accCode: 'LIA-1001', accName: 'Paidup Share Capital', groupName: 'Issued, Sub. & Paid Up Captial', grpMainId: 2, mainGroup: 'Liability' }
-      ];
+    if (!accounts) {
+      accounts = [];
     }
   }
 
@@ -467,19 +455,7 @@
       return isCashBank ? isCB : !isCB;
     });
 
-    if (filteredAccs.length === 0) {
-      if (isCashBank) {
-        filteredAccs = [
-          { accountId: 3001, accCode: 'ASS-1001', accName: 'Cash in Hand' },
-          { accountId: 3002, accCode: 'ASS-1002', accName: 'The M.D C.C. Bank A/C No.' },
-          { accountId: 3003, accCode: 'ASS-1003', accName: 'The Saraswat Bank A/C No.' },
-          { accountId: 3004, accCode: 'ASS-1004', accName: 'HDFC Bank A/c 9482' },
-          { accountId: 3005, accCode: 'ASS-1005', accName: 'SBI Current A/c 0184' }
-        ];
-      } else {
-        filteredAccs = accounts.filter(function (a) { return !isCashBankAccount(a); });
-      }
-    }
+    // Use only accounts available in active society
 
     // Format options for select & combobox
     var sel = document.getElementById('frm-account');

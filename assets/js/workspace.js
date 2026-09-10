@@ -242,38 +242,94 @@ const WorkspaceManager = (() => {
     if (frame) injectSocietyContextToFrame(frame);
   }
 
-  function setActiveSociety(code, name, gstOn, fyId, fyLabel) {
-    const gstFlag = (gstOn === true || gstOn === 'Y' || gstOn === 'Yes') ? 'Y' : 'N';
-    sessionStorage.setItem('activeSocietyCode', code);
-    sessionStorage.setItem('activeSocietyName', name);
-    sessionStorage.setItem('activeSocietyGSTApplicable', gstFlag);
+  function setActiveSociety(arg1, arg2, arg3, arg4, arg5, arg6) {
+    let socId, code, name, gstOn, fyId, fyLabel;
+    if (typeof arg1 === 'number' || (arg1 && !isNaN(parseInt(arg1, 10)) && typeof arg2 === 'string')) {
+      socId = parseInt(arg1, 10);
+      code = arg2;
+      name = arg3;
+      gstOn = arg4;
+      fyId = arg5;
+      fyLabel = arg6;
+    } else {
+      code = arg1;
+      name = arg2;
+      gstOn = arg3;
+      fyId = arg4;
+      fyLabel = arg5;
+      socId = parseInt(sessionStorage.getItem('activeSocietyId') || localStorage.getItem('activeSocietyId') || '0', 10);
+    }
 
-    localStorage.setItem('activeSocietyCode', code);
-    localStorage.setItem('activeSocietyName', name);
+    const prevSocId = parseInt(sessionStorage.getItem('activeSocietyId') || localStorage.getItem('activeSocietyId') || '0', 10);
+    const gstFlag = (gstOn === true || gstOn === 'Y' || gstOn === 'Yes') ? 'Y' : 'N';
+
+    if (socId > 0) {
+      sessionStorage.setItem('activeSocietyId', String(socId));
+      localStorage.setItem('activeSocietyId', String(socId));
+    }
+    if (code) {
+      sessionStorage.setItem('activeSocietyCode', code);
+      localStorage.setItem('activeSocietyCode', code);
+    }
+    if (name) {
+      sessionStorage.setItem('activeSocietyName', name);
+      localStorage.setItem('activeSocietyName', name);
+    }
+    sessionStorage.setItem('activeSocietyGSTApplicable', gstFlag);
     localStorage.setItem('activeSocietyGSTApplicable', gstFlag);
+
+    if (window.Auth && typeof window.Auth.setContext === 'function') {
+      window.Auth.setContext({
+        societyId: socId > 0 ? socId : undefined,
+        societyCode: code,
+        societyName: name
+      });
+    }
 
     if (fyLabel) {
       setActiveFY(fyId, fyLabel);
+    } else if (socId > 0 && socId !== prevSocId) {
+      fetch('/api/financial-years?societyId=' + socId)
+        .then(r => r.json())
+        .then(res => {
+          if (res && res.data && res.data.length > 0) {
+            const activeFy = res.data.find(f => f.isActive) || res.data[0];
+            setActiveFY(activeFy.fYId, activeFy.fYLabel, activeFy.fYStart, activeFy.fYEnd);
+          }
+        })
+        .catch(() => {});
     }
 
     window.currentSociety = {
+      id: socId,
       code: code,
       name: name,
       GSTApplicable: gstFlag,
       year: sessionStorage.getItem('activeFYLabel') || localStorage.getItem('activeFYLabel') || '2025-26'
     };
 
+    const topSoc = document.getElementById('topSocietyName');
+    if (topSoc && name) topSoc.textContent = name;
+
     const sbSoc = document.getElementById('sbSocName');
-    if (sbSoc) sbSoc.textContent = name;
+    if (sbSoc && name) sbSoc.textContent = name;
 
     const sideSoc = document.getElementById('sideSocSub');
-    if (sideSoc) sideSoc.textContent = name;
+    if (sideSoc && name) sideSoc.textContent = name;
 
     const sideProfile = document.getElementById('sideProfileSocName');
-    if (sideProfile) sideProfile.textContent = name;
+    if (sideProfile && name) sideProfile.textContent = name;
 
-    const frame = document.getElementById('moduleFrame');
-    if (frame) injectSocietyContextToFrame(frame);
+    // Purge tabs from previous society if society changed
+    if (socId > 0 && prevSocId > 0 && socId !== prevSocId) {
+      openTabs = [];
+      activeTabId = null;
+      renderTabBar();
+      showDashboard();
+    } else {
+      const frame = document.getElementById('moduleFrame');
+      if (frame) injectSocietyContextToFrame(frame);
+    }
 
     updateGstMenuVisibility();
   }
@@ -604,7 +660,7 @@ const WorkspaceManager = (() => {
         }
         break;
       case 'setActiveSociety':
-        setActiveSociety(payload.code, payload.name, payload.gstOn, payload.fyId, payload.fyLabel);
+        setActiveSociety(payload.societyId || payload.id, payload.code, payload.name, payload.gstOn, payload.fyId, payload.fyLabel);
         break;
       case 'setActiveFY':
         setActiveFY(payload.fyId, payload.fyLabel, payload.fyStart, payload.fyEnd);

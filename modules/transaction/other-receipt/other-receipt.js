@@ -304,7 +304,7 @@
       if (cbCode && cbName && !cbName.startsWith(cbCode)) {
         item.cashBank = cbCode + ' - ' + cbName;
       } else {
-        item.cashBank = cbName || item.cashBank || (cbCode ? (cbCode + ' - Cash/Bank') : 'ASS-1001 - Cash in Hand');
+        item.cashBank = cbName || item.cashBank || (cbCode ? (cbCode + ' - Cash/Bank') : '—');
       }
       item.paidTo = item.paidTo || item.personName || '—';
       item.particular1 = item.particular1 || item.narration || 'Other Receipt';
@@ -398,7 +398,7 @@
         chkHtml +
         '<td style="font-weight:700; color:#1565C0;">' + escHtml(b.voucherNo || '') + '</td>' +
         '<td>' + escHtml(b.voucherDate || '') + '</td>' +
-        '<td>' + escHtml(b.cashBank || 'ASS-1001 - Cash in Hand') + '</td>' +
+        '<td>' + escHtml(b.cashBank || '—') + '</td>' +
         '<td style="text-align:right; font-weight:800; color:#1565C0; font-family:\'Consolas\', monospace;">' + amt.toFixed(2) + '</td>' +
         '<td>' + escHtml(b.chqNo || '-') + '</td>' +
         '<td>' + escHtml(b.chqDate || '-') + '</td>' +
@@ -499,7 +499,7 @@
       html += '<option value="' + a.accountId + '">' + escHtml((a.accCode || '') + ' - ' + (a.accName || '')) + '</option>';
     });
     if (html === '') {
-      html = isCash ? '<option value="3001">ASS-1001 - Cash in Hand</option>' : '<option value="3002">ASS-1002 - The M.D C.C. Bank A/C No.</option>';
+      html = isCash ? '<option value="">— No Cash Account Found —</option>' : '<option value="">— No Bank Account Found —</option>';
     }
     sel.innerHTML = html;
   };
@@ -650,8 +650,9 @@
     if (amt <= 0) { toast('Please enter a valid Entry Amount.', false); return; }
 
     var accObj = accounts.find(function (a) { return String(a.accountId) === String(accId); });
-    var accCode = accObj ? accObj.accCode : 'INC-4001';
-    var accName = accObj ? accObj.accName : 'Miscellaneous Income';
+    if (!accObj) { toast('Selected account not found in current society chart of accounts.', false); return; }
+    var accCode = accObj.accCode || '';
+    var accName = accObj.accName || '';
 
     gridRows.push({
       sr: gridRows.length + 1,
@@ -729,6 +730,54 @@
     return null;
   }
 
+  window.quickApplyTds = function (rate) {
+    var grossCr = gridRows.reduce(function (s, r) { return s + (parseFloat(r.cr) || 0); }, 0);
+    if (grossCr <= 0) {
+      grossCr = parseFloat(document.getElementById('entry-amount') ? document.getElementById('entry-amount').value : 0) || 0;
+    }
+    if (grossCr <= 0) {
+      toast('Please enter or add an Income Credit line first before calculating TDS.', false);
+      return;
+    }
+
+    var tdsRate = parseFloat(rate) || 1;
+    var tdsAmt = Math.round(grossCr * (tdsRate / 100) * 100) / 100;
+    if (tdsAmt <= 0) {
+      toast('TDS amount must be greater than 0.', false);
+      return;
+    }
+
+    var tdsAcc = accounts.find(function (a) { 
+      return (a.accCode && a.accCode.toUpperCase() === 'ASS-1026') || 
+             (a.accName && a.accName.toLowerCase().includes('tds receivable')); 
+    });
+
+    var code = tdsAcc ? tdsAcc.accCode : 'ASS-1026';
+    var name = tdsAcc ? tdsAcc.accName : 'TDS Receivable';
+
+    var existingIdx = gridRows.findIndex(function (r) { 
+      return (r.code && r.code.toUpperCase() === 'ASS-1026') || 
+             (r.name && r.name.toLowerCase().includes('tds receivable')); 
+    });
+
+    if (existingIdx >= 0) {
+      gridRows[existingIdx].dr = tdsAmt;
+    } else {
+      gridRows.push({
+        sr: gridRows.length + 1,
+        code: code,
+        name: name,
+        dr: tdsAmt,
+        cr: 0,
+        particulars: 'TDS Receivable @ ' + tdsRate + '% on ' + grossCr.toFixed(2)
+      });
+    }
+
+    renderGridTable();
+    var netRecv = Math.max(0, grossCr - tdsAmt);
+    toast('Applied ' + tdsRate + '% TDS Receivable (₹' + tdsAmt.toFixed(2) + '). Net Bank Inflow: ₹' + netRecv.toFixed(2), true);
+  };
+
   function updateGridTotals() {
     var totDr = 0;
     var totCr = 0;
@@ -742,15 +791,25 @@
     if (crEl) crEl.textContent = totCr.toFixed(2);
 
     var netBalEl = document.getElementById('grid-net-bal');
+    var statusLbl = document.getElementById('grid-status-label');
+    var diff = Math.round((totCr - totDr) * 100) / 100;
+
     if (netBalEl) {
-      if (totDr === 0 && totCr === 0) {
-        netBalEl.textContent = '0.00 Cr';
+      if (diff > 0.01) {
+        if (statusLbl) statusLbl.textContent = 'Net Bank/Cash Inflow Needed:';
+        netBalEl.textContent = '₹' + diff.toFixed(2) + ' (Dr to Bank)';
         netBalEl.style.color = '#15803d';
-      } else if (totDr > totCr) {
-        netBalEl.textContent = (totDr - totCr).toFixed(2) + ' Dr';
+      } else if (diff < -0.01) {
+        if (statusLbl) statusLbl.textContent = 'Debits exceed Credits:';
+        netBalEl.textContent = '₹' + Math.abs(diff).toFixed(2) + ' (Unbalanced)';
         netBalEl.style.color = '#dc2626';
+      } else if (totCr > 0) {
+        if (statusLbl) statusLbl.textContent = 'Double-Entry Status:';
+        netBalEl.textContent = '✓ BALANCED (₹' + totCr.toFixed(2) + ')';
+        netBalEl.style.color = '#15803d';
       } else {
-        netBalEl.textContent = (totCr - totDr).toFixed(2) + ' Cr';
+        if (statusLbl) statusLbl.textContent = 'Net Balance:';
+        netBalEl.textContent = '0.00';
         netBalEl.style.color = '#15803d';
       }
     }
@@ -992,29 +1051,67 @@
     if (comboInp) comboInp.value = pNameVal;
     onPersonSelect();
 
+    // Helper to identify Cash & Bank Asset accounts
+    function isCashBankAcc(item) {
+      if (!item) return false;
+      var code = String(item.accountCode || item.code || '').trim().toUpperCase();
+      var name = String(item.accountName || item.name || '').trim().toLowerCase();
+      if (code.startsWith('ASS-1001') || code.startsWith('ASS-1002') || code.startsWith('ASS-1003') || code.startsWith('ASS-1004') || code.startsWith('ASS-1005')) return true;
+      if (name.includes('cash in hand') || name.includes('bank a/c') || name.includes('bank account') || name.includes('current a/c') || name.includes('saving a/c')) return true;
+      var found = (accounts || []).find(function(a) {
+        return (item.accountId && a.accountId === item.accountId) ||
+               (code && String(a.accCode || '').toUpperCase() === code) ||
+               (name && String(a.accName || '').toLowerCase() === name);
+      });
+      if (found) {
+        var isAsset = (found.grpMainId === 1) || String(found.mainGroup || '').toLowerCase() === 'asset';
+        var grp = String(found.groupName || found.grpPrimaryName || '').toLowerCase();
+        var isCBGrp = grp.includes('cash & bank') || grp.includes('cash and bank') || grp.includes('bank account') || grp.includes('cash-in-hand') || grp.includes('cash in hand');
+        return isAsset && isCBGrp;
+      }
+      return false;
+    }
+
+    var allItems = (loadedItems && loadedItems.length > 0) ? loadedItems : (b.items || []);
+    var bankItem = null;
+    if (allItems && allItems.length > 0) {
+      // Find the debit item that is a Cash/Bank account
+      bankItem = allItems.find(function(r) {
+        return (parseFloat(r.debit || r.dr) || 0) > 0 && isCashBankAcc(r);
+      });
+      // Fallback: if not matched by group, find any debit item that is not TDS/tax receivable
+      if (!bankItem) {
+        bankItem = allItems.find(function(r) {
+          var d = (parseFloat(r.debit || r.dr) || 0);
+          var nm = String(r.accountName || r.name || '').toLowerCase();
+          return d > 0 && !nm.includes('tds') && !nm.includes('tax');
+        });
+      }
+    }
+
     // 3. Restore Cash / Bank Account Type & Deposit To Account (Dynamic Sync)
-    var debitItem = loadedItems ? loadedItems.find(function(r) { return (parseFloat(r.debit || r.dr) || 0) > 0; }) : null;
-    var targetAccCode = debitItem ? debitItem.accountCode : (b.cashBankCode || '');
-    var targetAccName = debitItem ? debitItem.accountName : (b.cashBankName || b.cashBank || '');
-    var targetAccId = debitItem ? debitItem.accountId : null;
+    var targetAccCode = bankItem ? bankItem.accountCode : (b.cashBankCode || '');
+    var targetAccName = bankItem ? (bankItem.accountName || bankItem.name) : (b.cashBankName || b.cashBank || '');
+    var targetAccId = bankItem ? (bankItem.accountId || bankItem.id) : null;
 
     var matchedAcc = accounts.find(function(a) {
       if (targetAccId && a.accountId === targetAccId) return true;
       if (targetAccCode && String(a.accCode || '').toUpperCase() === String(targetAccCode).toUpperCase()) return true;
-      if (targetAccName && String(a.accName || '').toLowerCase() === String(targetAccName).toLowerCase()) return true;
-      if (targetAccName && (targetAccCode + ' - ' + targetAccName).toLowerCase() === String(a.accCode + ' - ' + a.accName).toLowerCase()) return true;
+      if (targetAccName) {
+        var cleanTgt = targetAccName.toLowerCase().replace(/\[.*?\]\s*/g, '').replace(/^[a-z]+-\d+\s*-\s*/g, '').trim();
+        var cleanA = String(a.accName || '').toLowerCase().replace(/\[.*?\]\s*/g, '').replace(/^[a-z]+-\d+\s*-\s*/g, '').trim();
+        if (cleanTgt && cleanA && (cleanTgt === cleanA || cleanTgt.includes(cleanA) || cleanA.includes(cleanTgt))) return true;
+      }
       return false;
     });
 
     var isCash = false;
-    if (matchedAcc) {
+    if (targetAccCode && targetAccCode.toUpperCase() === 'ASS-1001') isCash = true;
+    else if (targetAccName && targetAccName.toLowerCase().includes('cash')) isCash = true;
+    else if (matchedAcc) {
       var accNameLow = String(matchedAcc.accName || '').toLowerCase();
       var accCodeLow = String(matchedAcc.accCode || '').toLowerCase();
-      var grpNameLow = String(matchedAcc.groupName || '').toLowerCase();
-      isCash = accNameLow.includes('cash') || accCodeLow === 'ass-1001' || grpNameLow.includes('cash in hand');
-    } else {
-      var fullStr = (targetAccCode + ' ' + targetAccName + ' ' + (b.transType || '') + ' ' + (b.particular2 || '')).toLowerCase();
-      isCash = fullStr.includes('cash') && !fullStr.includes('bank');
+      isCash = accNameLow.includes('cash') || accCodeLow === 'ass-1001';
     }
 
     var radCash = document.getElementById('deb-cash');
@@ -1025,21 +1122,37 @@
 
     var depSel = document.getElementById('frm-deposit-acc');
     if (depSel) {
+      var resolvedVal = null;
       if (matchedAcc && matchedAcc.accountId) {
-        depSel.value = String(matchedAcc.accountId);
+        resolvedVal = String(matchedAcc.accountId);
       } else if (targetAccId) {
-        depSel.value = String(targetAccId);
+        resolvedVal = String(targetAccId);
       }
-      // If direct value didn't match, match by option label
+      if (resolvedVal) depSel.value = resolvedVal;
+
       if (!depSel.value || depSel.selectedIndex < 0) {
         for (var optIdx = 0; optIdx < depSel.options.length; optIdx++) {
           var opt = depSel.options[optIdx];
-          if ((targetAccCode && opt.text.includes(targetAccCode)) || 
-              (targetAccName && opt.text.toLowerCase().includes(targetAccName.toLowerCase()))) {
+          if (targetAccCode && opt.text.toUpperCase().includes(targetAccCode.toUpperCase())) {
+            depSel.selectedIndex = optIdx;
+            break;
+          }
+          if (targetAccName && opt.text.toLowerCase().includes(targetAccName.toLowerCase())) {
             depSel.selectedIndex = optIdx;
             break;
           }
         }
+      }
+
+      // Failsafe: Never allow deposit field to be blank if bank details exist
+      if ((!depSel.value || depSel.selectedIndex < 0) && (targetAccName || targetAccCode)) {
+        var optVal = resolvedVal || targetAccCode || Date.now();
+        var optLabel = (targetAccCode ? ('[' + targetAccCode + '] ') : '') + (targetAccName || 'Bank Account');
+        var newOpt = document.createElement('option');
+        newOpt.value = optVal;
+        newOpt.textContent = optLabel;
+        depSel.appendChild(newOpt);
+        depSel.value = optVal;
       }
     }
 
@@ -1073,18 +1186,17 @@
     var drawnOnEl = document.getElementById('frm-drawnon');
     if (drawnOnEl) drawnOnEl.value = b.bankName || b.drawnOn || '';
 
-    // 5. Restore Line Items Grid (Credit / Income Lines)
-    if (loadedItems && loadedItems.length > 0) {
-      var creditLines = loadedItems.filter(function(r) { return (parseFloat(r.credit || r.cr) || 0) > 0; });
-      var linesToMap = creditLines.length > 0 ? creditLines : loadedItems;
-      gridRows = linesToMap.map(function (r, i) {
+    // 5. Restore Line Items Grid (All Non-Bank items: Income Cr and TDS Receivable Dr)
+    if (allItems && allItems.length > 0) {
+      var nonBankItems = bankItem ? allItems.filter(function(r) { return r !== bankItem; }) : allItems;
+      gridRows = nonBankItems.map(function (r, i) {
         return {
           sr: i + 1,
-          code: r.accountCode || '',
-          name: r.accountName || '',
+          code: r.accountCode || r.code || '',
+          name: r.accountName || r.name || '',
           dr: parseFloat(r.debit || r.dr) || 0,
           cr: parseFloat(r.credit || r.cr) || 0,
-          particulars: r.narration || ''
+          particulars: r.narration || r.particulars || ''
         };
       });
     } else if (b.gridRows && Array.isArray(b.gridRows) && b.gridRows.length > 0) {
@@ -1098,22 +1210,9 @@
           particulars: r.particulars || ''
         };
       });
-    } else if (b.items && Array.isArray(b.items) && b.items.length > 0) {
-      var dbCr = b.items.filter(function(r) { return (parseFloat(r.credit) || 0) > 0; });
-      var src = dbCr.length > 0 ? dbCr : b.items;
-      gridRows = src.map(function (r, i) {
-        return {
-          sr: i + 1,
-          code: r.accountCode || r.code || '',
-          name: r.accountName || r.name || '',
-          dr: parseFloat(r.debit || r.dr) || 0,
-          cr: parseFloat(r.credit || r.cr) || 0,
-          particulars: r.narration || r.particulars || ''
-        };
-      });
     } else {
       gridRows = [
-        { sr: 1, code: b.accountCode || 'INC-4001', name: b.accountName || b.particular1 || 'Other Income', dr: 0, cr: b.amount || 0 }
+        { sr: 1, code: b.accountCode || '', name: b.accountName || b.particular1 || 'Income', dr: 0, cr: b.amount || 0 }
       ];
     }
     renderGridTable();
@@ -1157,11 +1256,15 @@
       
       if (gridRows.length === 0 && entryAmt > 0) {
         var accObj = accounts.find(function(a) { return String(a.accountId) === String(entryAccId); });
+        if (!accObj) {
+          toast('Please select an Account for the receipt line item.', false);
+          return;
+        }
         var entryType = document.getElementById('entry-type') ? document.getElementById('entry-type').value : 'Cr';
         gridRows.push({
           sr: 1,
-          code: accObj ? accObj.accCode : 'INC-4001',
-          name: accObj ? accObj.accName : 'Other Income',
+          code: accObj.accCode || '',
+          name: accObj.accName || '',
           dr: (entryType === 'Dr' ? entryAmt : 0),
           cr: (entryType === 'Cr' ? entryAmt : 0)
         });
@@ -1185,22 +1288,24 @@
       }
 
       if (validRows.length === 0) {
-        validRows = [{
-          sr: 1, code: 'INC-4001', name: 'Other Receipt Income', dr: 0, cr: totAmt
-        }];
+        toast('Please add at least one line item (Income/Receivable) to the receipt.', false);
+        return;
       }
 
       // 3. Resolve Deposit Cash/Bank Account
       var depositSel = document.getElementById('frm-deposit-acc');
       var depositText = (depositSel && depositSel.selectedIndex >= 0 && depositSel.options[depositSel.selectedIndex])
         ? depositSel.options[depositSel.selectedIndex].text
-        : 'ASS-1001 - Cash in Hand';
+        : '';
       var depositAccId = depositSel ? parseInt(depositSel.value, 10) : null;
+      if (!depositAccId) {
+        toast('Please select a valid Deposit Account (Cash/Bank).', false);
+        return;
+      }
       var depositAcc = accounts.find(function(a) { return a.accountId === depositAccId; });
 
       // 4. Build Double-Entry Line Items
       var items = [];
-      var totalCreditSum = 0;
       validRows.forEach(function(r) {
         var accId = null;
         var found = accounts.find(function(a) { return (a.accCode && a.accCode === r.code) || (a.accName && a.accName === r.name); });
@@ -1210,7 +1315,6 @@
         var drVal = parseFloat(r.dr) || 0;
         var crVal = parseFloat(r.cr) || 0;
         if (crVal <= 0 && drVal <= 0) crVal = totAmt;
-        if (crVal > 0) totalCreditSum += crVal;
         items.push({
           accountId: accId,
           accountCode: r.code || (found ? found.accCode : 'INC-4001'),
@@ -1219,15 +1323,41 @@
           narration: r.particulars || r.narration || (document.getElementById('frm-particular1') ? document.getElementById('frm-particular1').value : 'Other Receipt')
         });
       });
-      if (totalCreditSum <= 0) totalCreditSum = totAmt;
-      if (!items.some(function(it) { return it.debit > 0; })) {
-        items.push({
-          accountId: (depositAcc && typeof depositAcc.accountId === 'number' && depositAcc.accountId < 1000000) ? depositAcc.accountId : null,
-          accountCode: depositAcc ? (depositAcc.accCode || '') : 'ASS-1001',
-          accountName: depositAcc ? (depositAcc.accName || '') : depositText,
-          debit: totalCreditSum, credit: 0,
-          narration: 'Receipt deposited into ' + (depositAcc ? depositAcc.accName : depositText)
-        });
+
+      var totDr = Math.round(items.reduce(function(s, i) { return s + (parseFloat(i.debit) || 0); }, 0) * 100) / 100;
+      var totCr = Math.round(items.reduce(function(s, i) { return s + (parseFloat(i.credit) || 0); }, 0) * 100) / 100;
+
+      // Check if deposit account is already explicitly included with debit in items
+      var hasDepositDebit = items.some(function(it) {
+        return it.debit > 0 && (
+          (depositAcc && it.accountId === depositAcc.accountId) ||
+          (depositAcc && it.accountCode && it.accountCode.toLowerCase() === depositAcc.accCode.toLowerCase()) ||
+          (it.accountName && it.accountName.toLowerCase().includes('bank')) ||
+          (it.accountName && it.accountName.toLowerCase().includes('cash in hand'))
+        );
+      });
+
+      if (!hasDepositDebit) {
+        var netDrNeeded = Math.round((totCr - totDr) * 100) / 100;
+        if (netDrNeeded > 0) {
+          items.push({
+            accountId: (depositAcc && typeof depositAcc.accountId === 'number' && depositAcc.accountId < 1000000) ? depositAcc.accountId : null,
+            accountCode: depositAcc ? (depositAcc.accCode || '') : 'ASS-1001',
+            accountName: depositAcc ? (depositAcc.accName || '') : depositText,
+            debit: netDrNeeded,
+            credit: 0,
+            narration: 'Receipt deposited into ' + (depositAcc ? depositAcc.accName : depositText)
+          });
+          totDr += netDrNeeded;
+        }
+      }
+
+      var finalDr = Math.round(items.reduce(function(s, i) { return s + (parseFloat(i.debit) || 0); }, 0) * 100) / 100;
+      var finalCr = Math.round(items.reduce(function(s, i) { return s + (parseFloat(i.credit) || 0); }, 0) * 100) / 100;
+
+      if (Math.abs(finalDr - finalCr) > 0.01) {
+        toast('Double-entry unbalanced: Total Debit (₹' + finalDr.toFixed(2) + ') must equal Total Credit (₹' + finalCr.toFixed(2) + '). Difference: ₹' + Math.abs(finalDr - finalCr).toFixed(2), false);
+        return;
       }
 
       // 5. Header Metadata & Voucher Number

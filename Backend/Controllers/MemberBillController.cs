@@ -397,26 +397,13 @@ namespace JeevikaERP.Controllers
                 using var conn = DbHelper.GetConn();
 
                 int targetSocietyId = model.SocietyId;
-                using (var checkCmd = conn.CreateCommand())
-                {
-                    checkCmd.CommandText = "SELECT COUNT(*) FROM jeevika_erp.SocMember WHERE (SocietyId = @sid OR (@sid <= 0 AND SocietyId > 0)) AND IsDeleted = FALSE";
-                    checkCmd.Parameters.AddWithValue("@sid", targetSocietyId);
-                    int memCount = Convert.ToInt32(checkCmd.ExecuteScalar() ?? 0);
-                    if (memCount == 0)
-                    {
-                        using var fallbackCmd = conn.CreateCommand();
-                        fallbackCmd.CommandText = "SELECT SocietyId FROM jeevika_erp.SocMember WHERE IsDeleted = FALSE ORDER BY MemberId DESC LIMIT 1";
-                        var fSid = fallbackCmd.ExecuteScalar();
-                        if (fSid != null && fSid != DBNull.Value) targetSocietyId = Convert.ToInt32(fSid);
-                    }
-                }
 
-                // 1. Fetch active members
+                // 1. Fetch active members for this society
                 using var cmdM = conn.CreateCommand();
                 cmdM.CommandText = @"
                     SELECT MemberId, MemCode, MemName, Wing, FlatNo, OpPrincipal, OpInterest
                     FROM jeevika_erp.SocMember
-                    WHERE (SocietyId = @sid OR (@sid <= 0 AND SocietyId > 0)) AND IsDeleted = FALSE
+                    WHERE SocietyId = @sid AND IsDeleted = FALSE
                     ORDER BY Wing, FlatNo";
                 cmdM.Parameters.AddWithValue("@sid", targetSocietyId);
 

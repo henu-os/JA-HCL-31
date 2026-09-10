@@ -237,6 +237,10 @@ namespace JeevikaERP
                         ALTER TABLE jeevika_erp.SocStaff ADD COLUMN IF NOT EXISTS IsAuthorized BOOLEAN DEFAULT FALSE;
                         ALTER TABLE jeevika_erp.SocStaff ADD COLUMN IF NOT EXISTS Notes TEXT;
 
+                        -- Ensure Bank Reconciliation columns exist on SocVoucherHeader
+                        ALTER TABLE jeevika_erp.SocVoucherHeader ADD COLUMN IF NOT EXISTS ClearingDate DATE;
+                        ALTER TABLE jeevika_erp.SocVoucherHeader ADD COLUMN IF NOT EXISTS ClearingRemark TEXT;
+
                         -- Only 'Maintenance' is the default bill type
                         INSERT INTO jeevika_erp.SocBillType (SocietyId, BillTypeCode, BillTypeName, Description) VALUES
                             (1, 'MAINT', 'Maintenance', 'Regular Monthly Maintenance Bill')

@@ -610,9 +610,10 @@
         <span>JEEVIKA ERP</span>
       </div>
 
-      <div class="erp-soc-header-badge" title="Active Society">
+      <div class="erp-soc-header-badge" onclick="toggleSocietyPicker()" style="cursor:pointer;" title="Click to switch Active Society">
         <i class="bi bi-building"></i>
         <span id="topSocietyName">JEEVIKA SOCIETY</span>
+        <i class="bi bi-chevron-down" style="font-size: 10px; margin-left: 2px;"></i>
       </div>
 
       <div class="erp-header-center">
@@ -686,7 +687,7 @@
     <!-- ── FOOTER STATUSBAR ────────────────────────────────────── -->
     <footer class="erp-statusbar">
       <div class="d-flex align-center gap-12">
-        <div>Society: <strong id="sbSocName" style="color:#1565C0;">—</strong></div>
+        <div>Society: <strong id="sbSocName" onclick="toggleSocietyPicker()" style="cursor:pointer; color:#1565C0; text-decoration:underline;" title="Click to switch Society">—</strong></div>
         <div>FY: <strong id="sbFYLabel" onclick="toggleFYPicker()" style="cursor:pointer; color:#1565C0; text-decoration:underline;" title="Click to switch Financial Year">—</strong></div>
         <div>User: <strong id="sbUserName">ADMIN</strong></div>
         <div id="sbClock">16:12:32</div>
@@ -697,6 +698,22 @@
       </div>
     </footer>
 
+  </div>
+
+  <!-- ── CUSTOM SOFTWARE SOCIETY SWITCHER MODAL ────────────────── -->
+  <div class="fy-modal-overlay" id="socPickerModal" onclick="closeSocietyPicker(event)">
+    <div class="fy-modal-container" onclick="event.stopPropagation()">
+      <div class="fy-modal-header">
+        <h3><i class="bi bi-building"></i> SELECT ACTIVE SOCIETY</h3>
+        <i class="bi bi-x-lg fy-modal-close" onclick="closeSocietyPicker()"></i>
+      </div>
+      <div class="fy-modal-body" id="socModalList">
+        <!-- Dynamic Society Cards inserted here -->
+      </div>
+      <div class="fy-modal-footer">
+        <button class="cmd-btn" onclick="closeSocietyPicker()">Close</button>
+      </div>
+    </div>
   </div>
 
   <!-- ── CUSTOM SOFTWARE FINANCIAL YEAR MODAL ────────────────── -->
@@ -817,6 +834,65 @@
       if (e && e.target !== document.getElementById('fyPickerModal')) return;
       const modal = document.getElementById('fyPickerModal');
       if (modal) modal.classList.remove('show');
+    }
+
+    async function toggleSocietyPicker() {
+      const modal = document.getElementById('socPickerModal');
+      const bodyEl = document.getElementById('socModalList');
+      if (!modal || !bodyEl) return;
+
+      bodyEl.innerHTML = '<div style="text-align:center; padding:20px; color:#64748b; font-weight:600;"><i class="bi bi-arrow-repeat spin"></i> Loading Societies...</div>';
+      modal.classList.add('show');
+
+      try {
+        const res = await API.get('/api/societies');
+        if (res && res.data && res.data.length > 0) {
+          const list = res.data;
+          const currentSocId = String(Auth.getSocietyId() || '');
+
+          bodyEl.innerHTML = list.map(s => {
+            const sId = String(s.societyId || s.SocietyId || '');
+            const sName = s.societyName || s.SocietyName || '';
+            const sCode = s.societyCode || s.SocietyCode || '';
+            const isGst = (s.gstApplicable === true || s.GSTApplicable === true || s.gstApplicable === 'Y' || s.GSTApplicable === 'Y');
+            const isActive = (sId === currentSocId);
+
+            return `
+              <div class="fy-card-item ${isActive ? 'active-fy' : ''}" onclick="selectSocietyFromModal(${sId}, '${sCode.replace(/'/g, "\\'")}', '${sName.replace(/'/g, "\\'")}', ${isGst})">
+                <div class="fy-card-left">
+                  <div class="fy-card-label">
+                    <i class="bi ${isActive ? 'bi-check-circle-fill' : 'bi-building'}" style="color:${isActive ? '#1565C0' : '#64748b'};"></i>
+                    ${sName} (${sCode})
+                    ${isActive ? '<span class="fy-card-badge current">ACTIVE</span>' : ''}
+                  </div>
+                  <div class="fy-card-dates">City: ${s.city || '—'} | Reg: ${s.registrationNo || '—'}</div>
+                </div>
+                <i class="bi bi-chevron-right" style="color:#94a3b8; font-size:14px;"></i>
+              </div>
+            `;
+          }).join('');
+        } else {
+          bodyEl.innerHTML = '<div style="text-align:center; padding:20px; color:#94a3b8;">No societies found.</div>';
+        }
+      } catch (err) {
+        bodyEl.innerHTML = '<div style="text-align:center; padding:20px; color:#ef4444;">Failed to load societies.</div>';
+      }
+    }
+
+    function closeSocietyPicker(e) {
+      if (e && e.target && e.target.id !== 'socPickerModal' && !e.target.classList.contains('fy-modal-close') && e.target.tagName !== 'BUTTON') {
+        return;
+      }
+      const modal = document.getElementById('socPickerModal');
+      if (modal) modal.classList.remove('show');
+    }
+
+    function selectSocietyFromModal(societyId, code, name, gstOn) {
+      closeSocietyPicker();
+      if (window.WorkspaceManager && typeof WorkspaceManager.setActiveSociety === 'function') {
+        WorkspaceManager.setActiveSociety(societyId, code, name, gstOn);
+      }
+      updateHeaderAndFooterContext();
     }
 
     function formatDateDisplay(dStr) {

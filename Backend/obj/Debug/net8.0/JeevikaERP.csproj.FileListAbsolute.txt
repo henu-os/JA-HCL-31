@@ -43,3 +43,4 @@ D:\jeevika_erp_v2\Backend\obj\Debug\net8.0\refint\JeevikaERP.dll
 D:\jeevika_erp_v2\Backend\obj\Debug\net8.0\JeevikaERP.pdb
 D:\jeevika_erp_v2\Backend\obj\Debug\net8.0\JeevikaERP.genruntimeconfig.cache
 D:\jeevika_erp_v2\Backend\obj\Debug\net8.0\ref\JeevikaERP.dll
+D:\jeevika_erp_v2\Backend\obj\Debug\net8.0\JeevikaERP.sourcelink.json

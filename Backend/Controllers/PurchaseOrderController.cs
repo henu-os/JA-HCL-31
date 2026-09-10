@@ -127,59 +127,167 @@ namespace JeevikaERP.Controllers
                     }
                 }
 
-                // Insert Credit row (Vendor Payable)
-                using var dVendor = conn.CreateCommand();
-                dVendor.Transaction = tx;
-                dVendor.CommandText = @"
-                    INSERT INTO jeevika_erp.SocVoucherDetail
-                        (VoucherId, SrNo, AccountId, AccountCode, AccountName, Debit, Credit, Narration)
-                    VALUES
-                        (@vid, 1, @aid, @code, @name, 0, @amt, @narr)";
-                dVendor.Parameters.AddWithValue("@vid",  poId);
-                dVendor.Parameters.AddWithValue("@aid",  vendorAccId > 0 ? (object)vendorAccId : DBNull.Value);
-                dVendor.Parameters.AddWithValue("@code", vCode);
-                dVendor.Parameters.AddWithValue("@name", vName);
-                dVendor.Parameters.AddWithValue("@amt",  model.Amount);
-                dVendor.Parameters.AddWithValue("@narr", (object?)model.Narration ?? "PO Booking - Vendor Payable");
-                dVendor.ExecuteNonQuery();
+                // 4. Resolve details and ensure balanced compound double-entry
+                var details = model.Details ?? model.Items;
+                int srNo = 1;
 
-                // 4. Insert Debit row(s) (Expense / Line Accounts)
-                int expAccId = model.AccountId ?? 0;
-                string expName = model.AccountName ?? "General Expense";
-                string expCode = "";
-
-                if (expAccId <= 0 && !string.IsNullOrWhiteSpace(expName))
+                if (details != null && details.Count > 0)
                 {
-                    using var findExp = conn.CreateCommand();
-                    findExp.Transaction = tx;
-                    findExp.CommandText = "SELECT AccountId, AccCode, AccName FROM jeevika_erp.SocAccount WHERE SocietyId = @sid AND (AccName ILIKE @name OR AccCode = @name) AND IsDeleted = FALSE LIMIT 1";
-                    findExp.Parameters.AddWithValue("@sid", model.SocietyId);
-                    findExp.Parameters.AddWithValue("@name", expName.Trim());
-                    using (var rE = findExp.ExecuteReader())
+                    decimal sumDr = Math.Round(details.Sum(d => d != null ? (d.Debit > 0 ? d.Debit : (d.Amount > 0 ? d.Amount : 0)) : 0), 2);
+                    decimal sumCr = Math.Round(details.Sum(d => d != null ? d.Credit : 0), 2);
+
+                    // Check if vendor payable row is already in items
+                    bool hasVendorCredit = details.Any(d => d != null && d.Credit > 0 &&
+                        ((vendorAccId > 0 && d.AccountId == vendorAccId) ||
+                         (!string.IsNullOrWhiteSpace(vCode) && string.Equals(d.AccountCode, vCode, StringComparison.OrdinalIgnoreCase)) ||
+                         (!string.IsNullOrWhiteSpace(vName) && string.Equals(d.AccountName, vName, StringComparison.OrdinalIgnoreCase))));
+
+                    // If vendor credit row not in details, calculate net vendor payable = total debits - other credits (e.g. TDS)
+                    if (!hasVendorCredit)
                     {
-                        if (rE.Read())
+                        decimal netVendorCr = Math.Round(sumDr - sumCr, 2);
+                        if (netVendorCr > 0)
                         {
-                            expAccId = Convert.ToInt32(rE["AccountId"]);
-                            expCode = rE["AccCode"]?.ToString() ?? "";
-                            expName = rE["AccName"]?.ToString() ?? expName;
+                            using var dVendor = conn.CreateCommand();
+                            dVendor.Transaction = tx;
+                            dVendor.CommandText = @"
+                                INSERT INTO jeevika_erp.SocVoucherDetail
+                                    (VoucherId, SrNo, AccountId, AccountCode, AccountName, Debit, Credit, Narration)
+                                VALUES
+                                    (@vid, @sr, @aid, @code, @name, 0, @amt, @narr)";
+                            dVendor.Parameters.AddWithValue("@vid",  poId);
+                            dVendor.Parameters.AddWithValue("@sr",   srNo++);
+                            dVendor.Parameters.AddWithValue("@aid",  vendorAccId > 0 ? (object)vendorAccId : DBNull.Value);
+                            dVendor.Parameters.AddWithValue("@code", vCode);
+                            dVendor.Parameters.AddWithValue("@name", vName);
+                            dVendor.Parameters.AddWithValue("@amt",  netVendorCr);
+                            dVendor.Parameters.AddWithValue("@narr", (object?)model.Narration ?? "PO Booking - Vendor Payable");
+                            dVendor.ExecuteNonQuery();
+
+                            sumCr += netVendorCr;
                         }
                     }
-                }
 
-                using var dExp = conn.CreateCommand();
-                dExp.Transaction = tx;
-                dExp.CommandText = @"
-                    INSERT INTO jeevika_erp.SocVoucherDetail
-                        (VoucherId, SrNo, AccountId, AccountCode, AccountName, Debit, Credit, Narration)
-                    VALUES
-                        (@vid, 2, @aid, @code, @name, @amt, 0, @narr)";
-                dExp.Parameters.AddWithValue("@vid",  poId);
-                dExp.Parameters.AddWithValue("@aid",  expAccId > 0 ? (object)expAccId : DBNull.Value);
-                dExp.Parameters.AddWithValue("@code", expCode);
-                dExp.Parameters.AddWithValue("@name", expName);
-                dExp.Parameters.AddWithValue("@amt",  model.Amount);
-                dExp.Parameters.AddWithValue("@narr", (object?)model.Narration ?? "PO Booking - Expense");
-                dExp.ExecuteNonQuery();
+                    // Strict balance validation
+                    if (Math.Abs(sumDr - sumCr) > 0.01m)
+                    {
+                        tx.Rollback();
+                        return BadRequest(new 
+                        { 
+                            success = false, 
+                            message = $"Double-entry validation failed: Total Debit (₹{sumDr:N2}) does not match Total Credit (₹{sumCr:N2}). Difference: ₹{Math.Abs(sumDr - sumCr):N2}." 
+                        });
+                    }
+
+                    // Insert detail line items (preserving Expense Dr, TDS Cr, etc.)
+                    foreach (var d in details)
+                    {
+                        if (d == null) continue;
+                        int lineAccId = d.AccountId ?? 0;
+                        string lineCode = d.AccountCode ?? "";
+                        string lineName = d.AccountName ?? "Expense";
+                        decimal lineDr = d.Debit > 0 ? d.Debit : (d.Amount > 0 ? d.Amount : 0);
+                        decimal lineCr = d.Credit;
+
+                        if (lineDr == 0 && lineCr == 0) continue;
+
+                        if (lineAccId <= 0 && !string.IsNullOrWhiteSpace(lineName))
+                        {
+                            using var findLine = conn.CreateCommand();
+                            findLine.Transaction = tx;
+                            findLine.CommandText = "SELECT AccountId, AccCode, AccName FROM jeevika_erp.SocAccount WHERE SocietyId = @sid AND (AccName ILIKE @name OR AccCode = @name) AND IsDeleted = FALSE LIMIT 1";
+                            findLine.Parameters.AddWithValue("@sid", model.SocietyId);
+                            findLine.Parameters.AddWithValue("@name", lineName.Trim());
+                            using var rLine = findLine.ExecuteReader();
+                            if (rLine.Read())
+                            {
+                                lineAccId = Convert.ToInt32(rLine["AccountId"]);
+                                lineCode = rLine["AccCode"]?.ToString() ?? lineCode;
+                                lineName = rLine["AccName"]?.ToString() ?? lineName;
+                            }
+                        }
+
+                        using var dLine = conn.CreateCommand();
+                        dLine.Transaction = tx;
+                        dLine.CommandText = @"
+                            INSERT INTO jeevika_erp.SocVoucherDetail
+                                (VoucherId, SrNo, AccountId, AccountCode, AccountName, Debit, Credit, Narration)
+                            VALUES
+                                (@vid, @sr, @aid, @code, @name, @dr, @cr, @narr)";
+                        dLine.Parameters.AddWithValue("@vid",  poId);
+                        dLine.Parameters.AddWithValue("@sr",   srNo++);
+                        dLine.Parameters.AddWithValue("@aid",  lineAccId > 0 ? (object)lineAccId : DBNull.Value);
+                        dLine.Parameters.AddWithValue("@code", lineCode);
+                        dLine.Parameters.AddWithValue("@name", lineName);
+                        dLine.Parameters.AddWithValue("@dr",   lineDr);
+                        dLine.Parameters.AddWithValue("@cr",   lineCr);
+                        dLine.Parameters.AddWithValue("@narr", !string.IsNullOrWhiteSpace(d.Narration) ? d.Narration : (object?)model.Narration ?? "PO Booking");
+                        dLine.ExecuteNonQuery();
+                    }
+
+                    // Update header amount to sum of debits
+                    using var updH = conn.CreateCommand();
+                    updH.Transaction = tx;
+                    updH.CommandText = "UPDATE jeevika_erp.SocVoucherHeader SET Amount = @amt WHERE VoucherId = @vid";
+                    updH.Parameters.AddWithValue("@amt", sumDr);
+                    updH.Parameters.AddWithValue("@vid", poId);
+                    updH.ExecuteNonQuery();
+                }
+                else
+                {
+                    // Fallback single line item if no details array provided
+                    using var dVendor = conn.CreateCommand();
+                    dVendor.Transaction = tx;
+                    dVendor.CommandText = @"
+                        INSERT INTO jeevika_erp.SocVoucherDetail
+                            (VoucherId, SrNo, AccountId, AccountCode, AccountName, Debit, Credit, Narration)
+                        VALUES
+                            (@vid, 1, @aid, @code, @name, 0, @amt, @narr)";
+                    dVendor.Parameters.AddWithValue("@vid",  poId);
+                    dVendor.Parameters.AddWithValue("@aid",  vendorAccId > 0 ? (object)vendorAccId : DBNull.Value);
+                    dVendor.Parameters.AddWithValue("@code", vCode);
+                    dVendor.Parameters.AddWithValue("@name", vName);
+                    dVendor.Parameters.AddWithValue("@amt",  model.Amount);
+                    dVendor.Parameters.AddWithValue("@narr", (object?)model.Narration ?? "PO Booking - Vendor Payable");
+                    dVendor.ExecuteNonQuery();
+
+                    int expAccId = model.AccountId ?? 0;
+                    string expName = model.AccountName ?? "General Expense";
+                    string expCode = "";
+
+                    if (expAccId <= 0 && !string.IsNullOrWhiteSpace(expName))
+                    {
+                        using var findExp = conn.CreateCommand();
+                        findExp.Transaction = tx;
+                        findExp.CommandText = "SELECT AccountId, AccCode, AccName FROM jeevika_erp.SocAccount WHERE SocietyId = @sid AND (AccName ILIKE @name OR AccCode = @name) AND IsDeleted = FALSE LIMIT 1";
+                        findExp.Parameters.AddWithValue("@sid", model.SocietyId);
+                        findExp.Parameters.AddWithValue("@name", expName.Trim());
+                        using (var rE = findExp.ExecuteReader())
+                        {
+                            if (rE.Read())
+                            {
+                                expAccId = Convert.ToInt32(rE["AccountId"]);
+                                expCode = rE["AccCode"]?.ToString() ?? "";
+                                expName = rE["AccName"]?.ToString() ?? expName;
+                            }
+                        }
+                    }
+
+                    using var dExp = conn.CreateCommand();
+                    dExp.Transaction = tx;
+                    dExp.CommandText = @"
+                        INSERT INTO jeevika_erp.SocVoucherDetail
+                            (VoucherId, SrNo, AccountId, AccountCode, AccountName, Debit, Credit, Narration)
+                        VALUES
+                            (@vid, 2, @aid, @code, @name, @amt, 0, @narr)";
+                    dExp.Parameters.AddWithValue("@vid",  poId);
+                    dExp.Parameters.AddWithValue("@aid",  expAccId > 0 ? (object)expAccId : DBNull.Value);
+                    dExp.Parameters.AddWithValue("@code", expCode);
+                    dExp.Parameters.AddWithValue("@name", expName);
+                    dExp.Parameters.AddWithValue("@amt",  model.Amount);
+                    dExp.Parameters.AddWithValue("@narr", (object?)model.Narration ?? "PO Booking - Expense");
+                    dExp.ExecuteNonQuery();
+                }
 
                 tx.Commit();
 
@@ -231,5 +339,7 @@ namespace JeevikaERP.Controllers
         public string?   AccountName { get; set; }
         public string?   InvNo       { get; set; }
         public string?   Narration   { get; set; }
+        public List<VoucherItemModel>? Items   { get; set; }
+        public List<VoucherItemModel>? Details { get; set; }
     }
 }

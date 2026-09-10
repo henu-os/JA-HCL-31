@@ -529,17 +529,20 @@ namespace JeevikaERP.Controllers
         [HttpPost("purge-all")]
         public IActionResult PurgeAllNotes([FromQuery] int societyId = 0)
         {
+            if (societyId <= 0)
+                return BadRequest(new { success = false, message = "societyId is required." });
+
             try
             {
                 using var conn = DbHelper.GetConn();
                 using var cmd = conn.CreateCommand();
                 cmd.CommandText = @"
                     DELETE FROM jeevika_erp.SocVoucherDetail 
-                    WHERE VoucherId IN (SELECT VoucherId FROM jeevika_erp.SocVoucherHeader WHERE (@sid = 0 OR SocietyId = @sid) AND VoucherType IN ('MemberDebitNote', 'DebitNote', 'MemberCreditNote', 'CreditNote'));
+                    WHERE VoucherId IN (SELECT VoucherId FROM jeevika_erp.SocVoucherHeader WHERE SocietyId = @sid AND VoucherType IN ('MemberDebitNote', 'DebitNote', 'MemberCreditNote', 'CreditNote'));
                     DELETE FROM jeevika_erp.SocMemberNote 
-                    WHERE (@sid = 0 OR SocietyId = @sid);
+                    WHERE SocietyId = @sid;
                     DELETE FROM jeevika_erp.SocVoucherHeader 
-                    WHERE (@sid = 0 OR SocietyId = @sid) AND VoucherType IN ('MemberDebitNote', 'DebitNote', 'MemberCreditNote', 'CreditNote');";
+                    WHERE SocietyId = @sid AND VoucherType IN ('MemberDebitNote', 'DebitNote', 'MemberCreditNote', 'CreditNote');";
                 cmd.Parameters.AddWithValue("@sid", societyId);
                 cmd.ExecuteNonQuery();
                 return Ok(new { success = true, message = "All member notes purged successfully." });

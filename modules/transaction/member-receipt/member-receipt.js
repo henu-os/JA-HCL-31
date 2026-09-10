@@ -719,7 +719,7 @@
     }
   });
 
-  window.editSelectedReceipt = function (id) {
+  window.editSelectedReceipt = async function (id) {
     if (id) selectedReceiptId = id;
     if (!selectedReceiptId) {
       toast('Please select a receipt record to edit.', false);
@@ -732,6 +732,19 @@
              String(b.voucherNo) === String(selectedReceiptId);
     });
     if (!r) { toast('Receipt record not found.', false); return; }
+
+    // Fetch full voucher detail lines from DB if available
+    var vId = parseInt(r.voucherId || r.receiptId, 10);
+    var fullVoucher = null;
+    if (vId && vId > 0 && vId < 1000000000000) {
+      try {
+        var baseHost = (typeof window.getApiBaseUrl === 'function') ? window.getApiBaseUrl() : 'http://localhost:5002';
+        var resp = await fetch(baseHost + '/api/vouchers/' + vId, { headers: (typeof getAuthHeaders === 'function' ? getAuthHeaders() : {}) });
+        if (resp.ok) fullVoucher = await resp.json();
+      } catch (e) {
+        console.warn('Could not fetch voucher details for member receipt:', e);
+      }
+    }
 
     var activeTypeName = (r.billType || 'Maintenance');
     var formattedName = activeTypeName.charAt(0).toUpperCase() + activeTypeName.slice(1).toLowerCase();
@@ -830,16 +843,31 @@
 
     if (targetMemId) onMemberSelect(targetMemId, true);
 
-    var savedAcc = r.cashBank || '';
-    var isCash = savedAcc.toLowerCase().includes('cash');
+    var debitItem = null;
+    if (fullVoucher && fullVoucher.items && Array.isArray(fullVoucher.items)) {
+      debitItem = fullVoucher.items.find(function(it) {
+        var d = parseFloat(it.debit || it.dr) || 0;
+        return d > 0;
+      });
+    }
+
+    var savedAcc = (debitItem ? (debitItem.accountName || debitItem.name) : (r.cashBank || r.cashBankName || ''));
+    var savedCode = (debitItem ? (debitItem.accountCode || debitItem.code) : (r.cashBankCode || ''));
+    var savedAccId = (debitItem ? (debitItem.accountId || debitItem.id) : null);
+
+    var isCash = (savedCode && String(savedCode).toUpperCase() === 'ASS-1001') ||
+                 (savedAcc && String(savedAcc).toLowerCase().includes('cash'));
+
     var rdoCash = document.querySelector('input[name="payMode"][value="Cash"]');
     var rdoBank = document.querySelector('input[name="payMode"][value="Bank"]');
     if (isCash) {
       if (rdoCash) rdoCash.checked = true;
-      togglePayMode('Cash', savedAcc);
+      if (rdoBank) rdoBank.checked = false;
+      togglePayMode('Cash', savedAcc, savedCode, savedAccId);
     } else {
       if (rdoBank) rdoBank.checked = true;
-      togglePayMode('Bank', savedAcc);
+      if (rdoCash) rdoCash.checked = false;
+      togglePayMode('Bank', savedAcc, savedCode, savedAccId);
     }
 
     document.getElementById('mr-section-list').style.display = 'none';
@@ -972,7 +1000,7 @@
     }
   };
 
-  window.togglePayMode = function (mode, selectedValue) {
+  window.togglePayMode = function (mode, selectedValue, selectedAccCode, selectedAccId) {
     var sel = document.getElementById('frm-account');
     if (!sel) return;
 
@@ -1005,13 +1033,13 @@
       });
 
       if (cashAccs.length === 0) {
-        html = '<option value="Cash in Hand">[ASS-1001] Cash in Hand</option>';
+        html = '<option value="Cash in Hand" data-code="ASS-1001">[ASS-1001] Cash in Hand</option>';
       } else {
         cashAccs.forEach(function (a) {
           var name = a.accName || a.accountName || 'Cash in Hand';
           var code = a.accCode || a.accountCode || '';
           var label = code ? ('[' + code + '] ' + name) : name;
-          html += '<option value="' + escHtml(name) + '">' + escHtml(label) + '</option>';
+          html += '<option value="' + escHtml(name) + '" data-id="' + (a.accountId || '') + '" data-code="' + escHtml(code) + '">' + escHtml(label) + '</option>';
         });
       }
     } else {
@@ -1029,14 +1057,49 @@
           var name = a.accName || a.accountName || '';
           var code = a.accCode || a.accountCode || '';
           var label = code ? ('[' + code + '] ' + name) : name;
-          html += '<option value="' + escHtml(name) + '">' + escHtml(label) + '</option>';
+          html += '<option value="' + escHtml(name) + '" data-id="' + (a.accountId || '') + '" data-code="' + escHtml(code) + '">' + escHtml(label) + '</option>';
         });
       }
     }
 
     sel.innerHTML = html;
-    if (selectedValue) {
-      sel.value = selectedValue;
+    if (selectedValue || selectedAccCode || selectedAccId) {
+      var sVal = String(selectedValue || '').trim();
+      var cleanTarget = sVal.toLowerCase().replace(/\[.*?\]\s*/g, '').replace(/^[a-z]+-\d+\s*-\s*/g, '').trim();
+      var matched = false;
+
+      for (var optIdx = 0; optIdx < sel.options.length; optIdx++) {
+        var opt = sel.options[optIdx];
+        var optVal = opt.value.trim();
+        var optCode = (opt.dataset.code || '').trim().toUpperCase();
+        var optId = (opt.dataset.id || '').trim();
+
+        if (optVal && sVal && optVal.toLowerCase() === sVal.toLowerCase()) {
+          sel.selectedIndex = optIdx; matched = true; break;
+        }
+        if (selectedAccId && optId && optId === String(selectedAccId)) {
+          sel.selectedIndex = optIdx; matched = true; break;
+        }
+        if (selectedAccCode && optCode && selectedAccCode.toUpperCase() === optCode) {
+          sel.selectedIndex = optIdx; matched = true; break;
+        }
+        if (optCode && sVal && sVal.toUpperCase().includes(optCode)) {
+          sel.selectedIndex = optIdx; matched = true; break;
+        }
+        var cleanOpt = optVal.toLowerCase().replace(/\[.*?\]\s*/g, '').replace(/^[a-z]+-\d+\s*-\s*/g, '').trim();
+        if (cleanTarget && cleanOpt && (cleanTarget === cleanOpt || cleanOpt.includes(cleanTarget) || cleanTarget.includes(cleanOpt))) {
+          sel.selectedIndex = optIdx; matched = true; break;
+        }
+      }
+
+      // Failsafe: dynamically add option so Bank field is NEVER BLANK!
+      if (!matched && (sVal || selectedAccCode)) {
+        var opt = document.createElement('option');
+        opt.value = sVal || selectedAccCode;
+        opt.textContent = (sVal && sVal.startsWith('[')) ? sVal : ('[' + (selectedAccCode || 'BANK') + '] ' + (sVal || 'Bank Account'));
+        sel.appendChild(opt);
+        sel.value = opt.value;
+      }
     }
   };
 

@@ -634,17 +634,39 @@
         if (!selectedFY) { showError('Please select a financial year.'); return; }
         goToStep(3);
 
-      } else if (currentStep === 3) {
         // Confirm: save context and go to workspace
-        sessionStorage.setItem('activeSocietyId',   selectedSociety.societyId.toString());
+        const socIdStr = selectedSociety.societyId.toString();
+        const fyIdStr  = selectedFY.fYId.toString();
+        var gstFlag = (selectedSociety.gstApplicable === true || selectedSociety.GSTApplicable === true || selectedSociety.gstApplicable === 'Y' || selectedSociety.GSTApplicable === 'Y') ? 'Y' : 'N';
+
+        sessionStorage.setItem('activeSocietyId',   socIdStr);
         sessionStorage.setItem('activeSocietyName', selectedSociety.societyName);
         sessionStorage.setItem('activeSocietyCode', selectedSociety.societyCode);
-        sessionStorage.setItem('activeFYId',         selectedFY.fYId.toString());
+        sessionStorage.setItem('activeFYId',         fyIdStr);
         sessionStorage.setItem('activeFYLabel',      selectedFY.fYLabel);
         sessionStorage.setItem('activeFYStart',      selectedFY.fYStart);
-        var gstFlag = (selectedSociety.gstApplicable === true || selectedSociety.GSTApplicable === true || selectedSociety.gstApplicable === 'Y' || selectedSociety.GSTApplicable === 'Y') ? 'Y' : 'N';
         sessionStorage.setItem('activeSocietyGSTApplicable', gstFlag);
+
+        localStorage.setItem('activeSocietyId',   socIdStr);
+        localStorage.setItem('activeSocietyName', selectedSociety.societyName);
+        localStorage.setItem('activeSocietyCode', selectedSociety.societyCode);
+        localStorage.setItem('activeFYId',         fyIdStr);
+        localStorage.setItem('activeFYLabel',      selectedFY.fYLabel);
+        localStorage.setItem('activeFYStart',      selectedFY.fYStart);
         localStorage.setItem('activeSocietyGSTApplicable', gstFlag);
+
+        if (window.Auth && typeof window.Auth.setContext === 'function') {
+          window.Auth.setContext({
+            societyId: selectedSociety.societyId,
+            societyName: selectedSociety.societyName,
+            societyCode: selectedSociety.societyCode
+          }, {
+            fYId: selectedFY.fYId,
+            fYLabel: selectedFY.fYLabel,
+            fYStart: selectedFY.fYStart,
+            fYEnd: selectedFY.fYEnd
+          });
+        }
 
         window.location.href = 'workspace.html';
       }

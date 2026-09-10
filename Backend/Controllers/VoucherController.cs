@@ -224,24 +224,24 @@ namespace JeevikaERP.Controllers
         [HttpPost]
         public IActionResult SaveVoucher([FromBody] VoucherFullModel model)
         {
-            if (model.SocietyId <= 0) model.SocietyId = 1;
-            if (model.FYId <= 0) model.FYId = 1;
+            if (model.SocietyId <= 0)
+                return BadRequest(new { success = false, message = "SocietyId is required." });
+
+            if (model.FYId <= 0)
+            {
+                using var connFy = DbHelper.GetConn();
+                using var cmdFy = connFy.CreateCommand();
+                cmdFy.CommandText = "SELECT FYId FROM jeevika_erp.FinancialYear WHERE SocietyId = @sid AND IsActive = TRUE LIMIT 1";
+                cmdFy.Parameters.AddWithValue("@sid", model.SocietyId);
+                var resolvedFy = cmdFy.ExecuteScalar();
+                if (resolvedFy != null && resolvedFy != DBNull.Value)
+                    model.FYId = Convert.ToInt32(resolvedFy);
+            }
             if (string.IsNullOrWhiteSpace(model.VoucherType)) model.VoucherType = "PurchaseOrder";
 
             if (model.Items == null || model.Items.Count == 0)
             {
-                if (model.Amount > 0)
-                {
-                    model.Items = new List<VoucherItemModel>
-                    {
-                        new VoucherItemModel { AccountName = "General Expense", AccountCode = "EXP-5001", Debit = model.Amount, Credit = 0, Narration = model.Narration ?? "PO Booking" },
-                        new VoucherItemModel { AccountName = model.PersonName ?? "Vendor Payable", AccountCode = "ASS-1001", Debit = 0, Credit = model.Amount, Narration = model.Narration ?? "Vendor Payable" }
-                    };
-                }
-                else
-                {
-                    return BadRequest(new { success = false, message = "Voucher must have at least one line item." });
-                }
+                return BadRequest(new { success = false, message = "Voucher must have at least one valid line item." });
             }
 
             try
@@ -321,11 +321,22 @@ namespace JeevikaERP.Controllers
                     model.VoucherNo = $"{pfx}{(maxSeq + 1):D2}";
                 }
 
-                // Calculate total amount from model or line items (single side of double-entry)
-                decimal totalAmount = model.Amount > 0 
-                    ? model.Amount 
-                    : (model.Items.Any(i => i.Credit > 0) ? model.Items.Sum(i => i.Credit) : model.Items.Sum(i => i.Debit));
-                int targetVoucherId = existingId;
+            // Strict double-entry validation
+            decimal totalDebit = Math.Round(model.Items.Sum(i => i.Debit), 2);
+            decimal totalCredit = Math.Round(model.Items.Sum(i => i.Credit), 2);
+
+            if (Math.Abs(totalDebit - totalCredit) > 0.01m)
+            {
+                return BadRequest(new 
+                { 
+                    success = false, 
+                    message = $"Double-entry validation failed: Total Debit (₹{totalDebit:N2}) does not match Total Credit (₹{totalCredit:N2}). Difference: ₹{Math.Abs(totalDebit - totalCredit):N2}." 
+                });
+            }
+
+            // Transaction amount is the balanced single side
+            decimal totalAmount = totalDebit;
+            int targetVoucherId = existingId;
 
                 if (existingId > 0)
                 {
@@ -692,6 +703,7 @@ namespace JeevikaERP.Controllers
         public string? AccountName { get; set; }
         public decimal Debit       { get; set; } = 0;
         public decimal Credit      { get; set; } = 0;
+        public decimal Amount      { get; set; } = 0;
         public string? Narration   { get; set; }
     }
 

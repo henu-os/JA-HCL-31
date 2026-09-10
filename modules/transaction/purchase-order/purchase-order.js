@@ -64,8 +64,8 @@
              (window.parent && window.parent.sessionStorage && window.parent.sessionStorage.getItem('activeFYId')) ||
              (window.parent && window.parent.localStorage && window.parent.localStorage.getItem('activeFYId')) ||
              (window.parent && window.parent.Auth && window.parent.Auth.getFYId && window.parent.Auth.getFYId()) ||
-             '1';
-    return id ? String(id) : '1';
+             '';
+    return id ? String(id) : '';
   }
 
   function getFyLabel() {
@@ -797,10 +797,78 @@
     var elCr = document.getElementById('grid-tot-cr');
     if (elCr) elCr.textContent = totCr.toFixed(2);
 
-    var diff = totDr - totCr;
+    var diff = Math.round((totDr - totCr) * 100) / 100;
     var elNet = document.getElementById('grid-net-bal');
-    if (elNet) elNet.textContent = Math.abs(diff).toFixed(2);
+    var statusLbl = document.getElementById('grid-status-label');
+
+    if (elNet) {
+      if (diff > 0.01) {
+        if (statusLbl) statusLbl.textContent = 'Net Vendor Payable:';
+        elNet.textContent = '₹' + diff.toFixed(2) + ' (Cr to Vendor)';
+        elNet.style.color = '#0D47A1';
+      } else if (diff < -0.01) {
+        if (statusLbl) statusLbl.textContent = 'Credits exceed Debits:';
+        elNet.textContent = '₹' + Math.abs(diff).toFixed(2) + ' (Unbalanced)';
+        elNet.style.color = '#dc2626';
+      } else if (totDr > 0) {
+        if (statusLbl) statusLbl.textContent = 'Double-Entry Status:';
+        elNet.textContent = '✓ BALANCED (₹' + totDr.toFixed(2) + ')';
+        elNet.style.color = '#15803d';
+      } else {
+        if (statusLbl) statusLbl.textContent = 'Net Balance:';
+        elNet.textContent = '0.00';
+        elNet.style.color = '#0D47A1';
+      }
+    }
   }
+
+  window.quickApplyTds = function (rate) {
+    var grossDr = gridRows.reduce(function (s, r) { return s + (parseFloat(r.dr) || 0); }, 0);
+    if (grossDr <= 0) {
+      grossDr = parseFloat(document.getElementById('entry-amount') ? document.getElementById('entry-amount').value : 0) || 0;
+    }
+    if (grossDr <= 0) {
+      toast('Please enter or add an Expense Debit line first before calculating TDS.', false);
+      return;
+    }
+
+    var tdsRate = parseFloat(rate) || 1;
+    var tdsAmt = Math.round(grossDr * (tdsRate / 100) * 100) / 100;
+    if (tdsAmt <= 0) {
+      toast('TDS amount must be greater than 0.', false);
+      return;
+    }
+
+    var tdsAcc = accounts.find(function (a) { 
+      return (a.accCode && a.accCode.toUpperCase() === 'LIA-1008') || 
+             (a.accName && a.accName.toLowerCase().includes('tds payable')); 
+    });
+
+    var code = tdsAcc ? tdsAcc.accCode : 'LIA-1008';
+    var name = tdsAcc ? tdsAcc.accName : 'TDS Payable';
+
+    var existingIdx = gridRows.findIndex(function (r) { 
+      return (r.code && r.code.toUpperCase() === 'LIA-1008') || 
+             (r.name && r.name.toLowerCase().includes('tds payable')); 
+    });
+
+    if (existingIdx >= 0) {
+      gridRows[existingIdx].cr = tdsAmt;
+    } else {
+      gridRows.push({
+        sr: gridRows.length + 1,
+        code: code,
+        name: name,
+        dr: 0,
+        cr: tdsAmt,
+        particulars: 'TDS @ ' + tdsRate + '% on ' + grossDr.toFixed(2)
+      });
+    }
+
+    renderGridTable();
+    var netPay = Math.max(0, grossDr - tdsAmt);
+    toast('Applied ' + tdsRate + '% TDS (₹' + tdsAmt.toFixed(2) + '). Net Vendor Payable: ₹' + netPay.toFixed(2), true);
+  };
 
   window.openAddPoForm = async function () {
     selectedPoId = null;
@@ -925,8 +993,15 @@
         };
       });
     } else if (b.items && Array.isArray(b.items) && b.items.length > 0) {
-      var dbDebit = b.items.filter(function(r) { return (parseFloat(r.debit) || 0) > 0; });
-      var src = dbDebit.length > 0 ? dbDebit : b.items;
+      var pName = (b.paidTo || b.personName || '').toLowerCase();
+      var isVendorCredit = function(r) {
+        var cr = parseFloat(r.credit || r.cr) || 0;
+        if (cr <= 0) return false;
+        var nm = String(r.accountName || r.name || '').toLowerCase();
+        return (pName && nm.includes(pName)) || nm.includes('vendor') || nm.includes('payable') || nm.includes('sundry creditor');
+      };
+      var nonVendorItems = b.items.filter(function(r) { return !isVendorCredit(r); });
+      var src = nonVendorItems.length > 0 ? nonVendorItems : b.items;
       gridRows = src.map(function (r, i) {
         return {
           sr: i + 1,
@@ -938,8 +1013,8 @@
         };
       });
     } else {
-      var defCode = b.accountCode || 'EXP-5001';
-      var defName = b.accountName || b.particular1 || 'General Expense';
+      var defCode = b.accountCode || '';
+      var defName = b.accountName || b.particular1 || 'Expense';
       gridRows = [
         { sr: 1, code: defCode, name: defName, dr: b.amount || 0, cr: 0, particulars: b.particular1 || 'Purchase Order' }
       ];
@@ -1000,11 +1075,15 @@
     var entryAmt = parseFloat(document.getElementById('entry-amount') ? document.getElementById('entry-amount').value : 0) || 0;
     if (gridRows.length === 0 && entryAmt > 0) {
       var accObj = accounts.find(function(a) { return String(a.accountId) === String(entryAccId); });
+      if (!accObj) {
+        toast('Please select an Expense Account before saving.', false);
+        return;
+      }
       var entryType = document.getElementById('entry-type') ? document.getElementById('entry-type').value : 'Dr';
       gridRows.push({
         sr: 1,
-        code: accObj ? accObj.accCode : 'EXP-5001',
-        name: accObj ? accObj.accName : 'General Expense',
+        code: accObj.accCode || '',
+        name: accObj.accName || '',
         dr: (entryType === 'Dr' ? entryAmt : 0),
         cr: (entryType === 'Cr' ? entryAmt : 0)
       });
@@ -1020,7 +1099,16 @@
       return;
     }
 
-    var sid = getActiveSocietyId() || 1;
+    if (validRows.length === 0) {
+      toast('Please add at least one line item (Expense Account) for the Purchase Order.', false);
+      return;
+    }
+
+    var sid = getActiveSocietyId();
+    if (!sid) {
+      toast('Active Society not selected.', false);
+      return;
+    }
     var fyid = getFyId() || 1;
     var pId = selectedPoId || Date.now();
     var vNo = document.getElementById('frm-vno').value || ('PO/25-26/' + (pos.length + 1));
@@ -1034,41 +1122,64 @@
 
     var items = [];
     var totalDebitSum = 0;
-    if (validRows.length > 0) {
-      validRows.forEach(function(r) {
-        var accId = null;
-        var found = accounts.find(function(a) { return (a.accCode && a.accCode === r.code) || (a.accName && a.accName === r.name); });
-        if (found && typeof found.accountId === 'number' && found.accountId < 1000000) {
-          accId = found.accountId;
-        }
-        var drVal = parseFloat(r.dr) || 0;
-        var crVal = parseFloat(r.cr) || 0;
-        if (drVal > 0) totalDebitSum += drVal;
-        items.push({
-          accountId: accId,
-          accountCode: r.code || (found ? found.accCode : 'EXP-5001'),
-          accountName: r.name || (found ? found.accName : 'General Expense'),
-          debit: drVal,
-          credit: crVal,
-          narration: r.particulars || r.narration || ''
-        });
-      });
-    } else {
-      totalDebitSum = totAmt;
-      items.push({ accountId: null, accountCode: 'EXP-5001', accountName: 'General Expense', debit: totAmt, credit: 0, narration: 'PO Booking' });
-    }
-
-    if (totalDebitSum <= 0) totalDebitSum = totAmt;
-    if (!items.some(function(it) { return it.credit > 0; })) {
+    validRows.forEach(function(r) {
+      var accId = null;
+      var found = accounts.find(function(a) { return (a.accCode && a.accCode === r.code) || (a.accName && a.accName === r.name); });
+      if (found && typeof found.accountId === 'number' && found.accountId < 1000000) {
+        accId = found.accountId;
+      }
+      var drVal = parseFloat(r.dr) || 0;
+      var crVal = parseFloat(r.cr) || 0;
+      if (drVal > 0) totalDebitSum += drVal;
       items.push({
-        accountId: null,
-        accountCode: 'ASS-1001',
-        accountName: pName || 'Vendor Payable',
-        debit: 0,
-        credit: totalDebitSum,
-        narration: 'Vendor Payable - ' + pName
+        accountId: accId,
+        accountCode: r.code || (found ? found.accCode : ''),
+        accountName: r.name || (found ? found.accName : 'Expense'),
+        debit: drVal,
+        credit: crVal,
+        narration: r.particulars || r.narration || ''
       });
-    }
+    });
+
+      var totDr = Math.round(items.reduce(function(s, i) { return s + (parseFloat(i.debit) || 0); }, 0) * 100) / 100;
+      var totCr = Math.round(items.reduce(function(s, i) { return s + (parseFloat(i.credit) || 0); }, 0) * 100) / 100;
+
+      // Check if vendor payable account is already explicitly included in items with credit
+      var hasVendorCredit = items.some(function(it) {
+        return it.credit > 0 && (
+          (it.accountName && pName && it.accountName.toLowerCase().includes(pName.toLowerCase())) ||
+          (it.accountName && it.accountName.toLowerCase().includes('vendor payable'))
+        );
+      });
+
+      if (!hasVendorCredit) {
+        var netCrNeeded = Math.round((totDr - totCr) * 100) / 100;
+        if (netCrNeeded > 0) {
+          var vAcc = accounts.find(function(a) {
+            var nm = (a.accName || '').toLowerCase();
+            return (pName && nm.includes(pName.toLowerCase())) ||
+                   nm.includes('sundry creditor') ||
+                   nm.includes('vendor payable');
+          });
+          items.push({
+            accountId: (vAcc && typeof vAcc.accountId === 'number' && vAcc.accountId < 1000000) ? vAcc.accountId : null,
+            accountCode: vAcc ? (vAcc.accCode || '') : '',
+            accountName: pName || (vAcc ? vAcc.accName : 'Vendor Payable'),
+            debit: 0,
+            credit: netCrNeeded,
+            narration: 'Vendor Payable - ' + pName
+          });
+          totCr += netCrNeeded;
+        }
+      }
+
+      var finalDr = Math.round(items.reduce(function(s, i) { return s + (parseFloat(i.debit) || 0); }, 0) * 100) / 100;
+      var finalCr = Math.round(items.reduce(function(s, i) { return s + (parseFloat(i.credit) || 0); }, 0) * 100) / 100;
+
+      if (Math.abs(finalDr - finalCr) > 0.01) {
+        toast('Double-entry unbalanced: Total Debit (₹' + finalDr.toFixed(2) + ') must equal Total Credit (₹' + finalCr.toFixed(2) + '). Difference: ₹' + Math.abs(finalDr - finalCr).toFixed(2), false);
+        return;
+      }
 
     var part1Val = document.getElementById('frm-particular1').value.trim();
     var part2Val = document.getElementById('frm-particular2').value.trim();

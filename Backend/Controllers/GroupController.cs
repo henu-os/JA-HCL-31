@@ -73,16 +73,6 @@ namespace JeevikaERP.Controllers
             {
                 using var conn = DbHelper.GetConn();
 
-                // If societyId not passed, pick first active society
-                if (societyId <= 0)
-                {
-                    using var sCmd = conn.CreateCommand();
-                    sCmd.CommandText = "SELECT SocietyId FROM jeevika_erp.SocietyInfo WHERE IsActive = TRUE ORDER BY SocietyId LIMIT 1";
-                    var res = sCmd.ExecuteScalar();
-                    if (res != null && res != DBNull.Value)
-                        societyId = Convert.ToInt32(res);
-                }
-
                 if (societyId <= 0)
                     return Ok(new { success = true, data = new List<object>(), count = 0 });
 
@@ -155,15 +145,9 @@ namespace JeevikaERP.Controllers
             {
                 using var conn = DbHelper.GetConn();
 
+                if (model.SocietyId <= 0)
+                    return BadRequest(new { success = false, message = "societyId is required." });
                 int sid = model.SocietyId;
-                if (sid <= 0)
-                {
-                    using var sCmd = conn.CreateCommand();
-                    sCmd.CommandText = "SELECT SocietyId FROM jeevika_erp.SocietyInfo WHERE IsActive = TRUE ORDER BY SocietyId LIMIT 1";
-                    var res = sCmd.ExecuteScalar();
-                    if (res != null && res != DBNull.Value) sid = Convert.ToInt32(res);
-                }
-                model.SocietyId = sid;
 
                 // Auto generate code if empty
                 if (string.IsNullOrWhiteSpace(model.GrpCode))
@@ -283,8 +267,15 @@ namespace JeevikaERP.Controllers
         }
 
         // ── Helpers ──────────────────────────────────────────────
-        private static void EnsureDefaultGroups(NpgsqlConnection conn, int societyId)
+        public static void EnsureDefaultGroups(NpgsqlConnection conn, int societyId)
         {
+            if (societyId <= 0) return;
+
+            using var chkSoc = conn.CreateCommand();
+            chkSoc.CommandText = "SELECT COUNT(*) FROM jeevika_erp.SocietyInfo WHERE SocietyId = @sid";
+            chkSoc.Parameters.AddWithValue("@sid", societyId);
+            if (Convert.ToInt64(chkSoc.ExecuteScalar() ?? 0L) == 0) return;
+
             using var countCmd = conn.CreateCommand();
             countCmd.CommandText = "SELECT COUNT(*) FROM jeevika_erp.SocGroup WHERE SocietyId = @sid AND IsDeleted = FALSE";
             countCmd.Parameters.AddWithValue("@sid", societyId);

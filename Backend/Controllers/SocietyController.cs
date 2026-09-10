@@ -156,6 +156,14 @@ namespace JeevikaERP.Controllers
                     fyCmd.ExecuteNonQuery();
                 }
 
+                // Auto-seed independent default Groups & Accounts for this new society with 0 balances
+                try
+                {
+                    GroupController.EnsureDefaultGroups(conn, newId);
+                    AccountController.EnsureDefaultAccounts(conn, newId);
+                }
+                catch { }
+
                 return Ok(new { success = true, message = "Society created successfully.", societyId = newId });
             }
             catch (PostgresException ex) when (ex.SqlState == "23505")

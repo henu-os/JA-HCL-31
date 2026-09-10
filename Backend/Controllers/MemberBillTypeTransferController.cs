@@ -17,7 +17,7 @@ namespace JeevikaERP.Controllers
         [HttpGet]
         public IActionResult GetTransfers([FromQuery] int societyId, [FromQuery] int fyId = 0)
         {
-            if (societyId <= 0) societyId = 1;
+            if (societyId <= 0) return Ok(new { success = true, data = new List<object>(), count = 0 });
 
             try
             {
@@ -105,8 +105,8 @@ namespace JeevikaERP.Controllers
         [HttpPost]
         public IActionResult CreateTransfer([FromBody] BillTypeTransferModel model)
         {
-            if (model.SocietyId <= 0) model.SocietyId = 1;
-            if (model.FYId <= 0) model.FYId = 1;
+            if (model.SocietyId <= 0) return BadRequest(new { success = false, message = "societyId is required." });
+            if (model.FYId <= 0) return BadRequest(new { success = false, message = "fyId is required." });
             if (model.Amount <= 0)
                 return BadRequest(new { success = false, message = "Transfer amount must be greater than 0." });
 
@@ -440,15 +440,18 @@ namespace JeevikaERP.Controllers
         [HttpPost("purge-all")]
         public IActionResult PurgeAllTransfers([FromQuery] int societyId = 0)
         {
+            if (societyId <= 0)
+                return BadRequest(new { success = false, message = "societyId is required." });
+
             try
             {
                 using var conn = DbHelper.GetConn();
                 using var cmd = conn.CreateCommand();
                 cmd.CommandText = @"
                     DELETE FROM jeevika_erp.SocVoucherDetail 
-                    WHERE VoucherId IN (SELECT VoucherId FROM jeevika_erp.SocVoucherHeader WHERE (@sid = 0 OR SocietyId = @sid) AND VoucherType = 'BillTypeTransfer');
+                    WHERE VoucherId IN (SELECT VoucherId FROM jeevika_erp.SocVoucherHeader WHERE SocietyId = @sid AND VoucherType = 'BillTypeTransfer');
                     DELETE FROM jeevika_erp.SocVoucherHeader 
-                    WHERE (@sid = 0 OR SocietyId = @sid) AND VoucherType = 'BillTypeTransfer';";
+                    WHERE SocietyId = @sid AND VoucherType = 'BillTypeTransfer';";
                 cmd.Parameters.AddWithValue("@sid", societyId);
                 cmd.ExecuteNonQuery();
                 return Ok(new { success = true, message = "All bill type transfers purged successfully." });

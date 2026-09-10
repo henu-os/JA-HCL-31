@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("JeevikaERP")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+cbefa5b0dd26b4b58e698ce6a39f779496c1be9d")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a646a3cb4aef74ae5d0601636c1c2b92af50382c")]
 [assembly: System.Reflection.AssemblyProductAttribute("JeevikaERP")]
 [assembly: System.Reflection.AssemblyTitleAttribute("JeevikaERP")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

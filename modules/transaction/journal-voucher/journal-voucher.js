@@ -555,8 +555,9 @@
     if (amt <= 0) { toast('Please enter a valid Entry Amount.', false); return; }
 
     var accObj = accounts.find(function (a) { return String(a.accountId) === String(accId); });
-    var accCode = accObj ? accObj.accCode : 'INC-3001';
-    var accName = accObj ? accObj.accName : 'Maintenance Charges Account';
+    if (!accObj) { toast('Selected account not found in current society chart of accounts.', false); return; }
+    var accCode = accObj.accCode || '';
+    var accName = accObj.accName || '';
 
     gridRows.push({
       sr: gridRows.length + 1,

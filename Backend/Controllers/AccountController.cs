@@ -94,6 +94,7 @@ namespace JeevikaERP.Controllers
             ("ASS-1023", "Mobile Phone", "Fixed Assets", 1),
             ("ASS-1024", "Epson Printer", "Fixed Assets", 1),
             ("ASS-1025", "Dues From Members", "Dues from Members", 1),
+            ("ASS-1026", "TDS Receivable", "Advance & Deposit", 1),
             ("ASS-1999", "INCOME & EXPENDITURE A/C", "Income & Expenditure", 1),
 
             // Liabilities
@@ -130,14 +131,6 @@ namespace JeevikaERP.Controllers
             try
             {
                 using var conn = DbHelper.GetConn();
-
-                if (societyId <= 0)
-                {
-                    using var sCmd = conn.CreateCommand();
-                    sCmd.CommandText = "SELECT SocietyId FROM jeevika_erp.SocietyInfo WHERE IsActive = TRUE ORDER BY SocietyId LIMIT 1";
-                    var res = sCmd.ExecuteScalar();
-                    if (res != null && res != DBNull.Value) societyId = Convert.ToInt32(res);
-                }
 
                 if (societyId <= 0)
                     return Ok(new { success = true, data = new List<object>(), count = 0 });
@@ -225,15 +218,9 @@ namespace JeevikaERP.Controllers
             {
                 using var conn = DbHelper.GetConn();
 
+                if (model.SocietyId <= 0)
+                    return BadRequest(new { success = false, message = "societyId is required." });
                 int sid = model.SocietyId;
-                if (sid <= 0)
-                {
-                    using var sCmd = conn.CreateCommand();
-                    sCmd.CommandText = "SELECT SocietyId FROM jeevika_erp.SocietyInfo WHERE IsActive = TRUE ORDER BY SocietyId LIMIT 1";
-                    var res = sCmd.ExecuteScalar();
-                    if (res != null && res != DBNull.Value) sid = Convert.ToInt32(res);
-                }
-                model.SocietyId = sid;
 
                 if (string.IsNullOrWhiteSpace(model.AccCode))
                 {
@@ -535,12 +522,17 @@ namespace JeevikaERP.Controllers
         }
 
         // ── Helpers ──────────────────────────────────────────────
-        private static bool _defaultsAdjusted = false;
-
-        private static void EnsureDefaultAccounts(NpgsqlConnection conn, int societyId)
+        public static void EnsureDefaultAccounts(NpgsqlConnection conn, int societyId)
         {
-            if (_defaultsAdjusted) return;
-            _defaultsAdjusted = true;
+            if (societyId <= 0) return;
+
+            using var chkSoc = conn.CreateCommand();
+            chkSoc.CommandText = "SELECT COUNT(*) FROM jeevika_erp.SocietyInfo WHERE SocietyId = @sid";
+            chkSoc.Parameters.AddWithValue("@sid", societyId);
+            if (Convert.ToInt64(chkSoc.ExecuteScalar() ?? 0L) == 0) return;
+
+            // Ensure groups exist first
+            GroupController.EnsureDefaultGroups(conn, societyId);
 
             using var chk = conn.CreateCommand();
             chk.CommandText = "SELECT COUNT(*) FROM jeevika_erp.SocAccount WHERE SocietyId = @sid AND IsDefault = TRUE";

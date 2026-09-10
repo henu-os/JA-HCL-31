@@ -562,15 +562,18 @@ namespace JeevikaERP.Controllers
         [HttpPost("purge-all")]
         public IActionResult PurgeAllReversals([FromQuery] int societyId = 0)
         {
+            if (societyId <= 0)
+                return BadRequest(new { success = false, message = "societyId is required." });
+
             try
             {
                 using var conn = DbHelper.GetConn();
                 using var cmd = conn.CreateCommand();
                 cmd.CommandText = @"
                     DELETE FROM jeevika_erp.SocVoucherDetail 
-                    WHERE VoucherId IN (SELECT VoucherId FROM jeevika_erp.SocVoucherHeader WHERE (@sid = 0 OR SocietyId = @sid) AND VoucherType IN ('MemberReceiptReversal', 'ReceiptReversal'));
+                    WHERE VoucherId IN (SELECT VoucherId FROM jeevika_erp.SocVoucherHeader WHERE SocietyId = @sid AND VoucherType IN ('MemberReceiptReversal', 'ReceiptReversal'));
                     DELETE FROM jeevika_erp.SocVoucherHeader 
-                    WHERE (@sid = 0 OR SocietyId = @sid) AND VoucherType IN ('MemberReceiptReversal', 'ReceiptReversal');";
+                    WHERE SocietyId = @sid AND VoucherType IN ('MemberReceiptReversal', 'ReceiptReversal');";
                 cmd.Parameters.AddWithValue("@sid", societyId);
                 cmd.ExecuteNonQuery();
                 return Ok(new { success = true, message = "All receipt reversals purged successfully." });

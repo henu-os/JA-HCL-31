@@ -42,8 +42,11 @@ namespace JeevikaERP.Controllers
 
         // ── GET /api/bill-types ──────────────────────────────────
         [HttpGet]
-        public IActionResult GetAll([FromQuery] int societyId = 1)
+        public IActionResult GetAll([FromQuery] int societyId = 0)
         {
+            if (societyId <= 0)
+                return Ok(new { success = true, data = new List<object>(), count = 0 });
+
             try
             {
                 using var conn = DbHelper.GetConn();
@@ -79,7 +82,7 @@ namespace JeevikaERP.Controllers
                         FROM jeevika_erp.SocBillTypeNote
                         ORDER BY BillTypeId, CASE WHEN SocietyId = @socId THEN 0 ELSE 1 END, NoteId DESC
                     ) btn ON bt.BillTypeId = btn.BillTypeId
-                    WHERE (bt.SocietyId = @socId OR (@socId <= 0 AND bt.SocietyId = 1)) AND bt.IsActive = TRUE
+                    WHERE bt.SocietyId = @socId AND bt.IsActive = TRUE
                     ORDER BY 
                         CASE WHEN LOWER(TRIM(bt.BillTypeName)) = 'maintenance' OR LOWER(TRIM(bt.BillTypeCode)) = 'maint' THEN 0 ELSE 1 END,
                         bt.BillTypeId ASC";
@@ -121,7 +124,7 @@ namespace JeevikaERP.Controllers
 
                 if (list.Count == 0)
                 {
-                    int sid = societyId > 0 ? societyId : 1;
+                    int sid = societyId;
                     // Create an independent default Maintenance bill type for this society
                     using var createCmd = conn.CreateCommand();
                     createCmd.CommandText = @"

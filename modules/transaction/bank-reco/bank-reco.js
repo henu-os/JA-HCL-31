@@ -1,6 +1,9 @@
-﻿/**
+/**
  * bank-reco.js — Jeevika ERP v2
  * Bank Reconciliation Module, 13-Column Grid, Filtering, Clearing Entry & Statement
+ * Adheres strictly to the accounting inverse rule:
+ *   - ERP Books: Bank is Asset -> Receipts/Deposits = DEBIT (Dr), Payments/Withdrawals = CREDIT (Cr)
+ *   - Physical Statement: Customer is Liability -> Deposits = CREDIT (Cr), Withdrawals = DEBIT (Dr)
  */
 
 (function () {
@@ -32,7 +35,7 @@
   }
 
   function getActiveSocietyId() {
-    return (window.Auth && Auth.getSocietyId) ? Auth.getSocietyId() : (sessionStorage.getItem('activeSocietyId') || localStorage.getItem('activeSocietyId') || '4');
+    return (window.Auth && Auth.getSocietyId) ? Auth.getSocietyId() : (sessionStorage.getItem('activeSocietyId') || localStorage.getItem('activeSocietyId') || '1');
   }
 
   function getFyId() {
@@ -47,10 +50,51 @@
     try {
       if (window.API && API.get) {
         var res = await API.get(endpoint);
-        if (res) return res;
+        if (res && res.data && Array.isArray(res.data)) return res.data;
+        if (res && Array.isArray(res)) return res;
       }
     } catch (e) {}
     return null;
+  }
+
+  // ── Helper: Classify Bank Debit / Credit according to standard Double-Entry rules ──
+  function getVoucherBankAmounts(v) {
+    var vt = (v.voucherType || '').toLowerCase();
+    var isReceipt = (vt.indexOf('receipt') >= 0 || vt === 'rv' || vt === 'mrv' || vt === 'otherreceipt');
+    var isPayment = (vt.indexOf('payment') >= 0 || vt === 'pv' || vt === 'pymt' || vt === 'paymententry');
+
+    var drAmt = 0;
+    var crAmt = 0;
+
+    if (v.debit !== undefined && v.credit !== undefined && (parseFloat(v.debit) > 0 || parseFloat(v.credit) > 0)) {
+      drAmt = parseFloat(v.debit) || 0;
+      crAmt = parseFloat(v.credit) || 0;
+    } else if (isReceipt) {
+      // In ERP Books: Bank Receipt = Bank DEBIT (Inflow / Deposit) -> Statement CREDIT
+      drAmt = parseFloat(v.amount || 0);
+      crAmt = 0;
+    } else if (isPayment) {
+      // In ERP Books: Bank Payment = Bank CREDIT (Outflow / Withdrawal) -> Statement DEBIT
+      drAmt = 0;
+      crAmt = parseFloat(v.amount || 0);
+    } else {
+      // Contra or other vouchers
+      var narr = ((v.narration || '') + ' ' + (v.particular1 || '')).toLowerCase();
+      var amt = parseFloat(v.amount || 0);
+      if (narr.indexOf('deposit') >= 0 || narr.indexOf('to bank') >= 0) {
+        drAmt = amt;
+      } else {
+        crAmt = amt;
+      }
+    }
+
+    return {
+      isReceipt: isReceipt || (drAmt > 0 && crAmt === 0),
+      isPayment: isPayment || (crAmt > 0 && drAmt === 0),
+      drAmt: drAmt,
+      crAmt: crAmt,
+      netAmt: drAmt > 0 ? drAmt : (crAmt > 0 ? crAmt : parseFloat(v.amount || 0))
+    };
   }
 
   // ── 1. MASTER DATA LOADING ──────────────────────────────────────
@@ -81,7 +125,14 @@
   async function loadVouchers() {
     var sid = getActiveSocietyId();
     var fyid = getFyId();
-    var data = await fetchApiData('/api/vouchers?societyId=' + sid + '&fyId=' + fyid);
+
+    // 1. Try dedicated Bank Reco endpoint
+    var data = await fetchApiData('/api/bank-reco?societyId=' + sid + '&fyId=' + fyid);
+
+    // 2. Fallback to /api/vouchers if bank-reco endpoint returned empty
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      data = await fetchApiData('/api/vouchers?societyId=' + sid + '&fyId=' + fyid);
+    }
 
     if (data && Array.isArray(data)) vouchers = data;
 
@@ -93,6 +144,27 @@
     }
 
     if (!vouchers) vouchers = [];
+
+    // Sync any locally cached clearing dates if not already present
+    var storedClearing = localStorage.getItem('jeevika_bank_reco_' + sid);
+    if (storedClearing) {
+      try {
+        var localList = JSON.parse(storedClearing);
+        if (Array.isArray(localList)) {
+          var clearMap = {};
+          localList.forEach(function (x) {
+            if (x.clearingDate) clearMap[String(x.voucherNo || x.voucherId)] = x;
+          });
+          vouchers.forEach(function (v) {
+            var key = String(v.voucherNo || v.voucherId);
+            if (!v.clearingDate && clearMap[key]) {
+              v.clearingDate = clearMap[key].clearingDate;
+              v.remark = v.remark || clearMap[key].remark;
+            }
+          });
+        }
+      } catch (e) {}
+    }
 
     renderList();
   }
@@ -110,10 +182,12 @@
     var memSearch = (document.getElementById('flt-mem') ? document.getElementById('flt-mem').value.toLowerCase() : '');
 
     var filtered = vouchers.filter(function (v) {
+      var b = getVoucherBankAmounts(v);
+
       if (fBank && (v.bankName || v.cashBankName || '') !== fBank) return false;
       if (fTxn) {
-        if (fTxn === 'Receipt' && (v.voucherType || '').indexOf('RV') === -1 && (v.voucherType || '').indexOf('Receipt') === -1) return false;
-        if (fTxn === 'Payment' && (v.voucherType || '').indexOf('PV') === -1 && (v.voucherType || '').indexOf('Payment') === -1) return false;
+        if (fTxn === 'Receipt' && !b.isReceipt) return false;
+        if (fTxn === 'Payment' && !b.isPayment) return false;
       }
       if (fStatus) {
         if (fStatus === 'Cleared' && !v.clearingDate) return false;
@@ -122,11 +196,11 @@
       if (fVType && (v.voucherType || '').toLowerCase().indexOf(fVType.toLowerCase()) === -1) return false;
 
       if (qSearch) {
-        var str = ((v.voucherNo || '') + ' ' + (v.chqNo || '') + ' ' + (v.personName || '') + ' ' + (v.particular1 || '')).toLowerCase();
+        var str = ((v.voucherNo || '') + ' ' + (v.chqNo || '') + ' ' + (v.personName || '') + ' ' + (v.particular1 || '') + ' ' + (v.narration || '')).toLowerCase();
         if (str.indexOf(qSearch) === -1) return false;
       }
 
-      if (memSearch && (v.memberCode || '').toLowerCase().indexOf(memSearch) === -1) return false;
+      if (memSearch && (v.memberCode || v.personName || '').toLowerCase().indexOf(memSearch) === -1) return false;
 
       return true;
     });
@@ -145,24 +219,22 @@
       var isSel = (vId === selectedVoucherId);
       var isCleared = !!v.clearingDate;
 
-      var isDr = (v.voucherType === 'Payment' || v.voucherType === 'PV' || v.debit > 0);
-      var drAmt = isDr ? (v.debit || v.amount || 0) : 0;
-      var crAmt = !isDr ? (v.credit || v.amount || 0) : 0;
+      var b = getVoucherBankAmounts(v);
 
       html += '<tr class="' + (isSel ? 'row-active' : '') + '" onclick="selectVoucherRow(\'' + vId + '\')">' +
         '<td style="font-weight:700; color:' + (isCleared ? '#2E7D32' : '#dc2626') + ';">' + (v.clearingDate || 'Uncleared') + '</td>' +
         '<td>' + (v.voucherDate || '-') + '</td>' +
-        '<td style="text-align:right; font-weight:700; color:#dc2626; font-family:\'Consolas\', monospace;">' + (drAmt > 0 ? drAmt.toFixed(2) : '-') + '</td>' +
-        '<td style="text-align:right; font-weight:700; color:#2E7D32; font-family:\'Consolas\', monospace;">' + (crAmt > 0 ? crAmt.toFixed(2) : '-') + '</td>' +
-        '<td>' + (v.transType || 'Chq') + '</td>' +
+        '<td style="text-align:right; font-weight:700; color:#2E7D32; font-family:\'Consolas\', monospace;" title="ERP Books: Bank Debit (Receipt/Inflow) | Statement: Bank Credit">' + (b.drAmt > 0 ? b.drAmt.toFixed(2) : '-') + '</td>' +
+        '<td style="text-align:right; font-weight:700; color:#dc2626; font-family:\'Consolas\', monospace;" title="ERP Books: Bank Credit (Payment/Outflow) | Statement: Bank Debit">' + (b.crAmt > 0 ? b.crAmt.toFixed(2) : '-') + '</td>' +
+        '<td>' + (v.transType || (v.chqNo ? 'Chq' : 'Bank')) + '</td>' +
         '<td>' + (v.chqNo || '-') + '</td>' +
-        '<td>' + (v.memberCode || '-') + '</td>' +
+        '<td>' + (v.memberCode || v.personCode || '-') + '</td>' +
         '<td>' + (v.chqNo || '-') + '</td>' +
         '<td>' + (v.voucherType || 'RV') + '</td>' +
         '<td style="font-weight:700; color:#0D47A1;">' + (v.voucherNo || '-') + '</td>' +
         '<td>' + (v.particular1 || v.narration || '-') + '</td>' +
         '<td>' + (v.particular2 || '-') + '</td>' +
-        '<td>' + (v.bankName || '—') + '</td>' +
+        '<td>' + (v.bankName || v.cashBankName || '—') + '</td>' +
         '</tr>';
     });
 
@@ -175,21 +247,22 @@
     var totDr = 0, totCr = 0, cleared = 0, uncleared = 0;
 
     list.forEach(function (v) {
-      var isDr = (v.voucherType === 'Payment' || v.voucherType === 'PV' || v.debit > 0);
-      var amt = parseFloat(v.amount || v.debit || v.credit || 0);
+      var b = getVoucherBankAmounts(v);
+      totDr += b.drAmt;
+      totCr += b.crAmt;
 
-      if (isDr) totDr += amt;
-      else totCr += amt;
-
-      if (v.clearingDate) cleared += amt;
-      else uncleared += amt;
+      if (v.clearingDate) cleared += b.netAmt;
+      else uncleared += b.netAmt;
     });
+
+    var netBal = totDr - totCr; // Positive = Debit Balance (Asset), Negative = Credit Balance (Overdrawn)
+    var balStr = '₹' + Math.abs(netBal).toFixed(2) + (netBal >= 0 ? ' Dr' : ' Cr');
 
     document.getElementById('sum-tot-dr').textContent = '₹' + totDr.toFixed(2);
     document.getElementById('sum-tot-cr').textContent = '₹' + totCr.toFixed(2);
     document.getElementById('sum-cleared').textContent = '₹' + cleared.toFixed(2);
     document.getElementById('sum-uncleared').textContent = '₹' + uncleared.toFixed(2);
-    document.getElementById('sum-diff').textContent = '₹' + Math.abs(totCr - totDr).toFixed(2);
+    document.getElementById('sum-diff').textContent = balStr;
   }
 
   function initColumnResizing() {
@@ -242,9 +315,9 @@
     var v = vouchers.find(function (x) { return String(x.voucherId || x.voucherNo || x.id) === String(vId); });
     if (!v) return;
 
-    document.getElementById('sb-bank').textContent = v.bankName || 'State Bank of India';
+    document.getElementById('sb-bank').textContent = v.bankName || v.cashBankName || '-';
     document.getElementById('sb-chqdate').textContent = v.chqDate || v.voucherDate || '-';
-    document.getElementById('sb-person').textContent = v.personName || 'Self';
+    document.getElementById('sb-person').textContent = v.personName || '-';
 
     document.getElementById('sb-part1').textContent = v.particular1 || v.narration || '-';
     document.getElementById('sb-part2').textContent = v.particular2 || '-';
@@ -282,7 +355,12 @@
 
     try {
       if (window.API && API.post) {
-        await API.post('/api/bank-reco', { voucherNo: v.voucherNo, clearingDate: clDate, remark: v.remark });
+        await API.post('/api/bank-reco', {
+          societyId: parseInt(getActiveSocietyId(), 10),
+          voucherNo: v.voucherNo,
+          clearingDate: clDate,
+          remark: v.remark
+        });
       }
     } catch (e) {}
 
@@ -316,71 +394,167 @@
     document.getElementById('modal-multi-clear').style.display = 'flex';
   };
 
+  window.showMultiUnclearModal = function () {
+    document.getElementById('modal-multi-unclear').style.display = 'flex';
+  };
+
   window.closeModal = function (id) {
     var el = document.getElementById(id);
     if (el) el.style.display = 'none';
   };
 
-  window.runMultiClear = function () {
+  window.runMultiClear = async function () {
     var fromV = document.getElementById('mc-from').value;
     var toV = document.getElementById('mc-to').value;
     var clDate = document.getElementById('mc-date').value || todayISO();
 
     if (!fromV || !toV) { toast('Please enter From and To Voucher Numbers.', false); return; }
 
+    var sid = parseInt(getActiveSocietyId(), 10);
     var count = 0;
     vouchers.forEach(function (v) {
       if (v.voucherNo >= fromV && v.voucherNo <= toV) {
         v.clearingDate = clDate;
+        v.remark = 'Multi Cleared';
         count++;
       }
     });
 
-    localStorage.setItem('jeevika_bank_reco_' + getActiveSocietyId(), JSON.stringify(vouchers));
+    try {
+      if (window.API && API.post) {
+        await API.post('/api/bank-reco/multi-clear', {
+          societyId: sid,
+          fromVoucherNo: fromV,
+          toVoucherNo: toV,
+          clearingDate: clDate,
+          remark: 'Multi Cleared'
+        });
+      }
+    } catch (e) {}
+
+    localStorage.setItem('jeevika_bank_reco_' + sid, JSON.stringify(vouchers));
     closeModal('modal-multi-clear');
     renderList();
     toast('Multi-cleared ' + count + ' vouchers successfully!', true);
   };
 
-  window.showPreview = function () {
-    var bankName = document.getElementById('flt-bank').value || 'State Bank of India';
-    var container = document.getElementById('preview-br-card');
-    var socName = (window.Auth && Auth.getSocietyName) ? Auth.getSocietyName() : 'Shree Sai Co-op Housing Society Ltd';
+  window.runMultiUnclear = async function () {
+    var fromV = document.getElementById('muc-from').value;
+    var toV = document.getElementById('muc-to').value;
 
-    var totDr = 0, totCr = 0, unclearedDr = 0, unclearedCr = 0;
+    if (!fromV || !toV) { toast('Please enter From and To Voucher Numbers.', false); return; }
+
+    var sid = parseInt(getActiveSocietyId(), 10);
+    var unVchIds = [];
+    var count = 0;
     vouchers.forEach(function (v) {
-      var isDr = (v.voucherType === 'Payment' || v.voucherType === 'PV' || v.debit > 0);
-      var amt = parseFloat(v.amount || v.debit || v.credit || 0);
-      if (isDr) {
-        totDr += amt;
-        if (!v.clearingDate) unclearedDr += amt;
-      } else {
-        totCr += amt;
-        if (!v.clearingDate) unclearedCr += amt;
+      if (v.voucherNo >= fromV && v.voucherNo <= toV) {
+        v.clearingDate = null;
+        v.remark = null;
+        if (v.voucherId) unVchIds.push(v.voucherId);
+        count++;
       }
     });
 
-    var bookBal = totCr - totDr;
-    var stmtBal = bookBal - (unclearedCr - unclearedDr);
+    try {
+      if (window.API && API.post) {
+        await API.post('/api/bank-reco/unclear', {
+          societyId: sid,
+          voucherIds: unVchIds
+        });
+      }
+    } catch (e) {}
+
+    localStorage.setItem('jeevika_bank_reco_' + sid, JSON.stringify(vouchers));
+    closeModal('modal-multi-unclear');
+    renderList();
+    toast('Reset ' + count + ' vouchers to Uncleared.', true);
+  };
+
+  // ── 4. REPORT PREVIEW (BANK RECONCILIATION STATEMENT) ─────────────
+  window.showPreview = function () {
+    var bankName = document.getElementById('flt-bank').value || 'All Banks';
+    var container = document.getElementById('preview-br-card');
+    var socName = (window.Auth && Auth.getSocietyName) ? Auth.getSocietyName() : (sessionStorage.getItem('activeSocietyName') || localStorage.getItem('activeSocietyName') || '');
+
+    var totDr = 0;             // Total Receipts in Books (Dr)
+    var totCr = 0;             // Total Payments in Books (Cr)
+    var unclearedPayments = 0; // Cheques issued / payments made (Books Cr) not yet debited by bank
+    var unclearedReceipts = 0; // Cheques deposited / receipts (Books Dr) not yet credited by bank
+
+    vouchers.forEach(function (v) {
+      var b = getVoucherBankAmounts(v);
+      totDr += b.drAmt;
+      totCr += b.crAmt;
+
+      if (!v.clearingDate) {
+        if (b.crAmt > 0) {
+          unclearedPayments += b.crAmt;
+        }
+        if (b.drAmt > 0) {
+          unclearedReceipts += b.drAmt;
+        }
+      }
+    });
+
+    // 1. Balance as per Cash Book (ERP Bank Ledger in Society Books)
+    // Bank is an Asset. Positive = Debit balance; Negative = Credit balance (Overdrawn)
+    var bookBal = totDr - totCr;
+
+    // 2. Bank Reconciliation Statement Formula:
+    // Balance as per Physical Bank Statement (Passbook) =
+    //   Balance as per Books (Dr)
+    //   + Cheques issued (ERP Bank Cr) but not yet presented in bank (Bank hasn't debited yet)
+    //   - Cheques deposited (ERP Bank Dr) but not yet cleared by bank (Bank hasn't credited yet)
+    var stmtBal = bookBal + unclearedPayments - unclearedReceipts;
 
     container.innerHTML = '<div style="border-bottom:2px solid #0D47A1; padding-bottom:12px; margin-bottom:16px; text-align:center;">' +
       '<h2 style="color:#0D47A1; font-size:18px; margin:0; text-transform:uppercase;">' + escHtml(socName) + '</h2>' +
       '<div style="font-size:11px; color:#555; margin-top:4px;">Bank: ' + escHtml(bankName) + ' &nbsp;|&nbsp; Financial Year: ' + getFyLabel() + '</div>' +
-      '<h3 style="font-size:13px; margin-top:10px; color:#0D47A1; text-decoration:underline;">BANK RECONCILIATION STATEMENT</h3>' +
+      '<h3 style="font-size:13px; margin-top:10px; color:#0D47A1; text-decoration:underline; font-weight:800;">BANK RECONCILIATION STATEMENT</h3>' +
       '</div>' +
       '<table style="width:100%; border-collapse:collapse; margin-bottom:20px; font-size:12px;">' +
         '<thead><tr style="background:#0D47A1; color:#fff;">' +
-          '<th style="padding:6px; text-align:left;">Particulars</th>' +
-          '<th style="padding:6px; text-align:right;">Amount (₹)</th>' +
+          '<th style="padding:8px; text-align:left;">Particulars</th>' +
+          '<th style="padding:8px; text-align:right;">Amount (₹)</th>' +
         '</tr></thead>' +
         '<tbody>' +
-          '<tr><td style="border:1px solid #ddd; padding:8px; font-weight:bold;">Balance as per Cash Book (Bank Ledger)</td><td style="border:1px solid #ddd; padding:8px; text-align:right; font-family:monospace; font-weight:bold; color:#0D47A1;">' + bookBal.toFixed(2) + '</td></tr>' +
-          '<tr><td style="border:1px solid #ddd; padding:8px;">Add: Cheques issued but not presented for payment</td><td style="border:1px solid #ddd; padding:8px; text-align:right; font-family:monospace;">' + unclearedDr.toFixed(2) + '</td></tr>' +
-          '<tr><td style="border:1px solid #ddd; padding:8px;">Less: Cheques deposited but not cleared by bank</td><td style="border:1px solid #ddd; padding:8px; text-align:right; font-family:monospace;">(' + unclearedCr.toFixed(2) + ')</td></tr>' +
+          '<tr>' +
+            '<td style="border:1px solid #ddd; padding:8px; font-weight:bold;">' +
+              'Balance as per Cash Book (ERP Bank Ledger)' +
+              '<div style="font-size:10px; color:#64748b; font-weight:normal;">ERP Society Books: Bank Asset Account (Favourable Dr / Overdraft Cr)</div>' +
+            '</td>' +
+            '<td style="border:1px solid #ddd; padding:8px; text-align:right; font-family:monospace; font-weight:bold; color:#0D47A1;">' +
+              (bookBal >= 0 ? '₹' + bookBal.toFixed(2) + ' Dr' : '₹' + Math.abs(bookBal).toFixed(2) + ' Cr (Overdraft)') +
+            '</td>' +
+          '</tr>' +
+          '<tr>' +
+            '<td style="border:1px solid #ddd; padding:8px;">' +
+              '<strong>Add:</strong> Cheques issued / Payments made but not presented for payment' +
+              '<div style="font-size:10px; color:#64748b;">(ERP Bank Credit — Outflows recorded in Books, not yet debited in Bank Statement)</div>' +
+            '</td>' +
+            '<td style="border:1px solid #ddd; padding:8px; text-align:right; font-family:monospace; font-weight:bold; color:#2E7D32;">' +
+              '+ ₹' + unclearedPayments.toFixed(2) +
+            '</td>' +
+          '</tr>' +
+          '<tr>' +
+            '<td style="border:1px solid #ddd; padding:8px;">' +
+              '<strong>Less:</strong> Cheques deposited / Receipts made but not cleared by bank' +
+              '<div style="font-size:10px; color:#64748b;">(ERP Bank Debit — Inflows recorded in Books, not yet credited in Bank Statement)</div>' +
+            '</td>' +
+            '<td style="border:1px solid #ddd; padding:8px; text-align:right; font-family:monospace; font-weight:bold; color:#dc2626;">' +
+              '- ₹' + unclearedReceipts.toFixed(2) +
+            '</td>' +
+          '</tr>' +
         '</tbody>' +
         '<tfoot><tr style="background:#e8f5e9; font-weight:bold; color:#2E7D32;">' +
-          '<td style="border:1px solid #ddd; padding:8px;">Balance as per Bank Passbook / Statement</td>' +
-          '<td style="border:1px solid #ddd; padding:8px; text-align:right; font-family:monospace; font-size:14px;">₹' + stmtBal.toFixed(2) + '</td>' +
+          '<td style="border:1px solid #ddd; padding:8px;">' +
+            'Balance as per Physical Bank Passbook / Statement' +
+            '<div style="font-size:10px; color:#166534; font-weight:normal;">(Bank Point of View: Favourable Cr / Overdraft Dr)</div>' +
+          '</td>' +
+          '<td style="border:1px solid #ddd; padding:8px; text-align:right; font-family:monospace; font-size:13px; font-weight:bold;">' +
+            (stmtBal >= 0 ? '₹' + stmtBal.toFixed(2) + ' Cr' : '₹' + Math.abs(stmtBal).toFixed(2) + ' Dr (Overdrawn)') +
+          '</td>' +
         '</tr></tfoot>' +
       '</table>' +
       '<div style="font-size:11px; color:#555; margin-top:30px; display:flex; justify-content:space-between;">' +

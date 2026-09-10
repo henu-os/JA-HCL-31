@@ -961,6 +961,8 @@ namespace JeevikaERP.Controllers
 
         public static void EnsureReceiptLedgerEntries(Npgsql.NpgsqlConnection conn, int societyId, Npgsql.NpgsqlTransaction? tx = null)
         {
+            if (societyId <= 0) return;
+
             try
             {
                 var missingReceipts = new List<(int VoucherId, string VoucherNo, string? CbCode, string? CbName, decimal Amount, string? PersonName, string? Narration, string? Part1)>();
@@ -971,7 +973,7 @@ namespace JeevikaERP.Controllers
                     findCmd.CommandText = @"
                         SELECT vh.VoucherId, vh.VoucherNo, vh.CashBankCode, vh.CashBankName, vh.Amount, vh.PersonName, vh.Narration, vh.Particular1
                         FROM jeevika_erp.SocVoucherHeader vh
-                        WHERE (@sid = 0 OR vh.SocietyId = @sid)
+                        WHERE vh.SocietyId = @sid
                           AND vh.VoucherType = 'MemberReceipt'
                           AND vh.IsDeleted = FALSE
                           AND NOT EXISTS (
@@ -1003,7 +1005,7 @@ namespace JeevikaERP.Controllers
                 using (var accCmd = conn.CreateCommand())
                 {
                     if (tx != null) accCmd.Transaction = tx;
-                    accCmd.CommandText = "SELECT AccountId, AccCode, AccName FROM jeevika_erp.SocAccount WHERE (@sid = 0 OR SocietyId = @sid) AND (AccCode = 'ASS-1025' OR AccName ILIKE 'Dues From Members%') AND IsDeleted = FALSE LIMIT 1";
+                    accCmd.CommandText = "SELECT AccountId, AccCode, AccName FROM jeevika_erp.SocAccount WHERE SocietyId = @sid AND (AccCode = 'ASS-1025' OR AccName ILIKE 'Dues From Members%') AND IsDeleted = FALSE LIMIT 1";
                     accCmd.Parameters.AddWithValue("@sid", societyId);
                     using var rA = accCmd.ExecuteReader();
                     if (rA.Read())
@@ -1023,7 +1025,7 @@ namespace JeevikaERP.Controllers
                     using (var findCb = conn.CreateCommand())
                     {
                         if (tx != null) findCb.Transaction = tx;
-                        findCb.CommandText = "SELECT AccountId, AccCode, AccName FROM jeevika_erp.SocAccount WHERE (@sid = 0 OR SocietyId = @sid) AND ((@code <> '' AND AccCode = @code) OR AccName ILIKE @name) AND IsDeleted = FALSE LIMIT 1";
+                        findCb.CommandText = "SELECT AccountId, AccCode, AccName FROM jeevika_erp.SocAccount WHERE SocietyId = @sid AND ((@code <> '' AND AccCode = @code) OR AccName ILIKE @name) AND IsDeleted = FALSE LIMIT 1";
                         findCb.Parameters.AddWithValue("@sid", societyId);
                         findCb.Parameters.AddWithValue("@code", cbCode.Trim());
                         findCb.Parameters.AddWithValue("@name", cbName.Trim());
@@ -1039,7 +1041,7 @@ namespace JeevikaERP.Controllers
                     {
                         using var fbCb = conn.CreateCommand();
                         if (tx != null) fbCb.Transaction = tx;
-                        fbCb.CommandText = "SELECT AccountId, AccCode, AccName FROM jeevika_erp.SocAccount WHERE (@sid = 0 OR SocietyId = @sid) AND (AccCode = 'ASS-1001' OR AccName ILIKE '%Cash in Hand%') AND IsDeleted = FALSE LIMIT 1";
+                        fbCb.CommandText = "SELECT AccountId, AccCode, AccName FROM jeevika_erp.SocAccount WHERE SocietyId = @sid AND (AccCode = 'ASS-1001' OR AccName ILIKE '%Cash in Hand%') AND IsDeleted = FALSE LIMIT 1";
                         fbCb.Parameters.AddWithValue("@sid", societyId);
                         using var rFb = fbCb.ExecuteReader();
                         if (rFb.Read())

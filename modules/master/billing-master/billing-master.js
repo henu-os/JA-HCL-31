@@ -726,6 +726,10 @@
       const numVal = Math.round(parseFloat(val) || 0);
       if (!members[idx].amounts) members[idx].amounts = {};
       members[idx].amounts[col] = numVal;
+      if (col === 'Interest') {
+        BM._interestRecalculated = false;
+        if (numVal > 0) BM._interestZeroed = false;
+      }
       BM.recalcTotalsDom();
     },
 
@@ -734,6 +738,10 @@
       const numVal = Math.round(parseFloat(val) || 0);
       if (!members[idx].amounts) members[idx].amounts = {};
       members[idx].amounts[col] = numVal;
+      if (col === 'Interest') {
+        BM._interestRecalculated = false;
+        if (numVal > 0) BM._interestZeroed = false;
+      }
       BM.recalcTotalsDom();
     },
 
@@ -1094,21 +1102,32 @@
         return;
       }
 
-      // Condition B: If someone directly comes and calculates GST without first setting interest to zero
-      if (!BM._interestZeroed) {
+      // If interest was zeroed AND then recalculated via % INTEREST CALC,
+      // allow calculating GST directly with the recalculated interest included!
+      if (BM._interestZeroed && BM._interestRecalculated) {
+        BM.executeGstCalculation();
+        return;
+      }
+
+      // Check if any member currently has Interest > 0 in the matrix
+      const hasInterest = (members || []).some(m => Math.round(parseFloat(m.amounts && m.amounts['Interest']) || 0) > 0);
+
+      // Condition B: If interest is already present/calculated, user must first set interest to zero
+      if (hasInterest) {
         const modalB = document.getElementById('bm-gst-must-zero-overlay');
         if (modalB) modalB.classList.add('active');
         return;
       }
 
-      // Condition A: If someone sets interest to zero and before calculating interest again they calculate GST
-      if (BM._interestZeroed && !BM._interestRecalculated) {
-        const modalA = document.getElementById('bm-gst-zero-confirm-overlay');
-        if (modalA) modalA.classList.add('active');
+      // Condition A: Interest is zero [0] across all members.
+      // Confirm calculating GST using zero interest and Accumulated Principal
+      const modalA = document.getElementById('bm-gst-zero-confirm-overlay');
+      if (modalA) {
+        modalA.classList.add('active');
         return;
       }
 
-      // Standard flow: Interest zeroed and recalculated
+      // Fallback
       BM.executeGstCalculation();
     },
 
@@ -1261,16 +1280,18 @@
           accPrinc = Math.max(0, Math.round(parseFloat(m.Op_Prin) || 0));
         }
 
-        // 1. Check if total (Accumulated Principal or GST App + GST Exm) exceeds limit (7500)
-        // 2. If it exceeds 7500 -> both GST Applicable & GST Exempted are taxed (taxableBase = Accumulated Principal)
-        // 3. If it does NOT exceed 7500 -> GST is STILL counted, but ONLY on accounts ticked for "GST Applicable"
-        let taxableBase = 0;
-        const totalToCheck = accPrinc > 0 ? accPrinc : (gstAppTotal + gstExmTotal);
+        // 1. Check if total (Accumulated Principal + Interest or GST App + GST Exm + Interest) exceeds limit (7500)
+        // 2. If it exceeds 7500 -> both GST Applicable & GST Exempted + Interest are taxed
+        // 3. If it does NOT exceed 7500 -> GST is counted on GST Applicable + Interest
+        const rowInterest = Math.round(parseFloat(m.amounts['Interest']) || 0);
+        const basePrinc = accPrinc > 0 ? accPrinc : (gstAppTotal + gstExmTotal);
+        const totalToCheck = basePrinc + rowInterest;
 
+        let taxableBase = 0;
         if (totalToCheck > limit) {
-          taxableBase = accPrinc > 0 ? accPrinc : (gstAppTotal + gstExmTotal);
+          taxableBase = basePrinc + rowInterest;
         } else {
-          taxableBase = gstAppTotal;
+          taxableBase = gstAppTotal + rowInterest;
         }
 
         const cgstVal = Math.round((taxableBase * cgstRate) / 100);

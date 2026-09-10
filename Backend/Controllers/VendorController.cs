@@ -26,14 +26,6 @@ namespace JeevikaERP.Controllers
             {
                 using var conn = DbHelper.GetConn();
                 if (societyId <= 0)
-                {
-                    using var sCmd = conn.CreateCommand();
-                    sCmd.CommandText = "SELECT SocietyId FROM jeevika_erp.SocVendor WHERE IsDeleted = FALSE ORDER BY VendorId DESC LIMIT 1";
-                    var res = sCmd.ExecuteScalar();
-                    if (res != null && res != DBNull.Value) societyId = Convert.ToInt32(res);
-                }
-
-                if (societyId <= 0)
                     return Ok(new { success = true, data = new List<object>(), count = 0 });
 
                 using var cmd = conn.CreateCommand();
@@ -50,20 +42,6 @@ namespace JeevikaERP.Controllers
                 using (var r = cmd.ExecuteReader())
                 {
                     while (r.Read()) list.Add(MapVendor(r));
-                }
-
-                if (list.Count == 0 && societyId > 0)
-                {
-                    using var fbCmd = conn.CreateCommand();
-                    fbCmd.CommandText = @"
-                        SELECT VendorId, SocietyId, VendorCode, VendorName, PANNo, GSTIN,
-                               TDSSection, TDSRate, ContactNo, Email, Address, ContractNo,
-                               ContractFrom, ContractTo, ContractValue, IsDeleted, CreatedAt
-                        FROM jeevika_erp.SocVendor
-                        WHERE IsDeleted = FALSE
-                        ORDER BY VendorName";
-                    using var r2 = fbCmd.ExecuteReader();
-                    while (r2.Read()) list.Add(MapVendor(r2));
                 }
 
                 return Ok(new { success = true, data = list, count = list.Count });
@@ -98,7 +76,7 @@ namespace JeevikaERP.Controllers
         [HttpPost]
         public IActionResult Create([FromBody] VendorModel model)
         {
-            if (model.SocietyId <= 0) model.SocietyId = 1;
+            if (model.SocietyId <= 0) return BadRequest(new { success = false, message = "societyId is required." });
             if (string.IsNullOrWhiteSpace(model.VendorCode)) model.VendorCode = model.StaffCode ?? model.Code ?? "";
             if (string.IsNullOrWhiteSpace(model.VendorName)) model.VendorName = model.StaffName ?? model.Name ?? "";
             if (string.IsNullOrWhiteSpace(model.ContactNo)) model.ContactNo = model.Phone ?? "";
@@ -150,7 +128,7 @@ namespace JeevikaERP.Controllers
         [HttpPut("{id:int}")]
         public IActionResult Update(int id, [FromBody] VendorModel model)
         {
-            if (model.SocietyId <= 0) model.SocietyId = 1;
+            if (model.SocietyId <= 0) return BadRequest(new { success = false, message = "societyId is required." });
             if (string.IsNullOrWhiteSpace(model.VendorCode)) model.VendorCode = model.StaffCode ?? model.Code ?? "";
             if (string.IsNullOrWhiteSpace(model.VendorName)) model.VendorName = model.StaffName ?? model.Name ?? "";
             if (string.IsNullOrWhiteSpace(model.ContactNo)) model.ContactNo = model.Phone ?? "";

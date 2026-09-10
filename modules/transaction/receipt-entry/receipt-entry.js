@@ -201,17 +201,21 @@ async function saveReceipt(e) {
     return;
   }
 
-  const totalAmt = items.reduce((sum, i) => sum + i.credit, 0);
+  const totCr = items.reduce((sum, i) => sum + i.credit, 0);
+  const totDr = items.reduce((sum, i) => sum + i.debit, 0);
+  const netDrNeeded = Math.round((totCr - totDr) * 100) / 100;
 
-  // Add the Debit line for Cash/Bank
-  items.push({
-    accountId: parseInt(cbSel.value),
-    accountCode: cbCode,
-    accountName: cbName,
-    debit: totalAmt,
-    credit: 0,
-    narration: 'Receipt deposited into Cash/Bank'
-  });
+  // Add the Debit line for Cash/Bank (Net Inflow)
+  if (netDrNeeded > 0) {
+    items.push({
+      accountId: parseInt(cbSel.value),
+      accountCode: cbCode,
+      accountName: cbName,
+      debit: netDrNeeded,
+      credit: 0,
+      narration: 'Receipt deposited into Cash/Bank'
+    });
+  }
 
   const body = {
     societyId:    parseInt(Auth.getSocietyId()),

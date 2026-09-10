@@ -16,7 +16,7 @@ const WorkspaceBridge = (() => {
         }, '*');
       } else if (typeof window.WorkspaceManager !== 'undefined' && typeof window.WorkspaceManager[action] === 'function') {
         if (action === 'setActiveSociety') {
-          window.WorkspaceManager.setActiveSociety(payload.code, payload.name, payload.gstOn);
+          window.WorkspaceManager.setActiveSociety(payload.societyId || payload.id, payload.code, payload.name, payload.gstOn, payload.fyId, payload.fyLabel);
         } else if (action === 'closeTab') {
           window.WorkspaceManager.closeTab(payload.tabId || payload.moduleId);
         } else if (action === 'openModule' || action === 'openTab') {
@@ -40,8 +40,12 @@ const WorkspaceBridge = (() => {
     openTab: function(moduleId, queryParams = '') {
       _send('openModule', { moduleId: moduleId, queryParams: queryParams });
     },
-    setActiveSociety: function(code, name, gstOn, fyId, fyLabel) {
-      _send('setActiveSociety', { code: code, name: name, gstOn: gstOn, fyId: fyId, fyLabel: fyLabel });
+    setActiveSociety: function(societyId, code, name, gstOn, fyId, fyLabel) {
+      if (typeof societyId === 'string' && isNaN(parseInt(societyId, 10))) {
+        _send('setActiveSociety', { societyId: null, code: societyId, name: code, gstOn: name, fyId: gstOn, fyLabel: fyId });
+      } else {
+        _send('setActiveSociety', { societyId: societyId, code: code, name: name, gstOn: gstOn, fyId: fyId, fyLabel: fyLabel });
+      }
     },
     setActiveFY: function(fyId, fyLabel, fyStart, fyEnd) {
       _send('setActiveFY', { fyId: fyId, fyLabel: fyLabel, fyStart: fyStart, fyEnd: fyEnd });

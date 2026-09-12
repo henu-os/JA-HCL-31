@@ -489,32 +489,179 @@ function amountInWords(amount) {
   return result + ' Only';
 }
 
-// ── FY Utilities ───────────────────────────────────────────
+// ── FY Utilities & Date Restrictions ───────────────────────────
+
+/**
+ * Get active FY date boundaries (startDate and endDate in YYYY-MM-DD format)
+ */
+function getFYDateRange() {
+  let fyStart = (window.Auth && window.Auth.getFYStart && window.Auth.getFYStart()) ||
+                (window.SafeStorage ? (window.SafeStorage.session.getItem('activeFYStart') || window.SafeStorage.local.getItem('activeFYStart')) : null) ||
+                sessionStorage.getItem('activeFYStart') || localStorage.getItem('activeFYStart');
+
+  let fyEnd = (window.Auth && window.Auth.getFYEnd && window.Auth.getFYEnd()) ||
+              (window.SafeStorage ? (window.SafeStorage.session.getItem('activeFYEnd') || window.SafeStorage.local.getItem('activeFYEnd')) : null) ||
+              sessionStorage.getItem('activeFYEnd') || localStorage.getItem('activeFYEnd');
+
+  let fyLabel = (window.Auth && window.Auth.getFYLabel && window.Auth.getFYLabel()) ||
+                (window.SafeStorage ? (window.SafeStorage.session.getItem('activeFYLabel') || window.SafeStorage.local.getItem('activeFYLabel')) : null) ||
+                sessionStorage.getItem('activeFYLabel') || localStorage.getItem('activeFYLabel') || '2026-27';
+
+  // Fallback if running inside child iframe
+  if ((!fyStart || !fyEnd) && window.parent && window.parent !== window) {
+    try {
+      if (window.parent.Auth) {
+        fyStart = fyStart || window.parent.Auth.getFYStart();
+        fyEnd = fyEnd || window.parent.Auth.getFYEnd();
+        fyLabel = fyLabel || window.parent.Auth.getFYLabel();
+      }
+      if (!fyStart) fyStart = window.parent.sessionStorage.getItem('activeFYStart') || window.parent.localStorage.getItem('activeFYStart');
+      if (!fyEnd) fyEnd = window.parent.sessionStorage.getItem('activeFYEnd') || window.parent.localStorage.getItem('activeFYEnd');
+      if (!fyLabel) fyLabel = window.parent.sessionStorage.getItem('activeFYLabel') || window.parent.localStorage.getItem('activeFYLabel');
+    } catch (_) { }
+  }
+
+  // Normalize YYYY-MM-DD (strip any ISO time)
+  if (fyStart && fyStart.includes('T')) fyStart = fyStart.split('T')[0];
+  if (fyEnd && fyEnd.includes('T')) fyEnd = fyEnd.split('T')[0];
+
+  // Derive automatically from fyLabel if still missing (e.g. "2026-27" or "2026-2027")
+  if (!fyStart || !fyEnd) {
+    const match = String(fyLabel).match(/(\d{4})[-/](\d{2,4})/);
+    if (match) {
+      const sYear = parseInt(match[1], 10);
+      const eYear = match[2].length === 2 ? Math.floor(sYear / 100) * 100 + parseInt(match[2], 10) : parseInt(match[2], 10);
+      fyStart = fyStart || `${sYear}-04-01`;
+      fyEnd = fyEnd || `${eYear}-03-31`;
+    } else {
+      fyStart = fyStart || '2026-04-01';
+      fyEnd = fyEnd || '2027-03-31';
+    }
+  }
+
+  return {
+    startDate: fyStart,
+    endDate: fyEnd,
+    label: fyLabel
+  };
+}
+
+/**
+ * Get safe default date within active FY.
+ * If today is within FY, returns todayISO().
+ * If today is outside FY, returns fyStart (or fyEnd if today is later).
+ */
+function getFYDefaultDate() {
+  const range = getFYDateRange();
+  const today = todayISO();
+  if (today >= range.startDate && today <= range.endDate) {
+    return today;
+  }
+  if (today > range.endDate) {
+    return range.endDate;
+  }
+  return range.startDate;
+}
 
 /**
  * Check if a date string is within the active FY
  */
 function isInActiveFY(dateStr) {
   if (!dateStr) return true;
-  const fyStart = sessionStorage.getItem('activeFYStart');
-  const fyEnd   = sessionStorage.getItem('activeFYEnd');
-  if (!fyStart || !fyEnd) return true;
-  const d = new Date(dateStr);
-  return d >= new Date(fyStart) && d <= new Date(fyEnd);
+  const range = getFYDateRange();
+  const iso = dateStr.includes('/') ? toInputDate(dateStr) : dateStr.split('T')[0];
+  return iso >= range.startDate && iso <= range.endDate;
+}
+
+/**
+ * Validate a specific date input against the active FY.
+ * Alerts user and resets to FY default if out of bounds.
+ */
+function validateFYDateInput(input) {
+  if (!input || !input.value) return true;
+  const range = getFYDateRange();
+  const val = input.value.includes('/') ? toInputDate(input.value) : input.value.split('T')[0];
+
+  if (val < range.startDate || val > range.endDate) {
+    const msg = `Selected date (${formatDate(val) || val}) is outside the active Financial Year (${formatDate(range.startDate)} to ${formatDate(range.endDate)}).`;
+    if (typeof showToast === 'function') {
+      showToast(msg, 'warning', 4500);
+    } else {
+      alert(msg);
+    }
+    input.value = getFYDefaultDate();
+    if (typeof input.focus === 'function') input.focus();
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Automatically restrict all date pickers in container to the active FY.
+ * Sets min, max, and attaches live validation.
+ */
+function applyFYDateRestrictions(container = document) {
+  if (!container) return;
+  try {
+    const range = getFYDateRange();
+    if (!range || !range.startDate || !range.endDate) return;
+
+    const inputs = container.querySelectorAll ? container.querySelectorAll('input[type="date"], .fy-date, [data-fy-restricted="true"]') : [];
+    inputs.forEach(input => {
+      // Allow opting out if explicitly marked
+      if ((input.dataset && input.dataset.fyIgnore === 'true') || (input.classList && input.classList.contains('no-fy-limit'))) {
+        return;
+      }
+
+      input.min = range.startDate;
+      input.max = range.endDate;
+
+      // If current value is out of bounds, fix it
+      if (input.value) {
+        const val = input.value.includes('/') ? toInputDate(input.value) : input.value.split('T')[0];
+        if (val < range.startDate || val > range.endDate) {
+          input.value = getFYDefaultDate();
+        }
+      }
+
+      if (!input._fyBound) {
+        input._fyBound = true;
+        input.addEventListener('change', function () {
+          validateFYDateInput(this);
+        });
+        input.addEventListener('blur', function () {
+          validateFYDateInput(this);
+        });
+      }
+    });
+  } catch (e) {
+    console.warn('[applyFYDateRestrictions]', e);
+  }
+}
+
+// Global auto-binder on page load
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => applyFYDateRestrictions());
+  } else {
+    setTimeout(() => applyFYDateRestrictions(), 50);
+  }
 }
 
 /**
  * Get FY label for current session
  */
 function getActiveFYLabel() {
-  return sessionStorage.getItem('activeFYLabel') || '—';
+  return (window.Auth && window.Auth.getFYLabel && window.Auth.getFYLabel()) ||
+         sessionStorage.getItem('activeFYLabel') || localStorage.getItem('activeFYLabel') || '—';
 }
 
 /**
  * Get active society name for current session
  */
 function getActiveSocietyName() {
-  return sessionStorage.getItem('activeSocietyName') || '—';
+  return (window.Auth && window.Auth.getSocietyName && window.Auth.getSocietyName()) ||
+         sessionStorage.getItem('activeSocietyName') || localStorage.getItem('activeSocietyName') || '—';
 }
 
 // ── Transaction Serial Number & Prefix Generator ─────────────
@@ -2301,6 +2448,7 @@ if (typeof window !== 'undefined') {
   window.selectAccountFromLookup = selectAccountFromLookup;
   window.redirectToAccountMasterAdd = redirectToAccountMasterAdd;
   window.initAccountSearchCombobox = initAccountSearchCombobox;
+  window.setAccountSearchComboboxValue = _setComboValue;
 
   // Date helpers
   window.toIsoDate = function (dateStr) {
@@ -2570,4 +2718,13 @@ window.ERP_MultiChange = (function () {
     executeMultiChange: executeMultiChange
   };
 })();
+
+if (typeof window !== 'undefined') {
+  window.getFYDateRange = getFYDateRange;
+  window.getFYDefaultDate = getFYDefaultDate;
+  window.isInActiveFY = isInActiveFY;
+  window.validateFYDateInput = validateFYDateInput;
+  window.applyFYDateRestrictions = applyFYDateRestrictions;
+}
+
 

@@ -136,36 +136,28 @@ namespace JeevikaERP.Controllers
                     decimal sumDr = Math.Round(details.Sum(d => d != null ? (d.Debit > 0 ? d.Debit : (d.Amount > 0 ? d.Amount : 0)) : 0), 2);
                     decimal sumCr = Math.Round(details.Sum(d => d != null ? d.Credit : 0), 2);
 
-                    // Check if vendor payable row is already in items
-                    bool hasVendorCredit = details.Any(d => d != null && d.Credit > 0 &&
-                        ((vendorAccId > 0 && d.AccountId == vendorAccId) ||
-                         (!string.IsNullOrWhiteSpace(vCode) && string.Equals(d.AccountCode, vCode, StringComparison.OrdinalIgnoreCase)) ||
-                         (!string.IsNullOrWhiteSpace(vName) && string.Equals(d.AccountName, vName, StringComparison.OrdinalIgnoreCase))));
-
-                    // If vendor credit row not in details, calculate net vendor payable = total debits - other credits (e.g. TDS)
-                    if (!hasVendorCredit)
+                    // If debits exceed credits and vendor payable row not already present, inject vendor payable to balance
+                    bool isAlreadyBalanced = Math.Abs(sumDr - sumCr) <= 0.01m;
+                    if (!isAlreadyBalanced && (sumDr - sumCr) > 0.01m)
                     {
                         decimal netVendorCr = Math.Round(sumDr - sumCr, 2);
-                        if (netVendorCr > 0)
-                        {
-                            using var dVendor = conn.CreateCommand();
-                            dVendor.Transaction = tx;
-                            dVendor.CommandText = @"
-                                INSERT INTO jeevika_erp.SocVoucherDetail
-                                    (VoucherId, SrNo, AccountId, AccountCode, AccountName, Debit, Credit, Narration)
-                                VALUES
-                                    (@vid, @sr, @aid, @code, @name, 0, @amt, @narr)";
-                            dVendor.Parameters.AddWithValue("@vid",  poId);
-                            dVendor.Parameters.AddWithValue("@sr",   srNo++);
-                            dVendor.Parameters.AddWithValue("@aid",  vendorAccId > 0 ? (object)vendorAccId : DBNull.Value);
-                            dVendor.Parameters.AddWithValue("@code", vCode);
-                            dVendor.Parameters.AddWithValue("@name", vName);
-                            dVendor.Parameters.AddWithValue("@amt",  netVendorCr);
-                            dVendor.Parameters.AddWithValue("@narr", (object?)model.Narration ?? "PO Booking - Vendor Payable");
-                            dVendor.ExecuteNonQuery();
+                        using var dVendor = conn.CreateCommand();
+                        dVendor.Transaction = tx;
+                        dVendor.CommandText = @"
+                            INSERT INTO jeevika_erp.SocVoucherDetail
+                                (VoucherId, SrNo, AccountId, AccountCode, AccountName, Debit, Credit, Narration)
+                            VALUES
+                                (@vid, @sr, @aid, @code, @name, 0, @amt, @narr)";
+                        dVendor.Parameters.AddWithValue("@vid",  poId);
+                        dVendor.Parameters.AddWithValue("@sr",   srNo++);
+                        dVendor.Parameters.AddWithValue("@aid",  vendorAccId > 0 ? (object)vendorAccId : DBNull.Value);
+                        dVendor.Parameters.AddWithValue("@code", vCode);
+                        dVendor.Parameters.AddWithValue("@name", vName);
+                        dVendor.Parameters.AddWithValue("@amt",  netVendorCr);
+                        dVendor.Parameters.AddWithValue("@narr", (object?)model.Narration ?? "PO Booking - Vendor Payable");
+                        dVendor.ExecuteNonQuery();
 
-                            sumCr += netVendorCr;
-                        }
+                        sumCr += netVendorCr;
                     }
 
                     // Strict balance validation

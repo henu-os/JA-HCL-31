@@ -734,14 +734,28 @@
 
     document.getElementById('frm-billno').value = (typeof getTxNextVoucherNo === 'function') ? getTxNextVoucherNo('bill', bills) : ('MBIL/25-26/' + Math.floor(100 + Math.random() * 900));
     if (typeof applyVoucherNoMode === 'function') applyVoucherNoMode('frm-billno', 'Bill');
-    document.getElementById('frm-billdate').value = todayISO();
-    document.getElementById('frm-duedate').value = futureISO(15);
+    
+    // Enforce active Financial Year dates
+    var defaultBillDate = (typeof getFYDefaultDate === 'function') ? getFYDefaultDate() : todayISO();
+    document.getElementById('frm-billdate').value = defaultBillDate;
+
+    var defaultDueDate = futureISO(15);
+    if (typeof isInActiveFY === 'function' && !isInActiveFY(defaultDueDate)) {
+      var fyR = (typeof getFYDateRange === 'function') ? getFYDateRange() : null;
+      if (fyR && defaultDueDate > fyR.endDate) defaultDueDate = fyR.endDate;
+    }
+    document.getElementById('frm-duedate').value = defaultDueDate;
     document.getElementById('frm-period').value = getCurrentPeriodName();
 
     document.getElementById('frm-member-input').value = '';
     document.getElementById('frm-memberid').value = '';
     document.getElementById('frm-particular1').value = '';
     document.getElementById('frm-particular2').value = '';
+
+    // Apply FY bounds to date inputs
+    if (typeof applyFYDateRestrictions === 'function') {
+      applyFYDateRestrictions(document.getElementById('mb-section-form'));
+    }
 
     // Ensure member dropdown options are ready
     renderComboboxOptions('');
@@ -1044,13 +1058,26 @@
     });
     var curTypeId = btObj ? (btObj.billTypeId || btObj.id || 0) : 0;
 
+    var billDateVal = document.getElementById('frm-billdate').value;
+    if (!billDateVal) {
+      alert('Please select a valid Bill Date.');
+      document.getElementById('frm-billdate').focus();
+      return;
+    }
+    if (typeof isInActiveFY === 'function' && !isInActiveFY(billDateVal)) {
+      var fyR = (typeof getFYDateRange === 'function') ? getFYDateRange() : null;
+      alert('Bill Date must fall within the current Financial Year' + (fyR ? ' (' + formatDate(fyR.startDate) + ' to ' + formatDate(fyR.endDate) + ')' : '') + '.');
+      document.getElementById('frm-billdate').focus();
+      return;
+    }
+
     var payload = {
       societyId: parseInt(getActiveSocietyId(), 10),
       fyId: parseInt(getFyId(), 10),
       billNo: document.getElementById('frm-billno').value,
       billTypeId: curTypeId,
       billType: activeTypeName,
-      billDate: document.getElementById('frm-billdate').value,
+      billDate: billDateVal,
       dueDate: document.getElementById('frm-duedate').value,
       period: document.getElementById('frm-period').value,
       memberId: memberId,
@@ -1414,8 +1441,19 @@
       if (document.getElementById('ag-period')) document.getElementById('ag-period').value = curP;
     }
 
-    document.getElementById('ag-bill-date').value = todayISO();
-    document.getElementById('ag-due-date').value = futureISO(20);
+    var defaultAgBillDate = (typeof getFYDefaultDate === 'function') ? getFYDefaultDate() : todayISO();
+    document.getElementById('ag-bill-date').value = defaultAgBillDate;
+
+    var defaultAgDueDate = futureISO(20);
+    if (typeof isInActiveFY === 'function' && !isInActiveFY(defaultAgDueDate)) {
+      var fyR = (typeof getFYDateRange === 'function') ? getFYDateRange() : null;
+      if (fyR && defaultAgDueDate > fyR.endDate) defaultAgDueDate = fyR.endDate;
+    }
+    document.getElementById('ag-due-date').value = defaultAgDueDate;
+
+    if (typeof applyFYDateRestrictions === 'function') {
+      applyFYDateRestrictions(document.getElementById('modal-auto-generate'));
+    }
 
     selectAgFrequency('Monthly');
 
@@ -1455,7 +1493,15 @@
     var billTypeVal = (sel && sel.value) ? sel.value : 'Maintenance';
     var billTypeIdVal = (sel && sel.options && sel.selectedIndex >= 0) ? sel.options[sel.selectedIndex].getAttribute('data-id') : null;
     var startNo = document.getElementById('ag-start-no').value || 'MBIL/2026-27/01';
-    var billDateVal = document.getElementById('ag-bill-date').value || todayISO();
+    var billDateVal = document.getElementById('ag-bill-date').value || (typeof getFYDefaultDate === 'function' ? getFYDefaultDate() : todayISO());
+    
+    if (typeof isInActiveFY === 'function' && !isInActiveFY(billDateVal)) {
+      var fyRange = (typeof getFYDateRange === 'function') ? getFYDateRange() : null;
+      alert('Auto-generate Bill Date must fall within the current Financial Year' + (fyRange ? ' (' + formatDate(fyRange.startDate) + ' to ' + formatDate(fyRange.endDate) + ')' : '') + '.');
+      document.getElementById('ag-bill-date').focus();
+      return;
+    }
+
     var dueDateVal = document.getElementById('ag-due-date').value || futureISO(20);
     var periodVal = document.getElementById('ag-period').value || getCurrentPeriodName();
     var particularVal = document.getElementById('ag-particular').value || (billTypeVal + ' Charges for ' + periodVal);

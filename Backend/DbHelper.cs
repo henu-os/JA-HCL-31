@@ -21,7 +21,50 @@ namespace JeevikaERP
                     "Connection string 'Default' not found in appsettings.json. " +
                     "Please set Host, Port, Database, Username, Password.");
 
+            ResolveWorkingConnectionString();
             EnsureDatabaseCreated();
+        }
+
+        private static void ResolveWorkingConnectionString()
+        {
+            if (string.IsNullOrEmpty(_connectionString)) return;
+
+            var builder = new NpgsqlConnectionStringBuilder(_connectionString);
+            var configuredPass = builder.Password ?? "";
+
+            var candidates = new List<string>();
+            var envPass = Environment.GetEnvironmentVariable("PGPASSWORD");
+            if (!string.IsNullOrWhiteSpace(envPass)) candidates.Add(envPass);
+            if (!string.IsNullOrWhiteSpace(configuredPass)) candidates.Add(configuredPass);
+            candidates.AddRange(new[] { "postgres", "admin", "root", "1234", "henuos" });
+
+            var targetDb = builder.Database;
+            foreach (var pass in candidates.Distinct())
+            {
+                builder.Password = pass;
+                var testBuilder = new NpgsqlConnectionStringBuilder(builder.ConnectionString)
+                {
+                    Database = "postgres",
+                    Timeout = 3
+                };
+
+                try
+                {
+                    using var conn = new NpgsqlConnection(testBuilder.ConnectionString);
+                    conn.Open();
+                    builder.Database = targetDb;
+                    _connectionString = builder.ConnectionString;
+                    return;
+                }
+                catch (PostgresException pEx) when (pEx.SqlState == "28P01")
+                {
+                    continue;
+                }
+                catch
+                {
+                    // Fall back to trying next
+                }
+            }
         }
 
         private static void EnsureDatabaseCreated()

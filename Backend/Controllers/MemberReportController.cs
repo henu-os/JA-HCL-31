@@ -157,12 +157,41 @@ namespace JeevikaERP.Controllers
             [FromQuery] DateTime? fromDate,
             [FromQuery] DateTime? toDate)
         {
-            if (societyId <= 0 || fyId <= 0)
-                return BadRequest(new { success = false, message = "societyId and fyId are required." });
-
             try
             {
                 using var conn = DbHelper.GetConn();
+
+                // Dynamic resolution if societyId not provided
+                if (societyId <= 0)
+                {
+                    using var cmdDefSoc = conn.CreateCommand();
+                    cmdDefSoc.CommandText = "SELECT societyid FROM jeevika_erp.societyinfo ORDER BY societyid ASC LIMIT 1";
+                    var sRes = cmdDefSoc.ExecuteScalar();
+                    societyId = (sRes != null && sRes != DBNull.Value) ? Convert.ToInt32(sRes) : 1;
+                }
+
+                // Dynamic resolution if fyId not provided
+                if (fyId <= 0)
+                {
+                    using var cmdDefFy = conn.CreateCommand();
+                    cmdDefFy.CommandText = @"
+                        SELECT fyid FROM jeevika_erp.financialyear 
+                        WHERE societyid = @sid AND isactive = TRUE 
+                        ORDER BY fystart DESC LIMIT 1";
+                    cmdDefFy.Parameters.AddWithValue("@sid", societyId);
+                    var fRes = cmdDefFy.ExecuteScalar();
+                    if (fRes != null && fRes != DBNull.Value)
+                    {
+                        fyId = Convert.ToInt32(fRes);
+                    }
+                    else
+                    {
+                        using var cmdAnyFy = conn.CreateCommand();
+                        cmdAnyFy.CommandText = "SELECT fyid FROM jeevika_erp.financialyear ORDER BY fyid DESC LIMIT 1";
+                        var aRes = cmdAnyFy.ExecuteScalar();
+                        fyId = (aRes != null && aRes != DBNull.Value) ? Convert.ToInt32(aRes) : 1;
+                    }
+                }
 
                 // 1. Dynamic Financial Year Date Range Resolution
                 DateTime startDate;
@@ -969,12 +998,41 @@ namespace JeevikaERP.Controllers
             [FromQuery] DateTime? fromDate,
             [FromQuery] DateTime? toDate)
         {
-            if (societyId <= 0 || fyId <= 0)
-                return BadRequest(new { success = false, message = "societyId and fyId are required." });
-
             try
             {
                 using var conn = DbHelper.GetConn();
+
+                // Dynamic resolution if societyId not provided
+                if (societyId <= 0)
+                {
+                    using var cmdDefSoc = conn.CreateCommand();
+                    cmdDefSoc.CommandText = "SELECT societyid FROM jeevika_erp.societyinfo ORDER BY societyid ASC LIMIT 1";
+                    var sRes = cmdDefSoc.ExecuteScalar();
+                    societyId = (sRes != null && sRes != DBNull.Value) ? Convert.ToInt32(sRes) : 1;
+                }
+
+                // Dynamic resolution if fyId not provided
+                if (fyId <= 0)
+                {
+                    using var cmdDefFy = conn.CreateCommand();
+                    cmdDefFy.CommandText = @"
+                        SELECT fyid FROM jeevika_erp.financialyear 
+                        WHERE societyid = @sid AND isactive = TRUE 
+                        ORDER BY fystart DESC LIMIT 1";
+                    cmdDefFy.Parameters.AddWithValue("@sid", societyId);
+                    var fRes = cmdDefFy.ExecuteScalar();
+                    if (fRes != null && fRes != DBNull.Value)
+                    {
+                        fyId = Convert.ToInt32(fRes);
+                    }
+                    else
+                    {
+                        using var cmdAnyFy = conn.CreateCommand();
+                        cmdAnyFy.CommandText = "SELECT fyid FROM jeevika_erp.financialyear ORDER BY fyid DESC LIMIT 1";
+                        var aRes = cmdAnyFy.ExecuteScalar();
+                        fyId = (aRes != null && aRes != DBNull.Value) ? Convert.ToInt32(aRes) : 1;
+                    }
+                }
 
                 // 1. Dynamic FY Dates Resolution
                 DateTime startDate;

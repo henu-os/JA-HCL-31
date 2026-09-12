@@ -273,6 +273,28 @@ namespace JeevikaERP.Controllers
             {
                 using var conn = DbHelper.GetConn();
 
+                // Validate BillDate against active FinancialYear
+                using (var fyCheckCmd = conn.CreateCommand())
+                {
+                    fyCheckCmd.CommandText = "SELECT FYStart, FYEnd, FYLabel FROM jeevika_erp.FinancialYear WHERE FYId = @fyid LIMIT 1";
+                    fyCheckCmd.Parameters.AddWithValue("@fyid", model.FYId);
+                    using var rFy = fyCheckCmd.ExecuteReader();
+                    if (rFy.Read())
+                    {
+                        var fyStart = Convert.ToDateTime(rFy["FYStart"]).Date;
+                        var fyEnd = Convert.ToDateTime(rFy["FYEnd"]).Date;
+                        var fyLabel = rFy["FYLabel"]?.ToString() ?? "";
+                        var bDate = model.BillDate.Date;
+                        if (bDate < fyStart || bDate > fyEnd)
+                        {
+                            return BadRequest(new { 
+                                success = false, 
+                                message = $"Bill Date ({bDate:dd/MM/yyyy}) must fall within Financial Year {fyLabel} ({fyStart:dd/MM/yyyy} to {fyEnd:dd/MM/yyyy})." 
+                            });
+                        }
+                    }
+                }
+
                 // Look up or initialize BillTypeId BEFORE starting the transaction
                 int billTypeId = ResolveOrCreateBillTypeId(conn, model.BillType ?? "Maintenance", model.SocietyId, model.BillTypeId);
 
@@ -395,6 +417,28 @@ namespace JeevikaERP.Controllers
             try
             {
                 using var conn = DbHelper.GetConn();
+
+                // Validate BillDate against active FinancialYear
+                using (var fyCheckCmd = conn.CreateCommand())
+                {
+                    fyCheckCmd.CommandText = "SELECT FYStart, FYEnd, FYLabel FROM jeevika_erp.FinancialYear WHERE FYId = @fyid LIMIT 1";
+                    fyCheckCmd.Parameters.AddWithValue("@fyid", model.FYId);
+                    using var rFy = fyCheckCmd.ExecuteReader();
+                    if (rFy.Read())
+                    {
+                        var fyStart = Convert.ToDateTime(rFy["FYStart"]).Date;
+                        var fyEnd = Convert.ToDateTime(rFy["FYEnd"]).Date;
+                        var fyLabel = rFy["FYLabel"]?.ToString() ?? "";
+                        var bDate = model.BillDate.Date;
+                        if (bDate < fyStart || bDate > fyEnd)
+                        {
+                            return BadRequest(new { 
+                                success = false, 
+                                message = $"Batch Bill Date ({bDate:dd/MM/yyyy}) must fall within Financial Year {fyLabel} ({fyStart:dd/MM/yyyy} to {fyEnd:dd/MM/yyyy})." 
+                            });
+                        }
+                    }
+                }
 
                 int targetSocietyId = model.SocietyId;
 

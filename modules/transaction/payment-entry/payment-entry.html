@@ -691,6 +691,7 @@
               <div style="width:160px; flex-shrink:0;">
                 <label class="form-label">ENTRY AMOUNT</label>
                 <input type="number" step="0.01" class="form-inp" id="entry-amount" placeholder=""
+                  onkeydown="if(event.key==='Enter'){event.preventDefault();confirmAddLineItem();}"
                   style="text-align:right; font-family:'Consolas', monospace; font-weight:800;">
               </div>
               <button type="button" onclick="confirmAddLineItem()" class="btn-tb-blue"

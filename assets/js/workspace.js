@@ -207,6 +207,25 @@ const WorkspaceManager = (() => {
       fySelectors.forEach(sel => {
         doc.querySelectorAll(sel).forEach(el => { el.textContent = fyLabel; });
       });
+
+      // Automatically apply FY date restrictions to all date inputs inside child iframe
+      const win = frame.contentWindow;
+      if (win && typeof win.applyFYDateRestrictions === 'function') {
+        win.applyFYDateRestrictions(doc);
+      } else if (typeof applyFYDateRestrictions === 'function') {
+        applyFYDateRestrictions(doc);
+      } else {
+        const start = sessionStorage.getItem('activeFYStart') || localStorage.getItem('activeFYStart');
+        const end = sessionStorage.getItem('activeFYEnd') || localStorage.getItem('activeFYEnd');
+        if (start && end) {
+          doc.querySelectorAll('input[type="date"], .fy-date, [data-fy-restricted="true"]').forEach(inp => {
+            if (inp.dataset.fyIgnore !== 'true' && !inp.classList.contains('no-fy-limit')) {
+              inp.min = start.includes('T') ? start.split('T')[0] : start;
+              inp.max = end.includes('T') ? end.split('T')[0] : end;
+            }
+          });
+        }
+      }
     } catch (e) { }
   }
 
@@ -221,6 +240,24 @@ const WorkspaceManager = (() => {
   function setActiveFY(fyId, fyLabel, fyStart, fyEnd) {
     if (!fyLabel) return;
     const strId = String(fyId || '1');
+
+    // Auto-calculate fyStart and fyEnd if not explicitly provided
+    if (!fyStart || !fyEnd) {
+      const match = String(fyLabel).match(/(\d{4})[-/](\d{2,4})/);
+      if (match) {
+        const sYear = parseInt(match[1], 10);
+        const eYear = match[2].length === 2 ? Math.floor(sYear / 100) * 100 + parseInt(match[2], 10) : parseInt(match[2], 10);
+        fyStart = fyStart || `${sYear}-04-01`;
+        fyEnd = fyEnd || `${eYear}-03-31`;
+      } else {
+        fyStart = fyStart || '2026-04-01';
+        fyEnd = fyEnd || '2027-03-31';
+      }
+    }
+
+    if (fyStart && fyStart.includes('T')) fyStart = fyStart.split('T')[0];
+    if (fyEnd && fyEnd.includes('T')) fyEnd = fyEnd.split('T')[0];
+
     sessionStorage.setItem('activeFYId', strId);
     sessionStorage.setItem('activeFYLabel', fyLabel);
     if (fyStart) sessionStorage.setItem('activeFYStart', fyStart);
@@ -289,9 +326,10 @@ const WorkspaceManager = (() => {
     if (fyLabel) {
       setActiveFY(fyId, fyLabel);
     } else if (socId > 0 && socId !== prevSocId) {
-      fetch('/api/financial-years?societyId=' + socId)
-        .then(r => r.json())
-        .then(res => {
+      const p = (window.API && API.get)
+        ? API.get('/api/financial-years?societyId=' + socId)
+        : fetch(((window.APP_CONFIG && window.APP_CONFIG.API_BASE) || 'http://localhost:5002/api') + '/financial-years?societyId=' + socId).then(r => r.json());
+      p.then(res => {
           if (res && res.data && res.data.length > 0) {
             const activeFy = res.data.find(f => f.isActive) || res.data[0];
             setActiveFY(activeFy.fYId, activeFy.fYLabel, activeFy.fYStart, activeFy.fYEnd);

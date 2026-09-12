@@ -12,22 +12,26 @@
 
   function getActiveSocietyId() {
     var id = (window.Auth && Auth.getSocietyId && Auth.getSocietyId()) ||
+             (window.parent && window.parent.Auth && window.parent.Auth.getSocietyId && window.parent.Auth.getSocietyId()) ||
              sessionStorage.getItem('activeSocietyId') ||
              localStorage.getItem('activeSocietyId') ||
              (window.parent && window.parent.sessionStorage && window.parent.sessionStorage.getItem('activeSocietyId')) ||
              (window.parent && window.parent.localStorage && window.parent.localStorage.getItem('activeSocietyId')) ||
-             '4';
-    return id ? String(id) : '4';
+             '';
+    if (!id || id === 'undefined' || id === 'null' || isNaN(parseInt(id, 10))) return '';
+    return String(parseInt(id, 10));
   }
 
   function getFyId() {
     var id = (window.Auth && Auth.getFYId && Auth.getFYId()) ||
+             (window.parent && window.parent.Auth && window.parent.Auth.getFYId && window.parent.Auth.getFYId()) ||
              sessionStorage.getItem('activeFYId') ||
              localStorage.getItem('activeFYId') ||
              (window.parent && window.parent.sessionStorage && window.parent.sessionStorage.getItem('activeFYId')) ||
              (window.parent && window.parent.localStorage && window.parent.localStorage.getItem('activeFYId')) ||
-             '1';
-    return id ? String(id) : '1';
+             '';
+    if (!id || id === 'undefined' || id === 'null' || isNaN(parseInt(id, 10))) return '';
+    return String(parseInt(id, 10));
   }
 
   function formatMoney(num) {
@@ -159,18 +163,22 @@
     var container = document.getElementById('mreg-cards-container');
     if (container) container.innerHTML = '<div style="text-align:center; padding:40px; color:#64748b; font-weight:700;"><i class="bi bi-arrow-repeat spin"></i> Loading Member Register [Dr/Cr]...</div>';
 
-    var query = '/api/reports/member-drcr-register?societyId=' + sid + '&fyId=' + fyid;
-    if (btId) query += '&billTypeId=' + encodeURIComponent(btId);
+    var params = [];
+    if (sid) params.push('societyId=' + encodeURIComponent(sid));
+    if (fyid) params.push('fyId=' + encodeURIComponent(fyid));
+    if (btId) params.push('billTypeId=' + encodeURIComponent(btId));
     if (indMem) {
-      query += '&individualMemberCode=' + encodeURIComponent(indMem);
+      params.push('individualMemberCode=' + encodeURIComponent(indMem));
     } else if (fromMem && toMem && fromMem === toMem) {
-      query += '&individualMemberCode=' + encodeURIComponent(fromMem);
+      params.push('individualMemberCode=' + encodeURIComponent(fromMem));
     } else {
-      if (fromMem) query += '&fromMemberCode=' + encodeURIComponent(fromMem);
-      if (toMem) query += '&toMemberCode=' + encodeURIComponent(toMem);
+      if (fromMem) params.push('fromMemberCode=' + encodeURIComponent(fromMem));
+      if (toMem) params.push('toMemberCode=' + encodeURIComponent(toMem));
     }
-    if (fromDate) query += '&fromDate=' + encodeURIComponent(fromDate);
-    if (toDate) query += '&toDate=' + encodeURIComponent(toDate);
+    if (fromDate) params.push('fromDate=' + encodeURIComponent(fromDate));
+    if (toDate) params.push('toDate=' + encodeURIComponent(toDate));
+
+    var query = '/api/reports/member-drcr-register' + (params.length > 0 ? ('?' + params.join('&')) : '');
 
     try {
       var res = await API.get(query);

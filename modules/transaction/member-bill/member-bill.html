@@ -1081,11 +1081,11 @@
       </div>
       <div class="form-field">
         <label>BILL DATE <span class="req">*</span></label>
-        <input type="date" id="frm-billdate" class="form-inp" style="width:120px;">
+        <input type="date" id="frm-billdate" class="form-inp fy-date" style="width:120px;">
       </div>
       <div class="form-field">
         <label>DUE DATE</label>
-        <input type="date" id="frm-duedate" class="form-inp" style="width:120px;">
+        <input type="date" id="frm-duedate" class="form-inp fy-date" style="width:120px;">
       </div>
       <div class="form-field">
         <label>BILLING PERIOD</label>
@@ -1209,7 +1209,7 @@
               <label>4. BILL DATE</label>
               <div class="ag-input-wrap">
                 <i class="bi bi-calendar3 lead-icon"></i>
-                <input type="date" id="ag-bill-date" onchange="onAgBillDateChange()">
+                <input type="date" id="ag-bill-date" class="fy-date" onchange="onAgBillDateChange()">
               </div>
             </div>
           </div>
@@ -1220,7 +1220,7 @@
               <label>5. DUE DATE</label>
               <div class="ag-input-wrap">
                 <i class="bi bi-calendar-check lead-icon"></i>
-                <input type="date" id="ag-due-date">
+                <input type="date" id="ag-due-date" class="fy-date">
               </div>
             </div>
             <div class="ag-field">

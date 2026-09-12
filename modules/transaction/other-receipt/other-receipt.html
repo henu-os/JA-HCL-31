@@ -348,7 +348,9 @@
             </div>
             <div style="width:160px; flex-shrink:0;">
               <label class="form-label">ENTRY AMOUNT</label>
-              <input type="number" step="0.01" class="form-inp" id="entry-amount" placeholder="" style="text-align:right; font-family:'Consolas', monospace; font-weight:800;">
+              <input type="number" step="0.01" class="form-inp" id="entry-amount" placeholder=""
+                onkeydown="if(event.key==='Enter'){event.preventDefault();confirmAddLineItem();}"
+                style="text-align:right; font-family:'Consolas', monospace; font-weight:800;">
             </div>
             <button type="button" onclick="confirmAddLineItem()" class="btn-tb-blue" style="height:30px; padding:0 18px; background:#0D47A1; color:#ffffff; border-radius:4px; font-weight:800; display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
               <i class="bi bi-check-circle-fill" style="font-size:13px; color:#ffffff;"></i> <span style="color:#ffffff;">Confirm</span>

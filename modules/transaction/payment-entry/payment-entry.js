@@ -1014,7 +1014,62 @@
       cr: (type === 'Cr' ? amt : 0)
     });
 
-    document.getElementById('entry-amount').value = '';
+    // Reset account selection and amount to blank
+    if (typeof setAccountSearchComboboxValue === 'function') {
+      setAccountSearchComboboxValue('entry-acc-sel', '', '');
+    } else {
+      var s = document.getElementById('entry-acc-sel');
+      if (s) s.value = '';
+      var ci = document.getElementById('entry-acc-sel-combo-inp');
+      if (ci) ci.value = '';
+    }
+    var amtEl = document.getElementById('entry-amount');
+    if (amtEl) amtEl.value = '';
+
+    renderGridTable();
+
+    // Move focus back to the account selection for next entry
+    var comboInp = document.getElementById('entry-acc-sel-combo-inp') || document.getElementById('entry-acc-sel');
+    if (comboInp) comboInp.focus();
+  };
+
+  window.editGridRow = function (idx) {
+    var r = gridRows[idx];
+    if (!r) return;
+
+    // Find account in chart of accounts
+    var accObj = accounts.find(function (a) {
+      return (a.accCode && r.code && a.accCode.trim().toLowerCase() === r.code.trim().toLowerCase()) ||
+             (a.accName && r.name && a.accName.trim().toLowerCase() === r.name.trim().toLowerCase());
+    });
+
+    if (accObj) {
+      var label = (accObj.accCode ? accObj.accCode + ' - ' : '') + (accObj.accName || '');
+      if (typeof setAccountSearchComboboxValue === 'function') {
+        setAccountSearchComboboxValue('entry-acc-sel', accObj.accountId || accObj.id, label);
+      } else {
+        var s = document.getElementById('entry-acc-sel');
+        if (s) s.value = accObj.accountId || accObj.id;
+        var ci = document.getElementById('entry-acc-sel-combo-inp');
+        if (ci) ci.value = label;
+      }
+    }
+
+    var typeEl = document.getElementById('entry-type');
+    if (typeEl) {
+      typeEl.value = (parseFloat(r.dr) || 0) > 0 ? 'Dr' : 'Cr';
+    }
+
+    var amtEl = document.getElementById('entry-amount');
+    if (amtEl) {
+      var amt = (parseFloat(r.dr) || 0) > 0 ? r.dr : r.cr;
+      amtEl.value = (parseFloat(amt) || 0) > 0 ? amt : '';
+      amtEl.focus();
+      if (typeof amtEl.select === 'function') amtEl.select();
+    }
+
+    // Remove row from grid so user can adjust and re-confirm
+    gridRows.splice(idx, 1);
     renderGridTable();
   };
 
@@ -1264,7 +1319,10 @@
             '<td style="font-family:\'Consolas\', monospace; font-weight:700; color:#0D47A1;">' + escHtml(r.code) + '</td>' +
             '<td style="font-weight:600; display:flex; justify-content:space-between; align-items:center;">' +
               '<span>' + escHtml(r.name) + '</span>' +
-              '<button type="button" onclick="removeGridRow(' + idx + ')" style="border:none; background:none; color:#ef4444; cursor:pointer; font-size:12px; font-weight:bold; padding:0 4px;" title="Remove row">✕</button>' +
+              '<div style="display:inline-flex; align-items:center; gap:8px;">' +
+                '<button type="button" onclick="editGridRow(' + idx + ')" style="border:none; background:none; color:#1565C0; cursor:pointer; font-size:13px; font-weight:bold; padding:0 3px;" title="Edit entry (move to top for edit)">✎</button>' +
+                '<button type="button" onclick="removeGridRow(' + idx + ')" style="border:none; background:none; color:#ef4444; cursor:pointer; font-size:12px; font-weight:bold; padding:0 3px;" title="Remove row">✕</button>' +
+              '</div>' +
             '</td>' +
             '<td style="text-align:right; font-family:\'Consolas\', monospace; color:#2E7D32; font-weight:700;">' + (r.dr > 0 ? Number(r.dr).toFixed(2) : '-') + '</td>' +
             '<td style="text-align:right; font-family:\'Consolas\', monospace; color:#dc2626; font-weight:700;">' + (r.cr > 0 ? Number(r.cr).toFixed(2) : '-') + '</td>' +
@@ -1589,19 +1647,37 @@
         pName = (pName && pName !== '—') ? pName : 'General';
       }
 
+      var entryAccId = document.getElementById('entry-account') ? document.getElementById('entry-account').value : '';
+      var entryAmt = parseFloat(document.getElementById('entry-amount') ? document.getElementById('entry-amount').value : 0) || 0;
+      if (gridRows.length === 0 && entryAmt > 0) {
+        var accObj = accounts.find(function(a) { return String(a.accountId) === String(entryAccId); });
+        var entryType = document.getElementById('entry-type') ? document.getElementById('entry-type').value : 'Dr';
+        gridRows.push({
+          sr: 1,
+          code: accObj ? (accObj.accCode || '') : '',
+          name: accObj ? (accObj.accName || 'Expense') : 'General Expense',
+          dr: (entryType === 'Dr' ? entryAmt : 0),
+          cr: (entryType === 'Cr' ? entryAmt : 0)
+        });
+        renderGridTable();
+      }
+
       var validRows = gridRows.filter(function (r) { return r.code || r.name || (parseFloat(r.dr) || 0) > 0 || (parseFloat(r.cr) || 0) > 0; });
       var totAmt = validRows.reduce(function (sum, r) { return sum + (parseFloat(r.dr) || 0); }, 0);
       if (totAmt <= 0) {
-        toast('Please enter a valid amount and add at least one line item.', false);
+        toast('Please enter an amount and select an account head.', false);
         return;
       }
 
       var withdrawSel = document.getElementById('frm-withdraw-acc');
+      if (withdrawSel && (!withdrawSel.value || withdrawSel.selectedIndex < 0) && withdrawSel.options.length > 0) {
+        withdrawSel.selectedIndex = 0;
+      }
       var withdrawText = (withdrawSel && withdrawSel.selectedIndex >= 0 && withdrawSel.options[withdrawSel.selectedIndex])
         ? withdrawSel.options[withdrawSel.selectedIndex].text
         : '';
       if (!withdrawSel || !withdrawSel.value) {
-        toast('Please select a valid Withdrawal Account (Cash/Bank).', false);
+        toast('Please select a Withdrawal Account (Cash/Bank).', false);
         return;
       }
 

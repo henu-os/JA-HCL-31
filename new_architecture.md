@@ -909,6 +909,46 @@ Priority order:
 | No empty stub files | 196-byte placeholder HTMLs | Either implement or omit |
 | FY scoping on all transactions | No fy_id in old tables | `fy_id` column everywhere |
 | Society scoping on all data | Some tables missing society_id | `society_id` column everywhere |
+| FY Date Restricting | Unrestricted date pickers | `fy-date` class, global auto-clamp, and min/max bounds |
+
+---
+
+## 13. STANDARD FINANCIAL YEAR DATE HANDLING (ALL MODULES)
+
+All transaction date fields (e.g., Bill Date, Voucher Date, Receipt Date, Invoice Date, etc.) are strictly bounded to the active Financial Year (01 April to 31 March of that FY):
+
+### 1. HTML Markup Standard for Date Fields:
+```html
+<!-- Always use class="fy-date" for financial transaction date inputs -->
+<input type="date" id="frm-billdate" class="form-inp fy-date" required>
+```
+
+### 2. Auto-Bounding via Global Workspace & Utilities:
+- **`applyFYDateRestrictions(container)`** in `assets/js/utils.js`:
+  - Automatically executed on page load and inside `injectSocietyContextToFrame(frame)` in `assets/js/workspace.js`.
+  - Automatically queries all `input[type="date"]`, `.fy-date`, and `[data-fy-restricted="true"]`.
+  - Sets `input.min = activeFYStart` and `input.max = activeFYEnd`.
+  - Attaches `change` & `blur` validation listeners: if a user enters a date outside the FY, a warning toast is shown and the input is reset to `getFYDefaultDate()`.
+  - If a date field needs to be exempted (e.g. Member DOB or Join Date), mark with `data-fy-ignore="true"` or class `no-fy-limit`.
+
+### 3. Safe Default Date Initialization:
+```javascript
+// Never use todayISO() directly if it could fall outside an older or future FY
+var defaultDate = (typeof getFYDefaultDate === 'function') ? getFYDefaultDate() : todayISO();
+document.getElementById('frm-date').value = defaultDate;
+```
+
+### 4. Client-side Form Submit Validation:
+```javascript
+if (typeof isInActiveFY === 'function' && !isInActiveFY(dateValue)) {
+  var fyRange = getFYDateRange();
+  alert('Date must fall within Financial Year (' + formatDate(fyRange.startDate) + ' to ' + formatDate(fyRange.endDate) + ')');
+  return;
+}
+```
+
+### 5. Backend Validation:
+- All controllers saving transaction dates (`MemberBillController`, `VoucherController`, etc.) validate that the transaction date falls between `FYStart` and `FYEnd` of the record's `FYId`.
 
 
 
@@ -942,4 +982,4 @@ Priority order:
 
 A                     B                      
 
-        C                       D 
+        C                       D

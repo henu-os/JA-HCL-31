@@ -155,36 +155,28 @@ namespace JeevikaERP.Controllers
                     decimal sumDr = Math.Round(model.Items.Sum(d => d != null ? d.Debit : 0), 2);
                     decimal sumCr = Math.Round(model.Items.Sum(d => d != null ? (d.Credit > 0 ? d.Credit : (d.Amount > 0 ? d.Amount : 0)) : 0), 2);
 
-                    // Check if deposit account is already included in items
-                    bool hasDepositDebit = model.Items.Any(d => d != null && d.Debit > 0 &&
-                        ((cbAccId > 0 && d.AccountId == cbAccId) ||
-                         (!string.IsNullOrWhiteSpace(cbAccCode) && string.Equals(d.AccountCode, cbAccCode, StringComparison.OrdinalIgnoreCase)) ||
-                         (!string.IsNullOrWhiteSpace(cbAccName) && string.Equals(d.AccountName, cbAccName, StringComparison.OrdinalIgnoreCase))));
-
-                    // If deposit bank/cash row not already in items, compute net deposit = total credits - other debits (e.g. TDS Receivable)
-                    if (!hasDepositDebit && cbAccId > 0)
+                    // If credits exceed debits and deposit row not already present, inject deposit debit to balance
+                    bool isAlreadyBalanced = Math.Abs(sumDr - sumCr) <= 0.01m;
+                    if (!isAlreadyBalanced && (sumCr - sumDr) > 0.01m && cbAccId > 0)
                     {
                         decimal netBankDr = Math.Round(sumCr - sumDr, 2);
-                        if (netBankDr > 0)
-                        {
-                            using var dCb = conn.CreateCommand();
-                            dCb.Transaction = tx;
-                            dCb.CommandText = @"
-                                INSERT INTO jeevika_erp.SocVoucherDetail
-                                    (VoucherId, SrNo, AccountId, AccountCode, AccountName, Debit, Credit, Narration)
-                                VALUES
-                                    (@vid, @sr, @aid, @code, @name, @amt, 0, @narr)";
-                            dCb.Parameters.AddWithValue("@vid",   voucherId);
-                            dCb.Parameters.AddWithValue("@sr",    srNo++);
-                            dCb.Parameters.AddWithValue("@aid",   cbAccId);
-                            dCb.Parameters.AddWithValue("@code",  cbAccCode);
-                            dCb.Parameters.AddWithValue("@name",  cbAccName);
-                            dCb.Parameters.AddWithValue("@amt",   netBankDr);
-                            dCb.Parameters.AddWithValue("@narr",  narration);
-                            dCb.ExecuteNonQuery();
+                        using var dCb = conn.CreateCommand();
+                        dCb.Transaction = tx;
+                        dCb.CommandText = @"
+                            INSERT INTO jeevika_erp.SocVoucherDetail
+                                (VoucherId, SrNo, AccountId, AccountCode, AccountName, Debit, Credit, Narration)
+                            VALUES
+                                (@vid, @sr, @aid, @code, @name, @amt, 0, @narr)";
+                        dCb.Parameters.AddWithValue("@vid",   voucherId);
+                        dCb.Parameters.AddWithValue("@sr",    srNo++);
+                        dCb.Parameters.AddWithValue("@aid",   cbAccId);
+                        dCb.Parameters.AddWithValue("@code",  cbAccCode);
+                        dCb.Parameters.AddWithValue("@name",  cbAccName);
+                        dCb.Parameters.AddWithValue("@amt",   netBankDr);
+                        dCb.Parameters.AddWithValue("@narr",  narration);
+                        dCb.ExecuteNonQuery();
 
-                            sumDr += netBankDr;
-                        }
+                        sumDr += netBankDr;
                     }
 
                     // Strict balance validation

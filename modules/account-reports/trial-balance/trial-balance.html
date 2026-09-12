@@ -314,21 +314,27 @@
 
     /* Print Styles */
     @media print {
-      body.erp-module {
-        height: auto;
-        overflow: visible;
-        background: #ffffff;
+      @page {
+        size: A4 landscape;
+        margin: 10mm 8mm;
       }
-      .module-top-bar, .filter-bar, .no-print {
+      html, body.erp-module {
+        height: auto !important;
+        overflow: visible !important;
+        background: #ffffff !important;
+      }
+      .module-top-bar, .filter-bar, .no-print, .summary-popover {
         display: none !important;
       }
       .table-container {
-        overflow: visible;
+        overflow: visible !important;
+        height: auto !important;
+        padding: 0 !important;
       }
       .print-header {
         display: block !important;
         padding-bottom: 8px;
-        margin-bottom: 10px;
+        margin-bottom: 12px;
         border-bottom: 1.5px solid #0f172a;
       }
       .print-signatures {
@@ -336,14 +342,55 @@
         justify-content: space-between;
         margin-top: 35px;
         padding-top: 15px;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
       }
-      table.ledger-grid th {
+      table.ledger-grid {
+        width: 100% !important;
+        table-layout: auto !important;
+      }
+      table.ledger-grid thead {
+        display: table-header-group !important;
+        position: static !important;
+      }
+      table.ledger-grid thead th {
+        position: static !important;
         background: #f1f5f9 !important;
         color: #0f172a !important;
         border: 1px solid #94a3b8 !important;
+        top: auto !important;
+        z-index: auto !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      table.ledger-grid tbody {
+        display: table-row-group !important;
+      }
+      table.ledger-grid tbody tr {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
       }
       table.ledger-grid td {
         border: 1px solid #cbd5e1 !important;
+      }
+      table.ledger-grid tfoot {
+        display: table-row-group !important;
+        position: static !important;
+        bottom: auto !important;
+        z-index: auto !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+      table.ledger-grid tfoot tr {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+      table.ledger-grid tfoot td {
+        position: static !important;
+        background: #f8fafc !important;
+        border: 1px solid #94a3b8 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
       }
     }
     .print-header { display: none; }
@@ -501,9 +548,8 @@
       <thead>
         <tr>
           <th style="width:40px; text-align:center;">#</th>
-          <th style="width:100px; text-align:center;">Account Code</th>
+          <th style="width:110px; text-align:center;">Account Code</th>
           <th>Account Name</th>
-          <th style="width:160px;">Group Name</th>
           <th style="width:125px; text-align:right;">Opening Bal (DR)</th>
           <th style="width:125px; text-align:right;">Opening Bal (CR)</th>
           <th style="width:130px; text-align:right;">Transaction Debit</th>
@@ -514,7 +560,7 @@
       </thead>
       <tbody id="mainTableBody">
         <tr>
-          <td colspan="10" style="text-align:center; padding:50px; color:#64748b;">
+          <td colspan="9" style="text-align:center; padding:50px; color:#64748b;">
             <i class="bi bi-hourglass-split" style="font-size:24px; color:var(--primary); display:block; margin-bottom:8px;"></i>
             Generating Trial Balance statement...
           </td>
@@ -522,7 +568,7 @@
       </tbody>
       <tfoot>
         <tr class="gt-row">
-          <td colspan="4" style="text-align:right; font-weight:800;">Grand Total:</td>
+          <td colspan="3" style="text-align:right; font-weight:800;">Grand Total:</td>
           <td class="td-num val-debit" id="ftOpeningDr">0.00</td>
           <td class="td-num val-credit" id="ftOpeningCr">0.00</td>
           <td class="td-num val-debit" id="ftTxnDr">0.00</td>
@@ -531,7 +577,7 @@
           <td class="td-num val-credit" id="ftClosingCr">0.00</td>
         </tr>
         <tr class="diff-row" id="rowDifference" style="background:#fff1f2;">
-          <td colspan="4" style="text-align:right; font-weight:800; color:#991b1b; text-transform:uppercase; font-size:11px; letter-spacing:0.3px;">Difference:</td>
+          <td colspan="3" style="text-align:right; font-weight:800; color:#991b1b; text-transform:uppercase; font-size:11px; letter-spacing:0.3px;">Difference:</td>
           <td colspan="2" style="text-align:center; padding:5px 8px;" id="ftDiffOpening">
             <span class="erp-badge" style="font-weight:800; font-size:10.5px;">₹0.00</span>
           </td>

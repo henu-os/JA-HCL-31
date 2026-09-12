@@ -229,7 +229,7 @@ function renderTable(list) {
   const closeSubTotalRow = (grpName) => {
     return `
       <tr class="row-group-subtotal">
-        <td colspan="4" style="text-align:right; font-weight:700; font-size:11px; color:#1e293b; padding-right:12px;">
+        <td colspan="3" style="text-align:right; font-weight:700; font-size:11px; color:#1e293b; padding-right:12px;">
           Sub-Total: ${escHtml(grpName)}
         </td>
         <td class="td-num" style="font-weight:700; color:#0f172a;">${subOpDr > 0 ? formatAmount(subOpDr) : '0.00'}</td>
@@ -263,7 +263,7 @@ function renderTable(list) {
 
       html += `
         <tr class="row-group-header">
-          <td colspan="10">
+          <td colspan="9">
             <span style="font-size:10px; margin-right:5px; color:#1a3a6e;">&#9654;</span> ${escHtml(grpName)}
           </td>
         </tr>
@@ -282,7 +282,6 @@ function renderTable(list) {
         <td style="text-align:center; color:#64748b; font-weight:600;">${i + 1}</td>
         <td style="text-align:center; font-weight:800; color:#0f172a;">${escHtml(item.accCode || '—')}</td>
         <td style="font-weight:700; color:#0D47A1;">${escHtml(item.accName || '—')}</td>
-        <td>${getGroupBadgeHtml(item.grpMainId, item.groupName || 'General')}</td>
         <td class="td-num ${item.openingDr > 0 ? 'val-debit' : ''}">${item.openingDr > 0 ? formatAmount(item.openingDr) : '—'}</td>
         <td class="td-num ${item.openingCr > 0 ? 'val-credit' : ''}">${item.openingCr > 0 ? formatAmount(item.openingCr) : '—'}</td>
         <td class="td-num ${item.totalDebit > 0 ? 'val-debit' : ''}">${item.totalDebit > 0 ? formatAmount(item.totalDebit) : '—'}</td>
@@ -426,7 +425,6 @@ function exportCsv() {
     '#',
     'Account Code',
     'Account Name',
-    'Group Name',
     'Opening Bal (DR)',
     'Opening Bal (CR)',
     'Transaction Debit',
@@ -444,7 +442,7 @@ function exportCsv() {
 
   const closeCsvSubTotal = (grp) => {
     return [
-      '""', '""', `"Sub-Total: ${(grp || '').replace(/"/g, '""')}"`, '""',
+      '""', '""', `"Sub-Total: ${(grp || '').replace(/"/g, '""')}"`,
       subOpDr.toFixed(2), subOpCr.toFixed(2), subTxnDr.toFixed(2), subTxnCr.toFixed(2), subClDr.toFixed(2), subClCr.toFixed(2)
     ].join(',');
   };
@@ -468,7 +466,7 @@ function exportCsv() {
       subTxnDr = 0; subTxnCr = 0;
       subClDr = 0; subClCr = 0;
 
-      csvRows.push(`"","","[ ${grpName.replace(/"/g, '""')} ]","","","","","","",""`);
+      csvRows.push(`"","","[ ${grpName.replace(/"/g, '""')} ]","","","","","",""`);
     }
 
     subOpDr  += (r.openingDr || 0);
@@ -482,7 +480,6 @@ function exportCsv() {
       i + 1,
       `"${(r.accCode || '').replace(/"/g, '""')}"`,
       `"${(r.accName || '').replace(/"/g, '""')}"`,
-      `"${(r.groupName || '').replace(/"/g, '""')}"`,
       (r.openingDr || 0).toFixed(2),
       (r.openingCr || 0).toFixed(2),
       (r.totalDebit || 0).toFixed(2),
@@ -502,7 +499,6 @@ function exportCsv() {
     '""',
     '""',
     '"GRAND TOTAL"',
-    '""',
     totOpDr.toFixed(2),
     totOpCr.toFixed(2),
     totTxnDr.toFixed(2),
@@ -520,7 +516,6 @@ function exportCsv() {
     '""',
     '""',
     '"DIFFERENCE"',
-    '""',
     diffOp,
     '""',
     diffTxn,

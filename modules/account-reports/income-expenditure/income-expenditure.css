@@ -1,0 +1,423 @@
+/* ==========================================================================
+   JEEVIKA ERP v2 — Statutory Income & Expenditure (Form N T-Format)
+   ========================================================================== */
+
+:root {
+  --navy-primary: #0a3880;
+  --navy-dark: #072554;
+  --navy-light: #e8f0fe;
+  --border-color: #cbd5e1;
+  --border-dark: #64748b;
+  --text-primary: #0f172a;
+  --text-muted: #64748b;
+  --bg-page: #f8fafc;
+  --bg-panel: #ffffff;
+  --bg-subtle: #f1f5f9;
+  --accent-green: #15803d;
+  --accent-red: #b91c1c;
+}
+
+html {
+  height: 100%;
+}
+
+body.erp-module {
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-page);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: var(--text-primary);
+  font-size: 12px;
+  overflow: hidden;
+}
+
+/* ── Top Action & Filter Toolbar (Pinned) ─────────────────────────────────── */
+.ie-toolbar {
+  background: #ffffff;
+  border-bottom: 1px solid var(--border-color);
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  flex-shrink: 0;
+  z-index: 100;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.ie-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ie-filter-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.ie-filter-item label {
+  cursor: pointer;
+  user-select: none;
+}
+
+.ie-input,
+.ie-select {
+  height: 28px;
+  padding: 2px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 11px;
+  background: #ffffff;
+  color: #0f172a;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.ie-input:focus,
+.ie-select:focus {
+  border-color: #1565C0;
+  box-shadow: 0 0 0 2px rgba(21, 101, 192, 0.15);
+}
+
+.ie-btn {
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  border: 1px solid var(--border-color);
+  background: #ffffff;
+  color: #334155;
+  transition: all 0.15s ease;
+}
+
+.ie-btn:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.ie-btn-primary {
+  background: var(--navy-primary);
+  border-color: var(--navy-dark);
+  color: #ffffff;
+}
+
+.ie-btn-primary:hover {
+  background: #0d47a1;
+  color: #ffffff;
+}
+
+.ie-btn-success {
+  background: #166534;
+  border-color: #14532d;
+  color: #ffffff;
+}
+
+.ie-btn-success:hover {
+  background: #15803d;
+  color: #ffffff;
+}
+
+/* ── Full Height Scrollable Body Area ────────────────────────────────────── */
+.ie-scroll-wrapper {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: auto;
+  padding: 16px;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Sleek ERP Scrollbars */
+.ie-scroll-wrapper::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.ie-scroll-wrapper::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+.ie-scroll-wrapper::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 5px;
+  border: 2px solid #f1f5f9;
+}
+.ie-scroll-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* ── Printable Report Container ──────────────────────────────────────────── */
+.ie-report-container {
+  max-width: 1400px;
+  min-width: 980px;
+  margin: 0 auto;
+  background: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: 24px;
+}
+
+/* ── Header Section ──────────────────────────────────────────────────────── */
+.ie-header {
+  text-align: center;
+  padding-bottom: 16px;
+  border-bottom: 2px solid var(--navy-primary);
+  margin-bottom: 16px;
+}
+
+.ie-soc-name {
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--navy-primary);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.ie-soc-sub {
+  font-size: 11px;
+  color: #475569;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.ie-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #1e293b;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  display: inline-block;
+  background: var(--navy-light);
+  padding: 3px 18px;
+  border-radius: 4px;
+  border: 1px solid #bfdbfe;
+}
+
+/* ── T-Format Side-by-Side Wrapper ───────────────────────────────────────── */
+.ie-t-table-wrapper {
+  width: 100%;
+  border: 1px solid var(--border-color);
+  border-collapse: collapse;
+}
+
+.ie-t-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+/* Top Dual Column Header (EXPENDITURE vs INCOME) */
+.ie-super-header {
+  background: var(--navy-primary);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  text-align: center;
+  padding: 8px 12px;
+  letter-spacing: 0.5px;
+  border: 1px solid var(--navy-dark);
+}
+
+.ie-col-header {
+  background: #f1f5f9;
+  color: #1e293b;
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 6px 8px;
+  border: 1px solid var(--border-color);
+}
+
+.ie-side-divider {
+  border-right: 2px solid var(--border-dark) !important;
+}
+
+/* ── Row & Cell Styling ─────────────────────────────────────────────────── */
+.ie-table-cell {
+  padding: 4px 8px;
+  font-size: 11.5px;
+  vertical-align: top;
+  border: 1px solid #e2e8f0;
+  line-height: 1.35;
+}
+
+.ie-group-title {
+  font-weight: 800;
+  color: var(--navy-primary);
+  font-size: 11.5px;
+  text-transform: uppercase;
+}
+
+.ie-acc-code {
+  font-family: monospace;
+  font-size: 10px;
+  color: #475569;
+  margin-right: 4px;
+}
+
+.ie-num {
+  text-align: right;
+  font-family: "Courier New", Courier, monospace, sans-serif;
+  font-weight: 600;
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+
+.ie-group-total {
+  font-weight: 800;
+  color: #0f172a;
+  border-top: 1px solid #94a3b8 !important;
+}
+
+/* Surplus / Deficit Row Highlight */
+.ie-surplus-row {
+  font-weight: 800;
+  color: #0d9488;
+  background: #f0fdfa;
+}
+
+/* Grand Total Footer */
+.ie-grand-total-row {
+  background: #f1f5f9;
+}
+
+.ie-grand-total-cell {
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 900;
+  color: var(--navy-primary);
+  border-top: 2px solid #334155 !important;
+  border-bottom: 4px double var(--navy-primary) !important;
+}
+
+/* ── Signatory Section ───────────────────────────────────────────────────── */
+.ie-signatory-wrap {
+  margin-top: 36px;
+  padding-top: 12px;
+}
+
+.ie-sign-society-label {
+  font-size: 12px;
+  font-weight: 800;
+  color: #1e293b;
+  margin-bottom: 40px;
+}
+
+.ie-sign-boxes {
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-end;
+  text-align: center;
+}
+
+.ie-sign-box {
+  width: 180px;
+  border-top: 1px solid #475569;
+  padding-top: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #1e293b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ── Print Layout ────────────────────────────────────────────────────────── */
+@media print {
+  @page {
+    size: landscape;
+    margin: 6mm;
+  }
+
+  body.erp-module {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 10px !important;
+    min-width: 0 !important;
+  }
+
+  .ie-toolbar,
+  #fileProtocolBanner {
+    display: none !important;
+  }
+
+  .ie-scroll-wrapper {
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+
+  .ie-report-container {
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .ie-t-table-wrapper {
+    border: 1px solid #000000 !important;
+  }
+
+  .ie-super-header {
+    background: #000000 !important;
+    color: #ffffff !important;
+    border: 1px solid #000000 !important;
+    padding: 4px 8px !important;
+    font-size: 11px !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .ie-col-header {
+    background: #e2e8f0 !important;
+    color: #000000 !important;
+    border: 1px solid #000000 !important;
+    padding: 4px 6px !important;
+    font-size: 9.5px !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .ie-table-cell {
+    border: 1px solid #94a3b8 !important;
+    padding: 3px 5px !important;
+    font-size: 9.5px !important;
+  }
+
+  .ie-side-divider {
+    border-right: 2px solid #000000 !important;
+  }
+
+  .ie-num {
+    font-size: 9.5px !important;
+  }
+
+  .ie-grand-total-cell {
+    border-top: 1px solid #000000 !important;
+    border-bottom: 3px double #000000 !important;
+    font-size: 11px !important;
+  }
+
+  .ie-signatory-wrap {
+    page-break-inside: avoid;
+    margin-top: 30px !important;
+  }
+
+  tfoot {
+    display: table-row-group !important;
+  }
+}

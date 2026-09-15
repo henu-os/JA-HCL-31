@@ -188,6 +188,776 @@ namespace JeevikaERP.Controllers
             }
         }
 
+        // ── GET /api/reports/balance-sheet?societyId=X&fyId=Y&asOnDate=Z&comparePrevFY=true&includeMemberBreakup=true ───
+        [HttpGet("balance-sheet")]
+        public IActionResult GetBalanceSheet(
+            [FromQuery] int societyId,
+            [FromQuery] int fyId,
+            [FromQuery] DateTime? asOnDate = null,
+            [FromQuery] bool comparePrevFY = true,
+            [FromQuery] bool includeMemberBreakup = true)
+        {
+            if (societyId <= 0 || fyId <= 0)
+                return BadRequest(new { success = false, message = "societyId and fyId are required." });
+
+            try
+            {
+                using var conn = DbHelper.GetConn();
+                MemberReceiptController.EnsureReceiptLedgerEntries(conn, societyId);
+
+                // 1. Society Profile
+                string socName = "", regNo = "", address = "", city = "";
+                using (var sCmd = conn.CreateCommand())
+                {
+                    sCmd.CommandText = "SELECT SocietyName, RegistrationNo, Address, City FROM jeevika_erp.SocietyInfo WHERE SocietyId = @sid LIMIT 1";
+                    sCmd.Parameters.AddWithValue("@sid", societyId);
+                    using var rS = sCmd.ExecuteReader();
+                    if (rS.Read())
+                    {
+                        socName = rS["SocietyName"]?.ToString() ?? "";
+                        regNo   = rS["RegistrationNo"]?.ToString() ?? "";
+                        address = rS["Address"]?.ToString() ?? "";
+                        city    = rS["City"]?.ToString() ?? "";
+                    }
+                }
+
+                // 2. Resolve Active FY
+                DateTime? fyStart = null;
+                DateTime? fyEnd = null;
+                string fyLabel = "";
+                using (var fyCmd = conn.CreateCommand())
+                {
+                    fyCmd.CommandText = "SELECT FYId, FYLabel, FYStart, FYEnd FROM jeevika_erp.FinancialYear WHERE FYId = @fyid LIMIT 1";
+                    fyCmd.Parameters.AddWithValue("@fyid", fyId);
+                    using var rFy = fyCmd.ExecuteReader();
+                    if (rFy.Read())
+                    {
+                        fyLabel = rFy["FYLabel"]?.ToString() ?? "";
+                        if (rFy["FYStart"] != DBNull.Value) fyStart = Convert.ToDateTime(rFy["FYStart"]);
+                        if (rFy["FYEnd"] != DBNull.Value) fyEnd = Convert.ToDateTime(rFy["FYEnd"]);
+                    }
+                }
+
+                DateTime effectiveAsOn = asOnDate.HasValue ? asOnDate.Value.Date : (fyEnd.HasValue ? fyEnd.Value.Date : DateTime.Today);
+
+                // 3. Resolve Previous FY (if comparePrevFY)
+                int prevFyId = 0;
+                string prevFyLabel = "";
+                DateTime? prevFyStart = null;
+                DateTime? prevFyEnd = null;
+                if (comparePrevFY && fyStart.HasValue)
+                {
+                    using (var pFyCmd = conn.CreateCommand())
+                    {
+                        pFyCmd.CommandText = @"
+                            SELECT FYId, FYLabel, FYStart, FYEnd 
+                            FROM jeevika_erp.FinancialYear 
+                            WHERE SocietyId = @sid AND FYEnd < @curStart
+                            ORDER BY FYEnd DESC LIMIT 1";
+                        pFyCmd.Parameters.AddWithValue("@sid", societyId);
+                        pFyCmd.Parameters.AddWithValue("@curStart", fyStart.Value);
+                        using var rP = pFyCmd.ExecuteReader();
+                        if (rP.Read())
+                        {
+                            prevFyId = Convert.ToInt32(rP["FYId"]);
+                            prevFyLabel = rP["FYLabel"]?.ToString() ?? "";
+                            if (rP["FYStart"] != DBNull.Value) prevFyStart = Convert.ToDateTime(rP["FYStart"]);
+                            if (rP["FYEnd"] != DBNull.Value) prevFyEnd = Convert.ToDateTime(rP["FYEnd"]);
+                        }
+                    }
+                }
+
+                // 4. Query All Accounts with Opening and Transactional balances up to effectiveAsOn
+                using var cmd = conn.CreateCommand();
+                var sql = @"
+                    SELECT a.AccountId, a.AccCode, a.AccName, a.GroupId, 
+                           COALESCE(g.GrpName, 'General') AS GrpName,
+                           COALESCE(g.GrpCode, '') AS GrpCode,
+                           a.GrpMainId,
+                           COALESCE(ob.OpenBal, a.OpBal, 0) AS MasterOpBal,
+                           COALESCE(ob.DrCr, a.OpDrCr, 'Dr') AS MasterOpDrCr,
+                           COALESCE(SUM(CASE WHEN @hasBounds = TRUE AND vh.VoucherDate < @fyStart THEN vd.Debit ELSE 0 END), 0) AS PriorDebit,
+                           COALESCE(SUM(CASE WHEN @hasBounds = TRUE AND vh.VoucherDate < @fyStart THEN vd.Credit ELSE 0 END), 0) AS PriorCredit,
+                           COALESCE(SUM(CASE WHEN (@hasBounds = FALSE OR vh.VoucherDate >= @fyStart) AND vh.VoucherDate <= @asOn THEN vd.Debit ELSE 0 END), 0) AS TxnDebit,
+                           COALESCE(SUM(CASE WHEN (@hasBounds = FALSE OR vh.VoucherDate >= @fyStart) AND vh.VoucherDate <= @asOn THEN vd.Credit ELSE 0 END), 0) AS TxnCredit
+                    FROM jeevika_erp.SocAccount a
+                    LEFT JOIN jeevika_erp.SocGroup g ON a.GroupId = g.GroupId
+                    LEFT JOIN jeevika_erp.SocOpeningBalance ob ON a.AccountId = ob.AccountId AND ob.FYId = @fyid
+                    LEFT JOIN jeevika_erp.SocVoucherDetail vd ON a.AccountId = vd.AccountId
+                    LEFT JOIN jeevika_erp.SocVoucherHeader vh ON vd.VoucherId = vh.VoucherId 
+                          AND vh.SocietyId = @sid 
+                          AND (vh.FYId = @fyid OR (@hasBounds = TRUE AND vh.VoucherDate >= @fyStart AND vh.VoucherDate <= @fyEnd))
+                          AND vh.IsDeleted = FALSE
+                    WHERE a.SocietyId = @sid AND a.IsDeleted = FALSE
+                    GROUP BY a.AccountId, a.AccCode, a.AccName, a.GroupId, g.GrpName, g.GrpCode, a.GrpMainId, ob.OpenBal, a.OpBal, ob.DrCr, a.OpDrCr
+                    ORDER BY 
+                        CASE a.GrpMainId 
+                            WHEN 2 THEN 1 -- Liability
+                            WHEN 1 THEN 2 -- Asset
+                            WHEN 3 THEN 3 -- Income
+                            WHEN 4 THEN 4 -- Expense
+                            ELSE 5 
+                        END, COALESCE(g.GrpName, 'General'), a.AccCode, a.AccName";
+
+                cmd.CommandText = sql;
+                cmd.Parameters.AddWithValue("@sid", societyId);
+                cmd.Parameters.AddWithValue("@fyid", fyId);
+                cmd.Parameters.AddWithValue("@asOn", effectiveAsOn);
+                cmd.Parameters.AddWithValue("@hasBounds", (fyStart.HasValue && fyEnd.HasValue));
+                cmd.Parameters.AddWithValue("@fyStart", fyStart.HasValue ? fyStart.Value.Date : (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@fyEnd", fyEnd.HasValue ? fyEnd.Value.Date : (object)DBNull.Value);
+
+                var rawAccounts = new List<dynamic>();
+                decimal totalIncome = 0;
+                decimal totalExpense = 0;
+
+                using (var r = cmd.ExecuteReader())
+                {
+                    while (r.Read())
+                    {
+                        var accId = Convert.ToInt32(r["AccountId"]);
+                        var accCode = r["AccCode"].ToString() ?? "";
+                        var accName = r["AccName"].ToString() ?? "";
+                        var grpId = r["GroupId"] != DBNull.Value ? Convert.ToInt32(r["GroupId"]) : 0;
+                        var grpName = r["GrpName"]?.ToString() ?? "General";
+                        var grpCode = r["GrpCode"]?.ToString() ?? "";
+                        int grpMain = Convert.ToInt32(r["GrpMainId"]);
+
+                        decimal masterOpBal = Convert.ToDecimal(r["MasterOpBal"]);
+                        string masterOpDrCr = r["MasterOpDrCr"]?.ToString() ?? "Dr";
+                        decimal priorDebit = Convert.ToDecimal(r["PriorDebit"]);
+                        decimal priorCredit = Convert.ToDecimal(r["PriorCredit"]);
+                        decimal txnDebit = Convert.ToDecimal(r["TxnDebit"]);
+                        decimal txnCredit = Convert.ToDecimal(r["TxnCredit"]);
+
+                        decimal baseOpDr = masterOpDrCr.Equals("Dr", StringComparison.OrdinalIgnoreCase) ? masterOpBal : 0;
+                        decimal baseOpCr = masterOpDrCr.Equals("Cr", StringComparison.OrdinalIgnoreCase) ? masterOpBal : 0;
+
+                        decimal netPrior = (baseOpDr - baseOpCr) + (priorDebit - priorCredit);
+                        decimal openingDr = netPrior >= 0 ? netPrior : 0;
+                        decimal openingCr = netPrior < 0 ? Math.Abs(netPrior) : 0;
+
+                        decimal netClosing = (openingDr - openingCr) + (txnDebit - txnCredit);
+                        decimal closingDr = netClosing >= 0 ? netClosing : 0;
+                        decimal closingCr = netClosing < 0 ? Math.Abs(netClosing) : 0;
+
+                        decimal currentAmt = 0;
+                        decimal prevAmt = 0;
+
+                        if (grpMain == 1) // Asset (Dr normal)
+                        {
+                            currentAmt = closingDr - closingCr;
+                            prevAmt = baseOpDr - baseOpCr;
+                        }
+                        else if (grpMain == 2) // Liability (Cr normal)
+                        {
+                            currentAmt = closingCr - closingDr;
+                            prevAmt = baseOpCr - baseOpDr;
+                        }
+                        else if (grpMain == 3) // Income (Cr normal)
+                        {
+                            decimal inc = closingCr - closingDr;
+                            totalIncome += inc;
+                        }
+                        else if (grpMain == 4) // Expense (Dr normal)
+                        {
+                            decimal exp = closingDr - closingCr;
+                            totalExpense += exp;
+                        }
+
+                        rawAccounts.Add(new
+                        {
+                            AccountId = accId,
+                            AccCode = accCode,
+                            AccName = accName,
+                            GroupId = grpId,
+                            GroupName = grpName,
+                            GroupCode = grpCode,
+                            GrpMainId = grpMain,
+                            CurrentAmount = currentAmt,
+                            PrevAmount = prevAmt
+                        });
+                    }
+                }
+
+                decimal currentSurplus = totalIncome - totalExpense; // >0 Surplus, <0 Deficit
+
+                // 5. Structure Liabilities & Assets into standard Schedule Groups
+                var liabGroupsDict = new Dictionary<string, dynamic>();
+                var assetGroupsDict = new Dictionary<string, dynamic>();
+
+                foreach (var a in rawAccounts)
+                {
+                    if (a.GrpMainId == 2) // Liabilities
+                    {
+                        string gKey = a.GroupName;
+                        if (!liabGroupsDict.ContainsKey(gKey))
+                        {
+                            liabGroupsDict[gKey] = new
+                            {
+                                GroupId = a.GroupId,
+                                GroupCode = a.GroupCode,
+                                GroupName = a.GroupName,
+                                Accounts = new List<dynamic>(),
+                                TotalCurrent = 0m,
+                                TotalPrev = 0m
+                            };
+                        }
+                        liabGroupsDict[gKey].Accounts.Add(new
+                        {
+                            accountId = a.AccountId,
+                            accCode = a.AccCode,
+                            accName = a.AccName,
+                            currentAmount = (decimal)a.CurrentAmount,
+                            prevAmount = (decimal)a.PrevAmount
+                        });
+                    }
+                    else if (a.GrpMainId == 1) // Assets
+                    {
+                        string gKey = a.GroupName;
+                        if (!assetGroupsDict.ContainsKey(gKey))
+                        {
+                            assetGroupsDict[gKey] = new
+                            {
+                                GroupId = a.GroupId,
+                                GroupCode = a.GroupCode,
+                                GroupName = a.GroupName,
+                                Accounts = new List<dynamic>(),
+                                TotalCurrent = 0m,
+                                TotalPrev = 0m
+                            };
+                        }
+                        assetGroupsDict[gKey].Accounts.Add(new
+                        {
+                            accountId = a.AccountId,
+                            accCode = a.AccCode,
+                            accName = a.AccName,
+                            currentAmount = (decimal)a.CurrentAmount,
+                            prevAmount = (decimal)a.PrevAmount
+                        });
+                    }
+                }
+
+                // Append Surplus / Deficit to Income & Expenditure Group in Liabilities
+                string ieKey = liabGroupsDict.Keys.FirstOrDefault(k => k.IndexOf("Income & Expenditure", StringComparison.OrdinalIgnoreCase) >= 0) ?? "Income & Expenditure";
+                if (!liabGroupsDict.ContainsKey(ieKey))
+                {
+                    liabGroupsDict[ieKey] = new
+                    {
+                        GroupId = 0,
+                        GroupCode = "LI-08",
+                        GroupName = "Income & Expenditure",
+                        Accounts = new List<dynamic>(),
+                        TotalCurrent = 0m,
+                        TotalPrev = 0m
+                    };
+                }
+                liabGroupsDict[ieKey].Accounts.Add(new
+                {
+                    accountId = 0,
+                    accCode = "I&E-CY",
+                    accName = currentSurplus >= 0 ? "Add: Surplus during the year" : "Less: Deficit during the year",
+                    currentAmount = currentSurplus,
+                    prevAmount = 0m,
+                    isSurplusEntry = true
+                });
+
+                // Build Final Liabilities List with Group Totals
+                var liabilitiesList = new List<object>();
+                decimal grandTotalLiabCurrent = 0m;
+                decimal grandTotalLiabPrev = 0m;
+
+                foreach (var kvp in liabGroupsDict)
+                {
+                    var grp = kvp.Value;
+                    decimal grpCur = 0m;
+                    decimal grpPrev = 0m;
+                    foreach (var item in grp.Accounts)
+                    {
+                        grpCur += (decimal)item.currentAmount;
+                        grpPrev += (decimal)item.prevAmount;
+                    }
+                    grandTotalLiabCurrent += grpCur;
+                    grandTotalLiabPrev += grpPrev;
+
+                    liabilitiesList.Add(new
+                    {
+                        groupId = grp.GroupId,
+                        groupCode = grp.GroupCode,
+                        groupName = grp.GroupName,
+                        totalCurrent = grpCur,
+                        totalPrev = grpPrev,
+                        accounts = grp.Accounts
+                    });
+                }
+
+                // Build Final Assets List with Group Totals
+                var assetsList = new List<object>();
+                decimal grandTotalAssetCurrent = 0m;
+                decimal grandTotalAssetPrev = 0m;
+
+                foreach (var kvp in assetGroupsDict)
+                {
+                    var grp = kvp.Value;
+                    decimal grpCur = 0m;
+                    decimal grpPrev = 0m;
+                    foreach (var item in grp.Accounts)
+                    {
+                        grpCur += (decimal)item.currentAmount;
+                        grpPrev += (decimal)item.prevAmount;
+                    }
+                    grandTotalAssetCurrent += grpCur;
+                    grandTotalAssetPrev += grpPrev;
+
+                    assetsList.Add(new
+                    {
+                        groupId = grp.GroupId,
+                        groupCode = grp.GroupCode,
+                        groupName = grp.GroupName,
+                        totalCurrent = grpCur,
+                        totalPrev = grpPrev,
+                        accounts = grp.Accounts
+                    });
+                }
+
+                // 6. Member-wise Dues Breakup (if requested)
+                var memberDuesList = new List<object>();
+                decimal totalMemberDues = 0m;
+                if (includeMemberBreakup)
+                {
+                    using var memCmd = conn.CreateCommand();
+                    memCmd.CommandText = @"
+                        SELECT m.MemberId, m.MemCode, m.MemName, m.Wing, m.FlatNo,
+                               COALESCE(m.OpPrincipal, 0) + COALESCE(m.OpInterest, 0) AS OpDues,
+                               COALESCE((SELECT SUM(b.BalanceAmount) FROM jeevika_erp.SocMemberBill b WHERE b.MemberId = m.MemberId AND b.SocietyId = @sid AND b.BillDate <= @asOn AND b.IsDeleted = FALSE), 0) AS BillBalance
+                        FROM jeevika_erp.SocMember m
+                        WHERE m.SocietyId = @sid AND m.IsDeleted = FALSE
+                        ORDER BY m.Wing, m.FlatNo, m.MemCode";
+                    memCmd.Parameters.AddWithValue("@sid", societyId);
+                    memCmd.Parameters.AddWithValue("@asOn", effectiveAsOn);
+
+                    using var rMem = memCmd.ExecuteReader();
+                    while (rMem.Read())
+                    {
+                        var opDues = Convert.ToDecimal(rMem["OpDues"]);
+                        var billBal = Convert.ToDecimal(rMem["BillBalance"]);
+                        var bal = opDues + billBal;
+                        if (bal > 0)
+                        {
+                            totalMemberDues += bal;
+                            memberDuesList.Add(new
+                            {
+                                memberId = Convert.ToInt32(rMem["MemberId"]),
+                                memCode = rMem["MemCode"]?.ToString() ?? "",
+                                memName = rMem["MemName"]?.ToString() ?? "",
+                                wing = rMem["Wing"]?.ToString() ?? "",
+                                flatNo = rMem["FlatNo"]?.ToString() ?? "",
+                                flatDisplay = $"{rMem["Wing"]}-{rMem["FlatNo"]}".Trim('-'),
+                                dueAmount = bal
+                            });
+                        }
+                    }
+                }
+
+                return Ok(new
+                {
+                    success = true,
+                    society = new
+                    {
+                        societyName = socName,
+                        registrationNo = regNo,
+                        address,
+                        city
+                    },
+                    asOnDate = effectiveAsOn.ToString("yyyy-MM-dd"),
+                    asOnDateDisplay = effectiveAsOn.ToString("dd/MM/yyyy"),
+                    currentFY = new
+                    {
+                        fyId,
+                        fyLabel,
+                        fyStart = fyStart.HasValue ? fyStart.Value.ToString("yyyy-MM-dd") : "",
+                        fyEnd = fyEnd.HasValue ? fyEnd.Value.ToString("yyyy-MM-dd") : ""
+                    },
+                    prevFY = prevFyId > 0 ? new
+                    {
+                        fyId = prevFyId,
+                        fyLabel = prevFyLabel,
+                        fyStart = prevFyStart.HasValue ? prevFyStart.Value.ToString("yyyy-MM-dd") : "",
+                        fyEnd = prevFyEnd.HasValue ? prevFyEnd.Value.ToString("yyyy-MM-dd") : "",
+                        asOnDateDisplay = prevFyEnd.HasValue ? prevFyEnd.Value.ToString("dd/MM/yyyy") : ""
+                    } : null,
+                    surplusDeficit = new
+                    {
+                        totalIncome,
+                        totalExpense,
+                        surplus = currentSurplus,
+                        isSurplus = currentSurplus >= 0
+                    },
+                    liabilities = liabilitiesList,
+                    assets = assetsList,
+                    memberDues = memberDuesList,
+                    totalMemberDues,
+                    totals = new
+                    {
+                        currentLiabilities = grandTotalLiabCurrent,
+                        currentAssets = grandTotalAssetCurrent,
+                        prevLiabilities = grandTotalLiabPrev,
+                        prevAssets = grandTotalAssetPrev,
+                        difference = Math.Abs(grandTotalLiabCurrent - grandTotalAssetCurrent),
+                        isBalanced = (Math.Abs(grandTotalLiabCurrent - grandTotalAssetCurrent) <= 0.05m)
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        // ── GET /api/reports/income-expenditure?societyId=X&fyId=Y&fromDate=Z&toDate=W&comparePrevFY=true ───
+        [HttpGet("income-expenditure")]
+        public IActionResult GetIncomeExpenditure(
+            [FromQuery] int societyId,
+            [FromQuery] int fyId,
+            [FromQuery] DateTime? fromDate = null,
+            [FromQuery] DateTime? toDate = null,
+            [FromQuery] bool comparePrevFY = true)
+        {
+            if (societyId <= 0 || fyId <= 0)
+                return BadRequest(new { success = false, message = "societyId and fyId are required." });
+
+            try
+            {
+                using var conn = DbHelper.GetConn();
+                MemberReceiptController.EnsureReceiptLedgerEntries(conn, societyId);
+
+                // 1. Society Profile
+                string socName = "", regNo = "", address = "", city = "";
+                using (var sCmd = conn.CreateCommand())
+                {
+                    sCmd.CommandText = "SELECT SocietyName, RegistrationNo, Address, City FROM jeevika_erp.SocietyInfo WHERE SocietyId = @sid LIMIT 1";
+                    sCmd.Parameters.AddWithValue("@sid", societyId);
+                    using var rS = sCmd.ExecuteReader();
+                    if (rS.Read())
+                    {
+                        socName = rS["SocietyName"]?.ToString() ?? "";
+                        regNo   = rS["RegistrationNo"]?.ToString() ?? "";
+                        address = rS["Address"]?.ToString() ?? "";
+                        city    = rS["City"]?.ToString() ?? "";
+                    }
+                }
+
+                // 2. Resolve Active FY
+                DateTime? fyStart = null;
+                DateTime? fyEnd = null;
+                string fyLabel = "";
+                using (var fyCmd = conn.CreateCommand())
+                {
+                    fyCmd.CommandText = "SELECT FYId, FYLabel, FYStart, FYEnd FROM jeevika_erp.FinancialYear WHERE FYId = @fyid LIMIT 1";
+                    fyCmd.Parameters.AddWithValue("@fyid", fyId);
+                    using var rFy = fyCmd.ExecuteReader();
+                    if (rFy.Read())
+                    {
+                        fyLabel = rFy["FYLabel"]?.ToString() ?? "";
+                        if (rFy["FYStart"] != DBNull.Value) fyStart = Convert.ToDateTime(rFy["FYStart"]);
+                        if (rFy["FYEnd"] != DBNull.Value) fyEnd = Convert.ToDateTime(rFy["FYEnd"]);
+                    }
+                }
+
+                DateTime effectiveFrom = fromDate.HasValue ? fromDate.Value.Date : (fyStart.HasValue ? fyStart.Value.Date : DateTime.Today);
+                DateTime effectiveTo   = toDate.HasValue ? toDate.Value.Date : (fyEnd.HasValue ? fyEnd.Value.Date : DateTime.Today);
+
+                // 3. Resolve Previous FY (if comparePrevFY)
+                int prevFyId = 0;
+                string prevFyLabel = "";
+                DateTime? prevFyStart = null;
+                DateTime? prevFyEnd = null;
+                if (comparePrevFY && fyStart.HasValue)
+                {
+                    using (var pFyCmd = conn.CreateCommand())
+                    {
+                        pFyCmd.CommandText = @"
+                            SELECT FYId, FYLabel, FYStart, FYEnd 
+                            FROM jeevika_erp.FinancialYear 
+                            WHERE SocietyId = @sid AND FYEnd < @curStart
+                            ORDER BY FYEnd DESC LIMIT 1";
+                        pFyCmd.Parameters.AddWithValue("@sid", societyId);
+                        pFyCmd.Parameters.AddWithValue("@curStart", fyStart.Value);
+                        using var rP = pFyCmd.ExecuteReader();
+                        if (rP.Read())
+                        {
+                            prevFyId = Convert.ToInt32(rP["FYId"]);
+                            prevFyLabel = rP["FYLabel"]?.ToString() ?? "";
+                            if (rP["FYStart"] != DBNull.Value) prevFyStart = Convert.ToDateTime(rP["FYStart"]);
+                            if (rP["FYEnd"] != DBNull.Value) prevFyEnd = Convert.ToDateTime(rP["FYEnd"]);
+                        }
+                    }
+                }
+
+                // 4. Query All Income (GrpMainId=3) & Expenditure (GrpMainId=4) Accounts
+                using var cmd = conn.CreateCommand();
+                var sql = @"
+                    SELECT a.AccountId, a.AccCode, a.AccName, a.GroupId, 
+                           COALESCE(g.GrpName, 'General') AS GrpName,
+                           COALESCE(g.GrpCode, '') AS GrpCode,
+                           a.GrpMainId,
+                           COALESCE(SUM(CASE WHEN vh.VoucherDate >= @from AND vh.VoucherDate <= @to AND (vh.FYId = @fyid OR (@hasBounds = TRUE AND vh.VoucherDate >= @fyStart AND vh.VoucherDate <= @fyEnd)) THEN vd.Debit ELSE 0 END), 0) AS TxnDebit,
+                           COALESCE(SUM(CASE WHEN vh.VoucherDate >= @from AND vh.VoucherDate <= @to AND (vh.FYId = @fyid OR (@hasBounds = TRUE AND vh.VoucherDate >= @fyStart AND vh.VoucherDate <= @fyEnd)) THEN vd.Credit ELSE 0 END), 0) AS TxnCredit,
+                           COALESCE(SUM(CASE WHEN @hasPrev = TRUE AND (vh.FYId = @prevFyId OR (@hasPrevBounds = TRUE AND vh.VoucherDate >= @prevStart AND vh.VoucherDate <= @prevEnd)) THEN vd.Debit ELSE 0 END), 0) AS PrevDebit,
+                           COALESCE(SUM(CASE WHEN @hasPrev = TRUE AND (vh.FYId = @prevFyId OR (@hasPrevBounds = TRUE AND vh.VoucherDate >= @prevStart AND vh.VoucherDate <= @prevEnd)) THEN vd.Credit ELSE 0 END), 0) AS PrevCredit
+                    FROM jeevika_erp.SocAccount a
+                    LEFT JOIN jeevika_erp.SocGroup g ON a.GroupId = g.GroupId
+                    LEFT JOIN jeevika_erp.SocVoucherDetail vd ON a.AccountId = vd.AccountId
+                    LEFT JOIN jeevika_erp.SocVoucherHeader vh ON vd.VoucherId = vh.VoucherId 
+                          AND vh.SocietyId = @sid 
+                          AND vh.IsDeleted = FALSE
+                    WHERE a.SocietyId = @sid AND a.GrpMainId IN (3, 4) AND a.IsDeleted = FALSE
+                    GROUP BY a.AccountId, a.AccCode, a.AccName, a.GroupId, g.GrpName, g.GrpCode, a.GrpMainId
+                    ORDER BY 
+                        CASE a.GrpMainId 
+                            WHEN 4 THEN 1 -- Expenditure first
+                            WHEN 3 THEN 2 -- Income second
+                            ELSE 3 
+                        END, COALESCE(g.GrpName, 'General'), a.AccCode, a.AccName";
+
+                cmd.CommandText = sql;
+                cmd.Parameters.AddWithValue("@sid", societyId);
+                cmd.Parameters.AddWithValue("@fyid", fyId);
+                cmd.Parameters.AddWithValue("@from", effectiveFrom);
+                cmd.Parameters.AddWithValue("@to", effectiveTo);
+                cmd.Parameters.AddWithValue("@hasBounds", (fyStart.HasValue && fyEnd.HasValue));
+                cmd.Parameters.AddWithValue("@fyStart", fyStart.HasValue ? fyStart.Value.Date : (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@fyEnd", fyEnd.HasValue ? fyEnd.Value.Date : (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@hasPrev", prevFyId > 0);
+                cmd.Parameters.AddWithValue("@prevFyId", prevFyId);
+                cmd.Parameters.AddWithValue("@hasPrevBounds", (prevFyStart.HasValue && prevFyEnd.HasValue));
+                cmd.Parameters.AddWithValue("@prevStart", prevFyStart.HasValue ? prevFyStart.Value.Date : (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@prevEnd", prevFyEnd.HasValue ? prevFyEnd.Value.Date : (object)DBNull.Value);
+
+                var rawAccounts = new List<dynamic>();
+                using (var r = cmd.ExecuteReader())
+                {
+                    while (r.Read())
+                    {
+                        var accId = Convert.ToInt32(r["AccountId"]);
+                        var accCode = r["AccCode"].ToString() ?? "";
+                        var accName = r["AccName"].ToString() ?? "";
+                        var grpId = r["GroupId"] != DBNull.Value ? Convert.ToInt32(r["GroupId"]) : 0;
+                        var grpName = r["GrpName"]?.ToString() ?? "General";
+                        var grpCode = r["GrpCode"]?.ToString() ?? "";
+                        int grpMain = Convert.ToInt32(r["GrpMainId"]);
+
+                        decimal txnDebit  = Convert.ToDecimal(r["TxnDebit"]);
+                        decimal txnCredit = Convert.ToDecimal(r["TxnCredit"]);
+                        decimal prevDebit  = Convert.ToDecimal(r["PrevDebit"]);
+                        decimal prevCredit = Convert.ToDecimal(r["PrevCredit"]);
+
+                        decimal currentAmt = 0;
+                        decimal prevAmt = 0;
+
+                        if (grpMain == 4) // Expenditure (Dr normal)
+                        {
+                            currentAmt = txnDebit - txnCredit;
+                            prevAmt    = prevDebit - prevCredit;
+                        }
+                        else if (grpMain == 3) // Income (Cr normal)
+                        {
+                            currentAmt = txnCredit - txnDebit;
+                            prevAmt    = prevCredit - prevDebit;
+                        }
+
+                        rawAccounts.Add(new
+                        {
+                            AccountId = accId,
+                            AccCode = accCode,
+                            AccName = accName,
+                            GroupId = grpId,
+                            GroupName = grpName,
+                            GroupCode = grpCode,
+                            GrpMainId = grpMain,
+                            CurrentAmount = currentAmt,
+                            PrevAmount = prevAmt
+                        });
+                    }
+                }
+
+                // 5. Structure into Groups
+                var expGroupsDict = new Dictionary<string, dynamic>();
+                var incGroupsDict = new Dictionary<string, dynamic>();
+
+                decimal totalExpCurrent = 0m;
+                decimal totalExpPrev = 0m;
+                decimal totalIncCurrent = 0m;
+                decimal totalIncPrev = 0m;
+
+                foreach (var a in rawAccounts)
+                {
+                    if (a.GrpMainId == 4) // Expenditure
+                    {
+                        string gKey = a.GroupName;
+                        if (!expGroupsDict.ContainsKey(gKey))
+                        {
+                            expGroupsDict[gKey] = new
+                            {
+                                GroupId = a.GroupId,
+                                GroupCode = a.GroupCode,
+                                GroupName = a.GroupName,
+                                Accounts = new List<dynamic>(),
+                                TotalCurrent = 0m,
+                                TotalPrev = 0m
+                            };
+                        }
+                        expGroupsDict[gKey].Accounts.Add(new
+                        {
+                            accountId = a.AccountId,
+                            accCode = a.AccCode,
+                            accName = a.AccName,
+                            currentAmount = (decimal)a.CurrentAmount,
+                            prevAmount = (decimal)a.PrevAmount
+                        });
+                        totalExpCurrent += (decimal)a.CurrentAmount;
+                        totalExpPrev += (decimal)a.PrevAmount;
+                    }
+                    else if (a.GrpMainId == 3) // Income
+                    {
+                        string gKey = a.GroupName;
+                        if (!incGroupsDict.ContainsKey(gKey))
+                        {
+                            incGroupsDict[gKey] = new
+                            {
+                                GroupId = a.GroupId,
+                                GroupCode = a.GroupCode,
+                                GroupName = a.GroupName,
+                                Accounts = new List<dynamic>(),
+                                TotalCurrent = 0m,
+                                TotalPrev = 0m
+                            };
+                        }
+                        incGroupsDict[gKey].Accounts.Add(new
+                        {
+                            accountId = a.AccountId,
+                            accCode = a.AccCode,
+                            accName = a.AccName,
+                            currentAmount = (decimal)a.CurrentAmount,
+                            prevAmount = (decimal)a.PrevAmount
+                        });
+                        totalIncCurrent += (decimal)a.CurrentAmount;
+                        totalIncPrev += (decimal)a.PrevAmount;
+                    }
+                }
+
+                // Build Final Expenditure Group List with Subtotals
+                var expenditureList = new List<object>();
+                foreach (var kvp in expGroupsDict)
+                {
+                    var grp = kvp.Value;
+                    decimal grpCur = 0m;
+                    decimal grpPrev = 0m;
+                    foreach (var item in grp.Accounts)
+                    {
+                        grpCur += (decimal)item.currentAmount;
+                        grpPrev += (decimal)item.prevAmount;
+                    }
+                    expenditureList.Add(new
+                    {
+                        groupId = grp.GroupId,
+                        groupCode = grp.GroupCode,
+                        groupName = grp.GroupName,
+                        totalCurrent = grpCur,
+                        totalPrev = grpPrev,
+                        accounts = grp.Accounts
+                    });
+                }
+
+                // Build Final Income Group List with Subtotals
+                var incomeList = new List<object>();
+                foreach (var kvp in incGroupsDict)
+                {
+                    var grp = kvp.Value;
+                    decimal grpCur = 0m;
+                    decimal grpPrev = 0m;
+                    foreach (var item in grp.Accounts)
+                    {
+                        grpCur += (decimal)item.currentAmount;
+                        grpPrev += (decimal)item.prevAmount;
+                    }
+                    incomeList.Add(new
+                    {
+                        groupId = grp.GroupId,
+                        groupCode = grp.GroupCode,
+                        groupName = grp.GroupName,
+                        totalCurrent = grpCur,
+                        totalPrev = grpPrev,
+                        accounts = grp.Accounts
+                    });
+                }
+
+                // 6. Calculate Surplus or Deficit
+                decimal netSurplus = totalIncCurrent - totalExpCurrent;
+                decimal prevNetSurplus = totalIncPrev - totalExpPrev;
+
+                decimal grandTotalCurrent = Math.Max(totalIncCurrent, totalExpCurrent);
+                decimal grandTotalPrev    = Math.Max(totalIncPrev, totalExpPrev);
+
+                return Ok(new
+                {
+                    success = true,
+                    society = new
+                    {
+                        societyName = socName,
+                        registrationNo = regNo,
+                        address,
+                        city
+                    },
+                    period = new
+                    {
+                        fromDate = effectiveFrom.ToString("yyyy-MM-dd"),
+                        toDate = effectiveTo.ToString("yyyy-MM-dd"),
+                        fromDisplay = effectiveFrom.ToString("dd/MM/yyyy"),
+                        toDisplay = effectiveTo.ToString("dd/MM/yyyy"),
+                        fyLabel
+                    },
+                    prevPeriod = prevFyId > 0 ? new
+                    {
+                        fyId = prevFyId,
+                        fyLabel = prevFyLabel,
+                        fromDate = prevFyStart.HasValue ? prevFyStart.Value.ToString("yyyy-MM-dd") : "",
+                        toDate = prevFyEnd.HasValue ? prevFyEnd.Value.ToString("yyyy-MM-dd") : "",
+                        fromDisplay = prevFyStart.HasValue ? prevFyStart.Value.ToString("dd/MM/yyyy") : "",
+                        toDisplay = prevFyEnd.HasValue ? prevFyEnd.Value.ToString("dd/MM/yyyy") : ""
+                    } : null,
+                    expenditure = expenditureList,
+                    income = incomeList,
+                    surplusDeficit = new
+                    {
+                        totalIncome = totalIncCurrent,
+                        totalExpenditure = totalExpCurrent,
+                        prevTotalIncome = totalIncPrev,
+                        prevTotalExpenditure = totalExpPrev,
+                        netAmount = netSurplus,
+                        prevNetAmount = prevNetSurplus,
+                        isSurplus = netSurplus >= 0,
+                        label = netSurplus >= 0 ? "Excess of Income over Expenditure A/c" : "Excess of Expenditure over Income A/c"
+                    },
+                    totals = new
+                    {
+                        totalExpCurrent,
+                        totalIncCurrent,
+                        totalExpPrev,
+                        totalIncPrev,
+                        grandTotalCurrent,
+                        grandTotalPrev,
+                        difference = Math.Abs(grandTotalCurrent - grandTotalCurrent), // always 0.00 after surplus/deficit
+                        isBalanced = true
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
         // ── GET /api/reports/ledger?societyId=X&fyId=Y&accountId=Z&mainGroupId=A&groupId=B&fromAccCode=C&toAccCode=D&fromDate=E&toDate=F&billingMode=summary|detail&hideBlank=false
         [HttpGet("ledger")]
         public IActionResult GetLedger(

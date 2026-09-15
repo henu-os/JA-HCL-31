@@ -3,56 +3,135 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Income & Expenditure — JEEVIKA ERP</title>
+  <title>Income &amp; Expenditure Statement — JEEVIKA ERP</title>
   <script src="../../../config.js"></script>
   <link rel="stylesheet" href="../../../assets/css/global.css">
   <link rel="stylesheet" href="../../../assets/css/components.css">
+  <link rel="stylesheet" href="income-expenditure.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 </head>
 <body class="erp-module">
-  <div class="erp-module-header">
-    <div>
-      <div class="erp-module-title">Income &amp; Expenditure Statement (Profit &amp; Loss)</div>
-      
+
+  <!-- ── Top Action & Filter Toolbar (Pinned) ─────────────────────────────────── -->
+  <div class="ie-toolbar">
+    <div class="ie-filter-group">
+      <div class="ie-filter-item">
+        <label for="ie-from-date"><i class="bi bi-calendar3"></i> From:</label>
+        <input type="date" id="ie-from-date" class="ie-input fy-date" style="width:125px;">
+      </div>
+
+      <div class="ie-filter-item">
+        <label for="ie-to-date"><i class="bi bi-calendar3"></i> To:</label>
+        <input type="date" id="ie-to-date" class="ie-input fy-date" style="width:125px;">
+      </div>
+
+      <div class="ie-filter-item">
+        <label for="ie-view-mode"><i class="bi bi-eye"></i> View:</label>
+        <select id="ie-view-mode" class="ie-select" onchange="renderIEView()">
+          <option value="detailed" selected>Detailed (Heads &amp; Codes)</option>
+          <option value="summary">Summary (Schedules Only)</option>
+        </select>
+      </div>
+
+      <div class="ie-filter-item">
+        <input type="checkbox" id="chk-compare-prev" checked onchange="toggleComparePrevYear()">
+        <label for="chk-compare-prev">Compare Previous Year</label>
+      </div>
+
+      <div class="ie-filter-item">
+        <input type="checkbox" id="chk-hide-zero" onchange="renderIEView()">
+        <label for="chk-hide-zero">Hide Zero Balances</label>
+      </div>
     </div>
+
     <div class="d-flex gap-6">
-      <button class="erp-btn" onclick="window.print()"><i class="bi bi-printer"></i> Print Statement</button>
-      <button class="erp-btn erp-btn-primary" onclick="loadIE()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+      <button class="ie-btn ie-btn-primary" onclick="loadIEData()">
+        <i class="bi bi-arrow-clockwise"></i> Refresh
+      </button>
+      <button class="ie-btn" onclick="printReport()">
+        <i class="bi bi-printer"></i> Print Statement
+      </button>
+      <button class="ie-btn ie-btn-success" onclick="exportToExcel()">
+        <i class="bi bi-file-earmark-excel"></i> Export Excel
+      </button>
     </div>
   </div>
 
-  <div class="erp-module-body d-flex gap-12" style="padding:12px;">
-    <!-- Expenditure Column -->
-    <div class="erp-panel flex-1">
-      <div class="erp-panel-title">EXPENDITURE</div>
-      <table class="erp-table striped">
-        <thead><tr><th>Expense Account</th><th class="text-right">Amount (₹)</th></tr></thead>
-        <tbody id="expBody"></tbody>
-        <tfoot>
-          <tr style="background:var(--clr-face);font-weight:bold;">
-            <td>Total Expenditure:</td>
-            <td class="td-num text-danger" id="totExp">0.00</td>
-          </tr>
-        </tfoot>
-      </table>
-    </div>
+  <!-- ── Full-Height Scrollable Body Area ───────────────────────────────────── -->
+  <div class="ie-scroll-wrapper">
+    <div class="ie-report-container">
 
-    <!-- Income Column -->
-    <div class="erp-panel flex-1">
-      <div class="erp-panel-title">INCOME</div>
-      <table class="erp-table striped">
-        <thead><tr><th>Income Account</th><th class="text-right">Amount (₹)</th></tr></thead>
-        <tbody id="incBody"></tbody>
-        <tfoot>
-          <tr style="background:var(--clr-face);font-weight:bold;">
-            <td>Total Income:</td>
-            <td class="td-num text-success" id="totInc">0.00</td>
-          </tr>
-        </tfoot>
-      </table>
+      <!-- Society Header Section -->
+      <div class="ie-header">
+        <div class="ie-soc-name" id="disp-soc-name">LOADING SOCIETY...</div>
+        <div class="ie-soc-sub" id="disp-soc-sub">Registration No: — | City: —</div>
+        <div class="ie-title">
+          Income &amp; Expenditure Statement For The Period <span id="disp-period">—</span>
+        </div>
+      </div>
+
+      <!-- Statutory T-Format Side-by-Side Statement -->
+      <div class="ie-t-table-wrapper">
+        <table class="ie-t-table" id="ieMainTable">
+          <thead>
+            <!-- Super Header -->
+            <tr>
+              <th colspan="4" class="ie-super-header ie-side-divider">EXPENDITURE</th>
+              <th colspan="4" class="ie-super-header">INCOME</th>
+            </tr>
+            <!-- Column Headers -->
+            <tr>
+              <th class="ie-col-header col-prev text-right" style="width:110px;" id="th-prev-exp">Prev Year (₹)</th>
+              <th class="ie-col-header" style="width:260px;">Expenditure Particulars</th>
+              <th class="ie-col-header text-right" style="width:105px;">Amount (₹)</th>
+              <th class="ie-col-header text-right ie-side-divider" style="width:115px;">Total (₹)</th>
+
+              <th class="ie-col-header col-prev text-right" style="width:110px;" id="th-prev-inc">Prev Year (₹)</th>
+              <th class="ie-col-header" style="width:260px;">Income Particulars</th>
+              <th class="ie-col-header text-right" style="width:105px;">Amount (₹)</th>
+              <th class="ie-col-header text-right" style="width:115px;">Total (₹)</th>
+            </tr>
+          </thead>
+          <tbody id="ieTBody">
+            <tr>
+              <td colspan="8" class="text-center text-muted" style="padding:40px;">
+                <i class="bi bi-arrow-repeat spin"></i> Loading Income &amp; Expenditure Statement...
+              </td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr class="ie-grand-total-row">
+              <td class="ie-grand-total-cell col-prev ie-num" id="foot-tot-prev-exp">0.00</td>
+              <td class="ie-grand-total-cell">TOTAL EXPENDITURE</td>
+              <td class="ie-grand-total-cell ie-num"></td>
+              <td class="ie-grand-total-cell ie-side-divider ie-num" id="foot-tot-cur-exp">0.00</td>
+
+              <td class="ie-grand-total-cell col-prev ie-num" id="foot-tot-prev-inc">0.00</td>
+              <td class="ie-grand-total-cell">TOTAL INCOME</td>
+              <td class="ie-grand-total-cell ie-num"></td>
+              <td class="ie-grand-total-cell ie-num" id="foot-tot-cur-inc">0.00</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <!-- Statutory Signatory Section -->
+      <div class="ie-signatory-wrap">
+        <div class="ie-sign-society-label">
+          For <span id="disp-sign-soc-name">CO-OPERATIVE HOUSING SOCIETY LTD.</span>
+        </div>
+        <div class="ie-sign-boxes">
+          <div class="ie-sign-box">Secretary</div>
+          <div class="ie-sign-box">Chairman</div>
+          <div class="ie-sign-box">Treasurer</div>
+        </div>
+      </div>
+
     </div>
   </div>
 
+  <!-- SheetJS for accurate client-side Excel workbook generation -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="../../../assets/js/api.js"></script>
   <script src="../../../assets/js/auth.js"></script>
   <script src="../../../assets/js/utils.js"></script>

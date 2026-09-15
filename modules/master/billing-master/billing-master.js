@@ -427,7 +427,7 @@
       headHtml += `<th data-col-key="_chk" style="width:${getColWidth('_chk', 30)}; text-align:center;"><input type="checkbox" id="bm-chk-all" onclick="BM.toggleAll(this.checked)" style="accent-color:#1565C0;"><div class="bm-resizer"></div></th>`;
       headHtml += `<th data-col-key="_membno" style="width:${getColWidth('_membno', 60)}; text-align:center;">MEMB NO<div class="bm-resizer"></div></th>`;
       headHtml += `<th data-col-key="_wing" style="width:${getColWidth('_wing', 50)}; text-align:center;">WING<div class="bm-resizer"></div></th>`;
-      headHtml += `<th data-col-key="_name" style="width:${getColWidth('_name', 150)}; text-align:center;">MEMBER NAME<div class="bm-resizer"></div></th>`;
+      headHtml += `<th data-col-key="_name" style="width:${getColWidth('_name', 150)}; text-align:left; padding-left:10px;">MEMBER NAME<div class="bm-resizer"></div></th>`;
       headHtml += `<th data-col-key="_area" style="width:${getColWidth('_area', 120)}; text-align:left;">CARPET SQ FT<div class="bm-resizer"></div></th>`;
 
       cols.forEach(c => {
@@ -469,7 +469,7 @@
     footHtml += '<td></td><td></td><td></td>';
 
     cols.forEach((c, colIdx) => {
-      footHtml += `<td style="text-align:right; font-weight:bold;" id="bm-foot-col-${colIdx}">${Math.round(colTotals[c])}</td>`;
+      footHtml += `<td style="text-align:right; font-weight:bold; padding-right:8px !important;" id="bm-foot-col-${colIdx}">${Math.round(colTotals[c])}</td>`;
     });
 
     footHtml += `<td style="text-align:center; font-weight:900; color:#1565C0; border-left:2px solid #E0E0E0;" id="bm-foot-grand">${Math.round(grandTotal)}</td>`;
@@ -493,7 +493,7 @@
       rowHtml += `<td style="text-align:center;">${multiMode ? `<input type="checkbox" ${m.checked ? 'checked' : ''} onclick="BM.checkMember(${idx}, this.checked)" style="accent-color:#1565C0;">` : ''}</td>`;
       rowHtml += `<td style="text-align:center; font-weight:600; cursor:pointer;" ondblclick="BM.openMemberDetailModal(${idx})" title="Double click to open individual member bill">${m.memNo}</td>`;
       rowHtml += `<td style="text-align:center;">${m.wing || ''}</td>`;
-      rowHtml += `<td class="bm-cell-name" style="text-align:center; font-weight:bold; cursor:pointer; padding:0 8px !important;" ondblclick="BM.openMemberDetailModal(${idx})" title="Double click to open individual member bill">${m.name}</td>`;
+      rowHtml += `<td class="bm-cell-name" style="text-align:left; font-weight:bold; cursor:pointer; padding:0 10px !important;" ondblclick="BM.openMemberDetailModal(${idx})" title="Double click to open individual member bill">${m.name}</td>`;
       rowHtml += `<td style="text-align:center; font-size:11px; font-weight:600;">${m.sqft || '—'}</td>`;
 
       cols.forEach((c, colIdx) => {

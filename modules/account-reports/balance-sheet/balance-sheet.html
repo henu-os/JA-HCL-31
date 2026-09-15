@@ -7,52 +7,131 @@
   <script src="../../../config.js"></script>
   <link rel="stylesheet" href="../../../assets/css/global.css">
   <link rel="stylesheet" href="../../../assets/css/components.css">
+  <link rel="stylesheet" href="balance-sheet.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 </head>
 <body class="erp-module">
-  <div class="erp-module-header">
-    <div>
-      <div class="erp-module-title">Balance Sheet Statement (Assets vs Liabilities)</div>
-      
+
+  <!-- ── Top Action & Filter Toolbar ───────────────────────────────────────── -->
+  <div class="bs-toolbar">
+    <div class="bs-filter-group">
+      <div class="bs-filter-item">
+        <label for="bs-as-on-date"><i class="bi bi-calendar3"></i> As On Date:</label>
+        <input type="date" id="bs-as-on-date" class="bs-input fy-date" style="width:125px;">
+      </div>
+
+      <div class="bs-filter-item">
+        <label for="bs-view-mode"><i class="bi bi-eye"></i> View:</label>
+        <select id="bs-view-mode" class="bs-select" onchange="renderBalanceSheetView()">
+          <option value="detailed" selected>Detailed (Heads &amp; Codes)</option>
+          <option value="summary">Summary (Schedules Only)</option>
+        </select>
+      </div>
+
+      <div class="bs-filter-item">
+        <input type="checkbox" id="chk-compare-prev" checked onchange="toggleComparePrevYear()">
+        <label for="chk-compare-prev">Compare Previous Year</label>
+      </div>
+
+      <div class="bs-filter-item">
+        <input type="checkbox" id="chk-member-breakup" checked onchange="toggleMemberBreakup()">
+        <label for="chk-member-breakup">Member Dues Breakup</label>
+      </div>
+
+      <div class="bs-filter-item">
+        <input type="checkbox" id="chk-hide-zero" onchange="renderBalanceSheetView()">
+        <label for="chk-hide-zero">Hide Zero Balances</label>
+      </div>
     </div>
+
     <div class="d-flex gap-6">
-      <button class="erp-btn" onclick="window.print()"><i class="bi bi-printer"></i> Print Balance Sheet</button>
-      <button class="erp-btn erp-btn-primary" onclick="loadBalanceSheet()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+      <button class="bs-btn bs-btn-primary" onclick="loadBalanceSheetData()">
+        <i class="bi bi-arrow-clockwise"></i> Refresh
+      </button>
+      <button class="bs-btn" onclick="printReport()">
+        <i class="bi bi-printer"></i> Print Balance Sheet
+      </button>
+      <button class="bs-btn bs-btn-success" onclick="exportToExcel()">
+        <i class="bi bi-file-earmark-excel"></i> Export Excel
+      </button>
     </div>
   </div>
 
-  <div class="erp-module-body d-flex gap-12" style="padding:12px;">
-    <!-- Liabilities Column -->
-    <div class="erp-panel flex-1">
-      <div class="erp-panel-title">LIABILITIES &amp; CAPITAL FUNDS</div>
-      <table class="erp-table striped" id="liabTable">
-        <thead><tr><th>Group / Account</th><th class="text-right">Amount (₹)</th></tr></thead>
-        <tbody id="liabBody"></tbody>
+  <!-- ── Scrollable Body Area ───────────────────────────────────────────── -->
+  <div class="bs-scroll-wrapper">
+    <div class="bs-report-container">
+
+      <!-- Society Header -->
+    <div class="bs-header">
+      <div class="bs-soc-name" id="disp-soc-name">LOADING SOCIETY...</div>
+      <div class="bs-soc-sub" id="disp-soc-sub">Registration No: — | City: —</div>
+      <div class="bs-title">
+        Balance Sheet As On <span id="disp-as-on-date">—</span>
+      </div>
+    </div>
+
+    <!-- T-Format Side-by-Side Statement -->
+    <div class="bs-t-table-wrapper">
+      <table class="bs-t-table" id="bsMainTable">
+        <thead>
+          <!-- Super Header -->
+          <tr>
+            <th colspan="4" class="bs-super-header bs-side-divider">LIABILITIES</th>
+            <th colspan="4" class="bs-super-header">ASSETS</th>
+          </tr>
+          <!-- Column Headers -->
+          <tr>
+            <th class="bs-col-header col-prev text-right" style="width:110px;" id="th-prev-liab">Prev Year (₹)</th>
+            <th class="bs-col-header" style="width:260px;">Liabilities &amp; Capital Funds</th>
+            <th class="bs-col-header text-right" style="width:105px;">Amount (₹)</th>
+            <th class="bs-col-header text-right bs-side-divider" style="width:115px;">Total (₹)</th>
+
+            <th class="bs-col-header col-prev text-right" style="width:110px;" id="th-prev-asset">Prev Year (₹)</th>
+            <th class="bs-col-header" style="width:260px;">Property &amp; Assets</th>
+            <th class="bs-col-header text-right" style="width:105px;">Amount (₹)</th>
+            <th class="bs-col-header text-right" style="width:115px;">Total (₹)</th>
+          </tr>
+        </thead>
+        <tbody id="bsTBody">
+          <tr>
+            <td colspan="8" class="text-center text-muted" style="padding:40px;">
+              <i class="bi bi-arrow-repeat spin"></i> Loading Balance Sheet...
+            </td>
+          </tr>
+        </tbody>
         <tfoot>
-          <tr style="background:var(--clr-face);font-weight:bold;">
-            <td>Total Liabilities:</td>
-            <td class="td-num text-danger" id="totLiab">0.00</td>
+          <tr class="bs-grand-total-row">
+            <td class="bs-grand-total-cell col-prev bs-num" id="foot-tot-prev-liab">0.00</td>
+            <td class="bs-grand-total-cell">TOTAL LIABILITIES</td>
+            <td class="bs-grand-total-cell bs-num"></td>
+            <td class="bs-grand-total-cell bs-side-divider bs-num" id="foot-tot-cur-liab">0.00</td>
+
+            <td class="bs-grand-total-cell col-prev bs-num" id="foot-tot-prev-asset">0.00</td>
+            <td class="bs-grand-total-cell">TOTAL ASSETS</td>
+            <td class="bs-grand-total-cell bs-num"></td>
+            <td class="bs-grand-total-cell bs-num" id="foot-tot-cur-asset">0.00</td>
           </tr>
         </tfoot>
       </table>
     </div>
 
-    <!-- Assets Column -->
-    <div class="erp-panel flex-1">
-      <div class="erp-panel-title">ASSETS &amp; PROPERTY</div>
-      <table class="erp-table striped" id="assetTable">
-        <thead><tr><th>Group / Account</th><th class="text-right">Amount (₹)</th></tr></thead>
-        <tbody id="assetBody"></tbody>
-        <tfoot>
-          <tr style="background:var(--clr-face);font-weight:bold;">
-            <td>Total Assets:</td>
-            <td class="td-num text-success" id="totAssets">0.00</td>
-          </tr>
-        </tfoot>
-      </table>
+    <!-- Difference / Balanced Status Banner -->
+    <div id="bsDiffBanner" style="display:none;" class="bs-diff-banner">
+      <span><i class="bi bi-exclamation-triangle-fill"></i> Double-Entry Discrepancy Detected!</span>
+      <span>Difference: <strong id="bsDiffAmount">₹ 0.00</strong></span>
     </div>
+
+    <div id="bsBalancedBanner" style="display:none; margin-top:12px; text-align:right;">
+      <span class="bs-balanced-badge">
+        <i class="bi bi-check-circle-fill"></i> Balance Sheet is Perfectly Balanced (₹ 0.00 Difference)
+      </span>
+    </div>
+
+  </div>
   </div>
 
+  <!-- SheetJS for accurate client-side Excel workbook generation -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="../../../assets/js/api.js"></script>
   <script src="../../../assets/js/auth.js"></script>
   <script src="../../../assets/js/utils.js"></script>

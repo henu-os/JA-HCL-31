@@ -174,8 +174,15 @@
 }
 
 #bm-table td.bm-cell-name {
-  text-align: center !important;
+  text-align: left !important;
+  padding: 0 10px !important;
+}
+
+#bm-table tfoot td {
   padding: 0 8px !important;
+  height: 28px !important;
+  vertical-align: middle !important;
+  box-sizing: border-box !important;
 }
 
 /* Resizer handle style */

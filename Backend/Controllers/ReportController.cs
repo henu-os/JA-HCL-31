@@ -273,6 +273,7 @@ namespace JeevikaERP.Controllers
                     SELECT a.AccountId, a.AccCode, a.AccName, a.GroupId, 
                            COALESCE(g.GrpName, 'General') AS GrpName,
                            COALESCE(g.GrpCode, '') AS GrpCode,
+                           COALESCE(g.GrpSubtotal, FALSE) AS GrpSubtotal,
                            a.GrpMainId,
                            COALESCE(ob.OpenBal, a.OpBal, 0) AS MasterOpBal,
                            COALESCE(ob.DrCr, a.OpDrCr, 'Dr') AS MasterOpDrCr,
@@ -289,7 +290,7 @@ namespace JeevikaERP.Controllers
                           AND (vh.FYId = @fyid OR (@hasBounds = TRUE AND vh.VoucherDate >= @fyStart AND vh.VoucherDate <= @fyEnd))
                           AND vh.IsDeleted = FALSE
                     WHERE a.SocietyId = @sid AND a.IsDeleted = FALSE
-                    GROUP BY a.AccountId, a.AccCode, a.AccName, a.GroupId, g.GrpName, g.GrpCode, a.GrpMainId, ob.OpenBal, a.OpBal, ob.DrCr, a.OpDrCr
+                    GROUP BY a.AccountId, a.AccCode, a.AccName, a.GroupId, g.GrpName, g.GrpCode, g.GrpSubtotal, a.GrpMainId, ob.OpenBal, a.OpBal, ob.DrCr, a.OpDrCr
                     ORDER BY 
                         CASE a.GrpMainId 
                             WHEN 2 THEN 1 -- Liability
@@ -321,6 +322,7 @@ namespace JeevikaERP.Controllers
                         var grpId = r["GroupId"] != DBNull.Value ? Convert.ToInt32(r["GroupId"]) : 0;
                         var grpName = r["GrpName"]?.ToString() ?? "General";
                         var grpCode = r["GrpCode"]?.ToString() ?? "";
+                        bool grpSubtotal = r["GrpSubtotal"] != DBNull.Value && Convert.ToBoolean(r["GrpSubtotal"]);
                         int grpMain = Convert.ToInt32(r["GrpMainId"]);
 
                         decimal masterOpBal = Convert.ToDecimal(r["MasterOpBal"]);
@@ -373,6 +375,7 @@ namespace JeevikaERP.Controllers
                             GroupId = grpId,
                             GroupName = grpName,
                             GroupCode = grpCode,
+                            GrpSubtotal = grpSubtotal,
                             GrpMainId = grpMain,
                             CurrentAmount = currentAmt,
                             PrevAmount = prevAmt
@@ -398,6 +401,7 @@ namespace JeevikaERP.Controllers
                                 GroupId = a.GroupId,
                                 GroupCode = a.GroupCode,
                                 GroupName = a.GroupName,
+                                GrpSubtotal = (bool)a.GrpSubtotal,
                                 Accounts = new List<dynamic>(),
                                 TotalCurrent = 0m,
                                 TotalPrev = 0m
@@ -422,6 +426,7 @@ namespace JeevikaERP.Controllers
                                 GroupId = a.GroupId,
                                 GroupCode = a.GroupCode,
                                 GroupName = a.GroupName,
+                                GrpSubtotal = (bool)a.GrpSubtotal,
                                 Accounts = new List<dynamic>(),
                                 TotalCurrent = 0m,
                                 TotalPrev = 0m
@@ -447,6 +452,7 @@ namespace JeevikaERP.Controllers
                         GroupId = 0,
                         GroupCode = "LI-08",
                         GroupName = "Income & Expenditure",
+                        GrpSubtotal = true,
                         Accounts = new List<dynamic>(),
                         TotalCurrent = 0m,
                         TotalPrev = 0m
@@ -485,6 +491,7 @@ namespace JeevikaERP.Controllers
                         groupId = grp.GroupId,
                         groupCode = grp.GroupCode,
                         groupName = grp.GroupName,
+                        grpSubtotal = (bool)grp.GrpSubtotal,
                         totalCurrent = grpCur,
                         totalPrev = grpPrev,
                         accounts = grp.Accounts
@@ -514,6 +521,7 @@ namespace JeevikaERP.Controllers
                         groupId = grp.GroupId,
                         groupCode = grp.GroupCode,
                         groupName = grp.GroupName,
+                        grpSubtotal = (bool)grp.GrpSubtotal,
                         totalCurrent = grpCur,
                         totalPrev = grpPrev,
                         accounts = grp.Accounts
@@ -700,6 +708,7 @@ namespace JeevikaERP.Controllers
                     SELECT a.AccountId, a.AccCode, a.AccName, a.GroupId, 
                            COALESCE(g.GrpName, 'General') AS GrpName,
                            COALESCE(g.GrpCode, '') AS GrpCode,
+                           COALESCE(g.GrpSubtotal, FALSE) AS GrpSubtotal,
                            a.GrpMainId,
                            COALESCE(SUM(CASE WHEN vh.VoucherDate >= @from AND vh.VoucherDate <= @to AND (vh.FYId = @fyid OR (@hasBounds = TRUE AND vh.VoucherDate >= @fyStart AND vh.VoucherDate <= @fyEnd)) THEN vd.Debit ELSE 0 END), 0) AS TxnDebit,
                            COALESCE(SUM(CASE WHEN vh.VoucherDate >= @from AND vh.VoucherDate <= @to AND (vh.FYId = @fyid OR (@hasBounds = TRUE AND vh.VoucherDate >= @fyStart AND vh.VoucherDate <= @fyEnd)) THEN vd.Credit ELSE 0 END), 0) AS TxnCredit,
@@ -712,7 +721,7 @@ namespace JeevikaERP.Controllers
                           AND vh.SocietyId = @sid 
                           AND vh.IsDeleted = FALSE
                     WHERE a.SocietyId = @sid AND a.GrpMainId IN (3, 4) AND a.IsDeleted = FALSE
-                    GROUP BY a.AccountId, a.AccCode, a.AccName, a.GroupId, g.GrpName, g.GrpCode, a.GrpMainId
+                    GROUP BY a.AccountId, a.AccCode, a.AccName, a.GroupId, g.GrpName, g.GrpCode, g.GrpSubtotal, a.GrpMainId
                     ORDER BY 
                         CASE a.GrpMainId 
                             WHEN 4 THEN 1 -- Expenditure first
@@ -745,6 +754,7 @@ namespace JeevikaERP.Controllers
                         var grpId = r["GroupId"] != DBNull.Value ? Convert.ToInt32(r["GroupId"]) : 0;
                         var grpName = r["GrpName"]?.ToString() ?? "General";
                         var grpCode = r["GrpCode"]?.ToString() ?? "";
+                        bool grpSubtotal = r["GrpSubtotal"] != DBNull.Value && Convert.ToBoolean(r["GrpSubtotal"]);
                         int grpMain = Convert.ToInt32(r["GrpMainId"]);
 
                         decimal txnDebit  = Convert.ToDecimal(r["TxnDebit"]);
@@ -774,6 +784,7 @@ namespace JeevikaERP.Controllers
                             GroupId = grpId,
                             GroupName = grpName,
                             GroupCode = grpCode,
+                            GrpSubtotal = grpSubtotal,
                             GrpMainId = grpMain,
                             CurrentAmount = currentAmt,
                             PrevAmount = prevAmt
@@ -802,6 +813,7 @@ namespace JeevikaERP.Controllers
                                 GroupId = a.GroupId,
                                 GroupCode = a.GroupCode,
                                 GroupName = a.GroupName,
+                                GrpSubtotal = (bool)a.GrpSubtotal,
                                 Accounts = new List<dynamic>(),
                                 TotalCurrent = 0m,
                                 TotalPrev = 0m
@@ -828,6 +840,7 @@ namespace JeevikaERP.Controllers
                                 GroupId = a.GroupId,
                                 GroupCode = a.GroupCode,
                                 GroupName = a.GroupName,
+                                GrpSubtotal = (bool)a.GrpSubtotal,
                                 Accounts = new List<dynamic>(),
                                 TotalCurrent = 0m,
                                 TotalPrev = 0m
@@ -863,6 +876,7 @@ namespace JeevikaERP.Controllers
                         groupId = grp.GroupId,
                         groupCode = grp.GroupCode,
                         groupName = grp.GroupName,
+                        grpSubtotal = (bool)grp.GrpSubtotal,
                         totalCurrent = grpCur,
                         totalPrev = grpPrev,
                         accounts = grp.Accounts
@@ -886,6 +900,7 @@ namespace JeevikaERP.Controllers
                         groupId = grp.GroupId,
                         groupCode = grp.GroupCode,
                         groupName = grp.GroupName,
+                        grpSubtotal = (bool)grp.GrpSubtotal,
                         totalCurrent = grpCur,
                         totalPrev = grpPrev,
                         accounts = grp.Accounts
@@ -1605,6 +1620,743 @@ namespace JeevikaERP.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        // ── GET /api/reports/receipt-payment?societyId=X&fyId=Y&fromDate=Z&toDate=W ───
+        [HttpGet("receipt-payment")]
+        public IActionResult GetReceiptPayment(
+            [FromQuery] int societyId,
+            [FromQuery] int fyId,
+            [FromQuery] DateTime? fromDate = null,
+            [FromQuery] DateTime? toDate = null)
+        {
+            if (societyId <= 0 || fyId <= 0)
+                return BadRequest(new { success = false, message = "societyId and fyId are required." });
+
+            try
+            {
+                using var conn = DbHelper.GetConn();
+                MemberReceiptController.EnsureReceiptLedgerEntries(conn, societyId);
+
+                // 1. Society Profile
+                string socName = "", regNo = "", address = "", city = "";
+                using (var sCmd = conn.CreateCommand())
+                {
+                    sCmd.CommandText = "SELECT SocietyName, RegistrationNo, Address, City FROM jeevika_erp.SocietyInfo WHERE SocietyId = @sid LIMIT 1";
+                    sCmd.Parameters.AddWithValue("@sid", societyId);
+                    using var rS = sCmd.ExecuteReader();
+                    if (rS.Read())
+                    {
+                        socName = rS["SocietyName"]?.ToString() ?? "";
+                        regNo   = rS["RegistrationNo"]?.ToString() ?? "";
+                        address = rS["Address"]?.ToString() ?? "";
+                        city    = rS["City"]?.ToString() ?? "";
+                    }
+                }
+
+                // 2. Resolve Active FY
+                DateTime? fyStart = null;
+                DateTime? fyEnd = null;
+                string fyLabel = "";
+                using (var fyCmd = conn.CreateCommand())
+                {
+                    fyCmd.CommandText = "SELECT FYId, FYLabel, FYStart, FYEnd FROM jeevika_erp.FinancialYear WHERE FYId = @fyid LIMIT 1";
+                    fyCmd.Parameters.AddWithValue("@fyid", fyId);
+                    using var rFy = fyCmd.ExecuteReader();
+                    if (rFy.Read())
+                    {
+                        fyLabel = rFy["FYLabel"]?.ToString() ?? "";
+                        if (rFy["FYStart"] != DBNull.Value) fyStart = Convert.ToDateTime(rFy["FYStart"]);
+                        if (rFy["FYEnd"] != DBNull.Value) fyEnd = Convert.ToDateTime(rFy["FYEnd"]);
+                    }
+                }
+
+                DateTime effectiveFrom = fromDate.HasValue ? fromDate.Value.Date : (fyStart.HasValue ? fyStart.Value.Date : DateTime.Today);
+                DateTime effectiveTo   = toDate.HasValue ? toDate.Value.Date : (fyEnd.HasValue ? fyEnd.Value.Date : DateTime.Today);
+
+                // 3. Resolve Cash & Bank Accounts
+                var cashBankAccounts = new List<(int AccountId, string AccCode, string AccName, string GroupName, decimal MasterOp, string OpDrCr)>();
+                var cbAccountIds = new HashSet<int>();
+
+                using (var cbCmd = conn.CreateCommand())
+                {
+                    cbCmd.CommandText = @"
+                        SELECT a.AccountId, a.AccCode, a.AccName, COALESCE(g.GrpName, 'Cash & Bank Balance') AS GroupName,
+                               COALESCE(ob.OpenBal, a.OpBal, 0) AS MasterOpBal,
+                               COALESCE(ob.DrCr, a.OpDrCr, 'Dr') AS MasterOpDrCr
+                        FROM jeevika_erp.SocAccount a
+                        LEFT JOIN jeevika_erp.SocGroup g ON a.GroupId = g.GroupId
+                        LEFT JOIN jeevika_erp.SocOpeningBalance ob ON a.AccountId = ob.AccountId AND ob.FYId = @fyid
+                        WHERE a.SocietyId = @sid AND a.IsDeleted = FALSE AND a.GrpMainId = 1
+                          AND (g.GrpName ILIKE '%Cash%' OR g.GrpName ILIKE '%Bank%' OR a.AccCode IN ('ASS-1001', 'ASS-1002', 'ASS-1003'))
+                          AND (g.GrpName NOT ILIKE '%Investment%')
+                        ORDER BY a.AccCode, a.AccountId";
+                    cbCmd.Parameters.AddWithValue("@sid", societyId);
+                    cbCmd.Parameters.AddWithValue("@fyid", fyId);
+
+                    using var rCb = cbCmd.ExecuteReader();
+                    while (rCb.Read())
+                    {
+                        int accId = Convert.ToInt32(rCb["AccountId"]);
+                        string code = rCb["AccCode"]?.ToString() ?? "";
+                        string name = rCb["AccName"]?.ToString() ?? "";
+                        string grp = rCb["GroupName"]?.ToString() ?? "Cash & Bank Balance";
+                        decimal mop = Convert.ToDecimal(rCb["MasterOpBal"]);
+                        string drcr = rCb["MasterOpDrCr"]?.ToString() ?? "Dr";
+
+                        cashBankAccounts.Add((accId, code, name, grp, mop, drcr));
+                        cbAccountIds.Add(accId);
+                    }
+                }
+
+                // 4. Compute Opening & Closing Balance for each Cash/Bank Account
+                var openingList = new List<object>();
+                var closingList = new List<object>();
+                decimal totalOpening = 0m;
+                decimal totalClosing = 0m;
+
+                foreach (var cb in cashBankAccounts)
+                {
+                    decimal priorDebit = 0m, priorCredit = 0m;
+                    decimal periodDebit = 0m, periodCredit = 0m;
+
+                    using (var txCmd = conn.CreateCommand())
+                    {
+                        txCmd.CommandText = @"
+                            SELECT 
+                                COALESCE(SUM(CASE WHEN vh.VoucherDate < @fromDt THEN vd.Debit ELSE 0 END), 0) AS PriorDebit,
+                                COALESCE(SUM(CASE WHEN vh.VoucherDate < @fromDt THEN vd.Credit ELSE 0 END), 0) AS PriorCredit,
+                                COALESCE(SUM(CASE WHEN vh.VoucherDate >= @fromDt AND vh.VoucherDate <= @toDt THEN vd.Debit ELSE 0 END), 0) AS PeriodDebit,
+                                COALESCE(SUM(CASE WHEN vh.VoucherDate >= @fromDt AND vh.VoucherDate <= @toDt THEN vd.Credit ELSE 0 END), 0) AS PeriodCredit
+                            FROM jeevika_erp.SocVoucherDetail vd
+                            JOIN jeevika_erp.SocVoucherHeader vh ON vd.VoucherId = vh.VoucherId
+                            WHERE vh.SocietyId = @sid AND vh.IsDeleted = FALSE AND vd.AccountId = @accId
+                              AND (@hasFyStart = FALSE OR vh.VoucherDate >= @fyStart)";
+                        txCmd.Parameters.AddWithValue("@sid", societyId);
+                        txCmd.Parameters.AddWithValue("@accId", cb.AccountId);
+                        txCmd.Parameters.AddWithValue("@fromDt", effectiveFrom);
+                        txCmd.Parameters.AddWithValue("@toDt", effectiveTo);
+                        txCmd.Parameters.AddWithValue("@hasFyStart", fyStart.HasValue);
+                        txCmd.Parameters.AddWithValue("@fyStart", fyStart.HasValue ? (object)fyStart.Value : DBNull.Value);
+
+                        using var rTx = txCmd.ExecuteReader();
+                        if (rTx.Read())
+                        {
+                            priorDebit  = Convert.ToDecimal(rTx["PriorDebit"]);
+                            priorCredit = Convert.ToDecimal(rTx["PriorCredit"]);
+                            periodDebit = Convert.ToDecimal(rTx["PeriodDebit"]);
+                            periodCredit = Convert.ToDecimal(rTx["PeriodCredit"]);
+                        }
+                    }
+
+                    // Opening calculation
+                    decimal signedMasterOp = (cb.OpDrCr == "Cr" ? -cb.MasterOp : cb.MasterOp);
+                    decimal signedOp = signedMasterOp + (priorDebit - priorCredit);
+                    decimal opAbs = Math.Abs(signedOp);
+                    string opDrCr = signedOp >= 0 ? "Dr" : "Cr";
+
+                    totalOpening += signedOp;
+
+                    openingList.Add(new
+                    {
+                        accountId = cb.AccountId,
+                        accCode = cb.AccCode,
+                        accName = cb.AccName,
+                        groupName = cb.GroupName,
+                        amount = opAbs,
+                        signedAmount = signedOp,
+                        drCr = opDrCr,
+                        isOverdraft = (signedOp < 0)
+                    });
+
+                    // Closing calculation
+                    decimal signedCl = signedOp + (periodDebit - periodCredit);
+                    decimal clAbs = Math.Abs(signedCl);
+                    string clDrCr = signedCl >= 0 ? "Dr" : "Cr";
+
+                    totalClosing += signedCl;
+
+                    closingList.Add(new
+                    {
+                        accountId = cb.AccountId,
+                        accCode = cb.AccCode,
+                        accName = cb.AccName,
+                        groupName = cb.GroupName,
+                        amount = clAbs,
+                        signedAmount = signedCl,
+                        drCr = clDrCr,
+                        isOverdraft = (signedCl < 0)
+                    });
+                }
+
+                // 5. Query all vouchers in the period that touch Cash/Bank
+                var vouchersCmd = conn.CreateCommand();
+                vouchersCmd.CommandText = @"
+                    SELECT DISTINCT vh.VoucherId, vh.VoucherNo, vh.VoucherType, vh.VoucherDate
+                    FROM jeevika_erp.SocVoucherHeader vh
+                    JOIN jeevika_erp.SocVoucherDetail vd ON vh.VoucherId = vd.VoucherId
+                    WHERE vh.SocietyId = @sid AND vh.IsDeleted = FALSE
+                      AND vh.VoucherDate >= @fromDt AND vh.VoucherDate <= @toDt
+                      AND vd.AccountId = ANY(@cbIds)
+                    ORDER BY vh.VoucherDate, vh.VoucherId";
+                vouchersCmd.Parameters.AddWithValue("@sid", societyId);
+                vouchersCmd.Parameters.AddWithValue("@fromDt", effectiveFrom);
+                vouchersCmd.Parameters.AddWithValue("@toDt", effectiveTo);
+                vouchersCmd.Parameters.AddWithValue("@cbIds", cbAccountIds.ToArray());
+
+                var relevantVouchers = new List<(int VoucherId, string VoucherNo, string VoucherType, DateTime VoucherDate)>();
+                using (var rV = vouchersCmd.ExecuteReader())
+                {
+                    while (rV.Read())
+                    {
+                        relevantVouchers.Add((
+                            Convert.ToInt32(rV["VoucherId"]),
+                            rV["VoucherNo"]?.ToString() ?? "",
+                            rV["VoucherType"]?.ToString() ?? "",
+                            Convert.ToDateTime(rV["VoucherDate"])
+                        ));
+                    }
+                }
+
+                // 6. Aggregate Receipts and Payments by Group & Account Head
+                var receiptGroupDict = new Dictionary<string, (string GroupName, int GroupId, bool GrpSubtotal, Dictionary<int, (string AccCode, string AccName, decimal Amount, int Count)> Accounts)>();
+                var paymentGroupDict = new Dictionary<string, (string GroupName, int GroupId, bool GrpSubtotal, Dictionary<int, (string AccCode, string AccName, decimal Amount, int Count)> Accounts)>();
+
+                decimal totalReceipts = 0m;
+                decimal totalPayments = 0m;
+
+                foreach (var v in relevantVouchers)
+                {
+                    using var dCmd = conn.CreateCommand();
+                    dCmd.CommandText = @"
+                        SELECT vd.AccountId, a.AccCode, a.AccName, COALESCE(g.GroupId, 0) AS GroupId, COALESCE(g.GrpName, 'Other Sources') AS GroupName,
+                               COALESCE(g.GrpSubtotal, FALSE) AS GrpSubtotal,
+                               vd.Debit, vd.Credit
+                        FROM jeevika_erp.SocVoucherDetail vd
+                        JOIN jeevika_erp.SocAccount a ON vd.AccountId = a.AccountId
+                        LEFT JOIN jeevika_erp.SocGroup g ON a.GroupId = g.GroupId
+                        WHERE vd.VoucherId = @vid";
+                    dCmd.Parameters.AddWithValue("@vid", v.VoucherId);
+
+                    var lines = new List<(int AccId, string AccCode, string AccName, int GrpId, string GrpName, bool GrpSubtotal, decimal Debit, decimal Credit)>();
+                    using (var rD = dCmd.ExecuteReader())
+                    {
+                        while (rD.Read())
+                        {
+                            lines.Add((
+                                Convert.ToInt32(rD["AccountId"]),
+                                rD["AccCode"]?.ToString() ?? "",
+                                rD["AccName"]?.ToString() ?? "",
+                                Convert.ToInt32(rD["GroupId"]),
+                                rD["GroupName"]?.ToString() ?? "Other Sources",
+                                Convert.ToBoolean(rD["GrpSubtotal"]),
+                                Convert.ToDecimal(rD["Debit"]),
+                                Convert.ToDecimal(rD["Credit"])
+                            ));
+                        }
+                    }
+
+                    // Check if voucher is Receipt or Payment
+                    bool isReceipt = (v.VoucherType == "OtherReceipt" || v.VoucherType == "MemberReceipt");
+                    bool isPayment = (v.VoucherType == "Payment");
+
+                    // If not strictly typed, check if cash/bank was debited (money in = receipt) or credited (money out = payment)
+                    if (!isReceipt && !isPayment)
+                    {
+                        decimal cbDr = lines.Where(l => cbAccountIds.Contains(l.AccId)).Sum(l => l.Debit);
+                        decimal cbCr = lines.Where(l => cbAccountIds.Contains(l.AccId)).Sum(l => l.Credit);
+                        if (cbDr > cbCr) isReceipt = true;
+                        else if (cbCr > cbDr) isPayment = true;
+                    }
+
+                    // Non-cash legs
+                    var nonCbLines = lines.Where(l => !cbAccountIds.Contains(l.AccId)).ToList();
+
+                    if (isReceipt)
+                    {
+                        foreach (var line in nonCbLines)
+                        {
+                            decimal netReceipt = line.Credit - line.Debit;
+                            if (netReceipt == 0) continue;
+
+                            totalReceipts += netReceipt;
+
+                            string gKey = line.GrpName;
+                            if (!receiptGroupDict.ContainsKey(gKey))
+                                receiptGroupDict[gKey] = (line.GrpName, line.GrpId, line.GrpSubtotal, new Dictionary<int, (string AccCode, string AccName, decimal Amount, int Count)>());
+
+                            var accs = receiptGroupDict[gKey].Accounts;
+                            if (!accs.ContainsKey(line.AccId))
+                                accs[line.AccId] = (line.AccCode, line.AccName, 0m, 0);
+
+                            var curr = accs[line.AccId];
+                            accs[line.AccId] = (curr.AccCode, curr.AccName, curr.Amount + netReceipt, curr.Count + 1);
+                        }
+                    }
+                    else if (isPayment)
+                    {
+                        foreach (var line in nonCbLines)
+                        {
+                            decimal netPayment = line.Debit - line.Credit;
+                            if (netPayment == 0) continue;
+
+                            totalPayments += netPayment;
+
+                            string gKey = line.GrpName;
+                            if (!paymentGroupDict.ContainsKey(gKey))
+                                paymentGroupDict[gKey] = (line.GrpName, line.GrpId, line.GrpSubtotal, new Dictionary<int, (string AccCode, string AccName, decimal Amount, int Count)>());
+
+                            var accs = paymentGroupDict[gKey].Accounts;
+                            if (!accs.ContainsKey(line.AccId))
+                                accs[line.AccId] = (line.AccCode, line.AccName, 0m, 0);
+
+                            var curr = accs[line.AccId];
+                            accs[line.AccId] = (curr.AccCode, curr.AccName, curr.Amount + netPayment, curr.Count + 1);
+                        }
+                    }
+                }
+
+                // Build Final Receipts List with Group Totals
+                var receiptsList = new List<object>();
+                foreach (var kvp in receiptGroupDict.OrderBy(k => k.Key))
+                {
+                    var g = kvp.Value;
+                    decimal grpTotal = g.Accounts.Values.Sum(a => a.Amount);
+                    var accList = g.Accounts.Select(a => new
+                    {
+                        accountId = a.Key,
+                        accCode = a.Value.AccCode,
+                        accName = a.Value.AccName,
+                        amount = a.Value.Amount,
+                        voucherCount = a.Value.Count
+                    }).OrderBy(a => a.accCode).ThenBy(a => a.accName).ToList();
+
+                    receiptsList.Add(new
+                    {
+                        groupId = g.GroupId,
+                        groupName = g.GroupName,
+                        grpSubtotal = g.GrpSubtotal,
+                        totalAmount = grpTotal,
+                        accounts = accList
+                    });
+                }
+
+                // Build Final Payments List with Group Totals
+                var paymentsList = new List<object>();
+                foreach (var kvp in paymentGroupDict.OrderBy(k => k.Key))
+                {
+                    var g = kvp.Value;
+                    decimal grpTotal = g.Accounts.Values.Sum(a => a.Amount);
+                    var accList = g.Accounts.Select(a => new
+                    {
+                        accountId = a.Key,
+                        accCode = a.Value.AccCode,
+                        accName = a.Value.AccName,
+                        amount = a.Value.Amount,
+                        voucherCount = a.Value.Count
+                    }).OrderBy(a => a.accCode).ThenBy(a => a.accName).ToList();
+
+                    paymentsList.Add(new
+                    {
+                        groupId = g.GroupId,
+                        groupName = g.GroupName,
+                        grpSubtotal = g.GrpSubtotal,
+                        totalAmount = grpTotal,
+                        accounts = accList
+                    });
+                }
+
+                // 7. Double-Entry Reconciliation
+                decimal grandTotalReceiptSide = totalOpening + totalReceipts;
+                decimal grandTotalPaymentSide = totalPayments + totalClosing;
+                decimal diff = Math.Abs(grandTotalReceiptSide - grandTotalPaymentSide);
+                bool isBalanced = (diff <= 0.05m);
+
+                return Ok(new
+                {
+                    success = true,
+                    society = new
+                    {
+                        societyName = socName,
+                        registrationNo = regNo,
+                        address,
+                        city
+                    },
+                    fromDate = effectiveFrom.ToString("yyyy-MM-dd"),
+                    toDate = effectiveTo.ToString("yyyy-MM-dd"),
+                    fromDateDisplay = effectiveFrom.ToString("dd/MM/yyyy"),
+                    toDateDisplay = effectiveTo.ToString("dd/MM/yyyy"),
+                    fyLabel,
+                    openingBalances = openingList,
+                    totalOpening,
+                    receipts = receiptsList,
+                    totalReceipts,
+                    payments = paymentsList,
+                    totalPayments,
+                    closingBalances = closingList,
+                    totalClosing,
+                    grandTotalReceiptSide,
+                    grandTotalPaymentSide,
+                    difference = diff,
+                    isBalanced
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message, stack = ex.StackTrace });
+            }
+        }
+
+        // ── GET /api/reports/monthly-account-summary ─────────────────
+        [HttpGet("monthly-account-summary")]
+        public IActionResult GetMonthlyAccountSummary(
+            [FromQuery] int societyId,
+            [FromQuery] int fyId,
+            [FromQuery] string reportType = "EXPENDITURE",
+            [FromQuery] int? groupId = null,
+            [FromQuery] DateTime? asOnDate = null)
+        {
+            if (societyId <= 0 || fyId <= 0)
+                return BadRequest(new { success = false, message = "societyId and fyId are required." });
+
+            try
+            {
+                using var conn = DbHelper.GetConn();
+                MemberReceiptController.EnsureReceiptLedgerEntries(conn, societyId);
+
+                // 1. Fetch Society Info
+                string socName = "", regNo = "", address = "", city = "";
+                using (var sCmd = conn.CreateCommand())
+                {
+                    sCmd.CommandText = "SELECT SocietyName, RegistrationNo, Address, City FROM jeevika_erp.SocietyInfo WHERE SocietyId = @sid";
+                    sCmd.Parameters.AddWithValue("@sid", societyId);
+                    using var rSoc = sCmd.ExecuteReader();
+                    if (rSoc.Read())
+                    {
+                        socName = rSoc["SocietyName"]?.ToString() ?? "";
+                        regNo = rSoc["RegistrationNo"]?.ToString() ?? "";
+                        address = rSoc["Address"]?.ToString() ?? "";
+                        city = rSoc["City"]?.ToString() ?? "";
+                    }
+                }
+
+                // 2. Fetch Financial Year Bounds
+                DateTime? fyStart = null;
+                DateTime? fyEnd = null;
+                string fyLabel = "";
+                using (var fyCmd = conn.CreateCommand())
+                {
+                    fyCmd.CommandText = "SELECT FYLabel, FYStart, FYEnd FROM jeevika_erp.FinancialYear WHERE FYId = @fyid";
+                    fyCmd.Parameters.AddWithValue("@fyid", fyId);
+                    using var rFy = fyCmd.ExecuteReader();
+                    if (rFy.Read())
+                    {
+                        fyLabel = rFy["FYLabel"]?.ToString() ?? "";
+                        if (rFy["FYStart"] != DBNull.Value) fyStart = Convert.ToDateTime(rFy["FYStart"]);
+                        if (rFy["FYEnd"] != DBNull.Value) fyEnd = Convert.ToDateTime(rFy["FYEnd"]);
+                    }
+                }
+                if (!fyStart.HasValue) fyStart = new DateTime(DateTime.Today.Year, 4, 1);
+                if (!fyEnd.HasValue) fyEnd = fyStart.Value.AddYears(1).AddDays(-1);
+                DateTime effectiveAsOn = asOnDate.HasValue ? asOnDate.Value.Date : fyEnd.Value.Date;
+
+                string typeUpper = (reportType ?? "EXPENDITURE").Trim().ToUpperInvariant();
+
+                // 3. Query Accounts Matching Filter
+                var accCmd = conn.CreateCommand();
+                var sqlAcc = @"
+                    SELECT a.AccountId, a.AccCode, a.AccName, a.GroupId,
+                           COALESCE(g.GrpName, 'General') AS GrpName,
+                           COALESCE(g.GrpCode, '') AS GrpCode,
+                           a.GrpMainId,
+                           COALESCE(ob.OpenBal, a.OpBal, 0) AS MasterOpBal,
+                           COALESCE(ob.DrCr, a.OpDrCr, 'Dr') AS MasterOpDrCr
+                    FROM jeevika_erp.SocAccount a
+                    LEFT JOIN jeevika_erp.SocGroup g ON a.GroupId = g.GroupId
+                    LEFT JOIN jeevika_erp.SocOpeningBalance ob ON a.AccountId = ob.AccountId AND ob.FYId = @fyid
+                    WHERE a.SocietyId = @sid AND a.IsDeleted = FALSE";
+
+                if (typeUpper == "EXPENDITURE")
+                {
+                    sqlAcc += " AND a.GrpMainId = 4";
+                }
+                else if (typeUpper == "INCOME")
+                {
+                    sqlAcc += " AND a.GrpMainId = 3";
+                }
+                else if (typeUpper == "ASSETS")
+                {
+                    sqlAcc += " AND a.GrpMainId = 1";
+                }
+                else if (typeUpper == "LIABILITIES")
+                {
+                    sqlAcc += " AND a.GrpMainId = 2";
+                }
+                else if (typeUpper == "SELECTED")
+                {
+                    if (groupId.HasValue && groupId.Value > 0)
+                    {
+                        sqlAcc += " AND a.GroupId = @gid";
+                        accCmd.Parameters.AddWithValue("@gid", groupId.Value);
+                    }
+                }
+
+                sqlAcc += @"
+                    ORDER BY 
+                        COALESCE(g.GroupId, 0),
+                        COALESCE(g.GrpName, 'General'),
+                        a.AccCode, a.AccName";
+
+                accCmd.CommandText = sqlAcc;
+                accCmd.Parameters.AddWithValue("@sid", societyId);
+                accCmd.Parameters.AddWithValue("@fyid", fyId);
+
+                var accountList = new List<dynamic>();
+                var accountIds = new HashSet<int>();
+
+                using (var r = accCmd.ExecuteReader())
+                {
+                    while (r.Read())
+                    {
+                        if (r["AccountId"] == DBNull.Value) continue;
+                        int accId = Convert.ToInt32(r["AccountId"]);
+                        accountIds.Add(accId);
+                        accountList.Add(new
+                        {
+                            AccountId = accId,
+                            AccCode = r["AccCode"]?.ToString() ?? "",
+                            AccName = r["AccName"]?.ToString() ?? "",
+                            GroupId = r["GroupId"] != DBNull.Value ? Convert.ToInt32(r["GroupId"]) : 0,
+                            GroupName = r["GrpName"]?.ToString() ?? "General",
+                            GroupCode = r["GrpCode"]?.ToString() ?? "",
+                            GrpMainId = r["GrpMainId"] != DBNull.Value ? Convert.ToInt32(r["GrpMainId"]) : 0,
+                            MasterOpBal = r["MasterOpBal"] != DBNull.Value ? Convert.ToDecimal(r["MasterOpBal"]) : 0m,
+                            MasterOpDrCr = r["MasterOpDrCr"]?.ToString() ?? "Dr"
+                        });
+                    }
+                }
+
+                // 4. Query Monthly Debit and Credit for Accounts in FY window
+                // Key: (AccountId, MonthIndex 0..11) -> (Debit, Credit)
+                var monthlyMap = new Dictionary<(int, int), (decimal Debit, decimal Credit)>();
+
+                if (accountIds.Count > 0)
+                {
+                    using var txnCmd = conn.CreateCommand();
+                    txnCmd.CommandText = @"
+                        SELECT vd.AccountId,
+                               EXTRACT(MONTH FROM vh.VoucherDate)::INT AS VMonth,
+                               COALESCE(SUM(vd.Debit), 0) AS TotalDebit,
+                               COALESCE(SUM(vd.Credit), 0) AS TotalCredit
+                        FROM jeevika_erp.SocVoucherDetail vd
+                        INNER JOIN jeevika_erp.SocVoucherHeader vh ON vd.VoucherId = vh.VoucherId
+                        WHERE vh.SocietyId = @sid
+                          AND vh.IsDeleted = FALSE
+                          AND vd.AccountId IS NOT NULL
+                          AND vh.VoucherDate >= @fyStart
+                          AND vh.VoucherDate <= @effectiveAsOn
+                        GROUP BY vd.AccountId, EXTRACT(MONTH FROM vh.VoucherDate)::INT";
+
+                    txnCmd.Parameters.AddWithValue("@sid", societyId);
+                    txnCmd.Parameters.AddWithValue("@fyStart", fyStart.Value.Date);
+                    txnCmd.Parameters.AddWithValue("@effectiveAsOn", effectiveAsOn.Date);
+
+                    using var rTxn = txnCmd.ExecuteReader();
+                    while (rTxn.Read())
+                    {
+                        if (rTxn["AccountId"] == DBNull.Value || rTxn["VMonth"] == DBNull.Value) continue;
+                        int accId = Convert.ToInt32(rTxn["AccountId"]);
+                        int vMonth = Convert.ToInt32(rTxn["VMonth"]);
+                        decimal debit = rTxn["TotalDebit"] != DBNull.Value ? Convert.ToDecimal(rTxn["TotalDebit"]) : 0m;
+                        decimal credit = rTxn["TotalCredit"] != DBNull.Value ? Convert.ToDecimal(rTxn["TotalCredit"]) : 0m;
+
+                        // Map 1-12 to FY order (4=Apr=0, 5=May=1, ..., 3=Mar=11)
+                        int mIdx = (vMonth >= 4) ? (vMonth - 4) : (vMonth + 8);
+                        if (mIdx >= 0 && mIdx < 12)
+                        {
+                            monthlyMap[(accId, mIdx)] = (debit, credit);
+                        }
+                    }
+                }
+
+                // 5. Structure into Groups with Monthly Calculations
+                // Month names header
+                var monthNames = new[] { "April", "May", "June", "July", "August", "September", "October", "November", "December", "January", "February", "March" };
+
+                var groupsDict = new Dictionary<string, dynamic>();
+
+                decimal grandOpening = 0m;
+                var grandMonths = new decimal[12];
+                decimal grandTotal = 0m;
+
+                int grpIndexCounter = 1;
+
+                foreach (var acc in accountList)
+                {
+                    string grpName = acc.GroupName;
+                    if (!groupsDict.ContainsKey(grpName))
+                    {
+                        groupsDict[grpName] = new
+                        {
+                            GroupId = acc.GroupId,
+                            GroupName = grpName,
+                            GroupIndex = grpIndexCounter++,
+                            GroupCode = acc.GroupCode,
+                            Accounts = new List<dynamic>(),
+                            Subtotals = new
+                            {
+                                Opening = 0m,
+                                Months = new decimal[12],
+                                Total = 0m
+                            }
+                        };
+                    }
+
+                    // Opening balance calculation
+                    decimal opening = 0m;
+                    int mainId = acc.GrpMainId;
+                    if (mainId == 1) // Asset
+                    {
+                        decimal opDr = acc.MasterOpDrCr.Equals("Dr", StringComparison.OrdinalIgnoreCase) ? acc.MasterOpBal : 0m;
+                        decimal opCr = acc.MasterOpDrCr.Equals("Cr", StringComparison.OrdinalIgnoreCase) ? acc.MasterOpBal : 0m;
+                        opening = opDr - opCr;
+                    }
+                    else if (mainId == 2) // Liability
+                    {
+                        decimal opDr = acc.MasterOpDrCr.Equals("Dr", StringComparison.OrdinalIgnoreCase) ? acc.MasterOpBal : 0m;
+                        decimal opCr = acc.MasterOpDrCr.Equals("Cr", StringComparison.OrdinalIgnoreCase) ? acc.MasterOpBal : 0m;
+                        opening = opCr - opDr;
+                    }
+                    else
+                    {
+                        // Nominal accounts (Income=3, Expense=4) start with 0 opening in FY
+                        opening = 0m;
+                    }
+
+                    var monthAmounts = new decimal[12];
+                    decimal accTotal = opening;
+
+                    for (int m = 0; m < 12; m++)
+                    {
+                        decimal d = 0m, c = 0m;
+                        if (monthlyMap.TryGetValue((acc.AccountId, m), out var tx))
+                        {
+                            d = tx.Debit;
+                            c = tx.Credit;
+                        }
+
+                        decimal net = 0m;
+                        if (mainId == 4) // Expense (Debit normal)
+                        {
+                            net = d - c;
+                        }
+                        else if (mainId == 3) // Income (Credit normal)
+                        {
+                            net = c - d;
+                        }
+                        else if (mainId == 2) // Liability (Credit normal)
+                        {
+                            net = c - d;
+                        }
+                        else // Asset (Debit normal)
+                        {
+                            net = d - c;
+                        }
+
+                        monthAmounts[m] = net;
+                        accTotal += net;
+                    }
+
+                    // Append to group
+                    groupsDict[grpName].Accounts.Add(new
+                    {
+                        accountId = acc.AccountId,
+                        accCode = acc.AccCode,
+                        accName = acc.AccName,
+                        opening,
+                        months = monthAmounts,
+                        total = accTotal
+                    });
+                }
+
+                // 6. Build Final Formatted Groups List with Subtotals
+                var finalGroups = new List<object>();
+
+                foreach (var kvp in groupsDict)
+                {
+                    var grp = kvp.Value;
+                    decimal grpOp = 0m;
+                    var grpMonths = new decimal[12];
+                    decimal grpTot = 0m;
+
+                    foreach (var item in grp.Accounts)
+                    {
+                        grpOp += (decimal)item.opening;
+                        decimal[] mArr = (decimal[])item.months;
+                        for (int i = 0; i < 12; i++)
+                        {
+                            grpMonths[i] += mArr[i];
+                        }
+                        grpTot += (decimal)item.total;
+                    }
+
+                    grandOpening += grpOp;
+                    for (int i = 0; i < 12; i++)
+                    {
+                        grandMonths[i] += grpMonths[i];
+                    }
+                    grandTotal += grpTot;
+
+                    finalGroups.Add(new
+                    {
+                        groupId = grp.GroupId,
+                        groupName = grp.GroupName,
+                        groupIndex = grp.GroupIndex,
+                        groupCode = grp.GroupCode,
+                        accounts = grp.Accounts,
+                        subtotals = new
+                        {
+                            opening = grpOp,
+                            months = grpMonths,
+                            total = grpTot
+                        }
+                    });
+                }
+
+                return Ok(new
+                {
+                    success = true,
+                    society = new
+                    {
+                        societyName = socName,
+                        registrationNo = regNo,
+                        address,
+                        city
+                    },
+                    period = new
+                    {
+                        fyId,
+                        fyLabel,
+                        fyStart = fyStart.Value.ToString("yyyy-MM-dd"),
+                        fyEnd = fyEnd.Value.ToString("yyyy-MM-dd"),
+                        asOnDate = effectiveAsOn.ToString("yyyy-MM-dd"),
+                        asOnDateDisplay = effectiveAsOn.ToString("dd/MM/yyyy")
+                    },
+                    reportType = typeUpper,
+                    monthNames,
+                    groups = finalGroups,
+                    grandTotal = new
+                    {
+                        opening = grandOpening,
+                        months = grandMonths,
+                        total = grandTotal
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message, stack = ex.StackTrace });
             }
         }
 

@@ -10,6 +10,7 @@ namespace JeevikaERP.Controllers
 {
     [ApiController]
     [Route("api/member-bill-type-transfers")]
+    [Route("api/member-transfers")]
     [AllowAnonymous]
     public class MemberBillTypeTransferController : ControllerBase
     {

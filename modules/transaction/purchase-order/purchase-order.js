@@ -599,11 +599,25 @@
     });
 
     // Reset entry inputs
-    if (document.getElementById('entry-acc-sel')) document.getElementById('entry-acc-sel').value = '';
-    var comboInp = document.getElementById('entry-acc-sel-combo-inp');
-    if (comboInp) comboInp.value = '';
+    if (typeof setAccountSearchComboboxValue === 'function') {
+      setAccountSearchComboboxValue('entry-acc-sel', '', '');
+    } else {
+      if (document.getElementById('entry-acc-sel')) document.getElementById('entry-acc-sel').value = '';
+      var ci = document.getElementById('entry-acc-sel-combo-inp');
+      if (ci) ci.value = '';
+    }
     if (amtEl) amtEl.value = '';
     renderGridTable();
+
+    var comboInp = document.getElementById('entry-acc-sel-combo-inp') || document.getElementById('entry-acc-sel');
+    if (comboInp) {
+      comboInp.focus();
+      var p = document.getElementById('entry-acc-sel-combo-panel');
+      if (p) p.style.display = 'none';
+      setTimeout(function() {
+        if (p) p.style.display = 'none';
+      }, 30);
+    }
   };
 
   window.removeGridRow = function (idx) {

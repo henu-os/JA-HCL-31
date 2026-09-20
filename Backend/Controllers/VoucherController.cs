@@ -58,6 +58,197 @@ namespace JeevikaERP.Controllers
             }
         }
 
+        // ── GET /api/vouchers/register?societyId=X&fyId=Y&type=Payment ────
+        [HttpGet("register")]
+        public IActionResult GetRegister(
+            [FromQuery] int societyId,
+            [FromQuery] int fyId = 0,
+            [FromQuery] string? type = null,
+            [FromQuery] string? fromDate = null,
+            [FromQuery] string? toDate = null,
+            [FromQuery] string? cashBankCode = null)
+        {
+            if (societyId <= 0) societyId = 1;
+
+            try
+            {
+                using var conn = DbHelper.GetConn();
+                using var cmd = conn.CreateCommand();
+
+                var sql = @"
+                    SELECT VoucherId, SocietyId, FYId, VoucherNo, VoucherType, VoucherDate,
+                           CashBankCode, CashBankName, Amount, ChqNo, ChqDate, BankName,
+                           PersonName, PersonType, RefNo, Narration, Particular1, Particular2,
+                           IsAudited, Status, CreatedBy, CreatedAt
+                    FROM jeevika_erp.SocVoucherHeader
+                    WHERE SocietyId = @sid AND (@fyid = 0 OR FYId = @fyid) AND IsDeleted = FALSE";
+
+                if (!string.IsNullOrWhiteSpace(type))
+                {
+                    if (type.Equals("Payment", StringComparison.OrdinalIgnoreCase))
+                    {
+                        sql += " AND VoucherType IN ('Payment', 'PV')";
+                    }
+                    else if (type.Equals("OtherReceipt", StringComparison.OrdinalIgnoreCase))
+                    {
+                        sql += " AND VoucherType IN ('OtherReceipt', 'ORV')";
+                    }
+                    else if (type.Equals("Contra", StringComparison.OrdinalIgnoreCase))
+                    {
+                        sql += " AND VoucherType IN ('Contra', 'CV')";
+                    }
+                    else
+                    {
+                        sql += " AND VoucherType = @type";
+                        cmd.Parameters.AddWithValue("@type", type.Trim());
+                    }
+                }
+
+                if (!string.IsNullOrWhiteSpace(fromDate) && DateTime.TryParse(fromDate, out var dtFrom))
+                {
+                    sql += " AND VoucherDate >= @fromDate";
+                    cmd.Parameters.AddWithValue("@fromDate", dtFrom.Date);
+                }
+
+                if (!string.IsNullOrWhiteSpace(toDate) && DateTime.TryParse(toDate, out var dtTo))
+                {
+                    sql += " AND VoucherDate <= @toDate";
+                    cmd.Parameters.AddWithValue("@toDate", dtTo.Date);
+                }
+
+                if (!string.IsNullOrWhiteSpace(cashBankCode) && !cashBankCode.Equals("all", StringComparison.OrdinalIgnoreCase))
+                {
+                    sql += @" AND (
+                        CashBankCode = @cbCode 
+                        OR CashBankName ILIKE @cbCodeLike 
+                        OR EXISTS (
+                            SELECT 1 FROM jeevika_erp.SocVoucherDetail d 
+                            WHERE d.VoucherId = jeevika_erp.SocVoucherHeader.VoucherId 
+                              AND (d.AccountCode = @cbCode OR d.AccountName ILIKE @cbCodeLike)
+                        )
+                    )";
+                    cmd.Parameters.AddWithValue("@cbCode", cashBankCode.Trim());
+                    cmd.Parameters.AddWithValue("@cbCodeLike", "%" + cashBankCode.Trim() + "%");
+                }
+
+                sql += " ORDER BY VoucherDate ASC, VoucherId ASC";
+                cmd.CommandText = sql;
+                cmd.Parameters.AddWithValue("@sid",  societyId);
+                cmd.Parameters.AddWithValue("@fyid", fyId);
+
+                var headers = new List<Dictionary<string, object?>>();
+                var voucherIds = new List<int>();
+
+                using (var r = cmd.ExecuteReader())
+                {
+                    while (r.Read())
+                    {
+                        int vid = Convert.ToInt32(r["VoucherId"]);
+                        voucherIds.Add(vid);
+
+                        var row = new Dictionary<string, object?>
+                        {
+                            ["voucherId"]    = vid,
+                            ["societyId"]    = Convert.ToInt32(r["SocietyId"]),
+                            ["fyId"]         = Convert.ToInt32(r["FYId"]),
+                            ["voucherNo"]    = r["VoucherNo"]?.ToString() ?? "",
+                            ["voucherType"]  = r["VoucherType"]?.ToString() ?? "",
+                            ["voucherDate"]  = r["VoucherDate"] == DBNull.Value ? "" : ((DateTime)r["VoucherDate"]).ToString("yyyy-MM-dd"),
+                            ["cashBankCode"] = r["CashBankCode"]?.ToString() ?? "",
+                            ["cashBankName"] = r["CashBankName"]?.ToString() ?? "",
+                            ["amount"]       = Convert.ToDecimal(r["Amount"]),
+                            ["chqNo"]        = r["ChqNo"]?.ToString() ?? "",
+                            ["chqDate"]      = r["ChqDate"] == DBNull.Value ? null : ((DateTime)r["ChqDate"]).ToString("yyyy-MM-dd"),
+                            ["bankName"]     = r["BankName"]?.ToString() ?? "",
+                            ["personName"]   = r["PersonName"]?.ToString() ?? "",
+                            ["personType"]   = r["PersonType"]?.ToString() ?? "",
+                            ["refNo"]        = r["RefNo"]?.ToString() ?? "",
+                            ["narration"]    = r["Narration"]?.ToString() ?? "",
+                            ["particular1"]  = r["Particular1"]?.ToString() ?? "",
+                            ["particular2"]  = r["Particular2"]?.ToString() ?? "",
+                            ["isAudited"]    = r["IsAudited"] != DBNull.Value && Convert.ToBoolean(r["IsAudited"]),
+                            ["status"]       = r["Status"]?.ToString() ?? "Posted"
+                        };
+                        headers.Add(row);
+                    }
+                }
+
+                // Batch fetch line item splits
+                var detailsMap = new Dictionary<int, List<object>>();
+                if (voucherIds.Count > 0)
+                {
+                    using var cmdD = conn.CreateCommand();
+                    var idList = string.Join(",", voucherIds);
+                    cmdD.CommandText = $@"
+                        SELECT DetailId, VoucherId, SrNo, AccountId, AccountCode, AccountName,
+                               Debit, Credit, Narration
+                        FROM jeevika_erp.SocVoucherDetail
+                        WHERE VoucherId IN ({idList})
+                        ORDER BY VoucherId ASC, SrNo ASC";
+
+                    using var rD = cmdD.ExecuteReader();
+                    while (rD.Read())
+                    {
+                        int vid = Convert.ToInt32(rD["VoucherId"]);
+                        if (!detailsMap.ContainsKey(vid)) detailsMap[vid] = new List<object>();
+
+                        detailsMap[vid].Add(new
+                        {
+                            detailId    = Convert.ToInt32(rD["DetailId"]),
+                            voucherId   = vid,
+                            srNo        = Convert.ToInt32(rD["SrNo"]),
+                            accountId   = rD["AccountId"] == DBNull.Value ? (int?)null : Convert.ToInt32(rD["AccountId"]),
+                            accountCode = rD["AccountCode"]?.ToString() ?? "",
+                            accountName = rD["AccountName"]?.ToString() ?? "",
+                            debit       = Convert.ToDecimal(rD["Debit"]),
+                            credit      = Convert.ToDecimal(rD["Credit"]),
+                            narration   = rD["Narration"]?.ToString() ?? ""
+                        });
+                    }
+                }
+
+                var list = new List<object>();
+                decimal totalAmount = 0;
+                decimal bankAmount = 0;
+                decimal cashAmount = 0;
+
+                foreach (var h in headers)
+                {
+                    int vid = (int)h["voucherId"]!;
+                    var items = detailsMap.ContainsKey(vid) ? detailsMap[vid] : new List<object>();
+                    decimal amt = (decimal)h["amount"]!;
+                    totalAmount += amt;
+
+                    string cbName = (h["cashBankName"]?.ToString() ?? "").ToLower();
+                    if (cbName.Contains("cash"))
+                        cashAmount += amt;
+                    else
+                        bankAmount += amt;
+
+                    h["items"] = items;
+                    list.Add(h);
+                }
+
+                return Ok(new
+                {
+                    success = true,
+                    data = list,
+                    count = list.Count,
+                    summary = new
+                    {
+                        totalVouchers = list.Count,
+                        totalAmount   = totalAmount,
+                        bankAmount    = bankAmount,
+                        cashAmount    = cashAmount
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
         // ── GET /api/vouchers/{id} (Header + Line Items) ───────
         [HttpGet("{id:int}")]
         public IActionResult GetById(int id)

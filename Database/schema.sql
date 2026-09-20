@@ -139,9 +139,9 @@ CREATE TABLE IF NOT EXISTS jeevika_erp.SocGroup (
     GrpType         INT          DEFAULT 1,          -- 1=User, 2=System/Default
     GrpSubtotal     BOOLEAN      DEFAULT FALSE,
     IsDeleted       BOOLEAN      DEFAULT FALSE,
-    CreatedAt       TIMESTAMPTZ  DEFAULT NOW(),
-    UNIQUE(SocietyId, GrpCode)
+    CreatedAt       TIMESTAMPTZ  DEFAULT NOW()
 );
+CREATE UNIQUE INDEX IF NOT EXISTS uq_socgroup_code_active ON jeevika_erp.SocGroup (SocietyId, GrpCode) WHERE IsDeleted = FALSE;
 
 -- 6. Account Master (Ledger accounts)
 CREATE TABLE IF NOT EXISTS jeevika_erp.SocAccount (
@@ -171,9 +171,9 @@ CREATE TABLE IF NOT EXISTS jeevika_erp.SocAccount (
     TdsSection    VARCHAR(50),
     IsDefault     BOOLEAN      DEFAULT FALSE, -- System accounts cannot be deleted
     IsDeleted     BOOLEAN      DEFAULT FALSE,
-    CreatedAt     TIMESTAMPTZ  DEFAULT NOW(),
-    UNIQUE(SocietyId, AccCode)
+    CreatedAt     TIMESTAMPTZ  DEFAULT NOW()
 );
+CREATE UNIQUE INDEX IF NOT EXISTS uq_socaccount_code_active ON jeevika_erp.SocAccount (SocietyId, AccCode) WHERE IsDeleted = FALSE;
 
 -- 7. Member Master
 CREATE TABLE IF NOT EXISTS jeevika_erp.SocMember (

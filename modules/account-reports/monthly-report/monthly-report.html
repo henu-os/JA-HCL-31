@@ -8,46 +8,149 @@
   <link rel="stylesheet" href="../../../assets/css/global.css">
   <link rel="stylesheet" href="../../../assets/css/components.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="monthly-report.css">
 </head>
 <body class="erp-module">
-  <div class="erp-module-header">
-    <div>
-      <div class="erp-module-title">Monthly Account Report</div>
-      
+
+  <!-- ── 1. MODULE TOP BAR ────────────────────────────────────── -->
+  <div class="module-top-bar">
+    <div class="module-title">
+      <i class="bi bi-calendar-range" style="color:var(--primary); font-size:18px;"></i>
+      <span>Monthly Account Report</span>
     </div>
-    <button class="erp-btn erp-btn-primary" onclick="refreshData()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
-  </div>
 
-  <div class="erp-search-bar">
-    <input type="text" id="searchInput" class="erp-input erp-search-input" placeholder="🔍 Search Monthly Account Report..." onkeyup="filterTable()">
-    <div class="erp-record-count" id="recordCount">Total: 0</div>
-  </div>
-
-  <div class="erp-module-body" style="padding:0;">
-    <div class="erp-table-container" style="height:100%;border:none;">
-      <table class="erp-table striped" id="mainTable">
-        <thead>
-          <tr>
-            <th style="width:40px;" class="td-center">#</th>
-            <th>Particulars / Description</th>
-            <th style="width:140px;" class="td-center">Voucher / Ref No</th>
-            <th style="width:120px;" class="td-center">Date</th>
-            <th style="width:120px;" class="td-right">Amount (₹)</th>
-            <th style="width:100px;" class="td-center">Status</th>
-          </tr>
-        </thead>
-        <tbody id="mainTableBody">
-          <tr>
-            <td colspan="6" class="text-center text-muted" style="padding:40px;">
-              <i class="bi bi-folder-check" style="font-size:24px;display:block;margin-bottom:8px;color:#94a3b8;"></i>
-              Monthly Account Report module initialized. Live records will be displayed here.
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <div class="top-actions">
+      <button type="button" class="btn-top" onclick="exportExcel()">
+        <i class="bi bi-file-earmark-excel"></i> Export Excel
+      </button>
+      <button type="button" class="btn-top" onclick="printReport()">
+        <i class="bi bi-printer"></i> Print
+      </button>
+      <button type="button" class="btn-top primary" onclick="refreshData()">
+        <i class="bi bi-arrow-clockwise"></i> Refresh
+      </button>
     </div>
   </div>
 
+  <!-- ── 2. FILTER HEADER BAR ──────────────────────────────────── -->
+  <div class="filter-bar">
+    <div class="filter-row">
+      <!-- Report Type Switcher -->
+      <div class="filter-item">
+        <span class="filter-lbl">Report Type</span>
+        <div class="type-segmented-group" id="typeSegmentedGroup">
+          <button type="button" class="type-btn active" data-type="EXPENDITURE" onclick="selectReportType('EXPENDITURE')">
+            <i class="bi bi-arrow-up-right-circle"></i> Expenditure
+          </button>
+          <button type="button" class="type-btn" data-type="INCOME" onclick="selectReportType('INCOME')">
+            <i class="bi bi-arrow-down-left-circle"></i> Income
+          </button>
+          <button type="button" class="type-btn" data-type="ASSETS" onclick="selectReportType('ASSETS')">
+            <i class="bi bi-bank"></i> Assets
+          </button>
+          <button type="button" class="type-btn" data-type="LIABILITIES" onclick="selectReportType('LIABILITIES')">
+            <i class="bi bi-shield-check"></i> Liabilities
+          </button>
+          <button type="button" class="type-btn" data-type="SELECTED" onclick="selectReportType('SELECTED')">
+            <i class="bi bi-check2-square"></i> Selected
+          </button>
+        </div>
+      </div>
+
+      <!-- Sub Group Dropdown (Conditionally shown when 'Selected' is active) -->
+      <div class="filter-item subgroup-container hidden" id="subgroupWrapper">
+        <span class="filter-lbl">Select Sub Group</span>
+        <select id="subGroupSelect" class="filter-input" style="min-width:220px;" onchange="onSubGroupChanged()">
+          <option value="">-- Choose Sub Group --</option>
+        </select>
+      </div>
+
+      <!-- As On Date -->
+      <div class="filter-item">
+        <span class="filter-lbl">As On Date</span>
+        <input type="date" id="asOnDate" class="filter-input" onchange="refreshData()">
+      </div>
+
+      <!-- Search Filter -->
+      <div class="filter-item">
+        <span class="filter-lbl">Quick Search</span>
+        <input type="text" id="searchInput" class="filter-input" style="width:190px;" placeholder="Search Code / Name..." onkeyup="filterTable()">
+      </div>
+
+      <!-- Zero Movement Toggle -->
+      <div class="filter-item" style="justify-content: flex-end;">
+        <label style="display:flex; align-items:center; gap:6px; font-size:11px; font-weight:700; color:#475569; margin-bottom:4px; cursor:pointer;">
+          <input type="checkbox" id="chkHideZero" checked onchange="filterTable()">
+          Hide Zero Movement
+        </label>
+      </div>
+
+      <!-- Record count -->
+      <div style="margin-left:auto; font-size:11px; font-weight:700; color:#64748b;" id="recordCountLabel">
+        0 Accounts
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 3. PRINT-ONLY STATUTORY REPORT MASTHEAD (HIDDEN ON SCREEN) ──────── -->
+  <div class="report-masthead">
+    <div class="report-soc-title" id="dispSocName"></div>
+    <div class="report-sub-title" id="dispReportTitle"></div>
+    <div class="report-fy-line" id="dispFyLine"></div>
+  </div>
+
+  <!-- ── 4. 16-COL EXCEL GRID TABLE CONTAINER ───────────────── -->
+  <div class="table-container">
+    <table class="ledger-grid" id="mainTable">
+      <thead>
+        <tr>
+          <th style="width:75px; text-align:center;">Acc Code</th>
+          <th style="min-width:210px; text-align:left;">Account Name</th>
+          <th style="width:95px; text-align:right;">Opening</th>
+          <th class="month-col">April</th>
+          <th class="month-col">May</th>
+          <th class="month-col">June</th>
+          <th class="month-col">July</th>
+          <th class="month-col">Aug</th>
+          <th class="month-col">Sept</th>
+          <th class="month-col">Oct</th>
+          <th class="month-col">Nov</th>
+          <th class="month-col">Dec</th>
+          <th class="month-col">Jan</th>
+          <th class="month-col">Feb</th>
+          <th class="month-col">Mar</th>
+          <th style="width:105px; text-align:right;">Total</th>
+        </tr>
+      </thead>
+      <tbody id="mainTableBody">
+        <tr>
+          <td colspan="16" style="text-align:center; padding:50px; color:#64748b;">
+            <i class="bi bi-hourglass-split" style="font-size:24px; color:var(--primary); display:block; margin-bottom:8px;"></i>
+            Loading Monthly Account Report...
+          </td>
+        </tr>
+      </tbody>
+      <tfoot id="mainTableFoot"></tfoot>
+    </table>
+  </div>
+
+  <!-- ── 5. PRINT SIGNATURES BLOCK ───────────────────────────── -->
+  <div class="print-signatures">
+    <div style="text-align:center; width:160px; border-top:1px solid #64748b; font-size:10px; padding-top:4px;">
+      Prepared By
+    </div>
+    <div style="text-align:center; width:160px; border-top:1px solid #64748b; font-size:10px; padding-top:4px;">
+      Checked By / Accountant
+    </div>
+    <div style="text-align:center; width:160px; border-top:1px solid #64748b; font-size:10px; padding-top:4px;">
+      Hon. Secretary / Treasurer
+    </div>
+    <div style="text-align:center; width:160px; border-top:1px solid #64748b; font-size:10px; padding-top:4px;">
+      Statutory Auditor
+    </div>
+  </div>
+
+  <!-- ── 6. SCRIPTS ───────────────────────────────────────────── -->
   <script src="../../../assets/js/api.js"></script>
   <script src="../../../assets/js/auth.js"></script>
   <script src="../../../assets/js/utils.js"></script>

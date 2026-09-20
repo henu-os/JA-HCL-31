@@ -1,0 +1,675 @@
+/* ==========================================================================
+   JEEVIKA ERP v2 — Statutory Receipt & Payment Report (T-Format)
+   ========================================================================== */
+
+:root {
+  --navy-primary: #0a3880;
+  --navy-dark: #072554;
+  --navy-light: #e8f0fe;
+  --border-color: #cbd5e1;
+  --border-dark: #64748b;
+  --text-primary: #0f172a;
+  --text-muted: #64748b;
+  --bg-page: #f8fafc;
+  --bg-panel: #ffffff;
+  --bg-subtle: #f1f5f9;
+  --accent-green: #15803d;
+  --accent-red: #b91c1c;
+  --accent-blue: #0284c7;
+}
+
+html {
+  height: 100%;
+}
+
+body.erp-module {
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-page);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: var(--text-primary);
+  font-size: 12px;
+  overflow: hidden;
+}
+
+/* ── Top Action & Filter Toolbar (Pinned) ─────────────────────────────────── */
+.rp-toolbar {
+  background: #ffffff;
+  border-bottom: 1px solid var(--border-color);
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  flex-shrink: 0;
+  z-index: 100;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.rp-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.rp-filter-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.rp-filter-item label {
+  cursor: pointer;
+  user-select: none;
+}
+
+.rp-input,
+.rp-select {
+  height: 28px;
+  padding: 2px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 11px;
+  background: #ffffff;
+  color: #0f172a;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.rp-input:focus,
+.rp-select:focus {
+  border-color: #1565C0;
+  box-shadow: 0 0 0 2px rgba(21, 101, 192, 0.15);
+}
+
+.rp-search-box {
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+}
+
+.rp-search-box i {
+  position: absolute;
+  left: 8px;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.rp-search-box input {
+  padding-left: 26px;
+  width: 160px;
+}
+
+.rp-btn {
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  border: 1px solid var(--border-color);
+  background: #ffffff;
+  color: #1e293b;
+  transition: all 0.15s ease;
+}
+
+.rp-btn:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.rp-btn-primary {
+  background: #0a3880;
+  color: #ffffff;
+  border-color: #072554;
+}
+
+.rp-btn-primary:hover {
+  background: #0d47a1;
+  color: #ffffff;
+}
+
+.rp-btn-success {
+  background: #16a34a;
+  color: #ffffff;
+  border-color: #15803d;
+}
+
+.rp-btn-success:hover {
+  background: #15803d;
+  color: #ffffff;
+}
+
+/* ── Full Height Scrollable Body Area ────────────────────────────────────── */
+.rp-scroll-wrapper {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: auto;
+  padding: 16px;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Sleek ERP Scrollbars */
+.rp-scroll-wrapper::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.rp-scroll-wrapper::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+.rp-scroll-wrapper::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 5px;
+  border: 2px solid #f1f5f9;
+}
+.rp-scroll-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* ── Printable Report Container ──────────────────────────────────────────── */
+.rp-report-container {
+  max-width: 1400px;
+  min-width: 980px;
+  margin: 0 auto;
+  background: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: 24px;
+}
+
+/* ── KPI Summary Cards ───────────────────────────────────────────────────── */
+.rp-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.rp-kpi-card {
+  background: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.rp-kpi-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.08);
+}
+
+.rp-kpi-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.rp-kpi-blue {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-left: 3px solid #1d4ed8;
+}
+
+.rp-kpi-green {
+  background: #f0fdf4;
+  color: #15803d;
+  border-left: 3px solid #15803d;
+}
+
+.rp-kpi-purple {
+  background: #faf5ff;
+  color: #7e22ce;
+  border-left: 3px solid #7e22ce;
+}
+
+.rp-kpi-teal {
+  background: #f0fdfa;
+  color: #0f766e;
+  border-left: 3px solid #0f766e;
+}
+
+.rp-kpi-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.rp-kpi-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #64748b;
+  letter-spacing: 0.3px;
+  margin-bottom: 2px;
+}
+
+.rp-kpi-value {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Balanced Reconciliation Banner ──────────────────────────────────────── */
+.rp-recon-banner {
+  margin-bottom: 16px;
+  padding: 8px 14px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.rp-recon-banner.balanced {
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #065f46;
+}
+
+.rp-recon-banner.unbalanced {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
+.rp-recon-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-weight: 800;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.rp-recon-badge.badge-balanced {
+  background: #10b981;
+  color: #ffffff;
+}
+
+.rp-recon-badge.badge-unbalanced {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+/* ── Header Section ──────────────────────────────────────────────────────── */
+.rp-header {
+  text-align: center;
+  padding-bottom: 16px;
+  border-bottom: 2px solid var(--navy-primary);
+  margin-bottom: 16px;
+}
+
+/* Hidden on screen, shown in print */
+.rp-soc-name,
+.rp-soc-sub {
+  display: none;
+}
+
+.rp-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #1e293b;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  display: inline-block;
+  background: var(--navy-light);
+  padding: 4px 20px;
+  border-radius: 4px;
+  border: 1px solid #bfdbfe;
+}
+
+/* ── T-Format Side-by-Side Wrapper ───────────────────────────────────────── */
+.rp-t-table-wrapper {
+  width: 100%;
+  border: 1px solid var(--border-color);
+  border-collapse: collapse;
+}
+
+.rp-t-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+/* Super Headers (RECEIPTS vs PAYMENTS) */
+.rp-super-header {
+  background: var(--navy-primary);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  text-align: center;
+  padding: 8px 12px;
+  letter-spacing: 0.5px;
+  border: 1px solid var(--navy-dark);
+}
+
+.rp-col-header {
+  background: #f1f5f9;
+  color: #1e293b;
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 6px 8px;
+  border: 1px solid var(--border-color);
+  vertical-align: middle;
+  line-height: 1.25;
+}
+
+.col-particulars {
+  width: 65%;
+  text-align: left;
+}
+
+.col-sub-amt {
+  width: 17%;
+  text-align: right;
+}
+
+.col-tot-amt {
+  width: 18%;
+  text-align: right;
+}
+
+.rp-side-divider {
+  border-right: 2.5px solid #0f172a !important;
+}
+
+/* ── Table Cell Styling ──────────────────────────────────────────────────── */
+.rp-table-cell {
+  padding: 4px 8px;
+  border: 1px solid var(--border-color);
+  font-size: 11px;
+  vertical-align: top;
+  line-height: 1.35;
+}
+
+.rp-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Section Header (e.g. OPENING BALANCES, RECEIPTS, PAYMENTS, CLOSING BALANCES) */
+.rp-section-header {
+  background: #f8fafc;
+  color: var(--navy-primary);
+  font-weight: 800;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 6px 8px;
+  border-top: 1.5px solid #cbd5e1;
+  border-bottom: 1.5px solid #cbd5e1;
+}
+
+/* Group Row (e.g. Establishment Expenses, Dues from Members) */
+.rp-group-row {
+  background: #ffffff;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.rp-group-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rp-group-bullet {
+  color: var(--navy-primary);
+  font-size: 10px;
+}
+
+/* Account Head Row (Detailed sub-row) */
+.rp-head-row {
+  color: #334155;
+  font-size: 10.5px;
+}
+
+.rp-head-row:hover {
+  background: #f8fafc;
+}
+
+.rp-head-indent {
+  padding-left: 22px !important;
+}
+
+.rp-code-pill {
+  display: inline-block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  margin-right: 4px;
+}
+
+.rp-badge-count {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 0 4px;
+  border-radius: 3px;
+  background: #e2e8f0;
+  color: #475569;
+  margin-left: 4px;
+}
+
+.rp-overdraft-pill {
+  display: inline-block;
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+  margin-left: 4px;
+}
+
+/* Subtotal Row */
+.rp-subtotal-row {
+  background: #f8fafc;
+  font-weight: 800;
+  color: #0f172a;
+  border-top: 1px solid #94a3b8;
+  border-bottom: 1px solid #94a3b8;
+}
+
+/* Grand Total Row */
+.rp-grand-total-row {
+  background: #e2e8f0;
+  font-weight: 800;
+  font-size: 12px;
+  color: #0a3880;
+}
+
+.rp-grand-total-cell {
+  padding: 8px 8px;
+  border: 1px solid var(--border-dark);
+  border-top: 2px solid #0f172a;
+  border-bottom: 3px double #0a3880;
+}
+
+/* Empty spacer cell */
+.rp-empty-cell {
+  background: #fafafa;
+}
+
+/* ── Statutory Signatory Section ─────────────────────────────────────────── */
+.rp-signatory-wrap {
+  margin-top: 28px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+  page-break-inside: avoid;
+}
+
+.rp-sign-society-label {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #334155;
+  margin-bottom: 24px;
+  text-align: right;
+}
+
+.rp-sign-boxes {
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-end;
+  padding: 0 20px;
+}
+
+.rp-sign-box {
+  width: 180px;
+  text-align: center;
+  border-top: 1.5px solid #334155;
+  padding-top: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #1e293b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ── Print Stylesheet ────────────────────────────────────────────────────── */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 8mm 8mm 8mm 8mm;
+  }
+
+  body.erp-module {
+    height: auto !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+  }
+
+  .rp-toolbar,
+  .rp-kpi-grid,
+  .rp-recon-banner {
+    display: none !important;
+  }
+
+  .rp-scroll-wrapper {
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  .rp-report-container {
+    max-width: 100% !important;
+    min-width: 100% !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+
+  .rp-soc-name {
+    display: block !important;
+    font-size: 15px;
+    font-weight: 800;
+    color: #000000;
+    margin-bottom: 2px;
+    text-transform: uppercase;
+  }
+
+  .rp-soc-sub {
+    display: block !important;
+    font-size: 10px;
+    color: #333333;
+    margin-bottom: 6px;
+  }
+
+  .rp-header {
+    border-bottom: 1.5px solid #000000 !important;
+    margin-bottom: 10px !important;
+    padding-bottom: 8px !important;
+  }
+
+  .rp-title {
+    background: none !important;
+    border: none !important;
+    padding: 0 !important;
+    font-size: 12px !important;
+    color: #000000 !important;
+  }
+
+  .rp-t-table-wrapper {
+    border: 1px solid #000000 !important;
+  }
+
+  .rp-super-header {
+    background: #e2e8f0 !important;
+    color: #000000 !important;
+    border: 1px solid #000000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .rp-col-header {
+    background: #f1f5f9 !important;
+    color: #000000 !important;
+    border: 1px solid #000000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .rp-table-cell {
+    border: 1px solid #999999 !important;
+    padding: 3px 6px !important;
+    font-size: 9.5px !important;
+  }
+
+  .rp-section-header {
+    background: #f8fafc !important;
+    color: #000000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .rp-side-divider {
+    border-right: 2px solid #000000 !important;
+  }
+
+  .rp-grand-total-row {
+    background: #e2e8f0 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .rp-grand-total-cell {
+    border-top: 1.5px solid #000000 !important;
+    border-bottom: 3px double #000000 !important;
+  }
+}

@@ -763,8 +763,15 @@
     if (targetObj) {
       var setVal = function(id, val) { var el = document.getElementById(id); if (el) el.value = val || ''; };
       setVal('sb-pan', targetObj.pan || (targetObj.raw && targetObj.raw.panNo) || '');
-      setVal('sb-tds', targetObj.tds || (targetObj.raw && targetObj.raw.tdsRate ? (targetObj.raw.tdsRate + '%') : '0%'));
-      setVal('sb-tdssec', targetObj.tdsSec || (targetObj.raw && targetObj.raw.tdsSection) || '194C');
+
+      // Correctly extract TDS rate
+      var rawRate = targetObj.raw ? (targetObj.raw.tdsRate ?? targetObj.raw.TDSRate ?? targetObj.raw.TdsRate) : null;
+      var finalTds = (rawRate !== undefined && rawRate !== null && rawRate !== '') 
+        ? (String(rawRate).includes('%') ? rawRate : (parseFloat(rawRate) + '%'))
+        : (targetObj.tds && !['194', '—', 'None'].some(s => String(targetObj.tds).includes(s)) ? targetObj.tds : '0%');
+
+      setVal('sb-tds', finalTds);
+      setVal('sb-tdssec', targetObj.tdsSec || (targetObj.raw && (targetObj.raw.tdsSection || targetObj.raw.TDSSection)) || '194C');
       setVal('sb-gstin', targetObj.gstin || (targetObj.raw && targetObj.raw.gstin) || '');
       setVal('sb-mob1', targetObj.mob1 || targetObj.contact || (targetObj.raw && (targetObj.raw.contactNo || targetObj.raw.phone)) || '');
       setVal('sb-mob2', targetObj.mob2 || (targetObj.raw && targetObj.raw.phone2) || '');
@@ -772,11 +779,22 @@
       setVal('sb-remark', targetObj.remark || targetObj.flatNo || (targetObj.raw && (targetObj.raw.address || targetObj.raw.notes)) || '');
       setVal('sb-period-from', targetObj.contractFrom || (targetObj.raw && targetObj.raw.contractFrom ? String(targetObj.raw.contractFrom).split('T')[0] : ''));
       setVal('sb-period-to', targetObj.contractTo || (targetObj.raw && targetObj.raw.contractTo ? String(targetObj.raw.contractTo).split('T')[0] : ''));
+
+      // Automatically turn toggle ON if configured rate > 0
+      var numRate = parseFloat(String(finalTds).replace(/[^0-9.]/g, '')) || 0;
+      var toggleEl = document.getElementById('toggle-custom-tds');
+      if (toggleEl) {
+        toggleEl.checked = (numRate > 0);
+      }
+      updateCustomTdsDeductionButton();
     } else {
       ['sb-pan', 'sb-tds', 'sb-tdssec', 'sb-gstin', 'sb-mob1', 'sb-mob2', 'sb-contract-val', 'sb-remark', 'sb-period-from', 'sb-period-to'].forEach(function (id) {
         var el = document.getElementById(id);
         if (el) el.value = '';
       });
+      var toggleEl = document.getElementById('toggle-custom-tds');
+      if (toggleEl) toggleEl.checked = false;
+      updateCustomTdsDeductionButton();
     }
   };
 
@@ -807,7 +825,7 @@
     var body = document.getElementById('more-info-body');
     var icon = document.getElementById('more-info-toggle-icon');
     if (body) {
-      var isHidden = (body.style.display === 'none');
+      var isHidden = (body.style.display === 'none' || getComputedStyle(body).display === 'none');
       body.style.display = isHidden ? 'flex' : 'none';
       if (icon) icon.textContent = isHidden ? '-' : '+';
     }
@@ -1026,11 +1044,22 @@
     var amtEl = document.getElementById('entry-amount');
     if (amtEl) amtEl.value = '';
 
+    // Reset type back to Dr by default for subsequent expense additions
+    var typeEl = document.getElementById('entry-type');
+    if (typeEl) typeEl.value = 'Dr';
+
     renderGridTable();
 
-    // Move focus back to the account selection for next entry
+    // Move focus back to the account selection for next entry without auto-opening panel
     var comboInp = document.getElementById('entry-acc-sel-combo-inp') || document.getElementById('entry-acc-sel');
-    if (comboInp) comboInp.focus();
+    if (comboInp) {
+      comboInp.focus();
+      var p = document.getElementById('entry-acc-sel-combo-panel');
+      if (p) p.style.display = 'none';
+      setTimeout(function() {
+        if (p) p.style.display = 'none';
+      }, 30);
+    }
   };
 
   window.editGridRow = function (idx) {
@@ -1138,6 +1167,72 @@
     renderGridTable();
     var netPay = Math.max(0, grossDr - tdsAmt);
     toast('Applied ' + tdsRate + '% TDS (₹' + tdsAmt.toFixed(2) + '). Net Bank Outflow: ₹' + netPay.toFixed(2), true);
+  };
+
+  window.updateCustomTdsDeductionButton = function () {
+    var toggleEl = document.getElementById('toggle-custom-tds');
+    var btn = document.getElementById('btn-custom-tds');
+    var lbl = document.getElementById('toggle-lbl');
+    if (!btn) return;
+    
+    var isToggled = toggleEl ? toggleEl.checked : false;
+    if (lbl) {
+      lbl.textContent = isToggled ? 'ON' : 'OFF';
+      lbl.style.color = isToggled ? '#0284c7' : '#64748b';
+    }
+
+    var tdsInputVal = (document.getElementById('sb-tds') ? document.getElementById('sb-tds').value : '').trim();
+    var rate = parseFloat(tdsInputVal.replace(/[^0-9.]/g, '')) || 0;
+
+    var fixedBtns = document.querySelectorAll('.btn-tds-fixed-opt');
+
+    if (isToggled && rate > 0) {
+      btn.style.display = 'inline-block';
+      btn.textContent = rate + '%';
+      btn.title = 'Add ' + rate + '% TDS Payable (Credit) for this Person';
+      btn.disabled = false;
+      btn.style.opacity = '1';
+      btn.style.cursor = 'pointer';
+      btn.style.pointerEvents = 'auto';
+
+      // Fixed TDS applies for this person: make other options (1, 2, 10) read-only / disabled
+      fixedBtns.forEach(function(b) {
+        b.disabled = true;
+        b.style.opacity = '0.38';
+        b.style.cursor = 'not-allowed';
+        b.style.pointerEvents = 'none';
+        b.title = 'Fixed TDS (' + rate + '%) configured for this person';
+      });
+    } else {
+      btn.style.display = 'none';
+
+      // No fixed TDS: enable standard options (1, 2, 10)
+      fixedBtns.forEach(function(b) {
+        b.disabled = false;
+        b.style.opacity = '1';
+        b.style.cursor = 'pointer';
+        b.style.pointerEvents = 'auto';
+        var r = b.getAttribute('data-rate') || b.textContent.replace('%', '').trim();
+        b.title = 'Add ' + r + '% TDS Payable';
+      });
+    }
+  };
+
+  window.onCustomTdsToggleChange = function (checked) {
+    updateCustomTdsDeductionButton();
+  };
+
+  window.onCustomTdsInputChange = function (val) {
+    updateCustomTdsDeductionButton();
+  };
+
+  window.quickApplyCustomTds = function () {
+    var btn = document.getElementById('btn-custom-tds');
+    if (!btn) return;
+    var rate = parseFloat(btn.textContent.replace(/[^0-9.]/g, '')) || 0;
+    if (rate > 0) {
+      quickApplyTds(rate);
+    }
   };
 
   function updateGridTotals() {
@@ -1336,8 +1431,24 @@
     document.getElementById('grid-tot-dr').textContent = totDr.toFixed(2);
     document.getElementById('grid-tot-cr').textContent = totCr.toFixed(2);
 
-    var diff = totDr - totCr;
-    document.getElementById('grid-net-bal').textContent = Math.abs(diff).toFixed(2) + (diff >= 0 ? ' Dr' : ' Cr');
+    var diff = Math.round((totDr - totCr) * 100) / 100;
+    var netEl = document.getElementById('grid-net-bal');
+    var statusLbl = document.getElementById('grid-status-label');
+    if (netEl) {
+      if (diff > 0.005) {
+        if (statusLbl) { statusLbl.textContent = 'Net Bank/Cash Outflow Needed:'; statusLbl.style.color = '#0D47A1'; }
+        netEl.textContent = Math.abs(diff).toFixed(2) + ' (Cr to Bank)';
+        netEl.style.color = '#0D47A1';
+      } else if (diff < -0.005) {
+        if (statusLbl) { statusLbl.textContent = '⚠️ Unbalanced (Credits exceed Debits):'; statusLbl.style.color = '#dc2626'; }
+        netEl.textContent = Math.abs(diff).toFixed(2) + ' Cr (Expense rows must be Dr!)';
+        netEl.style.color = '#dc2626';
+      } else {
+        if (statusLbl) { statusLbl.textContent = 'Net Balance:'; statusLbl.style.color = '#0D47A1'; }
+        netEl.textContent = '0.00';
+        netEl.style.color = '#0D47A1';
+      }
+    }
   }
 
   window.openAddPaymentForm = async function () {

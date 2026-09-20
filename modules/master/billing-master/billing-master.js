@@ -1341,8 +1341,865 @@
       setTimeout(() => w.print(), 300);
     },
 
-    importData: function () { toast('CSV Matrix Import', true); },
-    exportData: function (fmt) { toast(fmt.toUpperCase() + ' Matrix Export', true); },
+    _currentImportData: null,
+
+    // Dynamic Head Discovery: extracts configured active heads for current bill type
+    getDynamicHeadsConfig: function () {
+      const typeData = billTypes[currentBillType];
+      const isGstEnabled = getIsGstEnabled();
+      let baseHeads = [];
+
+      if (typeData && Array.isArray(typeData.heads)) {
+        const activeHeads = typeData.heads.filter(h => h && h.accName && h.accName.trim() !== '');
+        baseHeads = activeHeads
+          .filter(h => {
+            const name = (h.accName || '').toLowerCase().trim();
+            return name !== '' && name !== 'interest' && name !== 'cgst' && name !== 'sgst' && name !== 'principal' && name !== 'total heads';
+          })
+          .map(h => ({
+            name: h.accName.trim(),
+            code: h.accCode || '',
+            id: h.headId || h.accountId || null
+          }));
+      }
+
+      // Fallback to cols if baseHeads is empty
+      if (baseHeads.length === 0) {
+        const userCols = cols.filter(c => c !== 'Principal' && c !== 'Interest' && c !== 'CGST' && c !== 'SGST');
+        baseHeads = userCols.map(c => {
+          const match = (defaultHeads || []).find(h => (h.accName || '').toLowerCase().trim() === c.toLowerCase().trim());
+          return {
+            name: c,
+            code: match ? match.accCode : '',
+            id: null
+          };
+        });
+      }
+
+      return {
+        baseHeads,
+        isGstEnabled
+      };
+    },
+
+    getColLetter: function (colIdx) {
+      let str = '';
+      colIdx++;
+      while (colIdx > 0) {
+        let rem = (colIdx - 1) % 26;
+        str = String.fromCharCode(65 + rem) + str;
+        colIdx = Math.floor((colIdx - 1) / 26);
+      }
+      return str;
+    },
+
+    downloadCsv: function (csvContent, filename) {
+      const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', filename);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    },
+
+    // ── TEMPLATE GENERATION (DYNAMIC HEADS ONLY) ──
+    downloadTemplate: function (format) {
+      const { baseHeads } = BM.getDynamicHeadsConfig();
+      const dateStr = new Date().toISOString().slice(0, 10);
+      const isCsv = (format || '').toLowerCase() === 'csv';
+
+      // Headers: Member & Property Info + Configured Dynamic Heads only
+      const headers = ['MEMB NO', 'WING', 'MEMBER NAME', 'CARPET SQ FT'];
+      baseHeads.forEach(h => {
+        headers.push(h.name.toUpperCase());
+      });
+
+      // Pre-populate with current members in society
+      const rowsData = members.length > 0 ? members : [{ memNo: '101', wing: 'A', name: 'Sample Member', sqft: 650, amounts: {} }];
+
+      if (isCsv) {
+        let csvContent = headers.map(h => `"${h.replace(/"/g, '""')}"`).join(',') + '\r\n';
+        rowsData.forEach(m => {
+          const rowVals = [
+            `"${(m.memNo || m.flatNo || '').replace(/"/g, '""')}"`,
+            `"${(m.wing || '').replace(/"/g, '""')}"`,
+            `"${(m.name || '').replace(/"/g, '""')}"`,
+            m.sqft || 0
+          ];
+          // Dynamic heads default to 0
+          baseHeads.forEach(() => rowVals.push(0));
+          csvContent += rowVals.join(',') + '\r\n';
+        });
+
+        BM.downloadCsv(csvContent, `Billing_Matrix_Template_${currentBillType}_${dateStr}.csv`);
+        toast(`CSV Template downloaded for ${currentBillType}.`, true);
+        return;
+      }
+
+      // Excel (XLSX) with clean styling
+      if (typeof XLSX === 'undefined' || !XLSX.utils) {
+        toast('Excel library loading, please try again in a moment...', false);
+        return;
+      }
+
+      const aoa = [headers];
+
+      rowsData.forEach((m) => {
+        const row = [
+          m.memNo || m.flatNo || '',
+          m.wing || '',
+          m.name || '',
+          m.sqft || 0
+        ];
+
+        // Dynamic billing heads initialized to 0
+        baseHeads.forEach(() => {
+          row.push(0);
+        });
+
+        aoa.push(row);
+      });
+
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      const range = XLSX.utils.decode_range(ws['!ref']);
+      const colWidthsArr = [];
+
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        const headerText = headers[C] || '';
+        let maxLen = Math.max(headerText.length + 3, 11);
+        colWidthsArr.push({ wch: Math.min(maxLen, 32) });
+
+        // Header style
+        const headRef = XLSX.utils.encode_cell({ r: 0, c: C });
+        if (ws[headRef]) {
+          ws[headRef].s = {
+            font: { name: 'Segoe UI', sz: 10, bold: true, color: { rgb: 'FFFFFF' } },
+            fill: { fgColor: { rgb: '1565C0' } },
+            alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+            border: {
+              top: { style: 'thin', color: { rgb: 'CBD5E1' } },
+              bottom: { style: 'medium', color: { rgb: '0F172A' } },
+              left: { style: 'thin', color: { rgb: 'CBD5E1' } },
+              right: { style: 'thin', color: { rgb: 'CBD5E1' } }
+            }
+          };
+        }
+
+        // Data row cells
+        for (let R = 1; R <= range.e.r; ++R) {
+          const cellRef = XLSX.utils.encode_cell({ r: R, c: C });
+          const cell = ws[cellRef];
+          if (!cell) continue;
+
+          const isNum = (C >= 3);
+          cell.s = {
+            font: { name: 'Segoe UI', sz: 9.5 },
+            alignment: {
+              horizontal: isNum ? 'right' : (C === 0 || C === 1 ? 'center' : 'left'),
+              vertical: 'center'
+            },
+            border: {
+              top: { style: 'thin', color: { rgb: 'E2E8F0' } },
+              bottom: { style: 'thin', color: { rgb: 'E2E8F0' } },
+              left: { style: 'thin', color: { rgb: 'E2E8F0' } },
+              right: { style: 'thin', color: { rgb: 'E2E8F0' } }
+            }
+          };
+          if (isNum && C >= 4) {
+            cell.z = '#,##0.00';
+          }
+        }
+      }
+
+      ws['!cols'] = colWidthsArr;
+
+      const wb = XLSX.utils.book_new();
+      const safeSheetName = (currentBillType || 'Matrix').replace(/[:\\/?*\[\]]/g, '').substring(0, 31);
+      XLSX.utils.book_append_sheet(wb, ws, safeSheetName);
+      XLSX.writeFile(wb, `Billing_Matrix_Template_${currentBillType}_${dateStr}.xlsx`);
+      toast(`Excel Template downloaded for ${currentBillType}.`, true);
+    },
+
+    // ── EXPORT MATRIX (DYNAMIC HEADS ONLY) ──
+    exportData: function (fmt) {
+      const { baseHeads } = BM.getDynamicHeadsConfig();
+      const dateStr = new Date().toISOString().slice(0, 10);
+      const isCsv = (fmt || '').toLowerCase() === 'csv';
+
+      // Headers: Fixed Info + Configured Dynamic Heads only
+      const headers = ['MEMB NO', 'WING', 'MEMBER NAME', 'CARPET SQ FT'];
+      baseHeads.forEach(h => {
+        headers.push(h.name.toUpperCase());
+      });
+
+      // Calculate totals
+      const headTotals = {};
+      baseHeads.forEach(h => headTotals[h.name] = 0);
+      let totSqft = 0;
+
+      const rowsData = members.map(m => {
+        totSqft += parseFloat(m.sqft) || 0;
+
+        const row = [
+          m.memNo || m.flatNo || '',
+          m.wing || '',
+          m.name || '',
+          m.sqft || 0
+        ];
+
+        baseHeads.forEach(h => {
+          const val = Math.round(parseFloat(m.amounts && m.amounts[h.name]) || 0);
+          headTotals[h.name] += val;
+          row.push(val);
+        });
+
+        return row;
+      });
+
+      // Summary Footer Row
+      const footerRow = ['TOTAL', '', '', Math.round(totSqft * 100) / 100];
+      baseHeads.forEach(h => footerRow.push(headTotals[h.name]));
+
+      if (isCsv) {
+        let csvContent = headers.map(h => `"${h.replace(/"/g, '""')}"`).join(',') + '\r\n';
+        rowsData.forEach(r => {
+          const rowVals = r.map((c, i) => {
+            if (i < 3) return `"${String(c || '').replace(/"/g, '""')}"`;
+            return c;
+          });
+          csvContent += rowVals.join(',') + '\r\n';
+        });
+        csvContent += footerRow.map((c, i) => i < 3 ? `"${c}"` : c).join(',') + '\r\n';
+
+        BM.downloadCsv(csvContent, `Billing_Matrix_${currentBillType}_${dateStr}.csv`);
+        toast(`CSV Export downloaded for ${currentBillType}.`, true);
+        return;
+      }
+
+      // Excel Export
+      if (typeof XLSX === 'undefined' || !XLSX.utils) {
+        toast('Excel library loading, please try again in a moment...', false);
+        return;
+      }
+
+      const aoa = [headers, ...rowsData, footerRow];
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+      const range = XLSX.utils.decode_range(ws['!ref']);
+      const colWidthsArr = [];
+      const footerR = range.e.r;
+
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        const headerText = headers[C] || '';
+        let maxLen = Math.max(headerText.length + 3, 11);
+        colWidthsArr.push({ wch: Math.min(maxLen, 32) });
+
+        // Header style
+        const headRef = XLSX.utils.encode_cell({ r: 0, c: C });
+        if (ws[headRef]) {
+          ws[headRef].s = {
+            font: { name: 'Segoe UI', sz: 10, bold: true, color: { rgb: 'FFFFFF' } },
+            fill: { fgColor: { rgb: '1565C0' } },
+            alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+            border: {
+              top: { style: 'thin', color: { rgb: 'CBD5E1' } },
+              bottom: { style: 'medium', color: { rgb: '0F172A' } },
+              left: { style: 'thin', color: { rgb: 'CBD5E1' } },
+              right: { style: 'thin', color: { rgb: 'CBD5E1' } }
+            }
+          };
+        }
+
+        // Data rows style
+        for (let R = 1; R < footerR; ++R) {
+          const cellRef = XLSX.utils.encode_cell({ r: R, c: C });
+          const cell = ws[cellRef];
+          if (!cell) continue;
+
+          const isNum = (C >= 3);
+          cell.s = {
+            font: { name: 'Segoe UI', sz: 9.5 },
+            fill: { fgColor: { rgb: (R % 2 === 0) ? 'F8FAFC' : 'FFFFFF' } },
+            alignment: {
+              horizontal: isNum ? 'right' : (C === 0 || C === 1 ? 'center' : 'left'),
+              vertical: 'center'
+            },
+            border: {
+              top: { style: 'thin', color: { rgb: 'E2E8F0' } },
+              bottom: { style: 'thin', color: { rgb: 'E2E8F0' } },
+              left: { style: 'thin', color: { rgb: 'E2E8F0' } },
+              right: { style: 'thin', color: { rgb: 'E2E8F0' } }
+            }
+          };
+          if (isNum && C >= 4) {
+            cell.z = '#,##0.00';
+          }
+        }
+
+        // Footer cell style
+        const footRef = XLSX.utils.encode_cell({ r: footerR, c: C });
+        if (ws[footRef]) {
+          const isNum = (C >= 3);
+          ws[footRef].s = {
+            font: { name: 'Segoe UI', sz: 10, bold: true, color: { rgb: '0F172A' } },
+            fill: { fgColor: { rgb: 'F1F5F9' } },
+            alignment: {
+              horizontal: isNum ? 'right' : (C === 0 ? 'center' : 'left'),
+              vertical: 'center'
+            },
+            border: {
+              top: { style: 'thin', color: { rgb: '94A3B8' } },
+              bottom: { style: 'double', color: { rgb: '0F172A' } },
+              left: { style: 'thin', color: { rgb: 'CBD5E1' } },
+              right: { style: 'thin', color: { rgb: 'CBD5E1' } }
+            }
+          };
+          if (isNum && C >= 4) {
+            ws[footRef].z = '#,##0.00';
+          }
+        }
+      }
+
+      ws['!cols'] = colWidthsArr;
+
+      const wb = XLSX.utils.book_new();
+      const safeSheetName = (currentBillType || 'Matrix').replace(/[:\\/?*\[\]]/g, '').substring(0, 31);
+      XLSX.utils.book_append_sheet(wb, ws, safeSheetName);
+      XLSX.writeFile(wb, `Billing_Matrix_${currentBillType}_${dateStr}.xlsx`);
+      toast(`Excel Export downloaded for ${currentBillType}.`, true);
+    },
+
+    // ── IMPORT MODAL & FILE PROCESSING ──
+    importData: function () {
+      BM.openImportModal();
+    },
+
+    openImportModal: function () {
+      BM._currentImportData = null;
+      const modal = document.getElementById('bm-import-modal');
+      if (modal) modal.style.display = 'flex';
+
+      const typeBadge = document.getElementById('bm-import-type-badge');
+      if (typeBadge) typeBadge.textContent = currentBillType;
+
+      const fileInp = document.getElementById('bm-import-file-input');
+      if (fileInp) fileInp.value = '';
+
+      const statsBar = document.getElementById('bm-import-stats-bar');
+      if (statsBar) statsBar.style.display = 'none';
+
+      const alertBox = document.getElementById('bm-import-alert-box');
+      if (alertBox) {
+        alertBox.style.display = 'none';
+        alertBox.innerHTML = '';
+      }
+
+      const previewWrap = document.getElementById('bm-import-preview-wrap');
+      if (previewWrap) previewWrap.style.display = 'none';
+
+      const commitBtn = document.getElementById('bm-btn-commit-import');
+      if (commitBtn) {
+        commitBtn.disabled = true;
+        commitBtn.innerHTML = '<i class="bi bi-check2-circle"></i> COMMIT IMPORT';
+      }
+
+      BM.setupImportDragDrop();
+    },
+
+    closeImportModal: function () {
+      const modal = document.getElementById('bm-import-modal');
+      if (modal) modal.style.display = 'none';
+      BM._currentImportData = null;
+    },
+
+    setupImportDragDrop: function () {
+      const dz = document.getElementById('bm-import-dropzone');
+      if (!dz || dz._dragInit) return;
+      dz._dragInit = true;
+
+      ['dragenter', 'dragover'].forEach(eventName => {
+        dz.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dz.classList.add('dragover');
+        }, false);
+      });
+
+      ['dragleave', 'drop'].forEach(eventName => {
+        dz.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dz.classList.remove('dragover');
+        }, false);
+      });
+
+      dz.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        const files = dt && dt.files;
+        if (files && files.length > 0) {
+          BM.processImportFile(files[0]);
+        }
+      }, false);
+    },
+
+    handleFileSelect: function (e) {
+      const file = e.target.files && e.target.files[0];
+      if (file) {
+        BM.processImportFile(file);
+      }
+    },
+
+    processImportFile: function (file) {
+      if (!file) return;
+      const fName = file.name || '';
+      const ext = fName.split('.').pop().toLowerCase();
+      if (['xlsx', 'xls', 'csv'].indexOf(ext) === -1) {
+        BM.showImportAlert('Please select a valid Excel (.xlsx, .xls) or CSV file.', 'danger');
+        return;
+      }
+
+      if (typeof XLSX === 'undefined' || !XLSX.read) {
+        BM.showImportAlert('Excel parser library is loading, please try again in a few seconds.', 'danger');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const wb = XLSX.read(data, { type: 'array' });
+          if (!wb || !wb.SheetNames || wb.SheetNames.length === 0) {
+            BM.showImportAlert('No sheets found in the uploaded file.', 'danger');
+            return;
+          }
+          const firstSheet = wb.Sheets[wb.SheetNames[0]];
+          const rawRows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' });
+          if (!rawRows || rawRows.length < 2) {
+            BM.showImportAlert('The selected file contains no data rows.', 'danger');
+            return;
+          }
+          BM.validateAndPreviewImport(file, rawRows);
+        } catch (err) {
+          console.error('Error reading import file:', err);
+          BM.showImportAlert('Failed to parse file: ' + (err.message || 'Unknown error'), 'danger');
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    },
+
+    showImportAlert: function (htmlMessage, type) {
+      const alertBox = document.getElementById('bm-import-alert-box');
+      if (!alertBox) return;
+      alertBox.style.display = 'block';
+      if (type === 'danger') {
+        alertBox.style.background = '#FEE2E2';
+        alertBox.style.color = '#B91C1C';
+        alertBox.style.border = '1px solid #FCA5A5';
+      } else if (type === 'warning') {
+        alertBox.style.background = '#FEF3C7';
+        alertBox.style.color = '#92400E';
+        alertBox.style.border = '1px solid #FCD34D';
+      } else {
+        alertBox.style.background = '#DCFCE7';
+        alertBox.style.color = '#166534';
+        alertBox.style.border = '1px solid #86EFAC';
+      }
+      alertBox.innerHTML = htmlMessage;
+    },
+
+    validateAndPreviewImport: function (file, rawRows) {
+      const { baseHeads, isGstEnabled } = BM.getDynamicHeadsConfig();
+      const rawHeaders = rawRows[0].map(h => String(h || '').trim());
+
+      const norm = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+      // Identify Tier A Fixed Columns
+      let memNoIdx = -1, wingIdx = -1, nameIdx = -1, sqftIdx = -1;
+      rawHeaders.forEach((h, idx) => {
+        const n = norm(h);
+        if (memNoIdx === -1 && (n === 'membno' || n === 'flatno' || n === 'memcode' || n === 'code' || n === 'flat' || n === 'unitno' || n.includes('flatno') || n.includes('membno'))) {
+          memNoIdx = idx;
+        } else if (wingIdx === -1 && (n === 'wing' || n === 'bldg' || n === 'block')) {
+          wingIdx = idx;
+        } else if (nameIdx === -1 && (n === 'name' || n === 'membername' || n === 'ownername' || n === 'partyname')) {
+          nameIdx = idx;
+        } else if (sqftIdx === -1 && (n === 'sqft' || n === 'carpetsqft' || n === 'carpetarea' || n === 'area' || n === 'carpet')) {
+          sqftIdx = idx;
+        }
+      });
+
+      if (memNoIdx === -1) {
+        BM.showImportAlert('<strong>Missing Column:</strong> Could not identify a "MEMB NO" or "FLAT NO" column in row 1 of the file.', 'danger');
+        return;
+      }
+
+      // Map Dynamic Heads to File Column Indices
+      const mappedHeads = [];
+      const missingHeads = [];
+
+      baseHeads.forEach(bh => {
+        const hNameNorm = norm(bh.name);
+        const hCodeNorm = bh.code ? norm(bh.code) : '';
+
+        let matchedIdx = -1;
+        rawHeaders.forEach((rawH, idx) => {
+          if (idx === memNoIdx || idx === wingIdx || idx === nameIdx || idx === sqftIdx) return;
+          const rawNorm = norm(rawH);
+          if (rawNorm === hNameNorm || (hCodeNorm && (rawNorm === hCodeNorm || rawNorm.includes(hCodeNorm)))) {
+            matchedIdx = idx;
+          }
+        });
+
+        if (matchedIdx !== -1) {
+          mappedHeads.push({ ...bh, fileColIdx: matchedIdx });
+        } else {
+          missingHeads.push(bh);
+          mappedHeads.push({ ...bh, fileColIdx: -1 });
+        }
+      });
+
+      // Check Calculated columns in file
+      let filePrincipalIdx = -1, fileInterestIdx = -1, fileCgstIdx = -1, fileSgstIdx = -1;
+      rawHeaders.forEach((rawH, idx) => {
+        const n = norm(rawH);
+        if (n === 'principal') filePrincipalIdx = idx;
+        if (n === 'interest') fileInterestIdx = idx;
+        if (n === 'cgst') fileCgstIdx = idx;
+        if (n === 'sgst') fileSgstIdx = idx;
+      });
+
+      // Parse and Validate Rows
+      const validRows = [];
+      const invalidRows = [];
+      const allRows = [];
+
+      for (let r = 1; r < rawRows.length; r++) {
+        const row = rawRows[r];
+        if (!row || !Array.isArray(row)) continue;
+
+        const isBlank = row.every(c => String(c || '').trim() === '');
+        if (isBlank) continue;
+
+        const rawMemVal = String(row[memNoIdx] || '').trim();
+        if (!rawMemVal) continue;
+
+        if (rawMemVal.toLowerCase() === 'total' || rawMemVal.toLowerCase().startsWith('grand total')) {
+          continue;
+        }
+
+        const normVal = rawMemVal.toLowerCase();
+        const matchedMem = members.find(m => {
+          const mCode = (m.memNo || '').toLowerCase().trim();
+          const fCode = (m.flatNo || '').toLowerCase().trim();
+          const idStr = String(m.id || '');
+          return mCode === normVal || fCode === normVal || idStr === normVal;
+        });
+
+        const rowAmounts = {};
+        let principalVal = 0;
+
+        // Dynamic Heads
+        mappedHeads.forEach(h => {
+          let val = 0;
+          if (h.fileColIdx !== -1) {
+            const rawCell = String(row[h.fileColIdx] || '').replace(/,/g, '').trim();
+            val = Math.round(parseFloat(rawCell) || 0);
+          }
+          rowAmounts[h.name] = val;
+          if (h.code) rowAmounts[h.code] = val;
+          principalVal += val;
+        });
+
+        if (filePrincipalIdx !== -1) {
+          const rawP = String(row[filePrincipalIdx] || '').replace(/,/g, '').trim();
+          if (rawP !== '') principalVal = Math.round(parseFloat(rawP) || 0);
+        }
+        rowAmounts['Principal'] = principalVal;
+
+        // Interest
+        let interestVal = 0;
+        if (fileInterestIdx !== -1) {
+          const rawInt = String(row[fileInterestIdx] || '').replace(/,/g, '').trim();
+          interestVal = Math.round(parseFloat(rawInt) || 0);
+        } else if (matchedMem) {
+          interestVal = Math.round(parseFloat(matchedMem.amounts && matchedMem.amounts['Interest']) || 0);
+        }
+        rowAmounts['Interest'] = interestVal;
+
+        // GST
+        let cgstVal = 0, sgstVal = 0;
+        if (isGstEnabled) {
+          if (fileCgstIdx !== -1) {
+            cgstVal = Math.round(parseFloat(String(row[fileCgstIdx] || '').replace(/,/g, '')) || 0);
+          } else if (matchedMem) {
+            cgstVal = Math.round(parseFloat(matchedMem.amounts && matchedMem.amounts['CGST']) || 0);
+          }
+          if (fileSgstIdx !== -1) {
+            sgstVal = Math.round(parseFloat(String(row[fileSgstIdx] || '').replace(/,/g, '')) || 0);
+          } else if (matchedMem) {
+            sgstVal = Math.round(parseFloat(matchedMem.amounts && matchedMem.amounts['SGST']) || 0);
+          }
+          rowAmounts['CGST'] = cgstVal;
+          rowAmounts['SGST'] = sgstVal;
+        }
+
+        const rowTotal = principalVal + interestVal + (isGstEnabled ? (cgstVal + sgstVal) : 0);
+
+        if (matchedMem) {
+          const item = {
+            status: 'VALID',
+            memberId: matchedMem.id,
+            memNo: matchedMem.memNo || rawMemVal,
+            flatNo: matchedMem.flatNo || rawMemVal,
+            wing: matchedMem.wing || (wingIdx !== -1 ? String(row[wingIdx] || '').trim() : ''),
+            name: matchedMem.name || (nameIdx !== -1 ? String(row[nameIdx] || '').trim() : ''),
+            sqft: matchedMem.sqft || (sqftIdx !== -1 ? parseFloat(row[sqftIdx]) || 0 : 0),
+            amounts: rowAmounts,
+            principalVal,
+            interestVal,
+            cgstVal,
+            sgstVal,
+            rowTotal,
+            note: ''
+          };
+          validRows.push(item);
+          allRows.push(item);
+        } else {
+          const item = {
+            status: 'INVALID',
+            memberId: 0,
+            memNo: rawMemVal,
+            flatNo: rawMemVal,
+            wing: wingIdx !== -1 ? String(row[wingIdx] || '').trim() : '',
+            name: nameIdx !== -1 ? String(row[nameIdx] || '').trim() : '',
+            sqft: sqftIdx !== -1 ? parseFloat(row[sqftIdx]) || 0 : 0,
+            amounts: rowAmounts,
+            principalVal,
+            interestVal,
+            cgstVal,
+            sgstVal,
+            rowTotal,
+            note: `Member "${rawMemVal}" not found in active society register.`
+          };
+          invalidRows.push(item);
+          allRows.push(item);
+        }
+      }
+
+      // Update Stats Bar
+      const totalCount = allRows.length;
+      const validCount = validRows.length;
+      const errorCount = invalidRows.length;
+      const missingCount = missingHeads.length;
+
+      document.getElementById('bm-import-filename').innerHTML = `<i class="bi bi-file-earmark-spreadsheet-fill" style="color:#16A34A;"></i> ${file.name}`;
+      document.getElementById('bm-import-filesize').textContent = `(${Math.round(file.size / 1024)} KB)`;
+      document.getElementById('bm-stat-total').textContent = totalCount;
+      document.getElementById('bm-stat-valid').textContent = validCount;
+
+      const missingWrap = document.getElementById('bm-stat-missing-wrap');
+      if (missingWrap) {
+        missingWrap.style.display = missingCount > 0 ? 'inline' : 'none';
+        document.getElementById('bm-stat-missing').textContent = missingCount;
+      }
+
+      const errWrap = document.getElementById('bm-stat-error-wrap');
+      if (errWrap) {
+        errWrap.style.display = errorCount > 0 ? 'inline' : 'none';
+        document.getElementById('bm-stat-error').textContent = errorCount;
+      }
+
+      document.getElementById('bm-import-stats-bar').style.display = 'flex';
+
+      // Update Validation Alert Box
+      let alertHtml = '';
+      if (missingCount > 0) {
+        const missingNames = missingHeads.map(h => `<strong>${h.name}</strong>`).join(', ');
+        alertHtml += `<div style="margin-bottom:${errorCount > 0 ? '6px' : '0'};"><i class="bi bi-exclamation-triangle-fill" style="color:#D97706;"></i> <strong>Dynamic Billing Head Notice:</strong> The following configured heads were not found in the uploaded file and will default to <strong>₹ 0.00</strong>: ${missingNames}.</div>`;
+      }
+      if (errorCount > 0) {
+        alertHtml += `<div><i class="bi bi-x-circle-fill" style="color:#DC2626;"></i> <strong>${errorCount} row(s)</strong> could not be matched with members in this society and will be skipped.</div>`;
+      }
+      if (!alertHtml && validCount > 0) {
+        alertHtml = `<div><i class="bi bi-check-circle-fill" style="color:#16A34A;"></i> Ready to import: <strong>${validCount} members</strong> matched with active society register. All configured heads mapped dynamically.</div>`;
+        BM.showImportAlert(alertHtml, 'success');
+      } else if (alertHtml) {
+        BM.showImportAlert(alertHtml, errorCount > 0 ? 'warning' : 'warning');
+      }
+
+      // Render Preview Table
+      const thead = document.getElementById('bm-import-preview-thead');
+      const tbody = document.getElementById('bm-import-preview-tbody');
+
+      let thHtml = '<tr>';
+      thHtml += '<th style="text-align:center; width:70px;">STATUS</th>';
+      thHtml += '<th style="text-align:center; width:80px;">MEMB NO</th>';
+      thHtml += '<th style="text-align:center; width:55px;">WING</th>';
+      thHtml += '<th style="text-align:left; width:160px;">MEMBER NAME</th>';
+      thHtml += '<th style="text-align:right; width:90px;">SQ FT</th>';
+
+      mappedHeads.forEach(h => {
+        const isMiss = (h.fileColIdx === -1);
+        const missStyle = isMiss ? 'color:#B45309; background:#FEF3C7;' : '';
+        const missTitle = isMiss ? 'title="Missing in file — defaulted to 0"' : '';
+        thHtml += `<th style="text-align:right; ${missStyle}" ${missTitle}>${h.name.toUpperCase()}</th>`;
+      });
+
+      thHtml += '<th style="text-align:right; width:95px;">PRINCIPAL</th>';
+      thHtml += '<th style="text-align:right; width:90px;">INTEREST</th>';
+      if (isGstEnabled) {
+        thHtml += '<th style="text-align:right; width:80px;">CGST</th>';
+        thHtml += '<th style="text-align:right; width:80px;">SGST</th>';
+      }
+      thHtml += '<th style="text-align:right; width:100px; font-weight:800;">TOTAL HEADS</th>';
+      thHtml += '<th style="text-align:left; min-width:140px;">NOTES</th>';
+      thHtml += '</tr>';
+      thead.innerHTML = thHtml;
+
+      let tbHtml = '';
+      const previewLimit = Math.min(allRows.length, 250);
+      for (let i = 0; i < previewLimit; i++) {
+        const row = allRows[i];
+        const isValid = (row.status === 'VALID');
+        const rowClass = isValid ? '' : 'class="row-invalid"';
+        const badge = isValid
+          ? '<span class="bm-badge bm-badge-success">VALID</span>'
+          : '<span class="bm-badge bm-badge-danger">INVALID</span>';
+
+        tbHtml += `<tr ${rowClass}>`;
+        tbHtml += `<td style="text-align:center;">${badge}</td>`;
+        tbHtml += `<td style="text-align:center; font-weight:700;">${row.memNo}</td>`;
+        tbHtml += `<td style="text-align:center;">${row.wing || '—'}</td>`;
+        tbHtml += `<td style="text-align:left; font-weight:600;">${row.name || '—'}</td>`;
+        tbHtml += `<td style="text-align:right;">${row.sqft || 0}</td>`;
+
+        mappedHeads.forEach(h => {
+          const val = row.amounts[h.name] || 0;
+          tbHtml += `<td style="text-align:right;">${val.toLocaleString('en-IN')}</td>`;
+        });
+
+        tbHtml += `<td style="text-align:right; font-weight:700; color:#1E40AF;">${row.principalVal.toLocaleString('en-IN')}</td>`;
+        tbHtml += `<td style="text-align:right;">${row.interestVal.toLocaleString('en-IN')}</td>`;
+        if (isGstEnabled) {
+          tbHtml += `<td style="text-align:right;">${row.cgstVal.toLocaleString('en-IN')}</td>`;
+          tbHtml += `<td style="text-align:right;">${row.sgstVal.toLocaleString('en-IN')}</td>`;
+        }
+        tbHtml += `<td style="text-align:right; font-weight:800; color:#1565C0;">${row.rowTotal.toLocaleString('en-IN')}</td>`;
+        tbHtml += `<td style="color:${isValid ? '#64748B' : '#DC2626'}; font-weight:${isValid ? 'normal' : '600'}; font-size:10.5px;">${row.note || 'OK'}</td>`;
+        tbHtml += '</tr>';
+      }
+
+      tbody.innerHTML = tbHtml;
+      document.getElementById('bm-import-preview-wrap').style.display = 'flex';
+
+      // Commit Button state
+      const commitBtn = document.getElementById('bm-btn-commit-import');
+      if (commitBtn) {
+        commitBtn.disabled = (validCount === 0);
+        commitBtn.innerHTML = `<i class="bi bi-check2-circle"></i> COMMIT IMPORT (${validCount} MEMBERS)`;
+      }
+
+      BM._currentImportData = {
+        validRows,
+        missingHeads,
+        currentBillType
+      };
+    },
+
+    commitImport: async function () {
+      if (!BM._currentImportData || !BM._currentImportData.validRows || BM._currentImportData.validRows.length === 0) {
+        toast('No valid member records to import.', false);
+        return;
+      }
+
+      const commitBtn = document.getElementById('bm-btn-commit-import');
+      if (commitBtn) {
+        commitBtn.disabled = true;
+        commitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> COMMITTING IMPORT...';
+      }
+
+      const socId = getActiveSocietyId();
+      const typeData = billTypes[currentBillType];
+      const curBtId = typeData ? (typeData.id || 1) : 1;
+
+      const rowsPayload = BM._currentImportData.validRows.map(vr => ({
+        memberId: vr.memberId,
+        memNo: vr.memNo,
+        flatNo: vr.flatNo,
+        amounts: vr.amounts
+      }));
+
+      try {
+        const url = `${bmApiBase()}/api/billing-master/bulk-import`;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            societyId: socId,
+            billTypeId: curBtId,
+            billTypeName: currentBillType,
+            rows: rowsPayload
+          })
+        });
+
+        const json = await res.json();
+        if (res.ok && json.success) {
+          // Update in-memory members matrix
+          BM._currentImportData.validRows.forEach(vr => {
+            const m = members.find(x => x.id === vr.memberId || (x.memNo && x.memNo.toLowerCase() === vr.memNo.toLowerCase()));
+            if (m) {
+              if (!m.amounts) m.amounts = {};
+              Object.keys(vr.amounts).forEach(k => {
+                m.amounts[k] = vr.amounts[k];
+              });
+              recalcRowGSTAndPrincipal(m);
+            }
+          });
+
+          // Backup to LocalStorage
+          try {
+            const currentPayload = members.map(m => ({
+              memberId: m.id,
+              memNo: m.memNo,
+              flatNo: m.flatNo,
+              wing: m.wing,
+              name: m.name,
+              sqft: m.sqft,
+              amounts: m.amounts,
+              checked: !!m.checked
+            }));
+            localStorage.setItem(`jeevika_bm_matrix_${socId}_${currentBillType}`, JSON.stringify(currentPayload));
+            localStorage.setItem(`jeevika_bm_matrix_1_${currentBillType}`, JSON.stringify(currentPayload));
+          } catch (e) { }
+
+          originalMembers = JSON.parse(JSON.stringify(members));
+          hasChanges = false;
+          BM.recalcTotalsDom();
+          renderMatrix();
+          BM.closeImportModal();
+          toast(`Successfully imported ${json.count || rowsPayload.length} member records into ${currentBillType} Matrix!`, true);
+        } else {
+          if (commitBtn) {
+            commitBtn.disabled = false;
+            commitBtn.innerHTML = '<i class="bi bi-check2-circle"></i> COMMIT IMPORT';
+          }
+          BM.showImportAlert('Import failed: ' + (json.message || 'Server error'), 'danger');
+          toast(json.message || 'Import failed', false);
+        }
+      } catch (err) {
+        console.error('Error committing bulk import:', err);
+        if (commitBtn) {
+          commitBtn.disabled = false;
+          commitBtn.innerHTML = '<i class="bi bi-check2-circle"></i> COMMIT IMPORT';
+        }
+        BM.showImportAlert('Network / Server Error: ' + err.message, 'danger');
+        toast('Failed to commit import to server', false);
+      }
+    },
 
     openMemberDetailModal: function (idx) {
       currentDetailMemberIdx = idx;
@@ -1584,11 +2441,13 @@
       loadMatrixData();
       BM.loadToggles();
       BM.initColResize();
+      BM.setupImportDragDrop();
     });
   } else {
     loadMatrixData();
     BM.loadToggles();
     BM.initColResize();
+    BM.setupImportDragDrop();
   }
 
 })();

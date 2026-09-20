@@ -134,6 +134,25 @@ namespace JeevikaERP.Controllers
             }
         }
 
+        // ── GET /api/groups/next-code?societyId=X&mainId=Y ──────
+        [HttpGet("next-code")]
+        public IActionResult GetNextCode([FromQuery] int societyId, [FromQuery] int mainId)
+        {
+            if (societyId <= 0 || mainId <= 0)
+                return BadRequest(new { success = false, message = "societyId and mainId are required." });
+
+            try
+            {
+                using var conn = DbHelper.GetConn();
+                string nextCode = AutoGenerateCode(conn, societyId, mainId);
+                return Ok(new { success = true, nextCode });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
         // ── POST /api/groups ─────────────────────────────────────
         [HttpPost]
         public IActionResult Create([FromBody] GroupModel model)
@@ -250,11 +269,28 @@ namespace JeevikaERP.Controllers
                 if (count > 0)
                     return Conflict(new { success = false, message = $"Cannot delete: {count} account ledgers belong to this group." });
 
-                using var delCmd = conn.CreateCommand();
-                delCmd.CommandText = "UPDATE jeevika_erp.SocGroup SET IsDeleted = TRUE WHERE GroupId = @id AND IsDeleted = FALSE";
-                delCmd.Parameters.AddWithValue("@id", id);
+                // Check if any historical accounts ever referenced this group
+                using var checkHistCmd = conn.CreateCommand();
+                checkHistCmd.CommandText = "SELECT COUNT(*) FROM jeevika_erp.SocAccount WHERE GroupId = @id";
+                checkHistCmd.Parameters.AddWithValue("@id", id);
+                var histCount = Convert.ToInt64(checkHistCmd.ExecuteScalar() ?? 0L);
 
-                var rows = delCmd.ExecuteNonQuery();
+                int rows;
+                if (histCount > 0)
+                {
+                    using var delCmd = conn.CreateCommand();
+                    delCmd.CommandText = "UPDATE jeevika_erp.SocGroup SET IsDeleted = TRUE WHERE GroupId = @id AND IsDeleted = FALSE";
+                    delCmd.Parameters.AddWithValue("@id", id);
+                    rows = delCmd.ExecuteNonQuery();
+                }
+                else
+                {
+                    using var delCmd = conn.CreateCommand();
+                    delCmd.CommandText = "DELETE FROM jeevika_erp.SocGroup WHERE GroupId = @id";
+                    delCmd.Parameters.AddWithValue("@id", id);
+                    rows = delCmd.ExecuteNonQuery();
+                }
+
                 if (rows == 0)
                     return NotFound(new { success = false, message = "Group not found." });
 
@@ -318,7 +354,7 @@ namespace JeevikaERP.Controllers
             using var cmd = conn.CreateCommand();
             cmd.CommandText = @"
                 SELECT GrpCode FROM jeevika_erp.SocGroup
-                WHERE SocietyId = @sid AND GrpMainId = @mid AND GrpCode LIKE @pfx
+                WHERE SocietyId = @sid AND GrpMainId = @mid AND GrpCode LIKE @pfx AND IsDeleted = FALSE
                 ORDER BY GrpCode DESC";
             cmd.Parameters.AddWithValue("@sid", societyId);
             cmd.Parameters.AddWithValue("@mid", mainId);
@@ -329,7 +365,7 @@ namespace JeevikaERP.Controllers
             while (r.Read())
             {
                 var codeStr = r.GetString(0);
-                var numPart = codeStr.Replace($"{pfx}-", "");
+                var numPart = codeStr.Replace($"{pfx}-", "").Trim();
                 if (int.TryParse(numPart, out int n) && n > max) max = n;
             }
 

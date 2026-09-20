@@ -115,14 +115,15 @@ const WorkspaceManager = (() => {
     // ACCOUNT REPORTS
     { id: 'ar-cash-bank-book', label: 'Cash/Bank Book', category: 'account-report', path: 'modules/account-reports/cash-bank-book/cash-bank-book.html' },
     { id: 'ar-account-ledger', label: 'Account Ledger', category: 'account-report', path: 'modules/account-reports/account-ledger/account-ledger.html' },
-    { id: 'ar-dues-advance-ledger', label: 'Dues/Advance Ledger', category: 'account-report', path: 'modules/account-reports/dues-advance-ledger/dues-advance-ledger.html' },
+    { id: 'ar-receipt-payment-report', label: 'Receipt & Payment Report', category: 'account-report', path: 'modules/account-reports/receipt-payment-report/receipt-payment-report.html' },
     { id: 'ar-trial-balance', label: 'Trial Balance', category: 'account-report', path: 'modules/account-reports/trial-balance/trial-balance.html' },
-    { id: 'ar-balance-sheet', label: 'Balance Sheet', category: 'account-report', path: 'modules/account-reports/balance-sheet/balance-sheet.html' },
     { id: 'ar-income-expenditure', label: 'Income & Expenditure', category: 'account-report', path: 'modules/account-reports/income-expenditure/income-expenditure.html' },
-    { id: 'ar-monthly-report', label: 'Monthly Report', category: 'account-report', path: 'modules/account-reports/monthly-report/monthly-report.html' },
+    { id: 'ar-balance-sheet', label: 'Balance Sheet', category: 'account-report', path: 'modules/account-reports/balance-sheet/balance-sheet.html' },
+    { id: 'ar-dues-advance-ledger', label: 'Dues/Advance Ledger', category: 'account-report', path: 'modules/account-reports/dues-advance-ledger/dues-advance-ledger.html' },
     { id: 'ar-receipt-register', label: 'Receipt Register', category: 'account-report', path: 'modules/account-reports/receipt-register/receipt-register.html' },
     { id: 'ar-payment-register', label: 'Payment Register', category: 'account-report', path: 'modules/account-reports/payment-register/payment-register.html' },
     { id: 'ar-contra-register', label: 'Contra Register', category: 'account-report', path: 'modules/account-reports/contra-register/contra-register.html' },
+    { id: 'ar-monthly-report', label: 'Monthly Report', category: 'account-report', path: 'modules/account-reports/monthly-report/monthly-report.html' },
 
     // ADDITIONAL REPORTS
     { id: 'adr-receipt-voucher-print', label: 'Receipt Voucher Print', category: 'additional-report', path: 'modules/additional-reports/receipt-voucher-print/receipt-voucher-print.html' },

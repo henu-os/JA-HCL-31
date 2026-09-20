@@ -245,6 +245,202 @@ namespace JeevikaERP.Controllers
             }
         }
 
+        // ── POST /api/billing-master/bulk-import ───────────────────
+        [HttpPost("bulk-import")]
+        public IActionResult BulkImport([FromBody] BulkImportRequestModel model)
+        {
+            if (model == null || model.Rows == null || model.Rows.Count == 0)
+                return BadRequest(new { success = false, message = "No rows provided for import." });
+
+            int societyId = model.SocietyId > 0 ? model.SocietyId : 1;
+            int billTypeId = model.BillTypeId;
+
+            try
+            {
+                using var conn = DbHelper.GetConn();
+                if (billTypeId <= 0)
+                {
+                    billTypeId = GetOrCreateBillTypeId(conn, model.BillType ?? "Maintenance", societyId);
+                }
+
+                if (billTypeId <= 0)
+                {
+                    return BadRequest(new { success = false, message = "Invalid or unresolvable Bill Type." });
+                }
+
+                // 1. Fetch valid configured heads for this BillType to avoid polluting unrelated accounts
+                var validHeads = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase); // Name/Code -> AccountCode
+                using (var headCmd = conn.CreateCommand())
+                {
+                    headCmd.CommandText = @"
+                        SELECT h.AccountCode, h.AccountName, a.AccCode AS MasterCode, a.AccName AS MasterName
+                        FROM jeevika_erp.SocBillTypeHead h
+                        LEFT JOIN jeevika_erp.SocAccount a ON h.AccountId = a.AccountId
+                        WHERE h.BillTypeId = @btId";
+                    headCmd.Parameters.AddWithValue("@btId", billTypeId);
+                    using var hr = headCmd.ExecuteReader();
+                    while (hr.Read())
+                    {
+                        var code = GetStringSafe(hr, "AccountCode");
+                        if (string.IsNullOrEmpty(code)) code = GetStringSafe(hr, "MasterCode");
+
+                        var name = GetStringSafe(hr, "AccountName");
+                        if (string.IsNullOrEmpty(name)) name = GetStringSafe(hr, "MasterName");
+
+                        if (!string.IsNullOrWhiteSpace(code))
+                        {
+                            validHeads[code] = code;
+                            if (!string.IsNullOrWhiteSpace(name))
+                            {
+                                validHeads[name] = code;
+                            }
+                        }
+                    }
+                }
+
+                // Also support standard calculated/system accounts if present
+                validHeads["INC-1008"] = "INC-1008"; // Interest
+                validHeads["Interest"] = "INC-1008";
+                validHeads["LIA-1032"] = "LIA-1032"; // CGST
+                validHeads["CGST"] = "LIA-1032";
+                validHeads["LIA-1033"] = "LIA-1033"; // SGST
+                validHeads["SGST"] = "LIA-1033";
+
+                // 2. Pre-fetch all active members for this society into lookup
+                var memberLookup = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                using (var memCmd = conn.CreateCommand())
+                {
+                    memCmd.CommandText = @"
+                        SELECT MemberId, MemCode, FlatNo, Wing 
+                        FROM jeevika_erp.SocMember 
+                        WHERE (SocietyId = @socId OR SocietyId = 1) AND IsDeleted = FALSE";
+                    memCmd.Parameters.AddWithValue("@socId", societyId);
+                    using var mr = memCmd.ExecuteReader();
+                    while (mr.Read())
+                    {
+                        int mid = Convert.ToInt32(mr["MemberId"]);
+                        var mCode = GetStringSafe(mr, "MemCode").Trim();
+                        var flat = GetStringSafe(mr, "FlatNo").Trim();
+                        var wing = GetStringSafe(mr, "Wing").Trim();
+
+                        if (!string.IsNullOrEmpty(mCode)) memberLookup[mCode] = mid;
+                        if (!string.IsNullOrEmpty(flat)) memberLookup[flat] = mid;
+                        if (!string.IsNullOrEmpty(wing) && !string.IsNullOrEmpty(flat)) memberLookup[$"{wing}-{flat}"] = mid;
+                        memberLookup[mid.ToString()] = mid;
+                    }
+                }
+
+                // 3. Begin atomic transaction for all rows
+                using var tx = conn.BeginTransaction();
+                int inserted = 0;
+                int updated = 0;
+                int skipped = 0;
+                var errors = new List<string>();
+
+                for (int i = 0; i < model.Rows.Count; i++)
+                {
+                    var row = model.Rows[i];
+                    int memberId = row.MemberId;
+                    string lookupKey = (row.MemberCode ?? row.MemNo ?? "").Trim();
+
+                    if (memberId <= 0 && !string.IsNullOrEmpty(lookupKey) && memberLookup.ContainsKey(lookupKey))
+                    {
+                        memberId = memberLookup[lookupKey];
+                    }
+
+                    if (memberId <= 0)
+                    {
+                        skipped++;
+                        errors.Add($"Row {i + 1}: Member '{lookupKey}' could not be resolved for Society {societyId}.");
+                        continue;
+                    }
+
+                    if (row.Amounts == null || row.Amounts.Count == 0)
+                    {
+                        skipped++;
+                        continue;
+                    }
+
+                    foreach (var kv in row.Amounts)
+                    {
+                        string headKey = kv.Key.Trim();
+                        decimal amt = kv.Value;
+
+                        // Resolve headKey to actual AccountCode
+                        string? targetAccCode = null;
+                        if (validHeads.ContainsKey(headKey))
+                        {
+                            targetAccCode = validHeads[headKey];
+                        }
+                        else
+                        {
+                            // Strip any bracketed code, e.g. "Maintenance [INC-1001]"
+                            var match = System.Text.RegularExpressions.Regex.Match(headKey, @"\[([^\]]+)\]");
+                            if (match.Success && validHeads.ContainsKey(match.Groups[1].Value.Trim()))
+                            {
+                                targetAccCode = validHeads[match.Groups[1].Value.Trim()];
+                            }
+                        }
+
+                        if (string.IsNullOrEmpty(targetAccCode))
+                        {
+                            // Skip non-head columns (like 'Principal', 'Total Heads', 'Carpet Sq Ft')
+                            continue;
+                        }
+
+                        // Check if record exists for insert vs update count
+                        bool exists = false;
+                        using (var checkCmd = conn.CreateCommand())
+                        {
+                            checkCmd.Transaction = tx;
+                            checkCmd.CommandText = @"
+                                SELECT 1 FROM jeevika_erp.SocBillingMatrix 
+                                WHERE SocietyId = @socId AND BillTypeId = @btId AND MemberId = @memId AND AccountCode = @code LIMIT 1";
+                            checkCmd.Parameters.AddWithValue("@socId", societyId);
+                            checkCmd.Parameters.AddWithValue("@btId", billTypeId);
+                            checkCmd.Parameters.AddWithValue("@memId", memberId);
+                            checkCmd.Parameters.AddWithValue("@code", targetAccCode);
+                            exists = checkCmd.ExecuteScalar() != null;
+                        }
+
+                        using var upsertCmd = conn.CreateCommand();
+                        upsertCmd.Transaction = tx;
+                        upsertCmd.CommandText = @"
+                            INSERT INTO jeevika_erp.SocBillingMatrix (SocietyId, BillTypeId, MemberId, AccountCode, Amount, UpdatedAt)
+                            VALUES (@socId, @btId, @memId, @code, @amt, NOW())
+                            ON CONFLICT (SocietyId, BillTypeId, MemberId, AccountCode)
+                            DO UPDATE SET Amount = EXCLUDED.Amount, UpdatedAt = NOW()";
+                        upsertCmd.Parameters.AddWithValue("@socId", societyId);
+                        upsertCmd.Parameters.AddWithValue("@btId", billTypeId);
+                        upsertCmd.Parameters.AddWithValue("@memId", memberId);
+                        upsertCmd.Parameters.AddWithValue("@code", targetAccCode);
+                        upsertCmd.Parameters.AddWithValue("@amt", amt);
+                        upsertCmd.ExecuteNonQuery();
+
+                        if (exists) updated++;
+                        else inserted++;
+                    }
+                }
+
+                tx.Commit();
+
+                return Ok(new
+                {
+                    success = true,
+                    message = $"Bulk import complete: {inserted} inserted, {updated} updated, {skipped} skipped.",
+                    totalRows = model.Rows.Count,
+                    inserted,
+                    updated,
+                    skipped,
+                    errors
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = "Database transaction failed during bulk import: " + ex.Message });
+            }
+        }
+
         // ── GET /api/billing-master/settings ──────────────────────
         [HttpGet("settings")]
         public IActionResult GetSettings([FromQuery] string billType = "Maintenance", [FromQuery] int societyId = 1)
@@ -350,5 +546,21 @@ namespace JeevikaERP.Controllers
         public string? BillType { get; set; }
         public string? GSTCalc { get; set; }
         public string? InterestCalc { get; set; }
+    }
+
+    public class BulkImportRowModel
+    {
+        public int MemberId { get; set; }
+        public string? MemberCode { get; set; }
+        public string? MemNo { get; set; }
+        public Dictionary<string, decimal>? Amounts { get; set; }
+    }
+
+    public class BulkImportRequestModel
+    {
+        public int SocietyId { get; set; }
+        public int BillTypeId { get; set; }
+        public string? BillType { get; set; }
+        public List<BulkImportRowModel> Rows { get; set; } = new();
     }
 }

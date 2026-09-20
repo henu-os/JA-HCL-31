@@ -341,8 +341,29 @@
       cr: (type === 'Cr' ? amt : 0)
     });
 
-    document.getElementById('entry-amount').value = '';
+    // Reset account selection and amount to blank
+    if (typeof setAccountSearchComboboxValue === 'function') {
+      setAccountSearchComboboxValue('entry-acc-sel', '', '');
+    } else {
+      var s = document.getElementById('entry-acc-sel');
+      if (s) s.value = '';
+      var ci = document.getElementById('entry-acc-sel-combo-inp');
+      if (ci) ci.value = '';
+    }
+    var amtEl = document.getElementById('entry-amount');
+    if (amtEl) amtEl.value = '';
+
     renderGridTable();
+
+    var comboInp = document.getElementById('entry-acc-sel-combo-inp') || document.getElementById('entry-acc-sel');
+    if (comboInp) {
+      comboInp.focus();
+      var p = document.getElementById('entry-acc-sel-combo-panel');
+      if (p) p.style.display = 'none';
+      setTimeout(function() {
+        if (p) p.style.display = 'none';
+      }, 30);
+    }
   };
 
   window.removeGridRow = function (idx) {

@@ -142,6 +142,24 @@ namespace JeevikaERP
                     // Always ensure Member Master child tables exist
                     using var ensureTables = targetConn.CreateCommand();
                     ensureTables.CommandText = @"
+                        -- Drop old non-partial unique constraints so deleted records do not block code reuse
+                        DO $$
+                        BEGIN
+                            IF EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'socgroup_societyid_grpcode_key' AND table_name = 'socgroup') THEN
+                                ALTER TABLE jeevika_erp.SocGroup DROP CONSTRAINT socgroup_societyid_grpcode_key;
+                            END IF;
+                            IF EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'socaccount_societyid_acccode_key' AND table_name = 'socaccount') THEN
+                                ALTER TABLE jeevika_erp.SocAccount DROP CONSTRAINT socaccount_societyid_acccode_key;
+                            END IF;
+                        END $$;
+
+                        -- Clean up any orphaned soft-deleted groups that have no accounts attached
+                        DELETE FROM jeevika_erp.SocGroup WHERE IsDeleted = TRUE AND GroupId NOT IN (SELECT GroupId FROM jeevika_erp.SocAccount WHERE GroupId IS NOT NULL);
+
+                        -- Create partial unique indexes so only active records enforce unique codes
+                        CREATE UNIQUE INDEX IF NOT EXISTS uq_socgroup_code_active ON jeevika_erp.SocGroup (SocietyId, GrpCode) WHERE IsDeleted = FALSE;
+                        CREATE UNIQUE INDEX IF NOT EXISTS uq_socaccount_code_active ON jeevika_erp.SocAccount (SocietyId, AccCode) WHERE IsDeleted = FALSE;
+
                         CREATE TABLE IF NOT EXISTS jeevika_erp.SocMemberTransfer (
                             TransferId SERIAL PRIMARY KEY, SocietyId INT NOT NULL, MemberId INT NOT NULL,
                             TransferDate DATE, TransferType VARCHAR(100), MeetingType VARCHAR(50), MeetingDate DATE,

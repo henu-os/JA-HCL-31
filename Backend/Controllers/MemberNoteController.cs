@@ -17,6 +17,8 @@ namespace JeevikaERP.Controllers
     {
         // ── GET /api/member-notes or /api/member-debit-notes or /api/member-credit-notes ──
         [HttpGet]
+        [HttpGet("credit")]
+        [HttpGet("debit")]
         public IActionResult GetNotes([FromQuery] int societyId, [FromQuery] int fyId = 0, [FromQuery] string? type = null)
         {
             if (societyId <= 0)
@@ -24,9 +26,9 @@ namespace JeevikaERP.Controllers
 
             string path = HttpContext.Request.Path.Value?.ToLower() ?? "";
             string vType = "MemberDebitNote";
-            if (path.Contains("credit-note") || type?.ToLower() == "creditnote" || type?.ToLower() == "credit")
+            if (path.Contains("credit-note") || path.EndsWith("/credit") || path.Contains("/credit?") || type?.ToLower() == "creditnote" || type?.ToLower() == "credit")
                 vType = "MemberCreditNote";
-            else if (path.Contains("debit-note") || type?.ToLower() == "debitnote" || type?.ToLower() == "debit")
+            else if (path.Contains("debit-note") || path.EndsWith("/debit") || path.Contains("/debit?") || type?.ToLower() == "debitnote" || type?.ToLower() == "debit")
                 vType = "MemberDebitNote";
 
             try

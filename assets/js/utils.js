@@ -1614,7 +1614,11 @@ async function fetchMasterPersons(pType, societyId) {
         category: cat,
         contact: v.contactNo || v.phone || v.ContactNo || v.Phone || '—',
         cost: parseFloat(v.contractValue || v.contractVal || v.ContractValue || v.cost || 0) || 0,
-        tds: v.tdsSection || v.tdsSec || v.TDSSection || '—',
+        tds: (v.tdsRate !== undefined && v.tdsRate !== null && v.tdsRate !== '')
+             ? (String(v.tdsRate).includes('%') ? String(v.tdsRate) : (parseFloat(v.tdsRate) + '%'))
+             : (v.TDSRate ? (String(v.TDSRate).includes('%') ? String(v.TDSRate) : (parseFloat(v.TDSRate) + '%')) : '0%'),
+        tdsRate: parseFloat(v.tdsRate ?? v.TDSRate ?? v.TdsRate ?? 0) || 0,
+        tdsSec: v.tdsSection || v.tdsSec || v.TDSSection || v.TdsSection || '194C',
         label: (code ? ('[' + code + '] ') : '') + name + (cat ? (' (' + cat + ')') : ''),
         raw: v
       };
@@ -1633,6 +1637,11 @@ async function fetchMasterPersons(pType, societyId) {
         contact: s.contactNo || s.phone || s.ContactNo || s.Phone || '—',
         cost: parseFloat(s.monthlySalary || s.salary || s.MonthlySalary || s.MonthlyCost || 0) || 0,
         status: s.status || s.Status || 'Active',
+        tds: (s.tdsRate !== undefined && s.tdsRate !== null && s.tdsRate !== '')
+             ? (String(s.tdsRate).includes('%') ? String(s.tdsRate) : (parseFloat(s.tdsRate) + '%'))
+             : (s.TDSRate ? (String(s.TDSRate).includes('%') ? String(s.TDSRate) : (parseFloat(s.TDSRate) + '%')) : '0%'),
+        tdsRate: parseFloat(s.tdsRate ?? s.TDSRate ?? s.TdsRate ?? 0) || 0,
+        tdsSec: s.tdsSection || s.tdsSec || s.TDSSection || s.TdsSection || '194J',
         label: (code ? ('[' + code + '] ') : '') + name + (desig ? (' (' + desig + ')') : ''),
         raw: s
       };
@@ -2218,7 +2227,7 @@ function initAccountSearchCombobox(selectId, accountsList) {
 
   // ---- Events ----
   inp.addEventListener('focus', function() {
-    renderList('', true); // Always show all accounts when focusing
+    // Only select text on focus; do not force open dropdown menu automatically
     setTimeout(function() {
       if (document.activeElement === inp && typeof inp.select === 'function') {
         inp.select();
@@ -2367,24 +2376,24 @@ function _setComboValue(selectId, accountId, label) {
   if (sel) {
     var exists = false;
     for (var i = 0; i < sel.options.length; i++) {
-      if (String(sel.options[i].value) === String(accountId)) {
+      if (String(sel.options[i].value) === String(accountId || '')) {
         sel.selectedIndex = i;
         exists = true;
         break;
       }
     }
-    if (!exists) {
+    if (!exists && accountId) {
       var opt = document.createElement('option');
       opt.value = accountId;
       opt.textContent = label;
       opt.selected = true;
       sel.appendChild(opt);
     }
-    sel.value = accountId;
+    sel.value = accountId || '';
     sel.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
-  if (typeof window.showToast === 'function') {
+  if (label && typeof window.showToast === 'function') {
     window.showToast('Account selected: ' + label, 'success');
   }
 }

@@ -1,0 +1,407 @@
+:root {
+  --primary: #0D47A1;
+  --primary-hover: #0b3c8a;
+  --primary-light: #e8f0fe;
+  --primary-text: #ffffff;
+  --border-clr: #cbd5e1;
+  --grid-line: #e2e8f0;
+  --bg-main: #f8fafc;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --badge-bg: #f1f5f9;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body.erp-module {
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-main);
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  color: var(--text-main);
+  overflow: hidden;
+}
+
+/* ── TOP ACTION BAR ────────────────────────────────────── */
+.module-top-bar {
+  background: #ffffff;
+  padding: 8px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border-clr);
+  flex-shrink: 0;
+}
+
+.module-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.module-title-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+  border-radius: 4px;
+}
+
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-top {
+  background: #ffffff;
+  color: var(--primary);
+  border: 1px solid #bfdbfe;
+  padding: 5px 12px;
+  font-size: 11.5px;
+  font-weight: 700;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+}
+
+.btn-top:hover {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary-hover);
+}
+
+.btn-top.primary {
+  background: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+}
+
+.btn-top.primary:hover {
+  background: var(--primary-hover);
+}
+
+/* ── FILTER TOOLBAR ────────────────────────────────────── */
+.filter-bar {
+  background: #ffffff;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border-clr);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.filter-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.filter-lbl {
+  font-size: 10px;
+  font-weight: 800;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.filter-input {
+  height: 28px;
+  padding: 2px 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  background: #ffffff;
+  color: #1e293b;
+  outline: none;
+  transition: all 0.15s;
+}
+
+.filter-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(13,71,161,0.12);
+}
+
+/* Segmented Report Type Button Group */
+.type-segmented-group {
+  display: inline-flex;
+  background: #f1f5f9;
+  padding: 2px;
+  border-radius: 5px;
+  border: 1px solid #cbd5e1;
+  gap: 2px;
+}
+
+.type-btn {
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 4px 12px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #475569;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.type-btn:hover {
+  color: var(--primary);
+  background: rgba(255,255,255,0.7);
+}
+
+.type-btn.active {
+  background: var(--primary);
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+
+/* Sub Group Transition Container */
+.subgroup-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.subgroup-container.hidden {
+  display: none !important;
+}
+
+/* ── TABLE CONTAINER & 16-COL EXCEL GRID ────────────────── */
+.table-container {
+  flex: 1;
+  overflow: auto;
+  background: #ffffff;
+  position: relative;
+}
+
+.ledger-grid {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11.5px;
+  min-width: 1350px;
+}
+
+/* Sticky Header with Excel Grid Style */
+.ledger-grid thead th {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: #f8fafc;
+  color: #1e293b;
+  font-weight: 800;
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.3px;
+  padding: 7px 6px;
+  border: 1px solid #cbd5e1;
+  box-shadow: inset 0 -1px 0 #94a3b8;
+  white-space: nowrap;
+}
+
+.ledger-grid thead th.month-col {
+  text-align: right;
+  width: 82px;
+}
+
+/* Body Cells & Excel Grid Borders */
+.ledger-grid tbody td {
+  padding: 5px 6px;
+  border: 1px solid var(--grid-line);
+  color: #1e293b;
+  vertical-align: middle;
+}
+
+.ledger-grid tbody tr:hover td {
+  background-color: #f1f5f9;
+}
+
+.td-num {
+  text-align: right;
+  font-family: 'Segoe UI', Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.td-center {
+  text-align: center;
+}
+
+.val-negative {
+  color: #dc2626 !important;
+  font-weight: 700;
+}
+
+.val-positive {
+  color: #0f172a;
+}
+
+.val-dim {
+  color: #cbd5e1;
+}
+
+/* Group Header Row */
+.row-section-header td {
+  background: #e2e8f0 !important;
+  color: #0f172a !important;
+  font-weight: 800 !important;
+  font-size: 11.5px;
+  padding: 6px 10px !important;
+  border-top: 1px solid #cbd5e1 !important;
+  border-bottom: 1px solid #cbd5e1 !important;
+}
+
+/* Group Sub-total Row */
+.row-group-subtotal td {
+  background: #f8fafc !important;
+  font-weight: 800 !important;
+  font-size: 11.5px;
+  border-top: 1px solid #94a3b8 !important;
+  border-bottom: 1px solid #94a3b8 !important;
+}
+
+/* Sticky Footer Grand Total */
+.ledger-grid tfoot tr.gt-row td {
+  position: sticky;
+  bottom: 0;
+  z-index: 15;
+  background: #0f172a !important;
+  color: #ffffff !important;
+  font-weight: 800;
+  font-size: 11.5px;
+  padding: 7px 6px;
+  border: 1px solid #334155;
+}
+
+.ledger-grid tfoot tr.gt-row td.td-num {
+  color: #38bdf8 !important;
+}
+
+/* ── PRINT-ONLY REPORT MASTHEAD (HIDDEN ON SCREEN) ─────────────────── */
+.report-masthead {
+  display: none !important;
+  padding: 10px 16px 6px 16px;
+  background: #ffffff;
+  border-bottom: 1px solid var(--border-clr);
+  text-align: center;
+}
+
+.report-soc-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0f172a;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.report-sub-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+  margin-top: 2px;
+}
+
+.report-fy-line {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+/* Print Signature Block */
+.print-signatures {
+  display: none;
+  justify-content: space-between;
+  padding: 40px 30px 10px 30px;
+  background: #ffffff;
+}
+
+/* ── PRINT STYLES ───────────────────────────────────────── */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 8mm 6mm;
+  }
+
+  body.erp-module {
+    height: auto !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+  }
+
+  .module-top-bar,
+  .filter-bar,
+  .no-print {
+    display: none !important;
+  }
+
+  .report-masthead {
+    display: block !important;
+  }
+
+  .table-container {
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  .ledger-grid {
+    min-width: 100% !important;
+    width: 100% !important;
+    font-size: 9.5px !important;
+  }
+
+  .ledger-grid thead th {
+    position: static !important;
+    background: #f1f5f9 !important;
+    color: #000000 !important;
+    padding: 4px 3px !important;
+    font-size: 8.5px !important;
+  }
+
+  .ledger-grid tbody td {
+    padding: 3px 4px !important;
+  }
+
+  .ledger-grid tfoot tr.gt-row td {
+    position: static !important;
+    background: #f1f5f9 !important;
+    color: #000000 !important;
+  }
+
+  .ledger-grid tfoot tr.gt-row td.td-num {
+    color: #000000 !important;
+  }
+
+  .print-signatures {
+    display: flex !important;
+    page-break-inside: avoid;
+  }
+}

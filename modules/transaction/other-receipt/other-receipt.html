@@ -14,6 +14,47 @@
       font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #ffffff; color: #1e293b;
     }
 
+    /* MINI TOGGLE SWITCH */
+    .ore-mini-toggle {
+      position: relative;
+      display: inline-block;
+      width: 26px;
+      height: 14px;
+      cursor: pointer;
+      vertical-align: middle;
+      user-select: none;
+    }
+    .ore-mini-toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .ore-mini-slider {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #cbd5e1;
+      border-radius: 14px;
+      transition: all 0.2s ease;
+    }
+    .ore-mini-slider:before {
+      position: absolute;
+      content: "";
+      height: 10px;
+      width: 10px;
+      left: 2px;
+      bottom: 2px;
+      background-color: #ffffff;
+      border-radius: 50%;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.25);
+      transition: all 0.2s ease;
+    }
+    .ore-mini-toggle input:checked + .ore-mini-slider {
+      background-color: #0284c7;
+    }
+    .ore-mini-toggle input:checked + .ore-mini-slider:before {
+      transform: translateX(12px);
+    }
+
     .module-header {
       background: #ffffff;
       padding: 10px 16px 8px;
@@ -357,10 +398,10 @@
             </button>
             <div style="display:flex; align-items:center; gap:4px; margin-left:6px; border-left:1px solid #cbd5e1; padding-left:8px;" title="Quickly calculate & add TDS Receivable (ASS-1026) Debit deduction">
               <span class="form-label form-label-orange" style="margin-bottom:0; font-size:10px; white-space:nowrap; font-weight:800;">+ TDS DEDUCTION:</span>
-              <button type="button" onclick="quickApplyTds(1)" class="erp-btn erp-btn-sm" style="font-size:10px; font-weight:800; padding:2px 7px; background:#fff7ed; border:1px solid #fdba74; color:#c2410c; cursor:pointer;" title="Add 1% TDS Receivable (Debit)">1%</button>
-              <button type="button" onclick="quickApplyTds(2)" class="erp-btn erp-btn-sm" style="font-size:10px; font-weight:800; padding:2px 7px; background:#fff7ed; border:1px solid #fdba74; color:#c2410c; cursor:pointer;" title="Add 2% TDS Receivable (Debit)">2%</button>
-              <button type="button" onclick="quickApplyTds(5)" class="erp-btn erp-btn-sm" style="font-size:10px; font-weight:800; padding:2px 7px; background:#fff7ed; border:1px solid #fdba74; color:#c2410c; cursor:pointer;" title="Add 5% TDS Receivable (Debit)">5%</button>
-              <button type="button" onclick="quickApplyTds(10)" class="erp-btn erp-btn-sm" style="font-size:10px; font-weight:800; padding:2px 7px; background:#fff7ed; border:1px solid #fdba74; color:#c2410c; cursor:pointer;" title="Add 10% TDS Receivable (Debit)">10%</button>
+              <button type="button" id="btn-tds-1" data-rate="1" onclick="quickApplyTds(1)" class="erp-btn erp-btn-sm btn-tds-fixed-opt" style="font-size:10px; font-weight:800; padding:2px 7px; background:#fff7ed; border:1px solid #fdba74; color:#c2410c; cursor:pointer;" title="Add 1% TDS Receivable (Debit)">1%</button>
+              <button type="button" id="btn-tds-2" data-rate="2" onclick="quickApplyTds(2)" class="erp-btn erp-btn-sm btn-tds-fixed-opt" style="font-size:10px; font-weight:800; padding:2px 7px; background:#fff7ed; border:1px solid #fdba74; color:#c2410c; cursor:pointer;" title="Add 2% TDS Receivable (Debit)">2%</button>
+              <button type="button" id="btn-tds-10" data-rate="10" onclick="quickApplyTds(10)" class="erp-btn erp-btn-sm btn-tds-fixed-opt" style="font-size:10px; font-weight:800; padding:2px 7px; background:#fff7ed; border:1px solid #fdba74; color:#c2410c; cursor:pointer;" title="Add 10% TDS Receivable (Debit)">10%</button>
+              <button type="button" id="btn-custom-tds" onclick="quickApplyCustomTds()" class="erp-btn erp-btn-sm" style="display:none; font-size:10px; font-weight:800; padding:2px 8px; background:#eff6ff; border:1px solid #2563eb; color:#1d4ed8; cursor:pointer;" title="Apply Person Custom TDS"></button>
             </div>
           </div>
         </div>
@@ -507,8 +548,17 @@
           </div>
           <div style="display:flex; gap:8px;">
             <div style="flex:1;">
-              <label class="form-label">TDS %</label>
-              <input type="text" class="form-inp" id="sb-tds" placeholder="%">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
+                <label class="form-label" style="margin:0;">TDS %</label>
+                <div style="display:inline-flex; align-items:center; gap:3px;" title="Toggle to show this % button in + TDS DEDUCTION bar">
+                  <span style="font-size:9px; font-weight:700; color:#64748b;" id="toggle-lbl">SHOW</span>
+                  <label class="ore-mini-toggle">
+                    <input type="checkbox" id="toggle-custom-tds" onchange="onCustomTdsToggleChange(this.checked)">
+                    <span class="ore-mini-slider"></span>
+                  </label>
+                </div>
+              </div>
+              <input type="text" class="form-inp" id="sb-tds" placeholder="%" oninput="onCustomTdsInputChange(this.value)">
             </div>
             <div style="flex:1.4;">
               <label class="form-label">TDS SECTION CODE</label>
@@ -520,9 +570,9 @@
           <div style="border:1px solid #e2e8f0; border-radius:4px; overflow:hidden; background:#ffffff;">
             <div onclick="toggleMoreInfo()" style="background:#f1f5f9; padding:6px 10px; font-size:10.5px; font-weight:800; color:#1e293b; display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
               <span>More Info</span>
-              <span id="more-info-toggle-icon" style="font-weight:800;">-</span>
+              <span id="more-info-toggle-icon" style="font-weight:800;">+</span>
             </div>
-            <div id="more-info-body" style="padding:8px; display:flex; flex-direction:column; gap:6px;">
+            <div id="more-info-body" style="padding:8px; display:none; flex-direction:column; gap:6px;">
               <div>
                 <label class="form-label">GSTIN NO</label>
                 <input type="text" class="form-inp" id="sb-gstin" placeholder="GSTIN No.">

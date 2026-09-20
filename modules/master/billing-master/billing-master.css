@@ -10,21 +10,22 @@
   color: #424242 !important;
 }
 
-/* Modern Flat Toolbar */
+/* Modern Flat Toolbar — Custom Executive Styling */
 .bm-toolbar {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 14px;
-  background: #1565C0;
-  border: none;
+  padding: 7px 16px;
+  background-color: #F7FAFF;
+  border-bottom: 2px solid #DCEBFF;
   flex-shrink: 0;
 }
 
 .bm-toolbar-sep {
   width: 1px;
-  height: 20px;
-  background: rgba(255, 255, 255, 0.2);
+  height: 22px;
+  background-color: #DCEBFF;
+  border-color: #DCEBFF;
   margin: 0 4px;
 }
 
@@ -64,27 +65,38 @@
 }
 
 .bm-toolbar .bm-btn-modern {
-  color: #FFF;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #1E293B;
+  background-color: #FFFFFF;
+  border: 1px solid #DCEBFF;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  font-weight: 700;
+  transition: all 0.15s ease;
 }
 
 .bm-toolbar .bm-btn-modern:hover {
-  background: #FFFFFF;
-  color: #1565C0;
-  border-color: #FFFFFF;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  background-color: #EFF6FF;
+  color: #1D4ED8;
+  border-color: #93C5FD;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.12);
+}
+
+.bm-toolbar .bm-btn-modern:active,
+.bm-toolbar .bm-btn-modern.pressed {
+  background-color: #DBEAFE;
+  color: #1E40AF;
+  border-color: #3B82F6;
 }
 
 .bm-btn-modern.btn-danger {
   color: #FFF !important;
-  background: #D32F2F !important;
-  border-color: #D32F2F !important;
+  background: #DC2626 !important;
+  border-color: #DC2626 !important;
 }
 
 .bm-btn-modern.btn-danger:hover {
-  background: #C62828 !important;
-  border-color: #C62828 !important;
+  background: #B91C1C !important;
+  border-color: #B91C1C !important;
+  color: #FFF !important;
 }
 
 /* Stacked Toolbar Buttons */
@@ -105,6 +117,15 @@
   border-radius: 3px !important;
   letter-spacing: 0.2px !important;
   gap: 4px !important;
+  background-color: #FFFFFF !important;
+  color: #0284C7 !important;
+  border: 1px solid #DCEBFF !important;
+}
+
+.bm-toolbar .bm-btn-compact:hover {
+  background-color: #F0F9FF !important;
+  color: #0369A1 !important;
+  border-color: #93C5FD !important;
 }
 
 /* Dropdown Menus */
@@ -316,3 +337,61 @@ input[type="number"] {
   appearance: textfield;
 }
 
+/* ── Dynamic Import Modal & Preview Styling ── */
+.bm-import-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  border: 2px dashed #93C5FD;
+  background: #F8FAFC;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.bm-import-dropzone:hover,
+.bm-import-dropzone.dragover {
+  border-color: #2563EB;
+  background: #EFF6FF;
+}
+
+.bm-badge {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.bm-badge-success { background: #DCFCE7; color: #15803D; }
+.bm-badge-warning { background: #FEF3C7; color: #B45309; }
+.bm-badge-danger  { background: #FEE2E2; color: #B91C1C; }
+
+#bm-import-preview-table th {
+  padding: 8px 10px;
+  border: 1px solid #CBD5E1;
+  background: #E2E8F0;
+  color: #1E293B;
+  font-weight: 800;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+#bm-import-preview-table td {
+  padding: 6px 10px;
+  border: 1px solid #E2E8F0;
+  white-space: nowrap;
+  font-size: 11px;
+}
+
+#bm-import-preview-table tr:nth-child(even) {
+  background-color: #F8FAFC;
+}
+
+#bm-import-preview-table tr.row-invalid {
+  background-color: #FEF2F2 !important;
+}

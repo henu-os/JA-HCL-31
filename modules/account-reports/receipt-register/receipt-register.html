@@ -7,35 +7,181 @@
   <script src="../../../config.js"></script>
   <link rel="stylesheet" href="../../../assets/css/global.css">
   <link rel="stylesheet" href="../../../assets/css/components.css">
+  <link rel="stylesheet" href="receipt-register.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 </head>
 <body class="erp-module">
-  <div class="erp-module-header">
-    <div>
-      <div class="erp-module-title">Receipt Register (Complete Collections Log)</div>
-      
+
+  <!-- ── Top Action & Filter Toolbar ───────────────────────────────────────── -->
+  <div class="reg-toolbar">
+    <div class="reg-filter-group">
+      <!-- Period Preset -->
+      <div class="reg-filter-item">
+        <label for="datePresetSelect"><i class="bi bi-clock-history"></i> Period:</label>
+        <select id="datePresetSelect" class="reg-select" onchange="applyDatePreset(this.value)">
+          <option value="all">All Dates</option>
+          <option value="full" selected>Full Financial Year</option>
+          <option value="this-month">This Month</option>
+          <option value="last-month">Last Month</option>
+          <option value="q1">Q1 (Apr - Jun)</option>
+          <option value="q2">Q2 (Jul - Sep)</option>
+          <option value="q3">Q3 (Oct - Dec)</option>
+          <option value="q4">Q4 (Jan - Mar)</option>
+          <option value="custom">Custom Range</option>
+        </select>
+      </div>
+
+      <!-- Date Range Pickers -->
+      <div class="reg-filter-item">
+        <label for="fromDate"><i class="bi bi-calendar3"></i> From:</label>
+        <input type="date" id="fromDate" class="reg-input" style="width:120px;" onchange="onDateChange()">
+      </div>
+      <div class="reg-filter-item">
+        <label for="toDate">To:</label>
+        <input type="date" id="toDate" class="reg-input" style="width:120px;" onchange="onDateChange()">
+      </div>
+
+      <!-- Account Filter Dropdown -->
+      <div class="reg-filter-item">
+        <label for="accountSelect"><i class="bi bi-bank"></i> Bank/Cash:</label>
+        <select id="accountSelect" class="reg-select" style="max-width:210px;" onchange="loadReceiptRegister()">
+          <option value="all">All Cash &amp; Bank Accounts</option>
+        </select>
+      </div>
+
+      <!-- Account Code / Voucher No Toggle -->
+      <div class="reg-filter-item">
+        <input type="checkbox" id="chk-voucher-no" checked onchange="renderRegisterView()">
+        <label for="chk-voucher-no" title="Toggle display of Account Head Codes">Voucher No. / Code</label>
+      </div>
+
+      <!-- Live Search Box -->
+      <div class="reg-search-box">
+        <i class="bi bi-search"></i>
+        <input type="text" id="searchInput" placeholder="Search payer, head, ref..." onkeyup="filterTable()">
+      </div>
     </div>
-    <button class="erp-btn" onclick="window.print()"><i class="bi bi-printer"></i> Print Register</button>
+
+    <!-- Action Buttons -->
+    <div style="display:flex; align-items:center; gap:8px;">
+      <button class="reg-btn reg-btn-primary" onclick="loadReceiptRegister()" title="Refresh records from server">
+        <i class="bi bi-arrow-clockwise"></i> Refresh
+      </button>
+      <button class="reg-btn" onclick="printRegister()" title="Print statutory receipt register">
+        <i class="bi bi-printer"></i> Print
+      </button>
+      <button class="reg-btn reg-btn-success" onclick="exportToExcel()" title="Export register to Excel .xlsx">
+        <i class="bi bi-file-earmark-excel"></i> Export Excel
+      </button>
+    </div>
   </div>
 
-  <div class="erp-module-body" style="padding:0;">
-    <div class="erp-table-container" style="height:100%;border:none;">
-      <table class="erp-table striped" id="rrTable">
+  <!-- ── Top KPI Stat Summary Cards ─────────────────────────────────────────── -->
+  <div class="reg-kpi-bar">
+    <div class="reg-kpi-card">
+      <div class="reg-kpi-icon" style="background:#eff6ff; color:#1d4ed8;">
+        <i class="bi bi-receipt"></i>
+      </div>
+      <div class="reg-kpi-info">
+        <div class="reg-kpi-label">Receipt Vouchers</div>
+        <div class="reg-kpi-value" id="kpiTotalVouchers">0</div>
+      </div>
+    </div>
+
+    <div class="reg-kpi-card">
+      <div class="reg-kpi-icon" style="background:#f0fdf4; color:#16a34a;">
+        <i class="bi bi-arrow-down-left-circle"></i>
+      </div>
+      <div class="reg-kpi-info">
+        <div class="reg-kpi-label">Total Collections</div>
+        <div class="reg-kpi-value" id="kpiTotalAmount">₹ 0.00</div>
+      </div>
+    </div>
+
+    <div class="reg-kpi-card">
+      <div class="reg-kpi-icon" style="background:#f0fdf4; color:#059669;">
+        <i class="bi bi-bank2"></i>
+      </div>
+      <div class="reg-kpi-info">
+        <div class="reg-kpi-label">Bank Inflow</div>
+        <div class="reg-kpi-value" id="kpiBankAmount">₹ 0.00</div>
+      </div>
+    </div>
+
+    <div class="reg-kpi-card">
+      <div class="reg-kpi-icon" style="background:#fffbeb; color:#d97706;">
+        <i class="bi bi-cash-stack"></i>
+      </div>
+      <div class="reg-kpi-info">
+        <div class="reg-kpi-label">Cash Received</div>
+        <div class="reg-kpi-value" id="kpiCashAmount">₹ 0.00</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Scrollable Body Area ───────────────────────────────────────────────── -->
+  <div class="reg-scroll-wrapper">
+    <div class="reg-card-container">
+
+      <!-- Print-Only Statutory Society Header (Hidden on Screen) -->
+      <div class="reg-print-header">
+        <div class="reg-print-soc-name" id="prtSocName">SHREE SAI USHA COMPLEX CO-OP. HOUSING SOCIETY LTD.</div>
+        <div class="reg-print-soc-sub" id="prtSocSub">Registration No: BOM/HSG/0000 | Mumbai</div>
+        <div class="reg-print-title">
+          Receipt Voucher Register from <span id="prtFromDate">—</span> to <span id="prtToDate">—</span>
+        </div>
+      </div>
+
+      <!-- Master-Detail Table -->
+      <table class="reg-table" id="regMainTable">
         <thead>
           <tr>
-            <th style="width:40px;" class="td-center">#</th>
-            <th style="width:100px;">Receipt No</th>
-            <th style="width:90px;">Date</th>
-            <th>Received Into Account</th>
-            <th>Payer Particulars</th>
-            <th class="text-right" style="width:120px;">Amount (₹)</th>
+            <th style="width:95px;" class="td-center">Date</th>
+            <th style="min-width:145px;" class="td-center">Voucher No.</th>
+            <th>Account Head &amp; Particulars</th>
+            <th class="td-amt" style="text-align:right;">Debit (₹)</th>
+            <th class="td-amt" style="text-align:right;">Credit (₹)</th>
           </tr>
         </thead>
-        <tbody id="rrBody"></tbody>
+        <tbody id="regTableBody">
+          <tr>
+            <td colspan="5" class="td-center text-muted" style="padding:40px;">
+              <i class="bi bi-arrow-repeat spin" style="font-size:20px;display:block;margin-bottom:8px;"></i>
+              Loading Receipt Register records...
+            </td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="3" class="foot-tot-label" style="text-align:right; padding-right:16px;">
+              TOTAL COLLECTIONS (BALANCED)
+            </td>
+            <td class="td-amt" id="footTotDebit" style="font-weight:800;">₹ 0.00</td>
+            <td class="td-amt" id="footTotCredit" style="font-weight:800;">₹ 0.00</td>
+          </tr>
+        </tfoot>
       </table>
+
+      <!-- Status Bar -->
+      <div id="balancedBanner" class="reg-balanced-bar">
+        <span><i class="bi bi-shield-check"></i> Register Double-Entry is Perfectly Balanced (₹ 0.00 difference)</span>
+        <span id="recordCountLabel">0 Vouchers Displayed</span>
+      </div>
+      <div id="diffBanner" class="reg-discrepancy-bar" style="display:none;">
+        <span><i class="bi bi-exclamation-triangle-fill"></i> Discrepancy Detected between Debit and Credit</span>
+        <span id="diffAmountLabel">Diff: ₹ 0.00</span>
+      </div>
+
     </div>
   </div>
 
+  <!-- xlsx-js-style for rich-styled Excel workbook generation -->
+  <script src="../../../assets/js/xlsx-js-style.bundle.js"></script>
+  <script>
+    if (typeof XLSX === 'undefined' || !XLSX.writeFile) {
+      document.write('<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"><\/script>');
+    }
+  </script>
   <script src="../../../assets/js/api.js"></script>
   <script src="../../../assets/js/auth.js"></script>
   <script src="../../../assets/js/utils.js"></script>

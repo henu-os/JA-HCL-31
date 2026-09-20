@@ -192,8 +192,8 @@ async function loadOutstandingData() {
       isAll 
         ? Promise.all(availableBillTypes.filter(bt => bt.toUpperCase() !== 'ALL').map(bt => API.get(`/opening-balances/member?societyId=${societyId}&fyId=${fyId}&billType=${encodeURIComponent(bt)}`).catch(() => ({ data: [] }))))
         : API.get(`/opening-balances/member?societyId=${societyId}&fyId=${fyId}&billType=${encodeURIComponent(billType)}`).catch(() => ({ data: [] })),
-      API.get(`/member-notes/credit?societyId=${societyId}&fyId=${fyId}`).catch(() => ({ data: [] })),
-      API.get(`/member-notes/debit?societyId=${societyId}&fyId=${fyId}`).catch(() => ({ data: [] })),
+      API.get(`/member-credit-notes?societyId=${societyId}&fyId=${fyId}`).catch(() => ({ data: [] })),
+      API.get(`/member-debit-notes?societyId=${societyId}&fyId=${fyId}`).catch(() => ({ data: [] })),
       API.get(`/receipt-reversals?societyId=${societyId}&fyId=${fyId}`).catch(() => ({ data: [] }))
     ]);
 

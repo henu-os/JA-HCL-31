@@ -72,47 +72,79 @@
       </div>
     </div>
 
-    <!-- FORM STATE -->
+    <!-- FORM STATE (2-Column Layout) -->
     <div id="gm-form-state">
-      <div class="gm-frame">
-        <div class="gm-frame-title" id="gm-frame-title">Group Record Viewer</div>
-        <div class="gm-frame-body">
-          <input type="hidden" id="gm-edit-id" value="0">
+      <div class="gm-form-layout">
 
-          <div class="gm-form-row">
-            <label>Group Code *</label>
-            <input type="text" id="gm-code" class="gm-input" maxlength="20" placeholder="Auto-generated if empty" disabled>
-          </div>
+        <!-- Left Column: Group Configuration -->
+        <div class="gm-frame gm-form-panel">
+          <div class="gm-frame-title" id="gm-frame-title">Group Record Viewer</div>
+          <div class="gm-frame-body">
+            <input type="hidden" id="gm-edit-id" value="0">
 
-          <div class="gm-form-row">
-            <label>Group Name *</label>
-            <input type="text" id="gm-name" class="gm-input" maxlength="80" placeholder="Enter Group Name" disabled>
-          </div>
-
-          <div class="gm-form-row">
-            <label>Main Group *</label>
-            <select id="gm-mainid" class="gm-select" disabled>
-              <option value="">— Select Main Group —</option>
-              <option value="3">Income</option>
-              <option value="4">Expenditure</option>
-              <option value="1">Asset</option>
-              <option value="2">Liability</option>
-            </select>
-          </div>
-
-          <div style="border-top:1px dashed #cbd5e1;padding-top:12px;">
-            <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-weight:600;font-size:11px;color:#334155;">
-              <input type="checkbox" id="gm-subtotal" disabled style="accent-color:#1565C0;"> PRINT SUB-TOTAL IN REPORTS
-            </label>
-          </div>
-
-          <div class="gm-info-box">
-            <div class="gm-info-title">
-              <i class="bi bi-info-circle-fill"></i> ACCOUNTING LOGIC
+            <div class="gm-form-row">
+              <label>Group Code *</label>
+              <input type="text" id="gm-code" class="gm-input" maxlength="20" placeholder="Auto-generated if empty" disabled>
             </div>
-            <div>Groups classify multiple Ledgers. Primary Group matches Group Name for base categories, while Main Group determines placement in Trial Balance, Profit &amp; Loss, and Balance Sheet reports. Default groups are protected system records.</div>
+
+            <div class="gm-form-row">
+              <label>Group Name *</label>
+              <input type="text" id="gm-name" class="gm-input" maxlength="80" placeholder="Enter Group Name" disabled>
+            </div>
+
+            <div class="gm-form-row">
+              <label>Main Group *</label>
+              <select id="gm-mainid" class="gm-select" disabled onchange="gmOnMainGroupChange()">
+                <option value="">— Select Main Group —</option>
+                <option value="3">Income</option>
+                <option value="4">Expenditure</option>
+                <option value="1">Asset</option>
+                <option value="2">Liability</option>
+              </select>
+            </div>
+
+            <!-- TOGGLE SWITCH -->
+            <div class="gm-toggle-section">
+              <label class="gm-switch-wrap" for="gm-subtotal">
+                <span class="gm-switch">
+                  <input type="checkbox" id="gm-subtotal" disabled onchange="gmUpdateToggleStatus()">
+                  <span class="gm-slider round"></span>
+                </span>
+                <span class="gm-toggle-texts">
+                  <span class="gm-toggle-title">PRINT SUB-TOTAL IN REPORTS</span>
+                  <span class="gm-toggle-subtitle">Include category subtotal rows in financial statements</span>
+                </span>
+              </label>
+              <span class="gm-toggle-badge" id="gm-toggle-badge">NO</span>
+            </div>
+
+            <div class="gm-info-box">
+              <div class="gm-info-title">
+                <i class="bi bi-info-circle-fill"></i> ACCOUNTING LOGIC
+              </div>
+              <div>Groups classify multiple Ledgers. Primary Group matches Group Name for base categories, while Main Group determines placement in Trial Balance, Profit &amp; Loss, and Balance Sheet reports. Default groups are protected system records.</div>
+            </div>
           </div>
         </div>
+
+        <!-- Right Column: Linked Accounts Under Group -->
+        <div class="gm-frame gm-accounts-panel">
+          <div class="gm-frame-title gm-accounts-title">
+            <div class="gm-acc-header-left">
+              <i class="bi bi-diagram-3-fill"></i>
+              <span>ACCOUNTS UNDER THIS GROUP</span>
+              <span class="gm-badge-count" id="gm-acc-count">0 Accounts</span>
+            </div>
+            <div class="gm-acc-search-box">
+              <i class="bi bi-search"></i>
+              <input type="text" id="gm-acc-search" placeholder="Filter accounts..." oninput="gmFilterLinkedAccounts()" autocomplete="off">
+            </div>
+          </div>
+          <div class="gm-accounts-container" id="gm-accounts-container">
+            <!-- Dynamically populated in group-master.js -->
+          </div>
+        </div>
+
       </div>
     </div>
 

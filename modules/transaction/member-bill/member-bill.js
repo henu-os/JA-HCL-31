@@ -12,6 +12,17 @@
   var billTypes = [];
   var activeBillType = 'MAINTENANCE'; // Default active tab is MAINTENANCE
   var selectedBillId = null;
+  var societyGstSettings = null;
+
+  async function loadSocietyGstSettings() {
+    var sid = getActiveSocietyId();
+    try {
+      var res = await fetchApiData('/api/gst-master/settings?societyId=' + sid);
+      if (res && (res.gstApplicable !== undefined || (res.data && res.data.gstApplicable !== undefined))) {
+        societyGstSettings = res.data || res;
+      }
+    } catch (e) {}
+  }
 
   function toast(msg, ok) {
     if (typeof window.showToast === 'function') {
@@ -88,6 +99,7 @@
     var fyEl = document.getElementById('mbFyLabel');
     if (fyEl) fyEl.textContent = getFyLabel();
 
+    await loadSocietyGstSettings();
     await loadBillTypes();
     await loadMembers();
     await loadBills();
@@ -862,7 +874,9 @@
               srNo: h.srNo || (idx + 1),
               accountCode: h.accCode || h.accountCode || h.MasterCode || 'ACC-' + (100 + idx),
               accountName: h.accName || h.accountName || h.MasterName || 'Charge Head ' + (idx + 1),
-              defaultAmt: h.defaultAmt || 0.00
+              defaultAmt: h.defaultAmt || 0.00,
+              gstApp: h.gstApp === true || h.gstApplicable === true,
+              gstExm: h.gstExm === true || h.gstExempted === true
             };
           });
         }
@@ -881,7 +895,9 @@
                 srNo: idx + 1,
                 accountCode: a.accCode || a.accountCode || ('ACC-' + (100 + idx)),
                 accountName: a.accName || a.accountName || ('Head ' + (idx + 1)),
-                defaultAmt: 0.00
+                defaultAmt: 0.00,
+                gstApp: false,
+                gstExm: false
               };
             });
         }
@@ -921,11 +937,15 @@
           if (match) amt = Math.round(parseFloat(match.amount) || 0);
         }
 
+        var isCgst = (code.toUpperCase() === 'LIA-1032' || name.toLowerCase().indexOf('cgst') !== -1);
+        var isSgst = (code.toUpperCase() === 'LIA-1033' || name.toLowerCase().indexOf('sgst') !== -1);
+        var isTax = isCgst || isSgst;
+
         html += '<tr>' +
           '<td style="text-align:center; font-weight:bold; color:#64748b;">' + sr + '</td>' +
-          '<td style="font-weight:700; color:#1565C0;">' + code + '</td>' +
-          '<td style="font-weight:600;">' + name + '</td>' +
-          '<td><input type="number" step="1" class="inp-grid-amt" data-index="' + idx + '" data-account-code="' + code + '" data-account-name="' + name + '" value="' + Math.round(amt) + '" oninput="recalcFormTotal()" onkeydown="handleGridNav(event, ' + idx + ')"></td>' +
+          '<td style="font-weight:700; color:' + (isTax ? '#059669' : '#1565C0') + ';">' + code + '</td>' +
+          '<td style="font-weight:600;">' + name + (isTax ? ' <span style="font-size:10px; font-weight:700; color:#059669; background:#ecfdf5; padding:2px 6px; border-radius:4px; margin-left:4px;">AUTO TAX</span>' : '') + '</td>' +
+          '<td><input type="number" step="1" class="inp-grid-amt" data-index="' + idx + '" data-account-code="' + code + '" data-account-name="' + name + '" data-gst-app="' + (h.gstApp ? 'true' : 'false') + '" data-gst-exm="' + (h.gstExm ? 'true' : 'false') + '" data-is-cgst="' + (isCgst ? 'true' : 'false') + '" data-is-sgst="' + (isSgst ? 'true' : 'false') + '" value="' + Math.round(amt) + '" oninput="recalcFormTotal()" onkeydown="handleGridNav(event, ' + idx + ')" style="' + (isTax ? 'background:#f0fdf4; font-weight:700; color:#059669;' : '') + '"></td>' +
           '</tr>';
       });
     }
@@ -963,13 +983,77 @@
 
   window.recalcFormTotal = function () {
     var inputs = document.querySelectorAll('.inp-grid-amt');
-    var sum = 0;
+    var baseSum = 0;
+    var gstAppSum = 0;
+    var gstExmSum = 0;
+    var interestSum = 0;
+    var cgstInput = null;
+    var sgstInput = null;
+
     inputs.forEach(function (inp) {
-      sum += Math.round(parseFloat(inp.value) || 0);
+      var code = (inp.getAttribute('data-account-code') || '').toUpperCase();
+      var name = (inp.getAttribute('data-account-name') || '').toLowerCase();
+      var isCgst = inp.getAttribute('data-is-cgst') === 'true' || code === 'LIA-1032' || name.indexOf('cgst') !== -1;
+      var isSgst = inp.getAttribute('data-is-sgst') === 'true' || code === 'LIA-1033' || name.indexOf('sgst') !== -1;
+      var isInt = code === 'INC-1008' || (name === 'interest' && code !== 'INC-1009');
+
+      if (isCgst) {
+        cgstInput = inp;
+        return;
+      }
+      if (isSgst) {
+        sgstInput = inp;
+        return;
+      }
+
+      var val = Math.round(parseFloat(inp.value) || 0);
+      if (isInt) {
+        interestSum += val;
+      } else {
+        baseSum += val;
+        var isApp = inp.getAttribute('data-gst-app') === 'true';
+        var isExm = inp.getAttribute('data-gst-exm') === 'true';
+        if (isApp) gstAppSum += val;
+        else if (isExm) gstExmSum += val;
+      }
     });
 
+    var cgstVal = 0;
+    var sgstVal = 0;
+    if (societyGstSettings && (societyGstSettings.gstApplicable === true || societyGstSettings.gstApplicable === 'true')) {
+      var cgstPct = parseFloat(societyGstSettings.cgstPct) || 9;
+      var sgstPct = parseFloat(societyGstSettings.sgstPct) || 9;
+      var exemptLimit = parseFloat(societyGstSettings.exemptLimit) || 7500;
+
+      var taxableBase = 0;
+      if (gstAppSum > 0 || gstExmSum > 0) {
+        if ((gstAppSum + gstExmSum) > exemptLimit) {
+          taxableBase = (gstAppSum + gstExmSum);
+        } else {
+          taxableBase = gstAppSum;
+        }
+      } else if (baseSum > 0) {
+        if (exemptLimit <= 0 || baseSum > exemptLimit) {
+          taxableBase = baseSum;
+        }
+      }
+
+      if (taxableBase > 0) {
+        cgstVal = Math.round(taxableBase * (cgstPct / 100));
+        sgstVal = Math.round(taxableBase * (sgstPct / 100));
+      }
+    }
+
+    if (cgstInput) {
+      cgstInput.value = cgstVal;
+    }
+    if (sgstInput) {
+      sgstInput.value = sgstVal;
+    }
+
+    var grandTotal = baseSum + interestSum + cgstVal + sgstVal;
     var totEl = document.getElementById('frm-total-amount');
-    if (totEl) totEl.textContent = '₹' + Math.round(sum).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+    if (totEl) totEl.textContent = '₹' + Math.round(grandTotal).toLocaleString('en-IN', { minimumFractionDigits: 2 });
   };
 
   window.appendParticularTag = function (lineNo) {

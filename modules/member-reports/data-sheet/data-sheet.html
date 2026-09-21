@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Member Data Sheet — JEEVIKA ERP</title>
+  <script src="../../../config.js"></script>
+  <link rel="stylesheet" href="../../../assets/css/global.css">
+  <link rel="stylesheet" href="../../../assets/css/components.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body class="erp-module">
+  <div class="erp-module-header">
+    <div>
+      <div class="erp-module-title">Member Data Sheet</div>
+      
+    </div>
+    <button class="erp-btn erp-btn-primary" onclick="refreshData()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+  </div>
+
+  <div class="erp-search-bar">
+    <input type="text" id="searchInput" class="erp-input erp-search-input" placeholder="🔍 Search..." onkeyup="filterTable()">
+    <div class="erp-record-count" id="recordCount">Total: 0</div>
+  </div>
+
+  <div class="erp-module-body" style="padding:0;">
+    <div class="erp-table-container" style="height:100%;border:none;">
+      <table class="erp-table striped" id="mainTable">
+        <thead>
+          <tr>
+            <th style="width:40px;" class="td-center">#</th>
+            <th>Particulars / Description</th>
+            <th style="width:120px;" class="td-center">Reference</th>
+            <th style="width:120px;" class="td-center">Status</th>
+          </tr>
+        </thead>
+        <tbody id="mainTableBody">
+          <tr>
+            <td colspan="4" class="text-center text-muted" style="padding:30px;">
+              Module initialized. Live data will be loaded here.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="../../../assets/js/api.js"></script>
+  <script src="../../../assets/js/auth.js"></script>
+  <script src="../../../assets/js/utils.js"></script>
+  <script src="data-sheet.js"></script>
+</body>
+</html>

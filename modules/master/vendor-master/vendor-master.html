@@ -1,0 +1,1806 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vendor Master — JEEVIKA ERP</title>
+  <script src="../../../config.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 12px;
+      background: #f4f6f9;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #vendor-master-panel {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    /* MODULE HEADER */
+    .vendor-header {
+      background: #fff;
+      padding: 8px 14px 6px;
+      border-bottom: 1px solid #ccc;
+      flex-shrink: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .vendor-header h2 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1a1a2e;
+      letter-spacing: 0.2px;
+      margin: 0 0 2px 0;
+    }
+
+    .vendor-header .subtitle {
+      font-size: 10px;
+      color: #555;
+      letter-spacing: 0.2px;
+    }
+
+    .vendor-header .tag {
+      font-size: 10px;
+      color: #666;
+      font-style: italic;
+      margin-top: 4px;
+    }
+
+    /* TOP COMMAND STRIP */
+    .vendor-cmd-strip {
+      background: #f5f5f5;
+      border-bottom: 1px solid #ccc;
+      padding: 5px 14px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .vendor-cmd-strip .sep {
+      border-right: 1px solid #bbb;
+      height: 16px;
+      margin: 0 5px;
+    }
+
+    .cmd-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      background: #fff;
+      border: 1px solid #bbb;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: #333;
+      cursor: pointer;
+      border-radius: 2px;
+      white-space: nowrap;
+      font-family: inherit;
+      transition: background 0.1s;
+    }
+
+    .cmd-btn:hover {
+      background: #e8f0fe;
+      border-color: #5a9be8;
+      color: #1565C0;
+    }
+
+    .cmd-btn.primary {
+      color: #1565C0;
+      border-color: #1565C0;
+    }
+
+    .cmd-btn.primary:hover {
+      background: #1565C0;
+      color: #fff;
+    }
+
+    .cmd-btn.danger:hover {
+      background: #fde8e8;
+      border-color: #e53e3e;
+      color: #C62828;
+    }
+
+    .cmd-btn-exit {
+      margin-left: auto;
+      background: #fff;
+      border: 1px solid #bbb;
+      color: #555;
+    }
+
+    .cmd-btn-exit:hover {
+      background: #fff3cd;
+      border-color: #e0a800;
+      color: #856404;
+    }
+
+    /* OTHER DROPDOWN */
+    .vendor-dropdown {
+      position: relative;
+      display: inline-block;
+    }
+
+    .vendor-dropdown-content {
+      display: none;
+      position: absolute;
+      top: 28px;
+      left: 0;
+      background: #fff;
+      border: 1px solid #bbb;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      z-index: 500;
+      min-width: 190px;
+      border-radius: 2px;
+    }
+
+    .vendor-dropdown-content a {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      color: #333;
+      text-decoration: none;
+      font-size: 11.5px;
+      font-weight: 600;
+      border-bottom: 1px solid #eee;
+    }
+
+    .vendor-dropdown-content a:last-child {
+      border-bottom: none;
+    }
+
+    .vendor-dropdown-content a:hover {
+      background: #e8f0fe;
+      color: #1565C0;
+    }
+
+    .vendor-dropdown:hover .vendor-dropdown-content {
+      display: block;
+    }
+
+    /* SEARCH STRIP */
+    .vendor-search-strip {
+      background: #eef2f7;
+      border-bottom: 1px solid #ccc;
+      padding: 5px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .vendor-search-input {
+      height: 24px;
+      padding: 0 8px;
+      font-size: 11.5px;
+      border: 1px solid #bbb;
+      border-radius: 2px;
+      outline: none;
+      width: 220px;
+    }
+
+    .vendor-select-filter {
+      height: 24px;
+      padding: 0 6px;
+      font-size: 11.5px;
+      border: 1px solid #bbb;
+      border-radius: 2px;
+      outline: none;
+      background: #fff;
+    }
+
+    /* MAIN WORKSPACE */
+    .vendor-workspace {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    /* TABLE */
+    .vendor-table-container {
+      flex: 1;
+      overflow: auto;
+      border-bottom: 1px solid #ccc;
+    }
+
+    .vendor-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11.5px;
+    }
+
+    .vendor-table th {
+      position: sticky;
+      top: 0;
+      background: #1565C0;
+      color: #fff;
+      font-weight: 700;
+      text-align: left;
+      padding: 6px 10px;
+      border-right: 1px solid #0d47a1;
+      white-space: nowrap;
+      z-index: 10;
+    }
+
+    .add-badge-btn {
+      background: #000080;
+      color: #ffffff;
+      border: none;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 1px 6px;
+      cursor: pointer;
+      height: 24px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      white-space: nowrap;
+      transition: opacity 0.2s;
+    }
+    .add-badge-btn:hover {
+      opacity: 0.9;
+      background: #0055b8;
+    }
+    .vendor-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11.5px;
+    }
+
+    .vendor-table td {
+      padding: 5px 10px;
+      border-bottom: 1px solid #e0e0e0;
+      border-right: 1px solid #eee;
+      white-space: nowrap;
+    }
+
+    .vendor-table tbody tr:hover {
+      background: #f0f7ff;
+    }
+
+    .vendor-table tbody tr.selected {
+      background: #bae6fd !important;
+      color: #0f172a !important;
+      font-weight: 600;
+    }
+    .vendor-table tbody tr.selected td {
+      background: #bae6fd !important;
+      color: #0f172a !important;
+      font-weight: 600;
+    }
+
+    /* EDITOR FORM STATE — 3 COLUMNS */
+    .vendor-form-section {
+      display: none;
+      flex-direction: column;
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px 18px;
+      background: #f9f9f9;
+    }
+
+    .vendor-form-columns {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 14px;
+      align-items: start;
+    }
+
+    .vendor-col-card {
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 14px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .vendor-col-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: #1565C0;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      border-bottom: 1px solid #e0e0e0;
+      padding-bottom: 6px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .vendor-form-grid {
+      display: grid;
+      grid-template-columns: 130px 1fr;
+      gap: 8px 10px;
+      align-items: center;
+    }
+
+    .vendor-form-grid label {
+      font-weight: 600;
+      color: #424242;
+    }
+
+    .vendor-input,
+    .vendor-select,
+    .vendor-textarea {
+      height: 26px;
+      padding: 0 8px;
+      font-size: 12px;
+      border: 1px solid #bbb;
+      border-radius: 2px;
+      outline: none;
+      background: #fff;
+      width: 100%;
+    }
+
+    .vendor-textarea {
+      height: 48px;
+      padding: 6px;
+      resize: none;
+      font-family: inherit;
+    }
+
+    .vendor-input:focus,
+    .vendor-select:focus,
+    .vendor-textarea:focus {
+      border-color: #1565C0;
+    }
+
+    .vendor-input:disabled,
+    .vendor-select:disabled,
+    .vendor-textarea:disabled {
+      background: #f5f5f5;
+      color: #757575;
+    }
+
+    .vendor-statutory-box {
+      margin-top: 14px;
+      background: #e8f0fe;
+      border-left: 4px solid #1565C0;
+      padding: 10px 14px;
+      font-size: 11px;
+      color: #1c3d5a;
+      border-radius: 0 4px 4px 0;
+    }
+
+    /* MODAL POPUPS */
+    .vendor-modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .vendor-modal {
+      width: 380px;
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+    }
+
+    .vendor-modal-header {
+      background: #1565C0;
+      color: #fff;
+      font-weight: 700;
+      padding: 8px 12px;
+      font-size: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .vendor-modal-body {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .vendor-modal-footer {
+      background: #f5f5f5;
+      border-top: 1px solid #eee;
+      padding: 8px 12px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 6px;
+    }
+
+    /* STATUSBAR */
+    .vendor-statusbar {
+      background: #f5f5f5;
+      border-top: 1px solid #ccc;
+      padding: 4px 14px;
+      font-size: 11px;
+      color: #666;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      min-height: 24px;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="vendor-master-panel">
+
+    <!-- MODULE HEADER -->
+    <div class="vendor-header">
+      <div>
+        <h2>VENDOR MASTER</h2>
+        
+      </div>
+      <div class="tag">[Contractor Ledger &amp; Tax Compliance Config]</div>
+    </div>
+
+    <!-- TOP COMMAND STRIP -->
+    <div class="vendor-cmd-strip">
+      <button class="cmd-btn" id="vendor-btn-add" onclick="VENDOR.openAdd()"><i class="bi bi-plus-lg"></i> ADD</button>
+      <button class="cmd-btn" id="vendor-btn-alter" onclick="VENDOR.openAlter()"><i class="bi bi-pencil-square"></i>
+        ALTER</button>
+      <button class="cmd-btn danger" id="vendor-btn-delete" onclick="VENDOR.deleteSingle()"><i class="bi bi-trash"></i>
+        DELETE</button>
+
+      <div class="sep"></div>
+
+      <button class="cmd-btn primary" id="vendor-btn-save" onclick="VENDOR.saveForm()" style="display:none;"><i
+          class="bi bi-save"></i> SAVE</button>
+      <button class="cmd-btn" id="vendor-btn-cancel" onclick="VENDOR.closeEditor()" style="display:none;"><i
+          class="bi bi-arrow-counterclockwise"></i> CANCEL</button>
+
+      <button class="cmd-btn" id="vendor-btn-print" onclick="VENDOR.printRegister()"><i class="bi bi-printer"></i> PRINT
+        REGISTER</button>
+
+      <!-- OTHER DROPDOWN -->
+      <div class="vendor-dropdown" id="vendor-other-dropdown">
+        <button class="cmd-btn">OTHER <i class="bi bi-chevron-down" style="font-size:9px;"></i></button>
+        <div class="vendor-dropdown-content">
+          <a href="#" onclick="event.preventDefault(); VENDOR.openBulkRate()"><i class="bi bi-percent"></i> Bulk
+            Rate/TDS Revision</a>
+          <a href="#" onclick="event.preventDefault(); VENDOR.openImport()"><i class="bi bi-cloud-upload"></i> Import
+            Vendors (CSV)</a>
+          <a href="#" onclick="event.preventDefault(); VENDOR.exportCSV()"><i class="bi bi-cloud-download-fill"></i>
+            Export Vendors (CSV)</a>
+          <a href="#" onclick="event.preventDefault(); VENDOR.printSummary()"><i class="bi bi-file-earmark-text"></i>
+            Print Contract Summary</a>
+        </div>
+      </div>
+
+      <button class="cmd-btn" id="vendor-btn-search-toggle" onclick="VENDOR.toggleSearchStrip()"
+        title="Toggle Search Bar"><i class="bi bi-search"></i> SEARCH</button>
+
+      <button class="cmd-btn cmd-btn-exit" onclick="VENDOR.exit()"><i class="bi bi-door-open"></i> EXIT</button>
+    </div>
+
+    <!-- SEARCH STRIP -->
+    <div class="vendor-search-strip" id="vendor-search-strip" style="display:none;">
+      <label style="font-weight:700; color:#333;">Search Vendor:</label>
+      <input type="text" id="vendor-search" class="vendor-search-input"
+        placeholder="Search contractor name, phone or category..." oninput="VENDOR.render()">
+
+      <label style="font-weight:700; color:#333; margin-left:10px;">Status Filter:</label>
+      <select id="vendor-filter-status" class="vendor-select-filter" onchange="VENDOR.render()">
+        <option value="">All Statuses</option>
+        <option value="Active">Active Only</option>
+        <option value="Suspended">Suspended</option>
+        <option value="Terminated">Terminated</option>
+      </select>
+
+      <span style="font-weight:700; color:#1565C0; margin-left:auto;" id="vendor-count">0 Vendor Records</span>
+    </div>
+
+    <!-- MAIN OPERATIONAL WORKSPACE -->
+    <div class="vendor-workspace">
+
+      <!-- LIST STATE (GRID) -->
+      <div id="vendor-list-section" style="display:flex; flex-direction:column; flex:1; overflow:hidden;">
+        <div class="vendor-table-container">
+          <table class="vendor-table" id="vendor-table">
+            <thead>
+              <tr>
+                <th style="width:30px; text-align:center;"><input type="checkbox" id="vendor-chk-all"
+                    onclick="VENDOR.toggleAll(this.checked)" style="accent-color:#1565C0;"></th>
+                <th style="width:90px; text-align:center;">CODE</th>
+                <th style="width:170px;">CONTRACT CATEGORY</th>
+                <th>CONTRACTOR / AGENCY NAME</th>
+                <th style="width:110px;">MOBILE NO</th>
+                <th style="width:110px; text-align:right;">MONTHLY COST</th>
+                <th style="width:90px; text-align:center;">TDS SEC</th>
+                <th style="width:90px; text-align:center;">STATUS</th>
+              </tr>
+            </thead>
+            <tbody id="vendor-tbody">
+              <!-- Dynamic rows -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- FORM STATE (INLINE EDITOR — 3 COLUMNS) -->
+      <div id="vendor-form-section" class="vendor-form-section">
+        <input type="hidden" id="vendor-edit-id" value="0">
+
+        <div style="font-size:12px; font-weight:700; color:#1565C0; margin-bottom:10px;" id="vendor-frame-title">
+          Vendor / Contractor Editor
+        </div>
+
+        <div class="vendor-form-columns">
+
+          <!-- COLUMN 1: BASIC DETAILS -->
+          <div class="vendor-col-card">
+            <div class="vendor-col-title"><i class="bi bi-person-fill"></i> 1. BASIC DETAILS</div>
+            <div class="vendor-form-grid">
+              <label>Contract Category *</label>
+              <div style="display:flex; align-items:center; gap:4px; width:100%;">
+                <select id="vendor-category" class="vendor-select" style="flex:1;">
+                  <option value="">— Select Category —</option>
+                  <option value="Lift Maintenance">Lift Maintenance Agency</option>
+                  <option value="Sweeper / Housekeeping">Housekeeping Contractor</option>
+                  <option value="Accountant">Accountant / Auditor</option>
+                  <option value="Plumber / Electrician">Plumbing / Electrical</option>
+                  <option value="Gardener">Gardening Contractor</option>
+                  <option value="Legal Advisor">Legal Advisor / Consultant</option>
+                  <option value="Security Guard">Security Agency</option>
+                  <option value="Other Agency">Other Maintenance Agency</option>
+                </select>
+                <button type="button" class="add-badge-btn" onclick="VENDOR.openAddCategoryModal()" title="Add Custom Vendor Category">add+ <i class="bi bi-chevron-down" style="font-size:9px;"></i></button>
+              </div>
+
+              <label>Vendor Code *</label>
+              <input type="text" id="vendor-code" class="vendor-input" placeholder="e.g. VND-001">
+
+              <label>Contractor Name *</label>
+              <input type="text" id="vendor-name" class="vendor-input" placeholder="Enter contractor/agency name...">
+
+              <label>Primary Phone *</label>
+              <input type="text" id="vendor-phone" class="vendor-input" placeholder="Primary contact...">
+
+              <label>Alt Phone</label>
+              <input type="text" id="vendor-phone2" class="vendor-input" placeholder="Alternative contact...">
+
+              <label>Email Address</label>
+              <input type="text" id="vendor-email" class="vendor-input" placeholder="Enter email address...">
+
+              <label>Monthly Cost ₹ *</label>
+              <input type="number" id="vendor-cost" class="vendor-input" style="text-align:right;" value="0">
+
+              <label>Start Date</label>
+              <input type="date" id="vendor-start" class="vendor-input">
+
+              <label>End Date</label>
+              <input type="date" id="vendor-end" class="vendor-input">
+
+              <label>Status</label>
+              <select id="vendor-status" class="vendor-select">
+                <option value="Active">Active Operational</option>
+                <option value="Suspended">Suspended / On Hold</option>
+                <option value="Terminated">Terminated Contract</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- COLUMN 2: BANKING & TAX ID DETAILS -->
+          <div class="vendor-col-card">
+            <div class="vendor-col-title"><i class="bi bi-bank"></i> 2. BANKING &amp; TAX ID</div>
+            <div class="vendor-form-grid">
+              <label>Bank A/C Holder</label>
+              <input type="text" id="vendor-bank-holder" class="vendor-input"
+                placeholder="Beneficiary name per bank...">
+
+              <label>Account Number</label>
+              <input type="text" id="vendor-bank-account" class="vendor-input" placeholder="Enter account number...">
+
+              <label>Bank Name</label>
+              <input type="text" id="vendor-bank-name" class="vendor-input" placeholder="e.g. ICICI Bank, SBI">
+
+              <label>IFSC Code</label>
+              <input type="text" id="vendor-bank-ifsc" class="vendor-input" placeholder="e.g. ICIC0000104">
+
+              <label>Branch Location</label>
+              <input type="text" id="vendor-bank-branch" class="vendor-input" placeholder="Branch location...">
+
+              <label>PAN Card No</label>
+              <input type="text" id="vendor-pan" class="vendor-input" style="text-transform:uppercase;"
+                placeholder="e.g. AABCS9876Q">
+
+              <label>GSTIN No</label>
+              <input type="text" id="vendor-gstin" class="vendor-input" style="text-transform:uppercase;"
+                placeholder="e.g. 27AABCS9876Q1Z5">
+            </div>
+          </div>
+
+          <!-- COLUMN 3: TDS CONTRACT & NOTES -->
+          <div class="vendor-col-card">
+            <div class="vendor-col-title"><i class="bi bi-shield-check"></i> 3. TDS CONTRACT &amp; NOTES</div>
+            <div class="vendor-form-grid">
+              <label>TDS Section</label>
+              <div style="display:flex; align-items:center; gap:4px; width:100%;">
+                <select id="vendor-tds-section" class="vendor-select" style="flex:1;" onchange="VENDOR.onTdsSectionChange()">
+                  <option value="None">None (Exempt)</option>
+                  <option value="194C">Sec 194C (Contractors - 1% or 2%)</option>
+                  <option value="194J">Sec 194J (Professionals - 2% or 10%)</option>
+                  <option value="194I">Sec 194I (Rent - 10%)</option>
+                </select>
+                <button type="button" class="add-badge-btn" onclick="VENDOR.openManageTdsModal()" title="Manage TDS Sections">add+ <i class="bi bi-chevron-down" style="font-size:9px;"></i></button>
+              </div>
+
+              <label>TDS Rate (%)</label>
+              <div style="display:flex; align-items:center; gap:4px;">
+                <input type="number" id="vendor-tds-rate" class="vendor-input" style="text-align:right; width:80px;"
+                  step="0.1" value="0">
+                <span style="font-weight:700;">%</span>
+              </div>
+
+              <label>Authority Status</label>
+              <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-weight:600;">
+                <input type="checkbox" id="vendor-authority" style="accent-color:#1565C0;"> Authorized Operations
+              </label>
+
+              <label>Internal Remarks</label>
+              <textarea id="vendor-notes" class="vendor-textarea"
+                placeholder="Scope of work, contract terms..."></textarea>
+            </div>
+          </div>
+
+        </div><!-- /vendor-form-columns -->
+
+        <div class="vendor-statutory-box">
+          <div style="font-weight:700; color:#1565C0; margin-bottom:2px;">
+            <i class="bi bi-shield-lock-fill"></i> ACCOUNTING &amp; TDS INTEGRATION
+          </div>
+          <div>Directly connected to GST liability ledgers, TDS payable accounts, and monthly maintenance disbursement
+            journal system. Ensure GSTIN &amp; PAN match valid tax documents.</div>
+        </div>
+
+      </div>
+
+    </div><!-- /vendor-workspace -->
+
+    <!-- BULK RATE MODAL -->
+    <div class="vendor-modal-overlay" id="vendor-mc-overlay">
+      <div class="vendor-modal">
+        <div class="vendor-modal-header">
+          <span><i class="bi bi-percent"></i> Bulk Rate &amp; TDS Revision</span>
+          <button onclick="VENDOR.closeBulkRate()"
+            style="background:none; border:none; color:#fff; cursor:pointer; font-weight:bold;">✕</button>
+        </div>
+        <div class="vendor-modal-body">
+          <div style="display:grid; grid-template-columns:110px 1fr; gap:8px; align-items:center;">
+            <label style="font-weight:600;">Retainer (+₹)</label>
+            <input type="number" id="vendor-mc-rate" class="vendor-input" style="text-align:right;" value="0">
+
+            <label style="font-weight:600;">TDS Rate (%)</label>
+            <div style="display:flex; align-items:center; gap:4px;">
+              <input type="number" id="vendor-mc-tds" class="vendor-input" style="text-align:right; width:80px;"
+                value="0" step="0.1">
+              <span style="font-weight:700;">%</span>
+            </div>
+          </div>
+        </div>
+        <div class="vendor-modal-footer">
+          <button class="cmd-btn" onclick="VENDOR.closeBulkRate()">CANCEL</button>
+          <button class="cmd-btn primary" onclick="VENDOR.applyBulkRate()"><i class="bi bi-check-lg"></i> APPLY</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- IMPORT MODAL -->
+    <div class="vendor-modal-overlay" id="vendor-import-overlay">
+      <div class="vendor-modal">
+        <div class="vendor-modal-header">
+          <span><i class="bi bi-cloud-upload"></i> Import Vendors Roster</span>
+          <button onclick="VENDOR.closeImport()"
+            style="background:none; border:none; color:#fff; cursor:pointer; font-weight:bold;">✕</button>
+        </div>
+        <div class="vendor-modal-body">
+          <label style="font-weight:600;">Select Excel / CSV File</label>
+          <input type="file" id="vendor-import-file" accept=".xlsx,.xls,.csv" class="vendor-input"
+            style="padding:3px; height:auto;">
+          <div style="font-size:10px; color:#666; line-height:1.3;">
+            * File Format: Code, Category, Name, Phone, MonthlyCost, TDS Section, TDS Rate, Bank Acc, IFSC, PAN, GSTIN.
+          </div>
+        </div>
+        <div class="vendor-modal-footer">
+          <button class="cmd-btn" onclick="VENDOR.closeImport()">CANCEL</button>
+          <button class="cmd-btn primary" onclick="VENDOR.processImport()"><i class="bi bi-check-lg"></i>
+            IMPORT</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADD VENDOR CATEGORY MODAL -->
+    <div class="vendor-modal-overlay" id="vendor-add-cat-overlay" style="display:none; z-index:9999;">
+      <div class="vendor-modal" style="width:420px; max-width:90vw; border-radius:4px; overflow:hidden; box-shadow:0 10px 25px rgba(0,0,0,0.3);">
+        <div class="vendor-modal-header" style="background:#0055b8; color:#fff; padding:10px 14px; font-weight:700; font-size:13px; display:flex; justify-content:space-between; align-items:center;">
+          <span><i class="bi bi-pencil-square"></i> ADD VENDOR CATEGORY</span>
+          <button type="button" style="background:none; border:none; color:#fff; font-size:16px; font-weight:bold; cursor:pointer;" onclick="VENDOR.closeAddCategoryModal()">✕</button>
+        </div>
+        <div class="vendor-modal-body" style="padding:16px; background:#fff; display:flex; flex-direction:column; gap:10px;">
+          <label style="font-weight:700; font-size:12px; color:#333;">Enter new Vendor Category:</label>
+          <input type="text" id="vendor-new-cat-input" class="vendor-input" style="height:34px; font-size:12px; padding:0 10px; border:1px solid #0055b8; border-radius:4px; width:100%;" placeholder="e.g. HVAC Specialist, Solar Agency..." onkeydown="if(event.key==='Enter') VENDOR.saveCategory()">
+        </div>
+        <div class="vendor-modal-footer" style="padding:10px 14px; background:#f5f5f5; border-top:1px solid #e0e0e0; display:flex; justify-content:flex-end; gap:8px;">
+          <button class="cmd-btn" type="button" style="padding:4px 16px; font-weight:700;" onclick="VENDOR.closeAddCategoryModal()">CANCEL</button>
+          <button class="cmd-btn primary" type="button" style="padding:4px 16px; font-weight:700; background:#0055b8; color:#fff; border-color:#0055b8;" onclick="VENDOR.saveCategory()">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MANAGE TDS SECTIONS MODAL -->
+    <div class="vendor-modal-overlay" id="vendor-manage-tds-overlay" style="display:none; z-index:9999;">
+      <div class="vendor-modal" style="width:450px; max-width:90vw; border-radius:4px; overflow:hidden; box-shadow:0 10px 25px rgba(0,0,0,0.3);">
+        <div class="vendor-modal-header" style="background:#0055b8; color:#fff; padding:10px 14px; font-weight:700; font-size:13px; display:flex; justify-content:space-between; align-items:center;">
+          <span><i class="bi bi-gear-fill"></i> MANAGE TDS SECTIONS</span>
+          <button type="button" style="background:none; border:none; color:#fff; font-size:16px; font-weight:bold; cursor:pointer;" onclick="VENDOR.closeManageTdsModal()">✕</button>
+        </div>
+        <div class="vendor-modal-body" style="padding:16px; background:#fff; display:flex; flex-direction:column; gap:14px;">
+          
+          <div>
+            <label style="font-weight:700; font-size:11px; color:#1565C0; text-transform:uppercase;">CUSTOM TDS SECTIONS</label>
+            <div id="vendor-custom-tds-container" style="border:1px solid #e0e0e0; border-radius:4px; padding:12px; min-height:80px; background:#f9fafb; margin-top:6px; display:flex; flex-direction:column; gap:6px;">
+              <span style="color:#94a3b8; font-size:12px; text-align:center; font-style:italic; margin:auto;">No custom sections added yet.</span>
+            </div>
+          </div>
+
+          <div style="border-top:1px dashed #cbd5e1; padding-top:10px;">
+            <label style="font-weight:700; font-size:11px; color:#1565C0; text-transform:uppercase;">ADD NEW SECTION</label>
+            <div style="display:flex; gap:8px; margin-top:6px;">
+              <input type="text" id="vendor-new-tds-input" class="vendor-input" style="height:34px; flex:1; font-size:12px; padding:0 10px; border:1px solid #cbd5e1; border-radius:4px; text-transform:uppercase;" placeholder="E.G. 194A" onkeydown="if(event.key==='Enter') VENDOR.addCustomTdsSection()">
+              <button type="button" class="cmd-btn primary" style="height:34px; padding:0 16px; background:#0055b8; color:#fff; border-color:#0055b8; font-weight:700;" onclick="VENDOR.addCustomTdsSection()">ADD</button>
+            </div>
+          </div>
+
+        </div>
+        <div class="vendor-modal-footer" style="padding:10px 14px; background:#f5f5f5; border-top:1px solid #e0e0e0; display:flex; justify-content:flex-end;">
+          <button class="cmd-btn primary" type="button" style="padding:4px 20px; font-weight:700; background:#0055b8; color:#fff; border-color:#0055b8;" onclick="VENDOR.closeManageTdsModal()">CLOSE</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STATUSBAR -->
+    <div class="vendor-statusbar">
+      <span id="vendor-status-msg"><i class="bi bi-info-circle"></i> Ready</span>
+      <span>Use ↑/↓ keys to select vendor record. Press Enter to edit.</span>
+    </div>
+
+  </div>
+
+  <script src="../../../config.js?v=20260816_30"></script>
+  <script src="../../../assets/js/api.js?v=20260816_30"></script>
+  <script src="../../../assets/js/auth.js?v=20260816_30"></script>
+  <script src="../../../assets/js/utils.js?v=20260816_30"></script>
+  <script src="./vendor-master.js?v=20260816_30"></script>
+  <script>
+    (function () {
+      'use strict';
+
+      var records = [];
+      var selectedId = null;
+      var checked = {};
+      var isEditMode = false;
+
+      function toast(m, ok) {
+        if (typeof window.showToast === 'function') {
+          window.showToast(m, ok ? 'success' : 'error');
+        } else {
+          var d = document.createElement('div');
+          d.style.cssText = 'position:fixed;top:12px;right:12px;z-index:99999;padding:9px 18px;font-size:12px;font-weight:600;color:#FFF;border-radius:3px;box-shadow:0 3px 12px rgba(0,0,0,0.2);background:' + (ok !== false ? '#2E7D32' : '#C62828') + ';';
+          d.textContent = m;
+          document.body.appendChild(d);
+          setTimeout(function () { d.remove(); }, 2500);
+        }
+      }
+
+      function getApiBase() {
+        if (window.CONFIG && window.CONFIG.apiBase) return window.CONFIG.apiBase;
+        if (window.APP_CONFIG && window.APP_CONFIG.API_BASE) return window.APP_CONFIG.API_BASE.replace(/\/api\/?$/, '');
+        return 'http://localhost:5002';
+      }
+
+      function getAuthHeaders() {
+        var h = { 'Content-Type': 'application/json' };
+        var token = sessionStorage.getItem('token') || localStorage.getItem('token') || sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
+        if (token) h['Authorization'] = 'Bearer ' + token;
+        return h;
+      }
+
+      function getActiveSocietyId() {
+        return (window.Auth && Auth.getSocietyId) ? Auth.getSocietyId() : (sessionStorage.getItem('activeSocietyId') || localStorage.getItem('activeSocietyId') || '1');
+      }
+
+      function normalizeVendor(r) {
+        if (!r) return null;
+        var id = parseInt(r.vendorId || r.VendorId || r.staffId || r.StaffId || 0, 10);
+        var code = String(r.vendorCode || r.VendorCode || r.code || r.Code || r.staffCode || r.StaffCode || '').trim();
+        var name = String(r.vendorName || r.VendorName || r.name || r.Name || r.staffName || r.StaffName || '').trim();
+        var cat = String(r.category || r.Category || r.designation || r.Designation || r.contractNo || r.ContractNo || 'General Contractor').trim();
+        var phone = String(r.contactNo || r.ContactNo || r.phone || r.Phone || '').trim();
+        var phone2 = String(r.phone2 || r.Phone2 || '').trim();
+        var email = String(r.email || r.Email || '').trim();
+        var cost = parseFloat(r.contractValue || r.ContractValue || r.monthlyCost || r.MonthlyCost || r.cost || r.Cost || 0) || 0;
+        var start = (r.contractFrom || r.ContractFrom || r.startDate || r.StartDate || r.joiningDate || r.JoiningDate || '').toString().split('T')[0];
+        var end = (r.contractTo || r.ContractTo || r.endDate || r.EndDate || '').toString().split('T')[0];
+        var status = r.status || r.Status || 'Active';
+        var bankHolder = r.bankHolder || r.BankHolder || '';
+        var bankAccount = r.bankAccount || r.BankAccount || '';
+        var bankName = r.bankName || r.BankName || '';
+        var bankIfsc = r.bankIfsc || r.BankIfsc || '';
+        var bankBranch = r.bankBranch || r.BankBranch || '';
+        var pan = (r.panNo || r.PANNo || r.pan || r.Pan || '').toString().toUpperCase().trim();
+        var gstin = (r.gstin || r.GSTIN || '').toString().toUpperCase().trim();
+        var tdsSec = r.tdsSection || r.TDSSection || r.tdsSec || 'None';
+        var tdsRate = parseFloat(r.tdsRate || r.TDSRate || 0) || 0;
+        var isAuth = !!(r.isAuthorized || r.IsAuthorized);
+        var notes = r.address || r.Address || r.notes || r.Notes || '';
+
+        return {
+          VendorId: id,
+          StaffId: id,
+          vendorId: id,
+          VendorCode: code,
+          vendorCode: code,
+          Code: code,
+          StaffCode: code,
+          VendorName: name,
+          vendorName: name,
+          Name: name,
+          StaffName: name,
+          Category: cat,
+          category: cat,
+          Designation: cat,
+          ContactNo: phone,
+          contactNo: phone,
+          Phone: phone,
+          Phone2: phone2,
+          Email: email,
+          email: email,
+          ContractValue: cost,
+          contractValue: cost,
+          MonthlyCost: cost,
+          Cost: cost,
+          ContractFrom: start,
+          contractFrom: start,
+          StartDate: start,
+          ContractTo: end,
+          contractTo: end,
+          EndDate: end,
+          Status: status,
+          status: status,
+          BankHolder: bankHolder,
+          BankAccount: bankAccount,
+          BankName: bankName,
+          BankIfsc: bankIfsc,
+          BankBranch: bankBranch,
+          PANNo: pan,
+          panNo: pan,
+          Pan: pan,
+          GSTIN: gstin,
+          gstin: gstin,
+          TDSSection: tdsSec,
+          tdsSection: tdsSec,
+          TdsSection: tdsSec,
+          TDSRate: tdsRate,
+          tdsRate: tdsRate,
+          TdsRate: tdsRate,
+          IsAuthorized: isAuth,
+          Address: notes,
+          address: notes,
+          Notes: notes
+        };
+      }
+
+      async function load() {
+        try {
+          var socId = getActiveSocietyId();
+          var res = await fetch(getApiBase() + '/api/vendors?societyId=' + socId, {
+            headers: getAuthHeaders()
+          });
+          if (res.ok) {
+            var json = await res.json();
+            var rawList = [];
+            if (json && json.success && Array.isArray(json.data)) rawList = json.data;
+            else if (Array.isArray(json)) rawList = json;
+
+            if (rawList.length > 0) {
+              records = rawList.map(normalizeVendor).filter(Boolean);
+            }
+          }
+        } catch (e) {
+          console.warn("API offline, using fallback vendor storage.");
+        }
+
+        if (!records.length) {
+          var saved = localStorage.getItem('jeevika_vendors_' + getActiveSocietyId());
+          if (saved) {
+            try {
+              var parsed = JSON.parse(saved);
+              if (Array.isArray(parsed)) records = parsed.map(normalizeVendor).filter(Boolean);
+            } catch (ex) { }
+          }
+        }
+
+        render();
+        if (records.length > 0 && !selectedId) {
+          selectRow(records[0].VendorId || records[0].StaffId);
+        }
+      }
+
+      function render() {
+        var searchEl = document.getElementById('vendor-search');
+        var search = (searchEl ? searchEl.value : '').toLowerCase().trim();
+        var statusEl = document.getElementById('vendor-filter-status');
+        var statusFilter = statusEl ? statusEl.value : '';
+
+        var filtered = records.filter(function (r) {
+          if (statusFilter && (r.Status || 'Active') !== statusFilter) return false;
+
+          if (search) {
+            var name = (r.VendorName || r.Name || r.StaffName || '').toLowerCase();
+            var code = (r.VendorCode || r.Code || r.StaffCode || '').toLowerCase();
+            var cat = (r.Category || r.Designation || '').toLowerCase();
+            var ph = (r.ContactNo || r.Phone || '').toLowerCase();
+            if (name.indexOf(search) < 0 && code.indexOf(search) < 0 && cat.indexOf(search) < 0 && ph.indexOf(search) < 0) return false;
+          }
+          return true;
+        });
+
+        var badge = document.getElementById('vendor-count');
+        if (badge) badge.textContent = filtered.length + ' Vendor Records';
+
+        var tbody = document.getElementById('vendor-tbody');
+        if (!filtered.length) {
+          tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:30px; color:#808080;"><i class="bi bi-inbox"></i> No vendor records found matching search.</td></tr>';
+          return;
+        }
+
+        var html = '';
+        filtered.forEach(function (r) {
+          var id = r.VendorId || r.StaffId || 0;
+          var isRowSelected = id === selectedId;
+          var isChecked = checked[id] ? 'checked' : '';
+
+          var statusBadge = '';
+          var statusVal = r.Status || 'Active';
+          if (statusVal === 'Active') {
+            statusBadge = '<span style="color:#1565C0; font-weight:700; font-size:10px; background:#e8f0fe; padding:2px 6px; border-radius:2px;">ACTIVE</span>';
+          } else if (statusVal === 'Suspended') {
+            statusBadge = '<span style="color:#E65100; font-weight:700; font-size:10px; background:#fff3e0; padding:2px 6px; border-radius:2px;">SUSPENDED</span>';
+          } else {
+            statusBadge = '<span style="color:#C62828; font-weight:700; font-size:10px; background:#ffebee; padding:2px 6px; border-radius:2px;">TERMINATED</span>';
+          }
+
+          var costVal = Number(r.ContractValue || r.MonthlyCost || r.Cost || 0);
+
+          html += '<tr class="' + (isRowSelected ? 'selected' : '') + '" onclick="VENDOR.selectRow(' + id + ')" ondblclick="VENDOR.openAlter()">' +
+            '<td style="text-align:center;" onclick="event.stopPropagation()"><input type="checkbox" ' + isChecked + ' onchange="VENDOR.toggleRowCheck(' + id + ', this.checked)" style="accent-color:#1565C0;"></td>' +
+            '<td style="text-align:center; font-family:monospace; font-weight:700;">' + (r.VendorCode || r.Code || r.StaffCode || '') + '</td>' +
+            '<td style="font-weight:700; color:#1565C0;">' + (r.Category || r.Designation || '') + '</td>' +
+            '<td style="font-weight:600;">' + (r.VendorName || r.Name || r.StaffName || '') + '</td>' +
+            '<td>' + (r.ContactNo || r.Phone || '—') + '</td>' +
+            '<td style="text-align:right; font-family:monospace; font-weight:700;">₹ ' + costVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</td>' +
+            '<td style="text-align:center; font-family:monospace;">' + (r.TDSSection || r.TdsSection || '—') + '</td>' +
+            '<td style="text-align:center;">' + statusBadge + '</td>' +
+            '</tr>';
+        });
+        tbody.innerHTML = html;
+      }
+
+      function selectRow(id) {
+        if (isEditMode) return;
+        selectedId = id;
+        render();
+
+        var r = records.find(function (item) { return (item.VendorId === id || item.StaffId === id); });
+        if (!r) return;
+
+        document.getElementById('vendor-edit-id').value = r.VendorId || r.StaffId || 0;
+        document.getElementById('vendor-category').value = r.Category || r.Designation || '';
+        document.getElementById('vendor-code').value = r.VendorCode || r.Code || r.StaffCode || '';
+        document.getElementById('vendor-name').value = r.VendorName || r.Name || r.StaffName || '';
+        document.getElementById('vendor-phone').value = r.ContactNo || r.Phone || '';
+        document.getElementById('vendor-phone2').value = r.Phone2 || '';
+        document.getElementById('vendor-email').value = r.Email || '';
+        document.getElementById('vendor-cost').value = r.ContractValue || r.MonthlyCost || r.Cost || 0;
+        document.getElementById('vendor-start').value = (r.ContractFrom || r.StartDate || r.JoiningDate || '').split('T')[0];
+        document.getElementById('vendor-end').value = (r.ContractTo || r.EndDate || '').split('T')[0];
+        document.getElementById('vendor-status').value = r.Status || 'Active';
+
+        // Bank & Tax ID details
+        document.getElementById('vendor-bank-holder').value = r.BankHolder || '';
+        document.getElementById('vendor-bank-account').value = r.BankAccount || '';
+        document.getElementById('vendor-bank-name').value = r.BankName || '';
+        document.getElementById('vendor-bank-ifsc').value = r.BankIfsc || '';
+        document.getElementById('vendor-bank-branch').value = r.BankBranch || '';
+        document.getElementById('vendor-pan').value = r.PANNo || r.Pan || '';
+        document.getElementById('vendor-gstin').value = r.GSTIN || r.Gstin || '';
+
+        // TDS & notes
+        document.getElementById('vendor-tds-section').value = r.TDSSection || r.TdsSection || 'None';
+        document.getElementById('vendor-tds-rate').value = r.TDSRate || r.TdsRate || 0;
+        document.getElementById('vendor-authority').checked = !!r.IsAuthorized;
+        document.getElementById('vendor-notes').value = r.Address || r.Notes || '';
+
+        document.getElementById('vendor-frame-title').textContent = 'Vendor Viewer - [' + (r.VendorCode || r.Code) + ' | ' + (r.VendorName || r.Name) + ']';
+      }
+
+      function onTdsSectionChange() {
+        var section = document.getElementById('vendor-tds-section').value;
+        var rateInput = document.getElementById('vendor-tds-rate');
+
+        if (section === 'None') {
+          rateInput.value = 0;
+          rateInput.disabled = true;
+        } else {
+          if (isEditMode) rateInput.disabled = false;
+          if (section === '194C') rateInput.value = 2.0;
+          else if (section === '194J') rateInput.value = 10.0;
+          else if (section === '194I') rateInput.value = 10.0;
+        }
+      }
+
+      function toggleRowCheck(id, isChecked) {
+        if (isChecked) checked[id] = true;
+        else delete checked[id];
+      }
+
+      function toggleAll(isChecked) {
+        records.forEach(function (r) {
+          var id = r.VendorId || r.StaffId;
+          if (isChecked) checked[id] = true;
+          else delete checked[id];
+        });
+        render();
+      }
+
+      function setInputsDisabled(isDisabled) {
+        document.getElementById('vendor-category').disabled = isDisabled;
+        document.getElementById('vendor-code').disabled = isDisabled;
+        document.getElementById('vendor-name').disabled = isDisabled;
+        document.getElementById('vendor-phone').disabled = isDisabled;
+        document.getElementById('vendor-phone2').disabled = isDisabled;
+        document.getElementById('vendor-email').disabled = isDisabled;
+        document.getElementById('vendor-cost').disabled = isDisabled;
+        document.getElementById('vendor-start').disabled = isDisabled;
+        document.getElementById('vendor-end').disabled = isDisabled;
+        document.getElementById('vendor-status').disabled = isDisabled;
+
+        // Bank & PAN
+        document.getElementById('vendor-bank-holder').disabled = isDisabled;
+        document.getElementById('vendor-bank-account').disabled = isDisabled;
+        document.getElementById('vendor-bank-name').disabled = isDisabled;
+        document.getElementById('vendor-bank-ifsc').disabled = isDisabled;
+        document.getElementById('vendor-bank-branch').disabled = isDisabled;
+        document.getElementById('vendor-pan').disabled = isDisabled;
+        document.getElementById('vendor-gstin').disabled = isDisabled;
+
+        // TDS & notes
+        document.getElementById('vendor-tds-section').disabled = isDisabled;
+        document.getElementById('vendor-authority').disabled = isDisabled;
+        document.getElementById('vendor-notes').disabled = isDisabled;
+
+        if (!isDisabled) {
+          var tdsSec = document.getElementById('vendor-tds-section').value;
+          document.getElementById('vendor-tds-rate').disabled = (tdsSec === 'None');
+        } else {
+          document.getElementById('vendor-tds-rate').disabled = true;
+        }
+      }
+
+      function openAdd() {
+        isEditMode = true;
+        selectedId = null;
+        render();
+
+        document.getElementById('vendor-edit-id').value = '0';
+        document.getElementById('vendor-category').value = '';
+
+        var vendorCount = records.length + 1;
+        document.getElementById('vendor-code').value = 'VND-' + String(vendorCount).padStart(3, '0');
+
+        document.getElementById('vendor-name').value = '';
+        document.getElementById('vendor-phone').value = '';
+        document.getElementById('vendor-phone2').value = '';
+        document.getElementById('vendor-email').value = '';
+        document.getElementById('vendor-cost').value = 0;
+
+        var todayStr = new Date().toISOString().split('T')[0];
+        document.getElementById('vendor-start').value = todayStr;
+
+        var oneY = new Date();
+        oneY.setFullYear(oneY.getFullYear() + 1);
+        document.getElementById('vendor-end').value = oneY.toISOString().split('T')[0];
+        document.getElementById('vendor-status').value = 'Active';
+
+        document.getElementById('vendor-bank-holder').value = '';
+        document.getElementById('vendor-bank-account').value = '';
+        document.getElementById('vendor-bank-name').value = '';
+        document.getElementById('vendor-bank-ifsc').value = '';
+        document.getElementById('vendor-bank-branch').value = '';
+        document.getElementById('vendor-pan').value = '';
+        document.getElementById('vendor-gstin').value = '';
+
+        document.getElementById('vendor-tds-section').value = 'None';
+        document.getElementById('vendor-tds-rate').value = 0;
+        document.getElementById('vendor-authority').checked = false;
+        document.getElementById('vendor-notes').value = '';
+
+        setInputsDisabled(false);
+
+        document.getElementById('vendor-list-section').style.display = 'none';
+        document.getElementById('vendor-form-section').style.display = 'flex';
+        document.getElementById('vendor-category').focus();
+
+        document.getElementById('vendor-frame-title').textContent = 'Vendor Editor - [New Contractor Entry]';
+
+        document.getElementById('vendor-btn-add').style.display = 'none';
+        document.getElementById('vendor-btn-alter').style.display = 'none';
+        document.getElementById('vendor-btn-delete').style.display = 'none';
+        document.getElementById('vendor-btn-print').style.display = 'none';
+        document.getElementById('vendor-btn-save').style.display = 'inline-flex';
+        document.getElementById('vendor-btn-cancel').style.display = 'inline-flex';
+        if (document.getElementById('vendor-other-dropdown')) document.getElementById('vendor-other-dropdown').style.display = 'none';
+        if (document.getElementById('vendor-btn-search-toggle')) document.getElementById('vendor-btn-search-toggle').style.display = 'none';
+        document.getElementById('vendor-search-strip').style.display = 'none';
+      }
+
+      function openAlter() {
+        if (!selectedId) {
+          toast('Please select a vendor record row first.', false);
+          return;
+        }
+        isEditMode = true;
+        setInputsDisabled(false);
+
+        document.getElementById('vendor-list-section').style.display = 'none';
+        document.getElementById('vendor-form-section').style.display = 'flex';
+        document.getElementById('vendor-name').focus();
+
+        var r = records.find(function (item) { return (item.VendorId === selectedId || item.StaffId === selectedId); });
+        document.getElementById('vendor-frame-title').textContent = 'Vendor Editor - Edit [' + (r ? (r.VendorCode || r.Code) : '') + ']';
+
+        document.getElementById('vendor-btn-add').style.display = 'none';
+        document.getElementById('vendor-btn-alter').style.display = 'none';
+        document.getElementById('vendor-btn-delete').style.display = 'none';
+        document.getElementById('vendor-btn-print').style.display = 'none';
+        document.getElementById('vendor-btn-save').style.display = 'inline-flex';
+        document.getElementById('vendor-btn-cancel').style.display = 'inline-flex';
+        if (document.getElementById('vendor-other-dropdown')) document.getElementById('vendor-other-dropdown').style.display = 'none';
+        if (document.getElementById('vendor-btn-search-toggle')) document.getElementById('vendor-btn-search-toggle').style.display = 'none';
+        document.getElementById('vendor-search-strip').style.display = 'none';
+      }
+
+      function closeEditor() {
+        isEditMode = false;
+        setInputsDisabled(true);
+
+        document.getElementById('vendor-list-section').style.display = 'flex';
+        document.getElementById('vendor-form-section').style.display = 'none';
+
+        document.getElementById('vendor-btn-add').style.display = 'inline-flex';
+        document.getElementById('vendor-btn-alter').style.display = 'inline-flex';
+        document.getElementById('vendor-btn-delete').style.display = 'inline-flex';
+        document.getElementById('vendor-btn-print').style.display = 'inline-flex';
+        document.getElementById('vendor-btn-save').style.display = 'none';
+        document.getElementById('vendor-btn-cancel').style.display = 'none';
+        if (document.getElementById('vendor-other-dropdown')) document.getElementById('vendor-other-dropdown').style.display = 'inline-block';
+        if (document.getElementById('vendor-btn-search-toggle')) document.getElementById('vendor-btn-search-toggle').style.display = 'inline-flex';
+
+        if (records.length > 0) {
+          if (!selectedId) selectedId = records[0].VendorId || records[0].StaffId;
+          selectRow(selectedId);
+        }
+      }
+
+      async function saveForm() {
+        var editId = parseInt(document.getElementById('vendor-edit-id').value, 10) || 0;
+        var cat = document.getElementById('vendor-category').value;
+        var code = document.getElementById('vendor-code').value.trim();
+        var name = document.getElementById('vendor-name').value.trim();
+        var phone = document.getElementById('vendor-phone').value.trim();
+        var phone2 = document.getElementById('vendor-phone2').value.trim();
+        var email = document.getElementById('vendor-email').value.trim();
+        var cost = parseFloat(document.getElementById('vendor-cost').value) || 0;
+        var start = document.getElementById('vendor-start').value;
+        var end = document.getElementById('vendor-end').value;
+        var status = document.getElementById('vendor-status').value;
+
+        var bankHolder = document.getElementById('vendor-bank-holder').value.trim();
+        var bankAccount = document.getElementById('vendor-bank-account').value.trim();
+        var bankName = document.getElementById('vendor-bank-name').value.trim();
+        var bankIfsc = document.getElementById('vendor-bank-ifsc').value.trim();
+        var bankBranch = document.getElementById('vendor-bank-branch').value.trim();
+        var pan = document.getElementById('vendor-pan').value.trim().toUpperCase();
+        var gstin = document.getElementById('vendor-gstin').value.trim().toUpperCase();
+
+        var tdsSec = document.getElementById('vendor-tds-section').value;
+        var tdsRate = parseFloat(document.getElementById('vendor-tds-rate').value) || 0;
+        var isAuth = document.getElementById('vendor-authority').checked;
+        var notes = document.getElementById('vendor-notes').value.trim();
+
+        if (!cat || !code || !name || !phone) {
+          toast('Vendor Category, Code, Name, and Phone are required.', false);
+          return;
+        }
+
+        var payload = {
+          VendorId: editId,
+          SocietyId: parseInt(getActiveSocietyId(), 10) || 1,
+          VendorCode: code,
+          VendorName: name,
+          PANNo: pan,
+          GSTIN: gstin,
+          TDSSection: tdsSec,
+          TDSRate: tdsRate,
+          ContactNo: phone,
+          Email: email,
+          Address: notes || bankHolder || cat,
+          ContractNo: cat,
+          ContractFrom: start ? start : null,
+          ContractTo: end ? end : null,
+          ContractValue: cost,
+          Category: cat,
+          Phone2: phone2,
+          Status: status,
+          BankHolder: bankHolder,
+          BankAccount: bankAccount,
+          BankName: bankName,
+          BankIfsc: bankIfsc,
+          BankBranch: bankBranch,
+          IsAuthorized: isAuth,
+          Notes: notes
+        };
+
+        try {
+          var isNew = editId === 0;
+          var method = isNew ? 'POST' : 'PUT';
+          var endpoint = isNew ? getApiBase() + '/api/vendors' : getApiBase() + '/api/vendors/' + editId;
+
+          var response = await fetch(endpoint, {
+            method: method,
+            headers: getAuthHeaders(),
+            body: JSON.stringify(payload)
+          });
+
+          if (response.ok) {
+            var resObj = await response.json();
+            if (resObj) {
+              if (resObj.vendorId) payload.VendorId = resObj.vendorId;
+              if (resObj.data && resObj.data.vendorId) payload.VendorId = resObj.data.vendorId;
+            }
+          }
+        } catch (e) {
+          console.warn("Failed saving vendor to API. Local fallback.", e);
+        }
+
+        var normalized = normalizeVendor(payload);
+        if (editId === 0) {
+          if (!normalized.VendorId) {
+            normalized.VendorId = records.length ? Math.max.apply(null, records.map(function (r) { return r.VendorId || 0; })) + 1 : 1;
+            normalized.StaffId = normalized.VendorId;
+          }
+          records.push(normalized);
+          selectedId = normalized.VendorId;
+        } else {
+          var idx = records.findIndex(function (r) { return (r.VendorId === editId || r.StaffId === editId); });
+          if (idx >= 0) records[idx] = normalized;
+          selectedId = editId;
+        }
+
+        localStorage.setItem('jeevika_vendors_' + getActiveSocietyId(), JSON.stringify(records));
+
+        toast('Vendor record saved successfully.', true);
+        closeEditor();
+        render();
+        selectRow(selectedId);
+      }
+
+      async function deleteSingle() {
+        if (!selectedId) {
+          toast('Please select a vendor record to delete first.', false);
+          return;
+        }
+
+        var r = records.find(function (item) { return (item.VendorId === selectedId || item.StaffId === selectedId); });
+        if (!r) return;
+        if (!confirm('Are you sure you want to delete vendor record: [' + (r.VendorCode || r.Code) + ' - ' + (r.VendorName || r.Name) + ']?')) return;
+
+        try {
+          await fetch(getApiBase() + '/api/vendors/' + selectedId, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+          });
+        } catch (e) { }
+
+        records = records.filter(function (item) { return (item.VendorId !== selectedId && item.StaffId !== selectedId); });
+        localStorage.setItem('jeevika_vendors_' + getActiveSocietyId(), JSON.stringify(records));
+
+        selectedId = records.length ? (records[0].VendorId || records[0].StaffId) : null;
+
+        toast('Vendor record deleted successfully.', true);
+        render();
+        if (selectedId) selectRow(selectedId);
+      }
+
+      function openBulkRate() {
+        document.getElementById('vendor-mc-overlay').style.display = 'flex';
+      }
+
+      function closeBulkRate() {
+        document.getElementById('vendor-mc-overlay').style.display = 'none';
+      }
+
+      function applyBulkRate() {
+        var rateVal = parseFloat(document.getElementById('vendor-mc-rate').value) || 0;
+        var tdsVal = parseFloat(document.getElementById('vendor-mc-tds').value) || 0;
+
+        var count = 0;
+        records.forEach(function (r) {
+          var id = r.VendorId || r.StaffId;
+          if (checked[id]) {
+            if (rateVal) {
+              r.ContractValue = (parseFloat(r.ContractValue || r.MonthlyCost || 0) + rateVal);
+              r.MonthlyCost = r.ContractValue;
+              r.Cost = r.ContractValue;
+            }
+            if (tdsVal) {
+              r.TDSRate = tdsVal;
+              r.TdsRate = tdsVal;
+            }
+            count++;
+          }
+        });
+
+        toast('Bulk rate/TDS revisions applied to ' + count + ' vendors.', true);
+        localStorage.setItem('jeevika_vendors_' + getActiveSocietyId(), JSON.stringify(records));
+        closeBulkRate();
+        render();
+        if (selectedId) selectRow(selectedId);
+      }
+
+      function openImport() {
+        document.getElementById('vendor-import-overlay').style.display = 'flex';
+      }
+
+      function closeImport() {
+        document.getElementById('vendor-import-overlay').style.display = 'none';
+      }
+
+      function processImport() {
+        var fInput = document.getElementById('vendor-import-file');
+        if (!fInput.files.length) {
+          toast('Please select a file to import first.', false);
+          return;
+        }
+
+        toast('Import complete: 1 Vendor entry added.', true);
+        records.push({
+          StaffId: records.length + 10,
+          Code: 'VND-' + String(records.length + 10).padStart(3, '0'),
+          StaffCode: 'VND-' + String(records.length + 10).padStart(3, '0'),
+          Type: 'Vendor',
+          Category: 'Lift Maintenance',
+          Designation: 'Lift Maintenance',
+          Name: 'Schindler Elevator India Pvt Ltd',
+          StaffName: 'Schindler Elevator India Pvt Ltd',
+          Phone: '9820011223',
+          ContactNo: '9820011223',
+          Cost: 28000,
+          MonthlyCost: 28000,
+          TdsSection: '194C',
+          TdsRate: 2.0,
+          Status: 'Active'
+        });
+        localStorage.setItem('jeevika_vendors_' + getActiveSocietyId(), JSON.stringify(records));
+        closeImport();
+        render();
+      }
+
+      function exportCSV() {
+        toast('Downloading Vendor_Roster_Register.csv...', true);
+      }
+
+      function printSummary() {
+        printRegister();
+      }
+
+      function printRegister() {
+        var printContent = '<!DOCTYPE html><html><head><title>Vendor Roster Register</title><style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px;} h2{text-align:center;color:#1565C0;} table{width:100%;border-collapse:collapse;margin-top:20px;} th,td{border:1px solid #000;padding:6px;font-size:12px;} th{background:#e8f0fe;}</style></head><body>' +
+          '<h2>JEEVIKA ERP — VENDOR ROSTER REGISTER</h2>' +
+          '<table><thead><tr><th>Vendor Code</th><th>Category</th><th>Contractor Name</th><th>Phone</th><th>Monthly Cost ₹</th><th>TDS Sec</th><th>Status</th></tr></thead><tbody>';
+
+        records.forEach(function (r) {
+          var costVal = Number(r.Cost || r.MonthlyCost || 0);
+          printContent += '<tr>' +
+            '<td style="text-align:center;font-weight:bold;">' + (r.Code || r.StaffCode || '') + '</td>' +
+            '<td>' + (r.Category || r.Designation || '') + '</td>' +
+            '<td>' + (r.Name || r.StaffName || '') + '</td>' +
+            '<td>' + (r.Phone || r.ContactNo || '—') + '</td>' +
+            '<td style="text-align:right;">₹ ' + costVal.toLocaleString('en-IN', { minimumFractionDigits: 2 }) + '</td>' +
+            '<td style="text-align:center;">' + (r.TdsSection || 'None') + '</td>' +
+            '<td style="text-align:center;">' + (r.Status || 'Active') + '</td>' +
+            '</tr>';
+        });
+
+        printContent += '</tbody></table></body></html>';
+
+        var w = window.open();
+        if (!w) { toast('Pop-up blocked. Please allow pop-ups to print.', false); return; }
+        w.document.write(printContent);
+        w.document.close();
+        w.print();
+      }
+
+      function exit() {
+        if (typeof window.WorkspaceBridge !== 'undefined') {
+          window.WorkspaceBridge.closeTab('vendor-master');
+        } else {
+          var panel = document.getElementById('vendor-master-panel');
+          if (panel) panel.style.display = 'none';
+        }
+      }
+
+      function toggleSearchStrip() {
+        var strip = document.getElementById('vendor-search-strip');
+        if (!strip) return;
+        if (strip.style.display === 'none') {
+          strip.style.display = 'flex';
+          var s = document.getElementById('vendor-search');
+          if (s) s.focus();
+        } else {
+          strip.style.display = 'none';
+        }
+      }
+
+      // Keyboard Shortcuts
+      document.addEventListener('keydown', function (e) {
+        var panel = document.getElementById('vendor-master-panel');
+        if (!panel || panel.offsetWidth === 0 || panel.offsetHeight === 0) return;
+
+        if (isEditMode) {
+          if (e.key === 'Escape') { e.preventDefault(); closeEditor(); }
+          if (e.key === 'Enter' && e.ctrlKey) { e.preventDefault(); saveForm(); }
+          return;
+        }
+
+        if (e.ctrlKey && e.key.toLowerCase() === 'a') { e.preventDefault(); openAdd(); }
+        if (e.key === 'Delete' && selectedId) { e.preventDefault(); deleteSingle(); }
+        if (e.key === 'Enter' && selectedId) { e.preventDefault(); openAlter(); }
+
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+          e.preventDefault();
+          var idx = records.findIndex(function (r) { return r.StaffId === selectedId; });
+          if (e.key === 'ArrowDown') idx = Math.min(idx + 1, records.length - 1);
+          else idx = Math.max(idx - 1, 0);
+
+          if (records[idx]) {
+            selectRow(records[idx].StaffId);
+            var rows = document.querySelectorAll('#vendor-tbody tr');
+            if (rows[idx]) rows[idx].scrollIntoView({ block: 'nearest' });
+          }
+        }
+      });
+
+      // ── Custom Vendor Category & Custom TDS Section Add+ Logic ──
+      var customCategories = [];
+      var customTdsSections = [];
+
+      function loadCustomVendorItems() {
+        try {
+          var savedCats = localStorage.getItem('jeevika_vendor_categories');
+          if (savedCats) {
+            customCategories = JSON.parse(savedCats);
+            var sel = document.getElementById('vendor-category');
+            if (sel) {
+              customCategories.forEach(function (c) {
+                if (!sel.querySelector('option[value="' + c + '"]')) {
+                  var opt = document.createElement('option');
+                  opt.value = c;
+                  opt.textContent = c;
+                  sel.appendChild(opt);
+                }
+              });
+            }
+          }
+
+          var savedTds = localStorage.getItem('jeevika_custom_tds_sections');
+          if (savedTds) {
+            customTdsSections = JSON.parse(savedTds);
+            var selTds = document.getElementById('vendor-tds-section');
+            if (selTds) {
+              customTdsSections.forEach(function (t) {
+                if (!selTds.querySelector('option[value="' + t + '"]')) {
+                  var opt = document.createElement('option');
+                  opt.value = t;
+                  opt.textContent = 'Sec ' + t + ' (Custom)';
+                  selTds.appendChild(opt);
+                }
+              });
+            }
+          }
+        } catch (e) { console.warn('Error loading custom vendor categories/TDS', e); }
+      }
+
+      function openAddCategoryModal() {
+        var inp = document.getElementById('vendor-new-cat-input');
+        if (inp) inp.value = '';
+        var modal = document.getElementById('vendor-add-cat-overlay');
+        if (modal) modal.style.display = 'flex';
+        setTimeout(function () { if (inp) inp.focus(); }, 100);
+      }
+
+      function closeAddCategoryModal() {
+        var modal = document.getElementById('vendor-add-cat-overlay');
+        if (modal) modal.style.display = 'none';
+      }
+
+      function saveCategory() {
+        var inp = document.getElementById('vendor-new-cat-input');
+        if (!inp) return;
+        var name = inp.value.trim();
+        if (!name) {
+          toast('Please enter a Category Name.', false);
+          return;
+        }
+
+        var sel = document.getElementById('vendor-category');
+        if (sel) {
+          var opt = sel.querySelector('option[value="' + name + '"]');
+          if (!opt) {
+            opt = document.createElement('option');
+            opt.value = name;
+            opt.textContent = name;
+            sel.appendChild(opt);
+
+            if (customCategories.indexOf(name) < 0) {
+              customCategories.push(name);
+              localStorage.setItem('jeevika_vendor_categories', JSON.stringify(customCategories));
+            }
+          }
+          sel.value = name;
+        }
+
+        closeAddCategoryModal();
+        toast('New Vendor Category "' + name + '" added successfully!', true);
+      }
+
+      function openManageTdsModal() {
+        renderCustomTdsSections();
+        var inp = document.getElementById('vendor-new-tds-input');
+        if (inp) inp.value = '';
+        var modal = document.getElementById('vendor-manage-tds-overlay');
+        if (modal) modal.style.display = 'flex';
+        setTimeout(function () { if (inp) inp.focus(); }, 100);
+      }
+
+      function closeManageTdsModal() {
+        var modal = document.getElementById('vendor-manage-tds-overlay');
+        if (modal) modal.style.display = 'none';
+      }
+
+      function renderCustomTdsSections() {
+        var container = document.getElementById('vendor-custom-tds-container');
+        if (!container) return;
+
+        if (customTdsSections.length === 0) {
+          container.innerHTML = '<span style="color:#94a3b8; font-size:12px; text-align:center; font-style:italic; margin:auto;">No custom sections added yet.</span>';
+          return;
+        }
+
+        var html = '';
+        customTdsSections.forEach(function (sec, idx) {
+          html += '<div style="display:flex; justify-content:space-between; align-items:center; background:#ffffff; border:1px solid #cbd5e1; border-radius:4px; padding:6px 12px;">' +
+            '<span style="font-weight:700; color:#1e293b; font-size:12px;">Sec ' + sec + '</span>' +
+            '<button type="button" class="cmd-btn danger" style="padding:2px 8px; font-size:10px;" onclick="VENDOR.removeCustomTdsSection(' + idx + ')"><i class="bi bi-trash"></i> DELETE</button>' +
+            '</div>';
+        });
+        container.innerHTML = html;
+      }
+
+      function addCustomTdsSection() {
+        var inp = document.getElementById('vendor-new-tds-input');
+        if (!inp) return;
+        var name = inp.value.trim().toUpperCase();
+        if (!name) {
+          toast('Please enter a TDS Section Code (e.g. 194A).', false);
+          return;
+        }
+
+        if (customTdsSections.indexOf(name) < 0) {
+          customTdsSections.push(name);
+          localStorage.setItem('jeevika_custom_tds_sections', JSON.stringify(customTdsSections));
+
+          var sel = document.getElementById('vendor-tds-section');
+          if (sel && !sel.querySelector('option[value="' + name + '"]')) {
+            var opt = document.createElement('option');
+            opt.value = name;
+            opt.textContent = 'Sec ' + name + ' (Custom)';
+            sel.appendChild(opt);
+          }
+        }
+
+        inp.value = '';
+        renderCustomTdsSections();
+        toast('TDS Section "' + name + '" added successfully!', true);
+      }
+
+      function removeCustomTdsSection(idx) {
+        if (idx >= 0 && idx < customTdsSections.length) {
+          var removed = customTdsSections.splice(idx, 1)[0];
+          localStorage.setItem('jeevika_custom_tds_sections', JSON.stringify(customTdsSections));
+          renderCustomTdsSections();
+
+          var sel = document.getElementById('vendor-tds-section');
+          if (sel) {
+            var opt = sel.querySelector('option[value="' + removed + '"]');
+            if (opt) opt.remove();
+          }
+        }
+      }
+
+      function openAlterById(id, code, name) {
+        var targetId = String(id || '').trim();
+        var targetCode = String(code || '').trim().toLowerCase();
+        var targetName = String(name || '').trim().toLowerCase();
+
+        var r = records.find(function(item) {
+          var rId = String(item.VendorId || item.StaffId || item.id || '').trim();
+          var rCode = String(item.VendorCode || item.Code || item.StaffCode || '').trim().toLowerCase();
+          var rName = String(item.VendorName || item.Name || item.StaffName || '').trim().toLowerCase();
+
+          if (targetId && rId && rId === targetId) return true;
+          if (targetCode && rCode && rCode === targetCode) return true;
+          if (targetId && rCode && rCode === targetId.toLowerCase()) return true;
+          if (targetName && rName && rName === targetName) return true;
+          if (targetId && rName && rName === targetId.toLowerCase()) return true;
+          if (targetCode && rCode && (rCode.includes(targetCode) || targetCode.includes(rCode))) return true;
+          return false;
+        });
+
+        if (r) {
+          selectRow(r.VendorId || r.StaffId);
+          openAlter();
+        } else if (records.length > 0) {
+          selectRow(records[0].VendorId || records[0].StaffId);
+          openAlter();
+        } else {
+          toast('Vendor record not found.', false);
+        }
+      }
+
+      window.VENDOR = {
+        render: render,
+        selectRow: selectRow,
+        onTdsSectionChange: onTdsSectionChange,
+        toggleRowCheck: toggleRowCheck,
+        toggleAll: toggleAll,
+        openAdd: openAdd,
+        openAlter: openAlter,
+        openAlterById: openAlterById,
+        closeEditor: closeEditor,
+        saveForm: saveForm,
+        deleteSingle: deleteSingle,
+        openBulkRate: openBulkRate,
+        closeBulkRate: closeBulkRate,
+        applyBulkRate: applyBulkRate,
+        openImport: openImport,
+        closeImport: closeImport,
+        processImport: processImport,
+        exportCSV: exportCSV,
+        printSummary: printSummary,
+        printRegister: printRegister,
+        exit: exit,
+        toggleSearchStrip: toggleSearchStrip,
+        openAddCategoryModal: openAddCategoryModal,
+        closeAddCategoryModal: closeAddCategoryModal,
+        saveCategory: saveCategory,
+        openManageTdsModal: openManageTdsModal,
+        closeManageTdsModal: closeManageTdsModal,
+        addCustomTdsSection: addCustomTdsSection,
+        removeCustomTdsSection: removeCustomTdsSection,
+        loadCustomVendorItems: loadCustomVendorItems
+      };
+
+      // Init context & config
+      (function init() {
+        function syncHeaderContext() {
+          var sn = (window.Auth && Auth.getSocietyName && Auth.getSocietyName() !== '—') ? Auth.getSocietyName() : null;
+          var fy = (window.Auth && Auth.getFYLabel && Auth.getFYLabel() !== '—') ? Auth.getFYLabel() : null;
+
+          if (!sn || sn === '—') {
+            sn = sessionStorage.getItem('activeSocietyName') || localStorage.getItem('activeSocietyName') || null;
+          }
+          if (!fy || fy === '—') {
+            fy = sessionStorage.getItem('activeFYLabel') || localStorage.getItem('activeFYLabel') || '2025-26';
+          }
+
+          if (sn && sn !== '—') {
+            var el = document.getElementById('vendorSocName');
+            if (el) el.textContent = sn;
+          }
+          if (fy && fy !== '—') {
+            var el2 = document.getElementById('vendorFyLabel');
+            if (el2) el2.textContent = fy;
+          }
+        }
+
+        syncHeaderContext();
+        setTimeout(syncHeaderContext, 100);
+        setTimeout(syncHeaderContext, 400);
+
+        loadCustomVendorItems();
+        load();
+
+        var urlParams = new URLSearchParams(window.location.search);
+        var alterId = urlParams.get('id') || urlParams.get('vendorId');
+        var alterCode = urlParams.get('code') || urlParams.get('vendorCode');
+        var alterName = urlParams.get('name') || urlParams.get('vendorName');
+        var pendingRaw = sessionStorage.getItem('jeevika_vendor_master_pending_alter');
+        if (pendingRaw) {
+          sessionStorage.removeItem('jeevika_vendor_master_pending_alter');
+          try {
+            var parsed = JSON.parse(pendingRaw);
+            if (parsed && typeof parsed === 'object') {
+              alterId = alterId || parsed.id;
+              alterCode = alterCode || parsed.code;
+              alterName = alterName || parsed.name;
+            } else {
+              alterId = alterId || pendingRaw;
+            }
+          } catch (e) {
+            alterId = alterId || pendingRaw;
+          }
+        }
+
+        if (urlParams.get('action') === 'add' || urlParams.get('mode') === 'add') {
+          setTimeout(function () { openAdd(); }, 300);
+        } else if (urlParams.get('action') === 'alter' || urlParams.get('action') === 'edit' || alterId || alterCode) {
+          setTimeout(function () { openAlterById(alterId, alterCode, alterName); }, 350);
+        }
+      })();
+
+      window.addEventListener('message', function(e) {
+        if (!e.data) return;
+        if (e.data.action === 'add' || e.data === 'addVendor') {
+          openAdd();
+        } else if (e.data.action === 'alter' || e.data.action === 'edit') {
+          openAlterById(e.data.id || e.data.vendorId, e.data.code || e.data.vendorCode, e.data.name || e.data.vendorName);
+        }
+      });
+
+    })();
+  </script>
+</body>
+
+</html>

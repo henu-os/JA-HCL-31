@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Outstanding Dues List — JEEVIKA ERP</title>
+  <script src="../../../config.js"></script>
+  <link rel="stylesheet" href="../../../assets/css/global.css">
+  <link rel="stylesheet" href="../../../assets/css/components.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    :root {
+      --primary: #0D47A1;
+      --primary-hover: #0a3880;
+      --primary-light: #eff6ff;
+      --border-clr: #cbd5e1;
+      --bg-strip: #f8fafc;
+      --navy: #0f172a;
+    }
+
+    body.erp-module {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: #f1f5f9;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: #1e293b;
+      overflow: hidden;
+    }
+
+    /* Top Module Bar */
+    .module-top-bar {
+      background: #ffffff;
+      padding: 8px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-clr);
+      flex-shrink: 0;
+    }
+    .module-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-top {
+      background: #ffffff;
+      color: var(--primary);
+      border: 1px solid #bfdbfe;
+      padding: 5px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 4px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s ease;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    }
+    .btn-top:hover {
+      background: var(--primary-light);
+      border-color: var(--primary);
+      color: var(--primary-hover);
+    }
+    .btn-top.primary {
+      background: var(--primary);
+      color: #ffffff;
+      border-color: var(--primary);
+    }
+    .btn-top.primary:hover {
+      background: var(--primary-hover);
+    }
+
+    /* Filters Header Panel */
+    .filter-bar {
+      background: #ffffff;
+      padding: 10px 16px 8px 16px;
+      border-bottom: 1px solid var(--border-clr);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .filter-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .filter-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .filter-lbl {
+      font-size: 10px;
+      font-weight: 700;
+      color: #475569;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .filter-input {
+      height: 28px;
+      padding: 2px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      background: #ffffff;
+      color: #1e293b;
+      outline: none;
+      transition: all 0.15s;
+    }
+    .filter-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(13,71,161,0.12);
+    }
+
+    /* Summary Popover Dropdown */
+    .summary-dropdown-wrap {
+      position: relative;
+      margin-left: auto;
+    }
+    .summary-dropdown-btn {
+      height: 28px;
+      padding: 2px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      background: #f8fafc;
+      color: #0f172a;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s;
+    }
+    .summary-dropdown-btn:hover {
+      background: #eff6ff;
+      border-color: #93c5fd;
+    }
+    .summary-popover {
+      display: none;
+      position: absolute;
+      right: 0;
+      top: 34px;
+      width: 320px;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.1);
+      padding: 12px;
+      z-index: 100;
+    }
+    .summary-popover.show {
+      display: block;
+    }
+    .summary-popover-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 8px;
+      margin-bottom: 10px;
+    }
+    .summary-popover-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .pop-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 4px;
+      padding: 6px 8px;
+      display: flex;
+      flex-direction: column;
+    }
+    .pop-card.full-width {
+      grid-column: span 2;
+    }
+    .pop-lbl {
+      font-size: 9.5px;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+    }
+    .pop-val {
+      font-size: 13px;
+      font-weight: 800;
+      color: #0f172a;
+      margin-top: 2px;
+    }
+    .pop-val.debit { color: #dc2626; }
+    .pop-val.credit { color: #16a34a; }
+
+    /* Data Table Container */
+    .table-container {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: auto;
+      background: #ffffff;
+    }
+
+    table.ledger-grid {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11.5px;
+    }
+    table.ledger-grid thead th {
+      position: sticky;
+      top: 0;
+      background: #f1f5f9;
+      color: #0f172a;
+      font-weight: 800;
+      font-size: 10.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      padding: 6px 8px;
+      border-bottom: 1.5px solid #cbd5e1;
+      border-right: 1px solid #e2e8f0;
+      z-index: 10;
+      white-space: nowrap;
+    }
+    table.ledger-grid tbody td {
+      padding: 5px 8px;
+      border-bottom: 1px solid #e2e8f0;
+      border-right: 1px solid #f1f5f9;
+      color: #334155;
+      vertical-align: middle;
+      font-size: 11px;
+    }
+    table.ledger-grid tbody tr:hover {
+      background: #f8fafc;
+    }
+    table.ledger-grid tfoot {
+      position: sticky;
+      bottom: 0;
+      z-index: 20;
+    }
+    table.ledger-grid tfoot td {
+      background: #f1f5f9;
+      font-weight: 800;
+      font-size: 11.5px;
+      padding: 5px 8px;
+    }
+    table.ledger-grid tfoot tr.gt-row td {
+      border-top: 1.5px solid #94a3b8;
+    }
+    table.ledger-grid tfoot tr.diff-row td {
+      border-top: 1px dashed #cbd5e1;
+      padding: 4px 8px;
+    }
+
+    .td-num {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+    }
+    .val-debit { color: #dc2626; }
+    .val-credit { color: #16a34a; }
+
+    /* Column visibility controls */
+    table.ledger-grid.hide-breakdown .col-breakdown {
+      display: none !important;
+    }
+
+    /* Print Styles */
+    @media print {
+      body.erp-module {
+        height: auto;
+        overflow: visible;
+        background: #ffffff;
+      }
+      .module-top-bar, .filter-bar, .no-print {
+        display: none !important;
+      }
+      .table-container {
+        overflow: visible;
+      }
+      .print-header {
+        display: block !important;
+        padding-bottom: 8px;
+        margin-bottom: 10px;
+        border-bottom: 1.5px solid #0f172a;
+      }
+      .print-signatures {
+        display: flex !important;
+        justify-content: space-between;
+        margin-top: 35px;
+        padding-top: 15px;
+      }
+      table.ledger-grid th {
+        background: #f1f5f9 !important;
+        color: #0f172a !important;
+        border: 1px solid #94a3b8 !important;
+      }
+      table.ledger-grid td {
+        border: 1px solid #cbd5e1 !important;
+      }
+    }
+    .print-header { display: none; }
+    .print-signatures { display: none; }
+  </style>
+</head>
+<body class="erp-module">
+
+  <!-- PRINT ONLY HEADER -->
+  <div class="print-header">
+    <div style="text-align:center;">
+      <h2 style="margin:0; font-size:16px; font-weight:900; color:#0f172a;" id="printSocName">SOCIETY NAME</h2>
+      <div style="font-size:12px; font-weight:700; margin-top:2px;" id="printReportTitle">MEMBER OUTSTANDING DUES STATEMENT</div>
+      <div style="font-size:11px; color:#475569; margin-top:2px;">
+        Financial Year: <span id="printFYLabel" style="font-weight:bold;">—</span> | Bill Type: <span id="printBillType" style="font-weight:bold;">—</span> | Period: <span id="printDatePeriod" style="font-weight:bold;">—</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOP MODULE BAR -->
+  <div class="module-top-bar">
+    <div class="module-title">
+      <i class="bi bi-file-earmark-text-fill" style="color:var(--primary);"></i>
+      <span>Member Outstanding Dues Statement</span>
+    </div>
+    <div class="d-flex gap-6">
+      <button class="btn-top" onclick="exportCsv()"><i class="bi bi-file-earmark-spreadsheet"></i> Export Excel</button>
+      <button class="btn-top" onclick="window.print()"><i class="bi bi-printer"></i> Print Statement</button>
+      <button class="btn-top primary" onclick="loadOutstandingData()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+    </div>
+  </div>
+
+  <!-- FILTERS PANEL -->
+  <div class="filter-bar">
+    <div class="filter-row" style="gap:8px; align-items:flex-end;">
+      <!-- Bill Type Select -->
+      <div class="filter-item" style="width:140px;">
+        <label class="filter-lbl">Bill Type</label>
+        <select id="billTypeSelect" class="filter-input" onchange="onBillTypeChange()"></select>
+      </div>
+
+      <!-- Date Period Preset -->
+      <div class="filter-item" style="width:115px;">
+        <label class="filter-lbl">Period Preset</label>
+        <select id="datePresetSelect" class="filter-input" onchange="applyDatePreset(this.value)">
+          <option value="full" selected>Full Year</option>
+          <option value="this-month">This Month</option>
+          <option value="last-month">Last Month</option>
+          <option value="q1">Q1 (Apr-Jun)</option>
+          <option value="q2">Q2 (Jul-Sep)</option>
+          <option value="q3">Q3 (Oct-Dec)</option>
+          <option value="q4">Q4 (Jan-Mar)</option>
+          <option value="custom">Custom</option>
+        </select>
+      </div>
+
+      <!-- From Date -->
+      <div class="filter-item" style="width:130px;">
+        <label class="filter-lbl">From Date</label>
+        <input type="date" id="fromDate" class="filter-input" onchange="onDateChange()">
+      </div>
+
+      <!-- To Date -->
+      <div class="filter-item" style="width:130px;">
+        <label class="filter-lbl">To Date</label>
+        <input type="date" id="toDate" class="filter-input" onchange="onDateChange()">
+      </div>
+
+      <!-- Scope / Balance Type Select -->
+      <div class="filter-item" style="width:130px;">
+        <label class="filter-lbl">Balance Filter</label>
+        <select id="filterType" class="filter-input" onchange="filterTable()">
+          <option value="DUES" selected>Outstanding Dues Only</option>
+          <option value="ALL">All Members</option>
+          <option value="ADVANCE">Advance Only (Credit)</option>
+          <option value="NIL">Nil Balance (0.00)</option>
+        </select>
+      </div>
+
+      <!-- Columns View Filter -->
+      <div class="filter-item" style="width:145px;">
+        <label class="filter-lbl">View Columns</label>
+        <select id="columnViewMode" class="filter-input" onchange="applyColumnView()">
+          <option value="detailed" selected>Detailed (Prin &amp; Int)</option>
+          <option value="closing_only">Only Closing Dr/Cr</option>
+        </select>
+      </div>
+
+      <!-- Search Box -->
+      <div class="filter-item" style="min-width:180px; flex:1; max-width:280px;">
+        <label class="filter-lbl">Search Member / Flat</label>
+        <input type="text" id="searchInput" class="filter-input" placeholder="🔍 Search Flat, Wing, or Member..." onkeyup="filterTable()">
+      </div>
+
+      <!-- Summary Pop-over -->
+      <div class="filter-item summary-dropdown-wrap">
+        <label class="filter-lbl">Statement Summary</label>
+        <button type="button" class="summary-dropdown-btn" id="btnSummaryToggle" onclick="toggleSummaryPopover(event)">
+          <i class="bi bi-pie-chart-fill" style="color:var(--primary); font-size:11px;"></i>
+          <span>Summary</span>
+          <span style="font-size:10px; font-weight:700; color:#0369a1; background:#e0f2fe; padding:1px 6px; border-radius:10px;" id="badgeMemCount">0 Members</span>
+          <i class="bi bi-chevron-down" style="font-size:9.5px; color:#64748b;"></i>
+        </button>
+
+        <!-- Popover -->
+        <div class="summary-popover" id="summaryPopover">
+          <div class="summary-popover-head">
+            <div style="font-size:11.5px; font-weight:800; color:#0f172a; display:flex; align-items:center; gap:6px;">
+              <i class="bi bi-bar-chart-line-fill" style="color:var(--primary);"></i> Outstanding Dues Summary
+            </div>
+            <span style="font-size:10px; font-weight:700; color:#0369a1; background:#e0f2fe; padding:1px 6px; border-radius:10px;" id="kpiMemCount">0 Members</span>
+          </div>
+
+          <div class="summary-popover-grid">
+            <div class="pop-card">
+              <span class="pop-lbl">Total Principal (Dr)</span>
+              <span class="pop-val debit" id="kpiPrincipal">₹0.00</span>
+            </div>
+            <div class="pop-card">
+              <span class="pop-lbl">Total Interest (Dr)</span>
+              <span class="pop-val debit" id="kpiInterest">₹0.00</span>
+            </div>
+            <div class="pop-card">
+              <span class="pop-lbl">Gross Closing Dues (Dr)</span>
+              <span class="pop-val debit" id="kpiClosingDebit">₹0.00</span>
+            </div>
+            <div class="pop-card">
+              <span class="pop-lbl">Total Advance (Cr)</span>
+              <span class="pop-val credit" id="kpiClosingCredit">₹0.00</span>
+            </div>
+            <div class="pop-card full-width" style="background:#f1f5f9;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span class="pop-lbl">Net Collectible Outstanding</span>
+                <span class="pop-val debit" id="kpiNetOutstanding" style="font-size:13px; margin:0;">₹0.00</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABLE CONTAINER -->
+  <div class="table-container">
+    <table class="ledger-grid" id="mainTable">
+      <thead>
+        <tr>
+          <th style="width:40px; text-align:center;">#</th>
+          <th style="width:90px; text-align:center;">Flat No</th>
+          <th style="width:70px; text-align:center;">Wing</th>
+          <th>Member Name</th>
+          <th class="col-breakdown" style="width:140px; text-align:right;">Principal (₹)</th>
+          <th class="col-breakdown" style="width:140px; text-align:right;">Interest (₹)</th>
+          <th style="width:150px; text-align:right;">Closing Debit (₹)</th>
+          <th style="width:150px; text-align:right;">Closing Credit (₹)</th>
+        </tr>
+      </thead>
+      <tbody id="mainTableBody">
+        <tr>
+          <td colspan="8" style="text-align:center; padding:50px; color:#64748b;">
+            <i class="bi bi-hourglass-split" style="font-size:24px; color:var(--primary); display:block; margin-bottom:8px;"></i>
+            Loading Outstanding Dues records...
+          </td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr class="gt-row">
+          <td colspan="4" style="text-align:right; font-weight:800;">Grand Total:</td>
+          <td class="td-num val-debit col-breakdown" id="ftPrincipal">0.00</td>
+          <td class="td-num val-debit col-breakdown" id="ftInterest">0.00</td>
+          <td class="td-num val-debit" id="ftClosingDebit">0.00</td>
+          <td class="td-num val-credit" id="ftClosingCredit">0.00</td>
+        </tr>
+        <tr class="diff-row" id="rowDifference" style="background:#fff1f2;">
+          <td colspan="4" style="text-align:right; font-weight:800; color:#991b1b; text-transform:uppercase; font-size:11px; letter-spacing:0.3px;">Difference:</td>
+          <td colspan="2" class="col-breakdown" style="text-align:center; padding:5px 8px;" id="ftDiffPrincipalInterest">
+            <span class="erp-badge" style="font-weight:800; font-size:10.5px;">₹0.00</span>
+          </td>
+          <td colspan="2" style="text-align:center; padding:5px 8px;" id="ftDiffClosing">
+            <span class="erp-badge" style="font-weight:800; font-size:10.5px;">₹0.00</span>
+          </td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <!-- PRINT SIGNATURE BLOCK -->
+  <div class="print-signatures">
+    <div style="text-align:center; width:200px; border-top:1px solid #64748b; font-size:11px; padding-top:4px;">
+      Prepared By
+    </div>
+    <div style="text-align:center; width:200px; border-top:1px solid #64748b; font-size:11px; padding-top:4px;">
+      Checked By / Accountant
+    </div>
+    <div style="text-align:center; width:200px; border-top:1px solid #64748b; font-size:11px; padding-top:4px;">
+      Hon. Secretary / Treasurer
+    </div>
+  </div>
+
+  <script src="../../../assets/js/api.js?v=20260831_0200"></script>
+  <script src="../../../assets/js/auth.js?v=20260831_0200"></script>
+  <script src="../../../assets/js/utils.js?v=20260831_0200"></script>
+  <script src="outstanding-list.js?v=20260831_0200"></script>
+</body>
+</html>

@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bank Reconciliation — JEEVIKA ERP</title>
+  <script src="../../../config.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="css/bank-reco.css">
+  <style>
+    /* EXACT STYLING & ALIGNMENT MATCHING ATTACHED SCREENSHOTS */
+    body {
+      margin: 0; padding: 0; height: 100vh; overflow: hidden;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #ffffff; color: #1e293b;
+    }
+
+    .module-header {
+      background: #ffffff;
+      padding: 10px 16px 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .module-title { font-size: 16px; font-weight: 800; color: #0f172a; margin: 0 0 2px 0; }
+    .module-subtitle { font-size: 11px; color: #64748b; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+
+    .btn-tb-blue {
+      background: #0D47A1;
+      color: #ffffff;
+      border: none;
+      padding: 5px 14px;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 4px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      text-transform: uppercase;
+    }
+    .btn-tb-blue:hover { background: #1565C0; }
+
+    .btn-tb-outline {
+      background: rgba(255,255,255,0.15);
+      color: #ffffff;
+      border: 1px solid rgba(255,255,255,0.3);
+      padding: 5px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 4px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      text-transform: uppercase;
+    }
+    .btn-tb-outline:hover { background: rgba(255,255,255,0.25); }
+
+    /* TABLE SCROLLING & RESIZING */
+    .erp-table-wrap {
+      flex: 1;
+      overflow: auto;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+    }
+    table.erp-table {
+      width: 100%;
+      min-width: 1450px;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
+    table.erp-table th {
+      background: #0D47A1;
+      color: #ffffff;
+      padding: 7px 10px;
+      font-size: 10.5px;
+      font-weight: 800;
+      text-transform: uppercase;
+      text-align: left;
+      border: 1px solid #0a3880;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      white-space: nowrap;
+      user-select: none;
+    }
+    table.erp-table td {
+      padding: 6px 10px;
+      border-bottom: 1px solid #e2e8f0;
+      border-right: 1px solid #e2e8f0;
+      white-space: nowrap;
+    }
+    table.erp-table tr:hover td { background: #f0f9ff !important; cursor: pointer; }
+    table.erp-table tr.row-active td { background: #dbeafe !important; color: #1e40af; font-weight: 700; }
+
+    /* COLUMN RESIZER HANDLE */
+    th { position: relative; }
+    .col-resizer {
+      position: absolute; right: 0; top: 0; bottom: 0; width: 5px; cursor: col-resize; z-index: 10;
+    }
+    .col-resizer:hover, .col-resizer.resizing { background: #60a5fa; }
+
+    .form-inp, .form-sel {
+      height: 28px; border: 1px solid #cbd5e1; border-radius: 3px; padding: 2px 8px; font-size: 11.5px; outline: none; box-sizing: border-box; background: #fff;
+    }
+    .form-inp:focus, .form-sel:focus { border-color: #0D47A1; box-shadow: 0 0 0 1px #0D47A1; }
+
+    /* DROPDOWN MENU IN TOOLBAR */
+    .dropdown-container { position: relative; display: inline-block; }
+    .dropdown-menu-box {
+      display: none; position: absolute; top: 100%; left: 0; background: #ffffff; min-width: 160px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border: 1px solid #cbd5e1; border-radius: 4px; z-index: 100; margin-top: 2px;
+    }
+    .dropdown-menu-box a {
+      color: #1e293b; padding: 8px 12px; text-decoration: none; display: block; font-size: 11px; font-weight: 600;
+    }
+    .dropdown-menu-box a:hover { background: #f1f5f9; color: #0D47A1; }
+    .dropdown-container:hover .dropdown-menu-box { display: block; }
+  </style>
+</head>
+<body>
+
+<div style="display:flex; flex-direction:column; height:100vh; overflow:hidden;">
+
+  <!-- MODULE HEADER (MATCHING IMAGES 1 & 2) -->
+  <div class="module-header">
+    <div>
+      <h1 class="module-title">Bank Reconciliation</h1>
+      
+    </div>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <div style="font-size:10px; color:#64748b; font-weight:700;">
+        Alt+A Clear Row  Ctrl+R Refresh  Ctrl+M Auto Match  Ctrl+P Print Statement
+      </div>
+      <button class="btn-tb-blue" style="background:#0D47A1; color:#fff;"><i class="bi bi-gear-fill"></i> SA PATH</button>
+    </div>
+  </div>
+
+  <!-- SECTION 1: RECONCILIATION SCREEN (MATCHING IMAGES 1 & 2) -->
+  <div id="br-section-list" style="display:flex; flex-direction:column; flex:1; overflow:hidden;">
+    
+    <!-- TOP FILTER DROPDOWNS ROW (MATCHING SCREENSHOTS) -->
+    <div style="background:#f8fafc; padding:8px 14px; border-bottom:1px solid #cbd5e1; display:flex; gap:14px; align-items:center; flex-wrap:wrap;">
+      <div style="display:flex; align-items:center; gap:6px;">
+        <span style="font-size:10px; font-weight:800; color:#475569;">BANK</span>
+        <select class="form-sel" id="flt-bank" onchange="renderList()" style="width:160px; font-weight:700;"></select>
+      </div>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <span style="font-size:10px; font-weight:800; color:#475569;">TRANSACTION TYPE</span>
+        <select class="form-sel" id="flt-txntype" onchange="renderList()" style="width:125px;">
+          <option value="">-- All Types --</option>
+          <option value="Receipt">Receipts (Dr)</option>
+          <option value="Payment">Payments (Cr)</option>
+        </select>
+      </div>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <span style="font-size:10px; font-weight:800; color:#475569;">CLEARING STATUS</span>
+        <select class="form-sel" id="flt-status" onchange="renderList()" style="width:110px;">
+          <option value="">-- All --</option>
+          <option value="Cleared">Cleared</option>
+          <option value="Uncleared">Uncleared</option>
+        </select>
+      </div>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <span style="font-size:10px; font-weight:800; color:#475569;">VOUCHER TYPE</span>
+        <select class="form-sel" id="flt-vtype" onchange="renderList()" style="width:110px;">
+          <option value="">-- All --</option>
+          <option value="RV">Receipt (RV)</option>
+          <option value="PV">Payment (PV)</option>
+          <option value="Contra">Contra</option>
+        </select>
+      </div>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <span style="font-size:10px; font-weight:800; color:#475569;">PERIOD</span>
+        <select class="form-sel" id="flt-period" onchange="renderList()" style="width:100px;">
+          <option value="All" selected>All</option>
+          <option value="CurrentMonth">Current Month</option>
+          <option value="FY">Financial Year</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- ACTION TOOLBAR STRIP (BLUE BACKGROUND MATCHING SCREENSHOT) -->
+    <div style="background:#0D47A1; padding:6px 14px; display:flex; gap:6px; align-items:center; flex-shrink:0;">
+      <button class="btn-tb-outline" onclick="clearSelection()"><i class="bi bi-x-circle-fill"></i> CLEAR SELECTION</button>
+      <button class="btn-tb-outline" onclick="showPreview()"><i class="bi bi-eye-fill"></i> REPORT PREVIEW</button>
+      <button class="btn-tb-outline" onclick="window.print()"><i class="bi bi-printer-fill"></i> PRINT</button>
+
+      <div class="dropdown-container">
+        <button class="btn-tb-outline">OTHER ▼</button>
+        <div class="dropdown-menu-box">
+          <a href="#" onclick="autoMatch(); return false;"><i class="bi bi-magic" style="margin-right:6px;"></i>Auto Match (Ctrl+M)</a>
+          <a href="#" onclick="showMultiClearModal(); return false;"><i class="bi bi-check-all" style="margin-right:6px;"></i>Multi Clear</a>
+          <a href="#" onclick="showMultiUnclearModal(); return false;"><i class="bi bi-arrow-counterclockwise" style="margin-right:6px;"></i>Multi Uncleared</a>
+        </div>
+      </div>
+
+      <button class="btn-tb-outline" onclick="showList()" style="margin-left:auto; background:#C62828; border-color:#C62828; color:#fff;"><i class="bi bi-x-circle"></i> EXIT</button>
+    </div>
+
+    <!-- MAIN BODY: LEFT (TABLE GRID & SEARCH) / RIGHT (SIDEBAR DETAILS) -->
+    <div style="display:flex; flex:1; overflow:hidden;">
+      
+      <!-- LEFT CONTAINER -->
+      <div style="flex:1; display:flex; flex-direction:column; overflow:hidden; border-right:1px solid #cbd5e1;">
+        
+        <!-- SEARCH BAR ROW -->
+        <div style="padding:6px 14px; background:#f8fafc; border-bottom:1px solid #cbd5e1; display:flex; align-items:center; gap:10px;">
+          <input type="text" class="form-inp" id="srch-vno" placeholder="Search Voucher No, Cheque, Person... (Ctrl+F)" oninput="renderList()" style="flex:1; height:26px;">
+          <input type="text" class="form-inp" id="flt-mem" placeholder="Member Code..." oninput="renderList()" style="width:130px; height:26px;">
+          <span style="font-weight:700; color:#64748b; font-size:11px;" id="br-count">0 entries</span>
+        </div>
+
+        <!-- MAIN DATA TABLE GRID (COLUMNS MATCHING IMAGES 1 & 2) -->
+        <div class="erp-table-wrap">
+          <table class="erp-table">
+            <thead>
+              <tr>
+                <th style="width:105px;">CLEARING DATE</th>
+                <th style="width:95px;">DATE</th>
+                <th style="width:120px; text-align:right;" title="ERP Books: Bank Debit (Receipts/Inflow) | Statement: Bank Credit (Deposits)">DEBIT (RECEIPTS)</th>
+                <th style="width:120px; text-align:right;" title="ERP Books: Bank Credit (Payments/Outflow) | Statement: Bank Debit (Withdrawals)">CREDIT (PAYMENTS)</th>
+                <th style="width:70px;">TYPE</th>
+                <th style="width:80px;">NO.</th>
+                <th style="width:110px;">MEMBER CODE</th>
+                <th style="width:110px;">CHEQUE NO.</th>
+                <th style="width:110px;">VOUCHER TYPE</th>
+                <th style="width:120px;">VOUCHER NO.</th>
+                <th style="width:160px;">PARTICULAR 1</th>
+                <th style="width:160px;">PARTICULAR 2</th>
+                <th>BANK NAME</th>
+              </tr>
+            </thead>
+            <tbody id="br-list-tbody">
+              <!-- Rendered rows -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- SUMMARY FOOTER BAR (MATCHING IMAGE 1) -->
+        <div style="background:#e2e8f0; border-top:1px solid #cbd5e1; padding:6px 14px; display:flex; gap:20px; align-items:center; font-size:11px; font-weight:700; color:#1e293b;">
+          <span>Total Debit (Receipts): <span style="color:#2E7D32;" id="sum-tot-dr">₹0.00</span></span>
+          <span>Total Credit (Payments): <span style="color:#dc2626;" id="sum-tot-cr">₹0.00</span></span>
+          <span>Cleared: <span style="color:#0D47A1;" id="sum-cleared">₹0.00</span></span>
+          <span>Uncleared: <span style="color:#d97706;" id="sum-uncleared">₹0.00</span></span>
+          <span>Net Books Balance: <span style="color:#0D47A1;" id="sum-diff">₹0.00</span></span>
+        </div>
+      </div>
+
+      <!-- RIGHT SIDEBAR PANEL: VOUCHER DETAILS & RECONCILIATION ENTRY (MATCHING IMAGE 1) -->
+      <div style="width:290px; flex-shrink:0; background:#f8fafc; display:flex; flex-direction:column; overflow-y:auto;">
+        
+        <div style="background:#0D47A1; color:#ffffff; padding:7px 12px; font-size:11.5px; font-weight:800; text-transform:uppercase; letter-spacing:0.3px;">
+          VOUCHER DETAILS
+        </div>
+
+        <div style="padding:12px; display:flex; flex-direction:column; gap:12px;">
+          
+          <!-- BANK INFORMATION -->
+          <div style="border-bottom:1px solid #cbd5e1; padding-bottom:8px;">
+            <div style="font-size:10.5px; font-weight:800; color:#475569; text-transform:uppercase; margin-bottom:4px;">BANK INFORMATION</div>
+            <div style="font-size:11px; margin-bottom:2px; display:flex; justify-content:space-between;"><span style="color:#64748b;">Bank:</span> <strong id="sb-bank" style="color:#0f172a;">-</strong></div>
+            <div style="font-size:11px; margin-bottom:2px; display:flex; justify-content:space-between;"><span style="color:#64748b;">Chq Date:</span> <strong id="sb-chqdate" style="color:#0f172a;">-</strong></div>
+            <div style="font-size:11px; display:flex; justify-content:space-between;"><span style="color:#64748b;">Person:</span> <strong id="sb-person" style="color:#0f172a;">-</strong></div>
+          </div>
+
+          <!-- PARTICULARS -->
+          <div style="border-bottom:1px solid #cbd5e1; padding-bottom:8px;">
+            <div style="font-size:10.5px; font-weight:800; color:#475569; text-transform:uppercase; margin-bottom:4px;">PARTICULARS</div>
+            <div style="font-size:11px; color:#334155; margin-bottom:2px;" id="sb-part1">-</div>
+            <div style="font-size:11px; color:#334155; margin-bottom:2px;" id="sb-part2">-</div>
+            <div style="font-size:10.5px; color:#64748b; font-style:italic;" id="sb-narr">-</div>
+          </div>
+
+          <!-- RECONCILIATION ENTRY CARD (LIGHT GREEN BACKGROUND MATCHING IMAGE 1) -->
+          <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:4px; padding:10px; display:flex; flex-direction:column; gap:8px;">
+            <div style="font-size:11px; font-weight:800; color:#15803D; text-transform:uppercase;">
+              RECONCILIATION ENTRY
+            </div>
+
+            <div>
+              <label style="font-size:10px; font-weight:800; color:#475569; text-transform:uppercase; display:block; margin-bottom:2px;">CLEARING DATE</label>
+              <input type="date" class="form-inp" id="sb-clearingdate" style="width:100%; border-color:#86efac;">
+            </div>
+
+            <div>
+              <label style="font-size:10px; font-weight:800; color:#475569; text-transform:uppercase; display:block; margin-bottom:2px;">REMARK</label>
+              <input type="text" class="form-inp" id="sb-remark" placeholder="Optional remark" style="width:100%; border-color:#86efac;">
+            </div>
+
+            <button type="button" class="btn-tb-blue" onclick="saveReconciliationDetail()" style="background:#2E7D32; color:#fff; width:100%; justify-content:center; margin-top:4px; height:32px;">
+              <i class="bi bi-check-circle-fill"></i> SAVE (ALT + A)
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- SECTION 2: REPORT PREVIEW SCREEN -->
+  <div id="br-section-preview" style="display:none; flex-direction:column; flex:1; overflow:hidden;">
+    <div style="padding:8px 14px; background:#f1f5f9; border-bottom:1px solid #cbd5e1; display:flex; gap:8px;">
+      <button class="btn-tb-blue" onclick="showList()"><i class="bi bi-arrow-left"></i> Back to List</button>
+      <button class="btn-tb-blue" onclick="window.print()" style="background:#2E7D32;"><i class="bi bi-printer-fill"></i> Print Statement</button>
+    </div>
+    <div style="flex:1; overflow-y:auto; padding:20px; background:#cbd5e1; display:flex; justify-content:center;">
+      <div id="preview-br-card" style="background:#fff; width:750px; padding:24px; border-radius:6px; box-shadow:0 4px 12px rgba(0,0,0,0.15);"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL: MULTI CLEAR -->
+<div id="modal-multi-clear" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
+  <div style="background:#FFF; border-radius:6px; width:380px; overflow:hidden; box-shadow:0 4px 15px rgba(0,0,0,0.3);">
+    <div style="background:#0D47A1; color:#FFF; padding:8px 12px; font-weight:800; font-size:12px; display:flex; justify-content:space-between; align-items:center;">
+      <span><i class="bi bi-check-all"></i> MULTI CLEAR ENTRIES</span>
+      <span onclick="closeModal('modal-multi-clear')" style="cursor:pointer;">&times;</span>
+    </div>
+    <div style="padding:12px; display:flex; flex-direction:column; gap:8px;">
+      <div style="display:flex; gap:8px;">
+        <div style="flex:1;"><label style="font-size:10px; font-weight:800;">From Voucher No</label><input type="text" class="form-inp" id="mc-from"></div>
+        <div style="flex:1;"><label style="font-size:10px; font-weight:800;">To Voucher No</label><input type="text" class="form-inp" id="mc-to"></div>
+      </div>
+      <div><label style="font-size:10px; font-weight:800;">Clearing Date</label><input type="date" class="form-inp" id="mc-date" style="width:100%;"></div>
+    </div>
+    <div style="padding:8px 12px; background:#f8fafc; border-top:1px solid #cbd5e1; display:flex; justify-content:flex-end; gap:8px;">
+      <button class="btn-tb-outline" onclick="closeModal('modal-multi-clear')" style="color:#334155;">Cancel</button>
+      <button class="btn-tb-blue" onclick="runMultiClear()" style="background:#2E7D32;">Process</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: MULTI UNCLEAR -->
+<div id="modal-multi-unclear" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
+  <div style="background:#FFF; border-radius:6px; width:380px; overflow:hidden; box-shadow:0 4px 15px rgba(0,0,0,0.3);">
+    <div style="background:#C62828; color:#FFF; padding:8px 12px; font-weight:800; font-size:12px; display:flex; justify-content:space-between; align-items:center;">
+      <span><i class="bi bi-arrow-counterclockwise"></i> MULTI UNCLEARED ENTRIES</span>
+      <span onclick="closeModal('modal-multi-unclear')" style="cursor:pointer;">&times;</span>
+    </div>
+    <div style="padding:12px; display:flex; flex-direction:column; gap:8px;">
+      <div style="display:flex; gap:8px;">
+        <div style="flex:1;"><label style="font-size:10px; font-weight:800;">From Voucher No</label><input type="text" class="form-inp" id="muc-from"></div>
+        <div style="flex:1;"><label style="font-size:10px; font-weight:800;">To Voucher No</label><input type="text" class="form-inp" id="muc-to"></div>
+      </div>
+      <div style="font-size:11px; color:#64748b;">This will reset clearing dates for vouchers in the specified range back to Uncleared.</div>
+    </div>
+    <div style="padding:8px 12px; background:#f8fafc; border-top:1px solid #cbd5e1; display:flex; justify-content:flex-end; gap:8px;">
+      <button class="btn-tb-outline" onclick="closeModal('modal-multi-unclear')" style="color:#334155;">Cancel</button>
+      <button class="btn-tb-blue" onclick="runMultiUnclear()" style="background:#C62828;">Unclear Entries</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCRIPTS -->
+<script src="../../../assets/js/api.js"></script>
+<script src="../../../assets/js/auth.js"></script>
+<script src="../../../assets/js/utils.js"></script>
+<script src="bank-reco.js"></script>
+</body>
+</html>

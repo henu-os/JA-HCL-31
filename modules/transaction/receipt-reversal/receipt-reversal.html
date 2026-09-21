@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Member Receipt Reversal — JEEVIKA ERP</title>
+  <script src="../../../config.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background: #f8fafc; color: #1e293b; overflow: hidden; height: 100vh; font-size: 12px; }
+
+    /* MODULE HEADER BAR */
+    .module-header {
+      background: #ffffff;
+      padding: 8px 14px 6px;
+      border-bottom: 1px solid #cbd5e1;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-shrink: 0;
+    }
+    .module-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #0f172a;
+      text-transform: uppercase;
+    }
+    .module-subtitle {
+      font-size: 10px;
+      color: #64748b;
+      margin-top: 2px;
+    }
+
+    /* Hide number spinner arrows across all browsers */
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    input[type="number"] {
+      -moz-appearance: textfield;
+      appearance: textfield;
+    }
+
+    /* BILL TYPE STRIP */
+    .rr-billtype-strip {
+      background: #ECEFF1;
+      padding: 6px 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid #CFD8DC;
+      flex-shrink: 0;
+    }
+    .billtype-label {
+      font-size: 10.5px;
+      font-weight: 800;
+      color: #37474F;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .billtype-pill {
+      background: #ffffff;
+      color: #37474F;
+      border: 1px solid #B0BEC5;
+      padding: 3px 14px;
+      font-size: 10px;
+      font-weight: 700;
+      border-radius: 12px;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: all 0.15s ease;
+    }
+    .billtype-pill:hover { background: #ECEFF1; color: #C62828; border-color: #C62828; }
+    .billtype-pill.active {
+      background: #C62828;
+      color: #ffffff;
+      border-color: #C62828;
+      box-shadow: 0 1px 3px rgba(198,40,40,0.3);
+    }
+
+    /* TOOLBAR STRIP */
+    .rr-toolbar {
+      background: #1565C0;
+      padding: 5px 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .btn-tb-blue {
+      background: #ffffff;
+      color: #1565C0;
+      border: none;
+      padding: 4px 10px;
+      font-size: 10.5px;
+      font-weight: 700;
+      border-radius: 3px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      text-transform: uppercase;
+    }
+    .btn-tb-blue:hover { background: #e3f2fd; }
+    .btn-tb-outline {
+      background: rgba(255,255,255,0.15);
+      color: #ffffff;
+      border: 1px solid rgba(255,255,255,0.3);
+      padding: 4px 10px;
+      font-size: 10.5px;
+      font-weight: 700;
+      border-radius: 3px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      text-transform: uppercase;
+    }
+    .btn-tb-outline:hover { background: rgba(255,255,255,0.25); }
+
+    /* DROPDOWN MENU */
+    .rr-dropdown { position: relative; display: inline-block; }
+    .rr-dropdown-content {
+      display: none;
+      position: absolute;
+      top: 100%;
+      right: 0;
+      min-width: 160px;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 100;
+      padding: 4px 0;
+    }
+    .rr-dropdown-content a {
+      display: block;
+      padding: 6px 12px;
+      color: #334155;
+      text-decoration: none;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .rr-dropdown-content a:hover { background: #f1f5f9; color: #1565C0; }
+
+    /* FILTERS STRIP */
+    .rr-filter-panel {
+      background: #f1f5f9;
+      border-bottom: 1px solid #cbd5e1;
+      padding: 6px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+    .filter-group { display: flex; align-items: center; gap: 4px; }
+    .filter-lbl { font-size: 10px; font-weight: 700; color: #475569; text-transform: uppercase; }
+    .filter-inp, .filter-sel {
+      height: 24px;
+      padding: 0 6px;
+      font-size: 11px;
+      border: 1px solid #cbd5e1;
+      border-radius: 3px;
+      background: #fff;
+      outline: none;
+    }
+
+    /* DATA TABLE EXCEL STYLING WITH HORIZONTAL SCROLLBAR & COLUMN RESIZING */
+    .rr-table-wrapper {
+      flex: 1;
+      overflow-x: auto !important;
+      overflow-y: auto !important;
+      background: #ffffff;
+      position: relative;
+    }
+    table.rr-main-table {
+      width: max-content;
+      min-width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+      table-layout: fixed;
+    }
+    table.rr-main-table th {
+      border: 1px solid #cbd5e1;
+      background: #1565C0;
+      color: #ffffff;
+      padding: 6px 12px 6px 8px;
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      text-align: left;
+      white-space: nowrap;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      position: relative;
+      user-select: none;
+      box-sizing: border-box;
+    }
+    .col-resizer {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 6px;
+      height: 100%;
+      cursor: col-resize;
+      user-select: none;
+      z-index: 3;
+    }
+    .col-resizer:hover, .col-resizer.resizing { background: #90caf9; }
+    table.rr-main-table td {
+      border: 1px solid #e2e8f0;
+      padding: 5px 8px;
+      height: 26px;
+      vertical-align: middle;
+      font-size: 11px;
+      white-space: nowrap;
+      color: #334155;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    table.rr-main-table tbody tr:nth-child(even) td { background-color: #f8fafc; }
+    table.rr-main-table tbody tr:hover td {
+      background-color: #f0f9ff !important;
+    }
+    table.rr-main-table tbody tr.selected td {
+      background-color: #bae6fd !important;
+      color: #0f172a !important;
+      font-weight: 600;
+    }
+
+    /* FOOTER BAR */
+    .rr-footer-bar {
+      background: #f1f5f9;
+      border-top: 1px solid #cbd5e1;
+      padding: 6px 14px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      font-weight: 700;
+      color: #334155;
+      flex-shrink: 0;
+    }
+    .rr-footer-val { font-family: 'Consolas', monospace; font-size: 12px; color: #C62828; margin-left: 4px; }
+
+    /* FORM SCREEN LAYOUT */
+    .form-main-container {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      background: #f8fafc;
+    }
+    .form-left-panel {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px;
+      background: #ffffff;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .form-right-sidebar {
+      width: 320px;
+      flex-shrink: 0;
+      background: #ffffff;
+      border-left: 1px solid #cbd5e1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .form-row { display: flex; gap: 10px; align-items: flex-start; }
+    .form-field { display: flex; flex-direction: column; gap: 3px; }
+    .form-field label { font-size: 10px; font-weight: 700; color: #475569; text-transform: uppercase; }
+    .form-field label .req { color: #dc2626; }
+    .form-inp {
+      height: 26px;
+      padding: 0 8px;
+      font-size: 11px;
+      border: 1px solid #cbd5e1;
+      border-radius: 3px;
+      outline: none;
+    }
+    .form-inp:focus { border-color: #1565C0; box-shadow: 0 0 0 1px #1565C0; }
+
+    /* HIDE NUMBER INPUT SPINNERS (UP/DOWN ARROWS) */
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      appearance: none;
+      margin: 0;
+    }
+    input[type="number"] {
+      -moz-appearance: textfield;
+      appearance: textfield;
+    }
+
+    /* TOGGLE SWITCH CSS */
+    .mem-switch {
+      position: relative;
+      display: inline-block;
+      width: 32px;
+      height: 18px;
+    }
+    .mem-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .mem-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #cbd5e1;
+      transition: .2s;
+      border-radius: 18px;
+    }
+    .mem-slider:before {
+      position: absolute;
+      content: "";
+      height: 14px;
+      width: 14px;
+      left: 2px;
+      bottom: 2px;
+      background-color: white;
+      transition: .2s;
+      border-radius: 50%;
+    }
+    .mem-switch input:checked + .mem-slider {
+      background-color: #c62828;
+    }
+    .mem-switch input:checked + .mem-slider:before {
+      transform: translateX(14px);
+    }
+
+    .btn-fetch-red {
+      background: #C62828;
+      color: #ffffff;
+      border: none;
+      padding: 0 12px;
+      height: 26px;
+      font-size: 10.5px;
+      font-weight: 800;
+      border-radius: 3px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      text-transform: uppercase;
+    }
+    .btn-fetch-red:hover { background: #b71c1c; }
+
+    /* BANK DETAILS CONTAINER */
+    .fieldset-box {
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      padding: 12px;
+      position: relative;
+      background: #fafafa;
+      margin-top: 4px;
+    }
+    .fieldset-legend {
+      position: absolute;
+      top: -8px;
+      left: 10px;
+      background: #ffffff;
+      padding: 0 6px;
+      font-size: 10px;
+      font-weight: 800;
+      color: #1565C0;
+      text-transform: uppercase;
+    }
+
+    /* AMOUNT & BIFURCATION CARDS */
+    .amount-blue-box {
+      background: #e1f5fe;
+      border: 1px solid #81d4fa;
+      border-radius: 4px;
+      padding: 10px 12px;
+      flex: 1;
+    }
+    .bifurcation-yellow-box {
+      background: #fff8e1;
+      border: 1px solid #ffe082;
+      border-radius: 4px;
+      padding: 10px 12px;
+      flex: 1.4;
+    }
+    .bifurcation-hdr {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #ffe082;
+      padding-bottom: 4px;
+      margin-bottom: 8px;
+    }
+
+    /* PARTICULARS SECTION */
+    .particulars-box {
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      padding: 10px;
+      background: #fafafa;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .btn-ctrl-l {
+      background: #e2e8f0;
+      border: 1px solid #cbd5e1;
+      padding: 0 8px;
+      height: 26px;
+      font-size: 10px;
+      font-weight: 700;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+
+    /* FORM BOTTOM ACTIONS */
+    .form-action-bar {
+      padding: 8px 14px;
+      background: #f1f5f9;
+      border-top: 1px solid #cbd5e1;
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .btn-save-green {
+      background: #2E7D32;
+      color: #ffffff;
+      border: none;
+      padding: 6px 16px;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 3px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .btn-save-green:hover { background: #1b5e20; }
+    .btn-cancel-red {
+      background: #ffffff;
+      color: #dc2626;
+      border: 1px solid #dc2626;
+      padding: 6px 16px;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 3px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .btn-cancel-red:hover { background: #fef2f2; }
+
+    /* RIGHT LEDGER SIDEBAR */
+    .sidebar-hdr {
+      background: #1565C0;
+      color: #ffffff;
+      padding: 8px 12px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      text-align: center;
+    }
+    .ledger-empty-msg {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 30px;
+      color: #94a3b8;
+      font-size: 11px;
+      font-weight: 600;
+      text-align: center;
+    }
+    .ledger-card {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      padding: 10px;
+      margin: 10px;
+    }
+    .ledger-card-hdr {
+      font-size: 10px;
+      font-weight: 800;
+      color: #1565C0;
+      text-transform: uppercase;
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 4px;
+      margin-bottom: 6px;
+    }
+    .ledger-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      margin-bottom: 4px;
+    }
+
+    /* MODAL OVERLAY */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-card {
+      background: #ffffff;
+      border-radius: 4px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      overflow: hidden;
+    }
+    .modal-header {
+      background: #C62828;
+      color: #ffffff;
+      padding: 8px 14px;
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-close { background: none; border: none; color: #fff; font-size: 16px; cursor: pointer; }
+    .modal-body { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+    .modal-footer { padding: 8px 14px; background: #f1f5f9; border-top: 1px solid #cbd5e1; display: flex; justify-content: flex-end; gap: 8px; }
+  </style>
+</head>
+<body>
+
+<div style="display:flex; flex-direction:column; height:100vh; overflow:hidden; background:#fff;">
+
+  <!-- MODULE HEADER -->
+  <div class="module-header">
+    <div>
+      <h1 class="module-title" id="rr-module-title">Member Receipt Reversal</h1>
+      
+    </div>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <div style="font-size:10px; color:#64748b; font-weight:700;">
+        Alt+A Add  F2 Edit  Esc Back  Ctrl+P Print  Alt+S Save
+      </div>
+      <button class="btn-tb-blue" style="background:#1565C0; color:#fff;"><i class="bi bi-gear-fill"></i> SA PATH</button>
+    </div>
+  </div>
+
+  <!-- SECTION 1: RECEIPT REVERSAL REGISTER LIST -->
+  <div id="rr-section-list" style="display:flex; flex-direction:column; flex:1; overflow:hidden;">
+    
+    <!-- BILL TYPE PILLS STRIP -->
+    <div class="rr-billtype-strip">
+      <span class="billtype-label"><i class="bi bi-tag-fill" style="color:#C62828;"></i> BILL TYPE:</span>
+      <div id="rr-billtype-pills" style="display:flex; gap:6px; flex:1; align-items:center; overflow-x:auto;">
+        <!-- Dynamically rendered pills -->
+      </div>
+      <span style="font-weight:700; color:#C62828; font-size:11px;" id="rr-list-count">0 entries</span>
+    </div>
+
+    <!-- TOOLBAR STRIP -->
+    <div class="rr-toolbar">
+      <div class="add-reversal-wrap" style="position:relative; display:inline-block;">
+        <button class="btn-tb-blue" id="btn-add-reversal" onclick="handleAddReversalClick(event)">
+          <i class="bi bi-plus-circle-fill"></i> ADD REVERSAL
+        </button>
+        <div class="add-bill-dropdown" id="add-reversal-menu" style="display:none; position:absolute; top:100%; left:0; background:#fff; border:1px solid #cbd5e1; border-radius:4px; box-shadow:0 4px 12px rgba(0,0,0,0.15); z-index:999; min-width:160px; padding:4px 0;"></div>
+      </div>
+      <button class="btn-tb-outline" onclick="editSelectedReversal()"><i class="bi bi-pencil-square"></i> EDIT</button>
+      <button class="btn-tb-outline" onclick="deleteSelectedReversal()"><i class="bi bi-trash-fill"></i> DELETE</button>
+      <button class="btn-tb-outline" onclick="previewReversal()"><i class="bi bi-eye-fill"></i> PREVIEW</button>
+      <button class="btn-tb-outline" onclick="window.print()"><i class="bi bi-printer-fill"></i> PRINT</button>
+      <button class="btn-tb-outline" onclick="toggleFilterBar()"><i class="bi bi-funnel-fill"></i> FILTERS</button>
+      <button class="btn-tb-outline" id="btn-multi-change" onclick="openMultiChangeModal()"><i class="bi bi-check2-square"></i> MULTI CHANGE <span id="mc-sel-badge" class="mc-sel-badge" style="display:none; background:#22c55e; color:#fff; border-radius:10px; padding:1px 6px; font-size:10px; margin-left:4px;">0</span></button>
+
+      <div style="border-right:1px solid rgba(255,255,255,0.3); height:16px; margin:0 4px;"></div>
+
+      <div class="rr-dropdown">
+        <button class="btn-tb-outline" onclick="toggleOtherDropdown()">OTHER ▼</button>
+        <div class="rr-dropdown-content" id="rr-other-menu">
+          <a href="#" onclick="openMultiDeleteModal()"><i class="bi bi-trash-fill"></i> Multi Delete (Ctrl+D)</a>
+          <a href="#" onclick="openMultiChangeModal()"><i class="bi bi-input-cursor-text"></i> Multi Change (Ctrl+M)</a>
+          <a href="#" onclick="window.print()"><i class="bi bi-printer"></i> Print Register</a>
+        </div>
+      </div>
+
+      <button class="btn-tb-outline" onclick="showList()" style="margin-left:auto; background:#C62828; border-color:#C62828; color:#fff;"><i class="bi bi-x-circle"></i> EXIT</button>
+    </div>
+
+    <!-- COLLAPSIBLE FILTER PANEL -->
+    <div class="rr-filter-panel" id="rr-filter-bar" style="display:none;">
+      <div class="filter-group">
+        <span class="filter-lbl">Rev No</span>
+        <input type="text" class="filter-inp" id="flt-revno" placeholder="MRV-R/..." oninput="applyFilters()" style="width:110px;">
+      </div>
+      <div class="filter-group">
+        <span class="filter-lbl">Member</span>
+        <input type="text" class="filter-inp" id="flt-member" placeholder="Search Member / Flat / Wing..." oninput="applyFilters()" style="width:190px;">
+      </div>
+      <div class="filter-group">
+        <span class="filter-lbl">Cheque No</span>
+        <input type="text" class="filter-inp" id="flt-chqno" placeholder="Chq No..." oninput="applyFilters()" style="width:110px;">
+      </div>
+      <button class="btn-tb-outline" onclick="clearFilters()" style="color:#C62828; border-color:#C62828;"><i class="bi bi-x-circle"></i> Clear</button>
+    </div>
+
+    <!-- MAIN DATA TABLE GRID (EXCEL SCROLLING & COLUMN RESIZING) -->
+    <div class="rr-table-wrapper">
+      <table class="rr-main-table">
+        <thead>
+          <tr>
+            <th style="width:36px; text-align:center;"><input type="checkbox" id="chk-select-all" onclick="ERP_MultiChange.toggleSelectAll(this.checked, reversals.map(r=>r.reversalId||r.voucherId))" title="Select / Deselect All"></th>
+            <th style="width:110px; cursor:pointer;" onclick="toggleReversalNoSort()" title="Click to sort Top to Bottom / Bottom to Top">
+              NO. <span id="sort-revno-icon">▼</span>
+            </th>
+            <th style="width:85px;">DATE</th>
+            <th style="width:110px;">CASH/BANK</th>
+            <th style="width:75px; text-align:center;">FLAT NO</th>
+            <th>MEM. NAME</th>
+            <th style="width:105px; text-align:right;">AMOUNT</th>
+            <th style="width:90px;">CHQ. NO.</th>
+            <th style="width:85px;">CHQ. DATE</th>
+            <th style="width:130px;">BANK</th>
+            <th style="width:110px;">BILL NO.</th>
+            <th style="width:130px;">PARTICULAR 1</th>
+            <th style="width:130px;">PARTICULAR 2</th>
+            <th style="width:90px; text-align:center;">CLEAR DATE</th>
+          </tr>
+        </thead>
+        <tbody id="rr-list-tbody">
+          <!-- Rendered rows -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- SUMMARY FOOTER BAR -->
+    <div class="rr-footer-bar">
+      <span>Total Entries: <span class="rr-footer-val" id="sum-rev-count">0</span></span>
+      <span>Total Reversal Amount: <span class="rr-footer-val" id="sum-rev-total">₹0.00</span></span>
+    </div>
+  </div>
+
+  <!-- SECTION 2: ADD / EDIT REVERSAL FORM & MEMBER LEDGER PANEL -->
+  <div id="rr-section-form" style="display:none; flex-direction:column; flex:1; overflow:hidden;">
+    
+    <div class="form-main-container">
+      <!-- LEFT FORM PANEL -->
+      <div class="form-left-panel">
+        
+        <!-- ROW 1: REVERSAL NO, MEMBER RECEIPT NO + FETCH, REVERSAL DATE, MEMBER CODE, MEMBER NAME -->
+        <div class="form-row" style="background:#f8fafc; padding:10px; border:1px solid #e2e8f0; border-radius:4px; align-items:flex-end; flex-wrap:nowrap; gap:10px;">
+          <div class="form-field" style="width:160px; flex-shrink:0;">
+            <label style="color:#C62828; font-weight:800; white-space:nowrap;">REVERSAL RECEIPT NO</label>
+            <input type="text" id="frm-revno" class="form-inp" style="width:100%; background:#e2e8f0; font-weight:700; color:#C62828;" readonly>
+          </div>
+
+          <div class="form-field" style="width:215px; flex-shrink:0;">
+            <label style="color:#C62828; font-weight:800; white-space:nowrap;">MEMBER RECEIPT NO. <span class="req">*</span></label>
+            <div style="display:flex; width:100%; border:1px solid #cbd5e1; border-radius:3px; overflow:hidden; background:#fff;">
+              <span id="lbl-rcpt-prefix" style="background:#e2e8f0; color:#334155; padding:4px 6px; font-weight:800; font-size:11px; display:inline-flex; align-items:center; border-right:1px solid #cbd5e1; user-select:none; white-space:nowrap;">MRV/2025-26/</span>
+              <input type="text" id="frm-receiptno" class="form-inp" placeholder="01" style="flex:1; min-width:0; font-weight:700; border:none; border-radius:0; height:26px; padding:0 6px;" onkeydown="if(event.key==='Enter'){event.preventDefault();fetchReceiptForReversal();}">
+              <button class="btn-fetch-red" type="button" onclick="fetchReceiptForReversal()" style="white-space:nowrap; flex-shrink:0; border-radius:0; border:none; padding:4px 8px; font-size:10px;"><i class="bi bi-search"></i> FETCH</button>
+            </div>
+          </div>
+
+          <div class="form-field" style="width:140px; flex-shrink:0;">
+            <label style="color:#C62828; font-weight:800; white-space:nowrap;">REVERSAL RECEIPT DATE <span class="req">*</span></label>
+            <input type="date" id="frm-revdate" class="form-inp" style="width:100%;">
+          </div>
+
+          <div class="form-field" style="width:100px; flex-shrink:0;">
+            <label style="white-space:nowrap;">MEMBER CODE</label>
+            <input type="text" id="frm-memcode" class="form-inp" style="width:100%; background:#e2e8f0; font-weight:700;" placeholder="—" readonly>
+          </div>
+
+          <div class="form-field" style="flex:1; min-width:200px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; width:100%; margin-bottom:2px;">
+              <label style="white-space:nowrap; font-weight:800; color:#334155; font-size:10px;">MEMBER NAME</label>
+              <div id="wrap-mem-manual-toggle" style="display:none; align-items:center; gap:5px;">
+                <span style="color:#c62828; font-weight:800; font-size:9.5px; text-transform:uppercase;">MANUAL MODE:</span>
+                <label class="mem-switch" style="margin:0;">
+                  <input type="checkbox" id="chk-mem-manual-mode" onchange="toggleMemberManualMode(this.checked)">
+                  <span class="mem-slider"></span>
+                </label>
+              </div>
+            </div>
+            <input type="text" id="frm-memname" class="form-inp" style="width:100%; background:#e2e8f0; font-weight:700;" placeholder="Fetched member name..." readonly>
+            <select id="frm-memname-select" class="form-inp" style="width:100%; height:26px; display:none;" onchange="onManualMemberSelect(this.value)">
+              <option value="">— Select Member —</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- ROW 2: DEBIT ACCOUNT TYPE, DEPOSIT TO ACCOUNT, AGAINST BILL -->
+        <div class="form-row">
+          <div class="form-field" style="width:160px;">
+            <label style="font-weight:700; color:#475569; font-size:10px; text-transform:uppercase;">DEBIT [DR] ACCOUNT TYPE</label>
+            <div style="display:flex; flex-direction:column; gap:4px; margin-top:4px;">
+              <label style="font-size:11px; font-weight:700; cursor:pointer; color:#334155; display:inline-flex; align-items:center; gap:6px;">
+                <input type="radio" name="rrPayMode" id="deb-cashbank" value="Cash/Bank" checked onchange="onDebitAccountTypeChange('Cash/Bank')"> CASH/BANK
+              </label>
+              <label style="font-size:11px; font-weight:700; cursor:pointer; color:#334155; display:inline-flex; align-items:center; gap:6px;">
+                <input type="radio" name="rrPayMode" id="deb-other" value="Other Ledger" onchange="onDebitAccountTypeChange('Other Ledger')"> OTHER LEDGER
+              </label>
+            </div>
+          </div>
+          <div class="form-field" style="width:340px;">
+            <label>DEPOSIT TO (ACCOUNT) <span class="req">*</span></label>
+            <div style="display:flex; gap:4px; width:100%; position:relative;">
+              <select id="frm-account" class="form-inp" style="width:100%; height:28px;">
+                <option value="Cash in Hand">ASS-1001 - Cash in Hand</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-field" style="flex:1;">
+            <label>AGAINST BILL</label>
+            <input type="text" id="frm-against-bill" class="form-inp" style="width:100%; background:#e2e8f0; font-weight:700;" placeholder="—" readonly>
+          </div>
+        </div>
+
+        <!-- MEMBERS BANK DETAILS PANEL -->
+        <div class="fieldset-box">
+          <span class="fieldset-legend">MEMBERS BANK DETAILS</span>
+          <div class="form-row">
+            <div class="form-field" style="width:130px;">
+              <label>TRANSACTION TYPE</label>
+              <input type="text" id="frm-transtype" class="form-inp" style="width:100%; background:#e2e8f0;" readonly>
+            </div>
+            <div class="form-field" style="width:120px;">
+              <label>CHEQUE NO.</label>
+              <input type="text" id="frm-chqno" class="form-inp" style="width:100%; background:#e2e8f0;" readonly>
+            </div>
+            <div class="form-field" style="width:130px;">
+              <label>CHEQUE DATE</label>
+              <input type="text" id="frm-chqdate" class="form-inp" style="width:100%; background:#e2e8f0;" readonly>
+            </div>
+            <div class="form-field" style="width:130px;">
+              <label>REFERENCE NO.</label>
+              <input type="text" id="frm-refno" class="form-inp" style="width:100%; background:#e2e8f0;" readonly>
+            </div>
+            <div class="form-field" style="flex:1;">
+              <label>DRAWN ON BANK</label>
+              <input type="text" id="frm-bank" class="form-inp" style="width:100%; background:#e2e8f0;" readonly placeholder="—">
+            </div>
+          </div>
+        </div>
+
+        <!-- REVERSAL AMOUNT & INTEREST BIFURCATION CARDS -->
+        <div class="form-row" style="display:flex; gap:12px; align-items:stretch; margin-top:10px;">
+          <!-- REVERSAL AMOUNT CARD -->
+          <div class="amount-blue-box" style="flex:1; display:flex; flex-direction:column; justify-content:flex-start;">
+            <div class="form-field">
+              <label style="color:#0277BD; font-weight:800; font-size:10.5px;">REVERSAL AMOUNT (₹) <span class="req">*</span></label>
+              <input type="number" id="frm-amount" class="form-inp" style="width:100%; height:28px; font-size:14px; font-weight:800; color:#1565C0; text-align:right; margin-top:4px;" step="0.01" readonly oninput="onAmountOrBifurcationChange()">
+            </div>
+          </div>
+
+          <!-- INTEREST BIFURCATION CARD -->
+          <div class="bifurcation-yellow-box" style="flex:1.4; display:flex; flex-direction:column; justify-content:flex-start;">
+            <div class="bifurcation-hdr" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #ffe082; padding-bottom:3px; margin-bottom:6px;">
+              <span style="font-size:10px; font-weight:800; color:#b76e00; text-transform:uppercase;">INTEREST BIFURCATION</span>
+              <button type="button" class="btn-manual-entry" onclick="enableManualBifurcation()" style="background:#ffa000; color:#fff; border:none; padding:2px 8px; font-size:9.5px; font-weight:700; border-radius:3px; cursor:pointer;"><i class="bi bi-pencil-square"></i> MANUAL ENTRY</button>
+            </div>
+            <div class="form-row" style="display:flex; gap:10px;">
+              <div class="form-field" style="flex:1;">
+                <label style="font-size:9.5px; font-weight:800; color:#b76e00;">PRINCIPAL RESTORED</label>
+                <input type="number" id="frm-principal" class="form-inp" style="width:100%; height:28px; text-align:right; font-weight:700;" step="0.01" value="" readonly oninput="onAmountOrBifurcationChange()">
+              </div>
+              <div class="form-field" style="flex:1;">
+                <label style="font-size:9.5px; font-weight:800; color:#b76e00;">INTEREST RESTORED</label>
+                <input type="number" id="frm-interest" class="form-inp" style="width:100%; height:28px; text-align:right; font-weight:700;" step="0.01" value="" readonly oninput="onAmountOrBifurcationChange()">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CHEQUE / INSTRUMENT RETURN REASON -->
+        <div class="form-field" style="margin-top:6px;">
+          <label style="color:#0288d1; font-weight:800; font-size:10px;">CHEQUE / INSTRUMENT RETURN REASON</label>
+          <select id="frm-reason" class="form-inp" style="width:100%; height:28px;">
+            <option value="">— Select Return Reason —</option>
+            <option value="Cheque Bounced - Funds Insufficient">Cheque Bounced - Funds Insufficient</option>
+            <option value="Signature Mismatch">Signature Mismatch</option>
+            <option value="Payment Stopped by Drawer">Payment Stopped by Drawer</option>
+            <option value="Instrument Outdated">Instrument Outdated</option>
+            <option value="Wrong Amount Entered">Wrong Amount Entered</option>
+            <option value="Duplicate Entry">Duplicate Entry</option>
+            <option value="Other/Error">Other/Error</option>
+          </select>
+        </div>
+
+        <!-- PARTICULARS SECTION -->
+        <div class="particulars-box">
+          <div style="font-size:10px; font-weight:800; color:#475569; text-transform:uppercase;">PARTICULARS</div>
+          <div class="form-row">
+            <input type="text" id="frm-particular1" class="form-inp" style="flex:1;" placeholder="Particulars 1...">
+            <button class="btn-ctrl-l" type="button" onclick="appendParticularTag(1)">Ctrl + L</button>
+          </div>
+          <div class="form-row">
+            <input type="text" id="frm-particular2" class="form-inp" style="flex:1;" placeholder="Particulars 2...">
+            <button class="btn-ctrl-l" type="button" onclick="appendParticularTag(2)">Ctrl + L</button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT SIDEBAR: MEMBER LEDGER VIEW (MATCHING IMAGE 2) -->
+      <div class="form-right-sidebar">
+        <div class="sidebar-hdr">MEMBER LEDGER VIEW</div>
+        
+        <!-- EMPTY STATE (BEFORE FETCHING RECEIPT) -->
+        <div id="rr-ledger-empty" class="ledger-empty-msg">
+          Fetch a receipt or select a member to view ledger balances & reversal adjustments.
+        </div>
+
+        <!-- POPULATED STATE (WHEN RECEIPT / MEMBER FETCHED - MATCHING IMAGE 2) -->
+        <div id="rr-ledger-content" style="display:none; flex:1; overflow-y:auto; padding:10px; flex-direction:column; gap:10px;">
+          
+          <!-- MEMBER INFO CARD -->
+          <div class="ledger-card" style="margin:0;">
+            <div class="ledger-card-hdr">MEMBER INFO</div>
+            <div class="ledger-row"><span>Flat No:</span><strong id="led-flat">—</strong></div>
+            <div class="ledger-row"><span>Area:</span><strong id="led-area">—</strong></div>
+            <div class="ledger-row"><span>Mobile 1:</span><strong id="led-mobile1">—</strong></div>
+            <div class="ledger-row"><span>Mobile 2:</span><strong id="led-mobile2">—</strong></div>
+            <div class="ledger-row" style="margin-top:6px; align-items:center;">
+              <span style="font-size:10px; font-weight:700;">NOC INFO:</span>
+              <div style="display:flex; gap:4px;">
+                <select class="filter-sel" style="height:20px; font-size:10px;"><option>From</option></select>
+                <select class="filter-sel" style="height:20px; font-size:10px;"><option>To</option></select>
+              </div>
+            </div>
+          </div>
+
+          <!-- BEFORE REVERSAL CARD -->
+          <div class="ledger-card" style="margin:0;">
+            <div class="ledger-card-hdr">BEFORE REVERSAL</div>
+            <div class="ledger-row"><span>Principal Balance:</span><strong id="led-bef-prin">0.00</strong></div>
+            <div class="ledger-row"><span>Interest Balance:</span><strong id="led-bef-int">0.00</strong></div>
+            <div class="ledger-row" style="border-top:1px solid #e2e8f0; padding-top:4px; margin-top:4px;">
+              <span style="font-weight:800;">Total Dues:</span>
+              <strong style="font-weight:800;" id="led-bef-tot">0.00</strong>
+            </div>
+          </div>
+
+          <!-- REVERSAL ADJUSTMENT CARD (YELLOW CARD) -->
+          <div class="ledger-card" style="margin:0; background:#fff8e1; border-color:#ffe082;">
+            <div class="ledger-card-hdr" style="color:#b76e00; border-color:#ffe082;">REVERSAL ADJUSTMENT</div>
+            <div class="ledger-row"><span style="color:#b76e00; font-weight:700;">Add Principal:</span><strong style="color:#b76e00; font-weight:800;" id="led-adj-prin">0.00</strong></div>
+            <div class="ledger-row"><span style="color:#b76e00; font-weight:700;">Add Interest:</span><strong style="color:#b76e00; font-weight:800;" id="led-adj-int">0.00</strong></div>
+          </div>
+
+          <!-- AFTER REVERSAL CARD (RED DUES HIGHLIGHT) -->
+          <div class="ledger-card" style="margin:0; background:#fef2f2; border-color:#fca5a5;">
+            <div class="ledger-card-hdr" style="color:#dc2626; border-color:#fca5a5;">AFTER REVERSAL</div>
+            <div class="ledger-row"><span style="color:#dc2626; font-weight:700;">New Principal Dues:</span><strong style="color:#dc2626; font-weight:800;" id="led-aft-prin">0.00</strong></div>
+            <div class="ledger-row"><span style="color:#dc2626; font-weight:700;">New Interest Dues:</span><strong style="color:#dc2626; font-weight:800;" id="led-aft-int">0.00</strong></div>
+            <div class="ledger-row" style="border-top:1px solid #fca5a5; padding-top:4px; margin-top:4px;">
+              <span style="color:#dc2626; font-weight:800;">New Total Dues:</span>
+              <strong style="color:#dc2626; font-size:14px; font-weight:800;" id="led-aft-tot">0.00</strong>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- FORM ACTION BAR -->
+    <div class="form-action-bar">
+      <button class="btn-save-green" onclick="saveReversal()"><i class="bi bi-check-circle-fill"></i> SAVE (ALT+S)</button>
+      <button class="btn-cancel-red" onclick="showList()"><i class="bi bi-x-circle"></i> CANCEL</button>
+    </div>
+  </div>
+
+  <!-- SECTION 3: PREVIEW SCREEN -->
+  <div id="rr-section-preview" style="display:none; flex-direction:column; flex:1; overflow:hidden;">
+    <div style="padding:8px 14px; background:#f1f5f9; border-bottom:1px solid #cbd5e1; display:flex; justify-content:space-between;">
+      <button class="btn-tb-outline" onclick="showList()"><i class="bi bi-arrow-left"></i> BACK TO LIST</button>
+      <button class="btn-tb-blue" onclick="window.print()"><i class="bi bi-printer-fill"></i> PRINT REVERSAL VOUCHER</button>
+    </div>
+    <div style="flex:1; overflow-y:auto; padding:20px; background:#e2e8f0; display:flex; justify-content:center;">
+      <div id="preview-reversal-card" style="background:#fff; width:210mm; min-height:148mm; padding:15mm; box-shadow:0 4px 12px rgba(0,0,0,0.15);"></div>
+    </div>
+  </div>
+
+  <!-- MODALS -->
+  <!-- RECEIPT LOOKUP MODAL -->
+  <div class="modal-overlay" id="modal-receipt-lookup" style="display:none;">
+    <div class="modal-card" style="width:700px; max-width:95vw; max-height:85vh; display:flex; flex-direction:column;">
+      <div class="modal-header">
+        <span><i class="bi bi-receipt"></i> Select Member Receipt to Reverse</span>
+        <button class="modal-close" onclick="closeModal('modal-receipt-lookup')">&times;</button>
+      </div>
+      <div style="padding:10px 14px; background:#f8fafc; border-bottom:1px solid #e2e8f0; display:flex; gap:10px; align-items:center;">
+        <input type="text" id="lookup-receipt-search" class="form-inp" style="flex:1; height:28px;" placeholder="Search Receipt No, Member Name, Flat, Cheque No..." oninput="filterReceiptLookupTable()">
+        <span id="lookup-receipt-count" style="font-size:11px; font-weight:700; color:#64748b;">0 receipts</span>
+      </div>
+      <div style="flex:1; overflow-y:auto; max-height:350px;">
+        <table class="rr-main-table" style="width:100%; border-collapse:collapse;">
+          <thead style="position:sticky; top:0; z-index:2; background:#1565C0; color:#fff;">
+            <tr>
+              <th style="padding:6px 10px; width:110px;">RECEIPT NO</th>
+              <th style="padding:6px 10px; width:90px;">DATE</th>
+              <th style="padding:6px 10px; width:80px; text-align:center;">FLAT</th>
+              <th style="padding:6px 10px;">MEMBER NAME</th>
+              <th style="padding:6px 10px; width:100px; text-align:right;">AMOUNT</th>
+              <th style="padding:6px 10px; width:90px;">CHQ NO</th>
+            </tr>
+          </thead>
+          <tbody id="lookup-receipt-tbody">
+            <!-- Dynamic receipts list -->
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-tb-outline" onclick="closeModal('modal-receipt-lookup')">CANCEL</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-multi-delete" style="display:none;">
+    <div class="modal-card" style="width:400px;">
+      <div class="modal-header">
+        <span><i class="bi bi-trash-fill"></i> Multi Delete Reversals</span>
+        <button class="modal-close" onclick="closeModal('modal-multi-delete')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:11px; color:#dc2626; font-weight:700;">WARNING: Permanently deletes all reversal records within specified range.</p>
+        <div style="display:flex; gap:10px;">
+          <div class="form-field" style="flex:1;">
+            <label>FROM REVERSAL NO</label>
+            <input type="text" id="md-from" class="form-inp">
+          </div>
+          <div class="form-field" style="flex:1;">
+            <label>TO REVERSAL NO</label>
+            <input type="text" id="md-to" class="form-inp">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-tb-outline" onclick="closeModal('modal-multi-delete')">CANCEL</button>
+        <button class="btn-cancel-red" onclick="runMultiDelete()"><i class="bi bi-trash-fill"></i> DELETE RANGE</button>
+      </div>
+    </div>
+  </div>
+
+<!-- MODAL: MULTI CHANGE -->
+<div class="modal-overlay" id="modal-multi-change" style="display:none; background:rgba(15,23,42,0.6); backdrop-filter:blur(2px);">
+  <div class="modal-card" style="width:440px; box-shadow:0 10px 25px rgba(0,0,0,0.25); border:1px solid #cbd5e1;">
+    <div class="modal-header" style="background:#0D47A1; padding:12px 16px; font-size:13px; font-weight:800;">
+      <span style="display:flex; align-items:center; gap:8px;"><i class="bi bi-check2-square"></i> <span>Multi Change Receipt Reversals</span></span>
+      <button class="modal-close" onclick="closeModal('modal-multi-change')">&times;</button>
+    </div>
+    <div class="modal-body" style="padding:16px; gap:12px;">
+      <div id="mc-target-info" style="background:#e0f2fe; border:1px solid #bae6fd; border-radius:4px; padding:8px 12px; font-size:11.5px; font-weight:700; color:#0369a1;">
+        Target: <span id="mc-target-text">All checked reversals</span>
+      </div>
+      <div id="mc-range-box" style="display:none; grid-template-columns:1fr 1fr; gap:10px;">
+        <div class="form-field">
+          <label class="form-label">FROM REVERSAL NO</label>
+          <input type="text" id="mc-from" class="form-inp" placeholder="MRV-R/...">
+        </div>
+        <div class="form-field">
+          <label class="form-label">TO REVERSAL NO</label>
+          <input type="text" id="mc-to" class="form-inp" placeholder="MRV-R/...">
+        </div>
+      </div>
+      <div class="form-field">
+        <label class="form-label">FIELD TO CHANGE *</label>
+        <select id="mc-field" class="form-sel" style="font-weight:700;">
+          <option value="voucherDate">Reversal Date (YYYY-MM-DD)</option>
+          <option value="reason">Return Reason</option>
+          <option value="particular1">Particulars 1 / Narration</option>
+          <option value="particular2">Particulars 2</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label class="form-label">NEW VALUE *</label>
+        <input type="text" id="mc-value" class="form-inp" placeholder="Enter new value..." style="font-weight:700;">
+      </div>
+    </div>
+    <div class="modal-footer" style="padding:10px 16px; background:#f8fafc; border-top:1px solid #cbd5e1;">
+      <button class="btn-tb-outline" onclick="closeModal('modal-multi-change')">Cancel</button>
+      <button class="btn-tb-blue" onclick="runMultiChange()" style="background:#0D47A1; color:#fff; font-weight:800;"><i class="bi bi-check-lg"></i> Apply Multi Change</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: BILL TYPE MISMATCH NOTICE -->
+<div class="modal-overlay" id="modal-billtype-mismatch" style="display:none; background:rgba(15,23,42,0.65); backdrop-filter:blur(3px); z-index:99999;">
+  <div class="modal-card" style="width:480px; box-shadow:0 15px 35px rgba(0,0,0,0.3); border:1px solid #cbd5e1; border-radius:8px; overflow:hidden;">
+    <div class="modal-header" style="background:#0D47A1; padding:12px 16px; font-size:13px; font-weight:800; color:#fff; display:flex; justify-content:space-between; align-items:center;">
+      <span style="display:flex; align-items:center; gap:8px;">
+        <i class="bi bi-exclamation-triangle-fill" style="color:#fbbf24; font-size:15px;"></i>
+        <span>Bill Type Mismatch Notice</span>
+      </span>
+      <button class="modal-close" onclick="closeModal('modal-billtype-mismatch')" style="color:#fff; font-size:18px; line-height:1; background:none; border:none; cursor:pointer;">&times;</button>
+    </div>
+    <div class="modal-body" style="padding:18px 20px; display:flex; flex-direction:column; gap:12px; background:#ffffff;">
+      <div style="background:#fef3c7; border:1px solid #fde68a; border-radius:6px; padding:12px 14px; display:flex; gap:12px; align-items:flex-start;">
+        <i class="bi bi-info-circle-fill" style="color:#d97706; font-size:18px; margin-top:2px;"></i>
+        <div style="font-size:12px; color:#92400e; line-height:1.5;">
+          Receipt <strong id="btm-receipt-no" style="color:#78350f; font-weight:800;">—</strong> belongs to the <strong id="btm-actual-billtype" style="color:#b45309; font-weight:800; text-transform:uppercase;">—</strong> bill type, but the current reversal form is open for <strong id="btm-current-billtype" style="color:#0369a1; font-weight:800; text-transform:uppercase;">—</strong>.
+        </div>
+      </div>
+      <p style="font-size:12px; color:#475569; margin:0; line-height:1.5;">
+        Would you like to switch the reversal form to <strong id="btm-prompt-billtype" style="color:#0f172a; font-weight:700;">—</strong> and load this receipt?
+      </p>
+    </div>
+    <div class="modal-footer" style="padding:12px 16px; background:#f8fafc; border-top:1px solid #e2e8f0; display:flex; justify-content:flex-end; gap:10px;">
+      <button class="btn-tb-outline" type="button" onclick="cancelBillTypeMismatch()" style="padding:6px 14px; font-weight:700; font-size:11px;">CANCEL</button>
+      <button class="btn-tb-blue" type="button" id="btn-btm-switch" onclick="confirmBillTypeMismatchSwitch()" style="background:#0D47A1; color:#fff; font-weight:800; padding:6px 16px; font-size:11px; border-radius:4px; border:none; cursor:pointer;">
+        <i class="bi bi-arrow-repeat"></i> SWITCH &amp; PROCEED
+      </button>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script src="../../../assets/js/api.js?v=20260827_113"></script>
+<script src="../../../assets/js/auth.js?v=20260827_113"></script>
+<script src="../../../assets/js/utils.js?v=20260827_113"></script>
+<script src="receipt-reversal.js?v=20260827_113"></script>
+</body>
+</html>

@@ -1,0 +1,505 @@
+/* ═══════════════════════════════════════════════════════════
+   JEEVIKA ERP v2 — LIGHT SKY ENTERPRISE DESIGN SYSTEM
+   Matches Target UI (Images 1 & 2)
+   ═══════════════════════════════════════════════════════════ */
+
+:root {
+  /* Primary Colors */
+  --clr-navy: #0d6efd;
+  --clr-cobalt: #1565C0;
+  --clr-header-bg: #ffffff;
+  --clr-sidebar-bg: #eef6fb;
+  --clr-sidebar-hover: #dcebf7;
+  --clr-sidebar-active: #cbe0f4;
+
+  /* Body & Surface */
+  --clr-body-bg: #f4f7f9;
+  --clr-surface: #ffffff;
+
+  /* Borders */
+  --brd-light: #e2e8fd;
+  --brd-mid: #cbd5e1;
+  --brd-dark: #94a3b8;
+
+  /* Typography */
+  --txt-main: #1e293b;
+  --txt-muted: #64748b;
+  --txt-white: #ffffff;
+
+  /* Table Headers */
+  --tbl-header-bg: #1565C0;
+  --tbl-header-txt: #ffffff;
+
+  /* Status Badges */
+  --clr-success: #16a34a;
+  --clr-warning: #d97706;
+  --clr-danger: #dc2626;
+  --clr-info: #0284c7;
+
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Hide Chrome, Safari, Edge, Firefox number spinner arrows */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+body {
+  font-family: var(--font-family);
+  font-size: 12px;
+  color: var(--txt-main);
+  background-color: var(--clr-body-bg);
+  line-height: 1.4;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* ── Typography & Helpers ───────────────────────────────── */
+.text-navy { color: var(--clr-cobalt); }
+.text-bold { font-weight: 700; }
+.text-muted { color: var(--txt-muted); }
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.text-success { color: var(--clr-success); }
+.text-danger { color: var(--clr-danger); }
+.d-flex { display: flex; }
+.flex-1 { flex: 1; }
+.gap-4 { gap: 4px; }
+.gap-6 { gap: 6px; }
+.gap-8 { gap: 8px; }
+.gap-12 { gap: 12px; }
+.justify-between { justify-content: space-between; }
+.align-center { align-items: center; }
+.mb-4 { margin-bottom: 4px; }
+.mb-8 { margin-bottom: 8px; }
+.mb-12 { margin-bottom: 12px; }
+.mt-4 { margin-top: 4px; }
+.mt-8 { margin-top: 8px; }
+
+/* ── Enterprise Action Buttons (Image 1 & 2 style) ─────── */
+.erp-btn {
+  font-family: var(--font-family);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  border-radius: 3px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.erp-btn:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.erp-btn-primary {
+  background: #ffffff;
+  color: var(--clr-cobalt);
+  border-color: var(--clr-cobalt);
+}
+.erp-btn-primary:hover {
+  background: var(--clr-cobalt);
+  color: #ffffff;
+}
+
+.erp-btn-danger {
+  color: var(--clr-danger);
+  border-color: #fca5a5;
+}
+.erp-btn-danger:hover {
+  background: var(--clr-danger);
+  color: #ffffff;
+}
+
+.erp-btn-sm {
+  padding: 3px 8px;
+  font-size: 10px;
+}
+
+/* ── Top Header Navigation Bar (Image 1) ───────────────── */
+.erp-header {
+  height: 38px;
+  background: #ffffff;
+  border-bottom: 1px solid #cbd5e1;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  justify-content: space-between;
+}
+
+.erp-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--clr-cobalt);
+  padding-right: 16px;
+  border-right: 1px solid #e2e8f0;
+}
+
+.erp-brand-logo {
+  width: 24px;
+  height: 24px;
+  background: var(--clr-cobalt);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.erp-nav-tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 100%;
+  overflow-x: auto;
+}
+
+.erp-nav-tab {
+  height: 100%;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  text-transform: uppercase;
+}
+
+.erp-nav-tab:hover {
+  color: var(--clr-cobalt);
+  background: #f8fafc;
+}
+
+.erp-nav-tab.active {
+  color: var(--clr-cobalt);
+  border-bottom-color: var(--clr-cobalt);
+  background: #ffffff;
+}
+
+/* ── Left Sidebar (Image 1 & 2) ────────────────────────── */
+.erp-sidebar {
+  width: 220px;
+  background: var(--clr-sidebar-bg);
+  border-right: 1px solid #cbd5e1;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.erp-sidebar-brand {
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid #dcebf7;
+}
+
+.erp-sidebar-menu {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.erp-menu-group-title {
+  padding: 8px 14px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--clr-cobalt);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.erp-menu-item {
+  padding: 6px 14px 6px 26px;
+  font-size: 11px;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.erp-menu-item:hover {
+  background: var(--clr-sidebar-hover);
+  color: var(--clr-cobalt);
+}
+
+.erp-menu-item.active {
+  background: var(--clr-sidebar-active);
+  color: var(--clr-cobalt);
+  font-weight: 700;
+  border-left: 3px solid var(--clr-cobalt);
+}
+
+/* ── Main Workspace Body ───────────────────────────────── */
+.erp-workspace-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.erp-workspace-subhead {
+  padding: 8px 14px;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.erp-page-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f172a;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.erp-page-subtitle {
+  font-size: 11px;
+  color: var(--txt-muted);
+}
+
+/* ── Content Area & Toolbar ────────────────────────────── */
+.erp-module-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 10px 14px;
+  overflow-y: auto;
+}
+
+.erp-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 0 10px 0;
+}
+
+.erp-table-container {
+  border: 1px solid #cbd5e1;
+  border-radius: 2px;
+  overflow: auto;
+  background: #ffffff;
+}
+
+.erp-table,
+.grid-table,
+.po-grid-table,
+.jv-grid-table,
+.ce-grid-table,
+.pe-grid-table,
+.or-grid-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.erp-table th,
+.grid-table th,
+.po-grid-table th,
+.jv-grid-table th,
+.ce-grid-table th,
+.pe-grid-table th,
+.or-grid-table th,
+table.erp-table thead th {
+  background: var(--tbl-header-bg) !important;
+  color: #ffffff !important;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 10px;
+  padding: 8px 10px;
+  text-align: left;
+  border: 1px solid #0d52a1;
+  white-space: nowrap;
+}
+
+.erp-table td,
+.grid-table td,
+.po-grid-table td,
+.jv-grid-table td,
+.ce-grid-table td,
+.pe-grid-table td,
+.or-grid-table td {
+  padding: 6px 10px;
+  border: 1px solid #e2e8f0;
+  color: #1e293b;
+}
+
+.erp-table tr:nth-child(even),
+.grid-table tr:nth-child(even),
+.po-grid-table tr:nth-child(even),
+.jv-grid-table tr:nth-child(even),
+.ce-grid-table tr:nth-child(even),
+.pe-grid-table tr:nth-child(even),
+.or-grid-table tr:nth-child(even) {
+  background-color: #f8fafc;
+}
+
+.erp-table tr:hover,
+.grid-table tr:hover,
+.po-grid-table tr:hover,
+.jv-grid-table tr:hover,
+.ce-grid-table tr:hover,
+.pe-grid-table tr:hover,
+.or-grid-table tr:hover {
+  background-color: #E3F2FD !important;
+}
+
+.erp-table tr.selected,
+.erp-table tr.selected td,
+.erp-table tr.row-active,
+.erp-table tr.row-active td,
+.erp-table tr.active,
+.erp-table tr.active td,
+table tr.selected,
+table tr.selected td,
+table tr.row-active,
+table tr.row-active td,
+table tr.active,
+table tr.active td {
+  background-color: #BBDEFB !important;
+  color: #0f172a !important;
+  font-weight: 600;
+}
+
+.erp-table tfoot,
+.grid-table tfoot,
+.po-grid-table tfoot,
+.jv-grid-table tfoot,
+.ce-grid-table tfoot,
+.pe-grid-table tfoot,
+.or-grid-table tfoot,
+tfoot tr {
+  background-color: #f0f9ff;
+  font-weight: bold;
+  border-top: 2px solid #cbd5e1;
+}
+
+/* ── Fieldset In-Place Form Styling (Image 2) ──────────── */
+.erp-fieldset {
+  border: 1px solid #cbd5e1;
+  border-radius: 3px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  background: #ffffff;
+}
+
+.erp-fieldset-legend {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--clr-cobalt);
+  padding: 0 6px;
+  text-transform: uppercase;
+}
+
+.erp-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.erp-input, .erp-select, .erp-textarea {
+  font-family: var(--font-family);
+  font-size: 11px;
+  padding: 5px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 3px;
+  background: #ffffff;
+  color: #1e293b;
+  width: 100%;
+  outline: none;
+}
+
+.erp-input:focus, .erp-select:focus, .erp-textarea:focus {
+  border-color: var(--clr-cobalt);
+  box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.15);
+}
+
+/* ── Top Module Tabs Bar & Bottom Status Bar ─── */
+.erp-statusbar {
+  height: 26px;
+  background: #f1f5f9;
+  border-top: 1px solid #cbd5e1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  font-size: 11px;
+  color: #475569;
+}
+
+.erp-bottom-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #F1F5F9;
+  border-bottom: 1px solid #CBD5E1;
+  padding: 4px 8px 0 8px;
+  min-height: 32px;
+  overflow-x: auto;
+}
+
+.erp-bottom-tab {
+  background: #E2E8F0;
+  border: 1px solid #CBD5E1;
+  border-bottom: none;
+  padding: 5px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  border-radius: 4px 4px 0 0;
+  transition: all 0.15s ease;
+}
+
+.erp-bottom-tab:hover {
+  background: #CBD5E1;
+  color: #1565C0;
+}
+
+.erp-bottom-tab.active {
+  background: #1565C0 !important;
+  color: #FFFFFF !important;
+  border-color: #1565C0 !important;
+  font-weight: 800;
+}

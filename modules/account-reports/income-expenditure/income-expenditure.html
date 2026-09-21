@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Income &amp; Expenditure Statement — JEEVIKA ERP</title>
+  <script src="../../../config.js"></script>
+  <link rel="stylesheet" href="../../../assets/css/global.css">
+  <link rel="stylesheet" href="../../../assets/css/components.css">
+  <link rel="stylesheet" href="income-expenditure.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body class="erp-module">
+
+  <!-- ── Top Action & Filter Toolbar (Pinned) ─────────────────────────────────── -->
+  <div class="ie-toolbar">
+    <div class="ie-filter-group">
+      <div class="ie-filter-item">
+        <label for="ie-from-date"><i class="bi bi-calendar3"></i> From:</label>
+        <input type="date" id="ie-from-date" class="ie-input fy-date" style="width:125px;">
+      </div>
+
+      <div class="ie-filter-item">
+        <label for="ie-to-date"><i class="bi bi-calendar3"></i> To:</label>
+        <input type="date" id="ie-to-date" class="ie-input fy-date" style="width:125px;">
+      </div>
+
+      <div class="ie-filter-item">
+        <label for="ie-view-mode"><i class="bi bi-eye"></i> View:</label>
+        <select id="ie-view-mode" class="ie-select" onchange="renderIEView()">
+          <option value="detailed" selected>Detailed (Heads &amp; Codes)</option>
+          <option value="summary">Summary (Schedules Only)</option>
+        </select>
+      </div>
+
+      <div class="ie-filter-item">
+        <input type="checkbox" id="chk-voucher-no" checked onchange="renderIEView()">
+        <label for="chk-voucher-no">Voucher No.</label>
+      </div>
+    </div>
+
+    <div class="d-flex gap-6">
+      <button class="ie-btn ie-btn-primary" onclick="loadIEData()">
+        <i class="bi bi-arrow-clockwise"></i> Refresh
+      </button>
+      <button class="ie-btn" onclick="printReport()">
+        <i class="bi bi-printer"></i> Print Statement
+      </button>
+      <button class="ie-btn ie-btn-success" onclick="exportToExcel()">
+        <i class="bi bi-file-earmark-excel"></i> Export Excel
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Full-Height Scrollable Body Area ───────────────────────────────────── -->
+  <div class="ie-scroll-wrapper">
+    <div class="ie-report-container">
+
+      <!-- Society Header Section -->
+      <div class="ie-header">
+        <div class="ie-soc-name" id="disp-soc-name">LOADING SOCIETY...</div>
+        <div class="ie-soc-sub" id="disp-soc-sub">Registration No: — | City: —</div>
+        <div class="ie-title">
+          Income &amp; Expenditure Statement For The Period <span id="disp-period">—</span>
+        </div>
+      </div>
+
+      <!-- Statutory T-Format Side-by-Side Statement -->
+      <div class="ie-t-table-wrapper">
+        <table class="ie-t-table" id="ieMainTable">
+          <thead>
+            <!-- Repeated Header for Print (All Pages) -->
+            <tr class="ie-print-masthead-row">
+              <th colspan="8" class="ie-print-masthead-cell">
+                <div class="ie-print-soc-name" id="print-disp-soc-name">CO-OPERATIVE HOUSING SOCIETY LTD.</div>
+                <div class="ie-print-soc-sub" id="print-disp-soc-sub">Registration No. : —</div>
+                <div class="ie-print-title" id="print-disp-title">Income &amp; Expenditure Account For The Year Ended —</div>
+              </th>
+            </tr>
+            <!-- Clean Single-Tier Column Headers -->
+            <tr class="ie-col-header-row">
+              <th class="ie-col-header col-prev text-center col-amount" id="th-prev-exp">31/03/2025<br>Amount(Rs.)</th>
+              <th class="ie-col-header text-center" colspan="2" id="th-exp-title">Expenditure</th>
+              <th class="ie-col-header text-center ie-side-divider col-amount" id="th-cur-exp">31/03/2026<br>Amount(Rs.)</th>
+
+              <th class="ie-col-header col-prev text-center col-amount" id="th-prev-inc">31/03/2025<br>Amount(Rs.)</th>
+              <th class="ie-col-header text-center" colspan="2" id="th-inc-title">Income</th>
+              <th class="ie-col-header text-center col-amount" id="th-cur-inc">31/03/2026<br>Amount(Rs.)</th>
+            </tr>
+          </thead>
+          <tbody id="ieTBody">
+            <tr>
+              <td colspan="8" class="text-center text-muted" style="padding:40px;">
+                <i class="bi bi-arrow-repeat spin"></i> Loading Income &amp; Expenditure Statement...
+              </td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr class="ie-grand-total-row">
+              <td class="ie-grand-total-cell col-prev ie-num" id="foot-tot-prev-exp">0.00</td>
+              <td class="ie-grand-total-cell text-end" colspan="2">Total</td>
+              <td class="ie-grand-total-cell ie-side-divider ie-num" id="foot-tot-cur-exp">0.00</td>
+
+              <td class="ie-grand-total-cell col-prev ie-num" id="foot-tot-prev-inc">0.00</td>
+              <td class="ie-grand-total-cell text-end" colspan="2">Total</td>
+              <td class="ie-grand-total-cell ie-num" id="foot-tot-cur-inc">0.00</td>
+            </tr>
+            <!-- Statutory Signatory Attestation (Prints on Last Page) -->
+            <tr class="ie-print-sign-row">
+              <td colspan="4" class="ie-sign-cell">
+                <div class="ie-sign-society" id="ieSignSocName">For Co-Operative Housing Society Ltd.</div>
+                <div class="ie-sign-officers">
+                  <span>Chairman</span>
+                  <span>Secretary</span>
+                  <span>Treasurer</span>
+                </div>
+              </td>
+              <td colspan="4" class="ie-sign-cell ie-sign-blank"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- xlsx-js-style for rich-styled Excel workbook generation (borders, bold, fonts, alignments) -->
+  <script src="../../../assets/js/xlsx-js-style.bundle.js"></script>
+  <script>
+    if (typeof XLSX === 'undefined' || !XLSX.writeFile) {
+      document.write('<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"><\/script>');
+    }
+  </script>
+  <script src="../../../assets/js/api.js"></script>
+  <script src="../../../assets/js/auth.js"></script>
+  <script src="../../../assets/js/utils.js"></script>
+  <script src="income-expenditure.js"></script>
+</body>
+</html>

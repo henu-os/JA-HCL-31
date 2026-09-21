@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en" style="height:100%;overflow:hidden;">
+<head>
+  <meta charset="UTF-8">
+  <title>Group Master — JEEVIKA ERP</title>
+  <link rel="stylesheet" href="../../../assets/css/global.css">
+  <link rel="stylesheet" href="./group-master.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body style="margin:0;padding:0;height:100%;overflow:hidden;">
+
+<div class="gm-canvas" id="gm-panel">
+
+  <!-- MODULE HEADER -->
+  <div class="gm-header">
+    <div>
+      <h2>GROUP MASTER</h2>
+      
+    </div>
+    <div class="gm-header-tag">[Account Group Configuration]</div>
+  </div>
+
+  <!-- COMMAND STRIP -->
+  <div class="gm-cmd-strip" id="gm-cmd-strip">
+    <button class="gm-btn" id="gm-btn-add" onclick="gmAdd()"><i class="bi bi-plus-lg"></i> ADD</button>
+    <button class="gm-btn" id="gm-btn-alter" onclick="gmAlter()"><i class="bi bi-pencil-square"></i> ALTER</button>
+    <button class="gm-btn gm-btn-danger" id="gm-btn-delete" onclick="gmDelete()"><i class="bi bi-trash"></i> DELETE</button>
+    <div class="gm-sep"></div>
+    <button class="gm-btn gm-btn-hidden" id="gm-btn-save" onclick="gmSave()"><i class="bi bi-check-lg"></i> SAVE</button>
+    <button class="gm-btn gm-btn-hidden" id="gm-btn-cancel" onclick="gmShowList()"><i class="bi bi-x-circle"></i> CANCEL</button>
+    <div class="gm-sep"></div>
+    <button class="gm-btn" id="gm-btn-print" onclick="gmPrint()"><i class="bi bi-printer"></i> PRINT REGISTER</button>
+    
+    <!-- OTHER dropdown -->
+    <div style="position:relative;display:inline-block;" id="gm-other-drop"
+         onmouseleave="document.getElementById('gm-other-menu').style.display='none'">
+      <button class="gm-btn" onmouseenter="document.getElementById('gm-other-menu').style.display='block'">
+        OTHER <i class="bi bi-chevron-down"></i>
+      </button>
+      <div id="gm-other-menu" style="display:none;position:absolute;top:26px;left:0;background:#ffffff;border:1px solid #cbd5e1;box-shadow:0 4px 12px rgba(0,0,0,0.1);z-index:1000;min-width:150px;padding:4px 0;border-radius:4px;">
+        <a href="#" onclick="event.preventDefault();gmToggleMultiDelete()" style="display:block;padding:6px 12px;color:#1e293b;text-decoration:none;font-size:11px;font-weight:600;"><i class="bi bi-trash-fill"></i> Multi Delete</a>
+        <a href="#" onclick="event.preventDefault();gmExportExcel()" style="display:block;padding:6px 12px;color:#1e293b;text-decoration:none;font-size:11px;font-weight:600;"><i class="bi bi-cloud-download-fill"></i> Export Excel</a>
+      </div>
+    </div>
+
+    <!-- Search toggle -->
+    <button class="gm-btn" id="gm-btn-search" onclick="gmToggleSearch()" title="Search & Filter"><i class="bi bi-search"></i></button>
+    <button class="gm-btn" style="margin-left:auto;" onclick="gmExit()"><i class="bi bi-door-open"></i> EXIT</button>
+  </div>
+
+  <!-- MAIN WORKSPACE -->
+  <div class="gm-workspace">
+
+    <!-- LIST STATE -->
+    <div id="gm-list-state">
+      <div class="gm-grid">
+        <table class="gm-table" id="gm-table">
+          <thead>
+            <tr>
+              <th style="width:36px;text-align:center;" id="gm-th-chk"><input type="checkbox" id="gm-chk-all" onclick="gmToggleAll(this.checked)" style="accent-color:#1565C0;display:none;"></th>
+              <th style="width:130px;">CODE</th>
+              <th>GROUP NAME</th>
+              <th style="width:180px;">MAIN GROUP</th>
+            </tr>
+          </thead>
+          <tbody id="gm-tbody">
+            <tr><td colspan="4" style="text-align:center;padding:30px;color:#808080;">
+              <i class="bi bi-hourglass-split"></i> Loading groups...
+            </td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- FORM STATE (2-Column Layout) -->
+    <div id="gm-form-state">
+      <div class="gm-form-layout">
+
+        <!-- Left Column: Group Configuration -->
+        <div class="gm-frame gm-form-panel">
+          <div class="gm-frame-title" id="gm-frame-title">Group Record Viewer</div>
+          <div class="gm-frame-body">
+            <input type="hidden" id="gm-edit-id" value="0">
+
+            <div class="gm-form-row">
+              <label>Group Code *</label>
+              <input type="text" id="gm-code" class="gm-input" maxlength="20" placeholder="Auto-generated if empty" disabled>
+            </div>
+
+            <div class="gm-form-row">
+              <label>Group Name *</label>
+              <input type="text" id="gm-name" class="gm-input" maxlength="80" placeholder="Enter Group Name" disabled>
+            </div>
+
+            <div class="gm-form-row">
+              <label>Main Group *</label>
+              <select id="gm-mainid" class="gm-select" disabled onchange="gmOnMainGroupChange()">
+                <option value="">— Select Main Group —</option>
+                <option value="3">Income</option>
+                <option value="4">Expenditure</option>
+                <option value="1">Asset</option>
+                <option value="2">Liability</option>
+              </select>
+            </div>
+
+            <!-- TOGGLE SWITCH -->
+            <div class="gm-toggle-section">
+              <label class="gm-switch-wrap" for="gm-subtotal">
+                <span class="gm-switch">
+                  <input type="checkbox" id="gm-subtotal" disabled onchange="gmUpdateToggleStatus()">
+                  <span class="gm-slider round"></span>
+                </span>
+                <span class="gm-toggle-texts">
+                  <span class="gm-toggle-title">PRINT SUB-TOTAL IN REPORTS</span>
+                  <span class="gm-toggle-subtitle">Include category subtotal rows in financial statements</span>
+                </span>
+              </label>
+              <span class="gm-toggle-badge" id="gm-toggle-badge">NO</span>
+            </div>
+
+            <div class="gm-info-box">
+              <div class="gm-info-title">
+                <i class="bi bi-info-circle-fill"></i> ACCOUNTING LOGIC
+              </div>
+              <div>Groups classify multiple Ledgers. Primary Group matches Group Name for base categories, while Main Group determines placement in Trial Balance, Profit &amp; Loss, and Balance Sheet reports. Default groups are protected system records.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Linked Accounts Under Group -->
+        <div class="gm-frame gm-accounts-panel">
+          <div class="gm-frame-title gm-accounts-title">
+            <div class="gm-acc-header-left">
+              <i class="bi bi-diagram-3-fill"></i>
+              <span>ACCOUNTS UNDER THIS GROUP</span>
+              <span class="gm-badge-count" id="gm-acc-count">0 Accounts</span>
+            </div>
+            <div class="gm-acc-search-box">
+              <i class="bi bi-search"></i>
+              <input type="text" id="gm-acc-search" placeholder="Filter accounts..." oninput="gmFilterLinkedAccounts()" autocomplete="off">
+            </div>
+          </div>
+          <div class="gm-accounts-container" id="gm-accounts-container">
+            <!-- Dynamically populated in group-master.js -->
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ALERT DIALOG -->
+<div class="gm-overlay" id="gm-alert-overlay" style="display:none;">
+  <div class="gm-dialog">
+    <div class="gm-dialog-title">
+      <span id="gm-alert-title"><i class="bi bi-info-circle-fill"></i> INFORMATION</span>
+      <button onclick="gmCloseAlert()">✕</button>
+    </div>
+    <div class="gm-dialog-body">
+      <i class="bi bi-info-circle-fill" id="gm-alert-icon"></i>
+      <div class="gm-dialog-msg" id="gm-alert-msg"></div>
+    </div>
+    <div class="gm-dialog-footer">
+      <button class="gm-btn" onclick="gmCloseAlert()">OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM DIALOG -->
+<div class="gm-overlay" id="gm-confirm-overlay" style="display:none;">
+  <div class="gm-dialog">
+    <div class="gm-dialog-title">
+      <span><i class="bi bi-question-circle-fill"></i> CONFIRMATION</span>
+      <button onclick="gmCloseConfirm(false)">✕</button>
+    </div>
+    <div class="gm-dialog-body">
+      <i class="bi bi-question-circle-fill"></i>
+      <div class="gm-dialog-msg" id="gm-confirm-msg"></div>
+    </div>
+    <div class="gm-dialog-footer">
+      <button class="gm-btn" id="gm-confirm-yes" style="font-weight:bold;">OK</button>
+      <button class="gm-btn" onclick="gmCloseConfirm(false)">CANCEL</button>
+    </div>
+  </div>
+</div>
+
+<script src="../../../config.js"></script>
+<script src="../../../assets/js/api.js"></script>
+<script src="../../../assets/js/auth.js"></script>
+<script src="./group-master.js"></script>
+</body>
+</html>

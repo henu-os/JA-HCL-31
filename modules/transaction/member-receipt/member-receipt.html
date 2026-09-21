@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Member Receipt Entry — JEEVIKA ERP</title>
+  <script src="../../../config.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background: #f8fafc; color: #1e293b; overflow: hidden; height: 100vh; font-size: 12px; }
+
+    /* MODULE HEADER BAR */
+    .module-header {
+      background: #ffffff;
+      padding: 8px 14px 6px;
+      border-bottom: 1px solid #cbd5e1;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-shrink: 0;
+    }
+    .module-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #0f172a;
+      text-transform: uppercase;
+    }
+    .module-subtitle {
+      font-size: 10px;
+      color: #64748b;
+      margin-top: 2px;
+    }
+
+    /* Hide number spinner arrows across all browsers */
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    input[type="number"] {
+      -moz-appearance: textfield;
+      appearance: textfield;
+    }
+
+    /* BILL TYPE STRIP */
+    .mr-billtype-strip {
+      background: #ECEFF1;
+      padding: 6px 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid #CFD8DC;
+      flex-shrink: 0;
+    }
+    .billtype-label {
+      font-size: 10.5px;
+      font-weight: 800;
+      color: #37474F;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .billtype-pill {
+      background: #ffffff;
+      color: #37474F;
+      border: 1px solid #B0BEC5;
+      padding: 3px 14px;
+      font-size: 10px;
+      font-weight: 700;
+      border-radius: 12px;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: all 0.15s ease;
+    }
+    .billtype-pill:hover { background: #E2E8F0; }
+    .billtype-pill.active {
+      background: #1565C0;
+      color: #ffffff;
+      border-color: #1565C0;
+      box-shadow: 0 1px 3px rgba(21,101,192,0.3);
+    }
+
+    /* TOOLBAR STRIP */
+    .mr-toolbar {
+      background: #1565C0;
+      padding: 5px 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .btn-tb-blue {
+      background: #ffffff;
+      color: #1565C0;
+      border: none;
+      padding: 4px 10px;
+      font-size: 10.5px;
+      font-weight: 700;
+      border-radius: 3px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      text-transform: uppercase;
+    }
+    .btn-tb-blue:hover { background: #e3f2fd; }
+    .btn-tb-outline {
+      background: rgba(255,255,255,0.15);
+      color: #ffffff;
+      border: 1px solid rgba(255,255,255,0.3);
+      padding: 4px 10px;
+      font-size: 10.5px;
+      font-weight: 700;
+      border-radius: 3px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      text-transform: uppercase;
+    }
+    .btn-tb-outline:hover { background: rgba(255,255,255,0.25); }
+
+    /* DROPDOWN MENU */
+    .mr-dropdown { position: relative; display: inline-block; }
+    .mr-dropdown-content {
+      display: none;
+      position: absolute;
+      top: 100%;
+      right: 0;
+      min-width: 160px;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 100;
+      padding: 4px 0;
+    }
+    .mr-dropdown-content a {
+      display: block;
+      padding: 6px 12px;
+      color: #334155;
+      text-decoration: none;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .mr-dropdown-content a:hover { background: #f1f5f9; color: #1565C0; }
+
+    /* FILTERS STRIP */
+    .mr-filter-panel {
+      background: #f1f5f9;
+      border-bottom: 1px solid #cbd5e1;
+      padding: 6px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+    .filter-group { display: flex; align-items: center; gap: 4px; }
+    .filter-lbl { font-size: 10px; font-weight: 700; color: #475569; text-transform: uppercase; }
+    .filter-inp, .filter-sel {
+      height: 24px;
+      padding: 0 6px;
+      font-size: 11px;
+      border: 1px solid #cbd5e1;
+      border-radius: 3px;
+      background: #fff;
+      outline: none;
+    }
+
+    /* DATA TABLE EXCEL STYLING WITH HORIZONTAL SCROLLBAR & COLUMN RESIZING */
+    .mr-table-wrapper {
+      flex: 1;
+      overflow-x: auto !important;
+      overflow-y: auto !important;
+      background: #ffffff;
+      position: relative;
+    }
+    table.mr-main-table {
+      width: max-content;
+      min-width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+      table-layout: fixed;
+    }
+    table.mr-main-table th {
+      border: 1px solid #cbd5e1;
+      background: #1565C0;
+      color: #ffffff;
+      padding: 6px 12px 6px 8px;
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      text-align: left;
+      white-space: nowrap;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      position: relative;
+      user-select: none;
+      box-sizing: border-box;
+    }
+    .col-resizer {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 6px;
+      height: 100%;
+      cursor: col-resize;
+      user-select: none;
+      z-index: 3;
+    }
+    .col-resizer:hover, .col-resizer.resizing { background: #90caf9; }
+    table.mr-main-table td {
+      border: 1px solid #e2e8f0;
+      padding: 5px 8px;
+      height: 26px;
+      vertical-align: middle;
+      font-size: 11px;
+      white-space: nowrap;
+      color: #334155;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    table.mr-main-table tbody tr:nth-child(even) td { background-color: #f8fafc; }
+    table.mr-main-table tbody tr:hover td {
+      background-color: #f0f9ff !important;
+    }
+    table.mr-main-table tbody tr.selected td {
+      background-color: #bae6fd !important;
+      color: #0f172a !important;
+      font-weight: 600;
+    }
+
+    /* FOOTER BAR */
+    .mr-footer-bar {
+      background: #f1f5f9;
+      border-top: 1px solid #cbd5e1;
+      padding: 6px 14px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      font-weight: 700;
+      color: #334155;
+      flex-shrink: 0;
+    }
+    .mr-footer-val { font-family: 'Consolas', monospace; font-size: 12px; color: #1565C0; margin-left: 4px; }
+
+    /* FORM SCREEN LAYOUT */
+    .form-main-container {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      background: #f8fafc;
+    }
+    .form-left-panel {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 14px;
+      background: #ffffff;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .form-left-panel::-webkit-scrollbar {
+      display: none;
+    }
+    .form-right-sidebar {
+      width: 320px;
+      flex-shrink: 0;
+      background: #ffffff;
+      border-left: 1px solid #cbd5e1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .form-row { display: flex; gap: 10px; align-items: flex-start; }
+    .form-field { display: flex; flex-direction: column; gap: 3px; }
+    .form-field label { font-size: 10px; font-weight: 700; color: #475569; text-transform: uppercase; }
+    .form-field label .req { color: #dc2626; }
+    .form-inp {
+      height: 26px;
+      padding: 0 8px;
+      font-size: 11px;
+      border: 1px solid #cbd5e1;
+      border-radius: 3px;
+      outline: none;
+    }
+    .form-inp:focus { border-color: #1565C0; box-shadow: 0 0 0 1px #1565C0; }
+
+    /* HIDE NUMBER INPUT SPINNERS (UP/DOWN ARROWS) */
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    input[type="number"] {
+      -moz-appearance: textfield;
+      appearance: textfield;
+    }
+
+    /* BANK DETAILS CONTAINER */
+    .fieldset-box {
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      padding: 12px;
+      position: relative;
+      background: #fafafa;
+      margin-top: 4px;
+    }
+    .fieldset-legend {
+      position: absolute;
+      top: -8px;
+      left: 10px;
+      background: #ffffff;
+      padding: 0 6px;
+      font-size: 10px;
+      font-weight: 800;
+      color: #1565C0;
+      text-transform: uppercase;
+    }
+
+    /* AMOUNT & BIFURCATION CARDS */
+    .amount-blue-box {
+      background: #e1f5fe;
+      border: 1px solid #81d4fa;
+      border-radius: 4px;
+      padding: 10px 12px;
+      flex: 1;
+    }
+    .bifurcation-yellow-box {
+      background: #fff8e1;
+      border: 1px solid #ffe082;
+      border-radius: 4px;
+      padding: 10px 12px;
+      flex: 1.4;
+    }
+    .bifurcation-hdr {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #ffe082;
+      padding-bottom: 4px;
+      margin-bottom: 8px;
+    }
+    .btn-manual-entry {
+      background: #ffa000;
+      color: #ffffff;
+      border: none;
+      padding: 2px 8px;
+      font-size: 9.5px;
+      font-weight: 700;
+      border-radius: 3px;
+      cursor: pointer;
+      text-transform: uppercase;
+    }
+
+    /* PARTICULARS SECTION */
+    .particulars-box {
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      padding: 10px;
+      background: #fafafa;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .btn-ctrl-l {
+      background: #e2e8f0;
+      border: 1px solid #cbd5e1;
+      padding: 0 8px;
+      height: 26px;
+      font-size: 10px;
+      font-weight: 700;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+
+    /* FORM BOTTOM ACTIONS */
+    .form-action-bar {
+      padding: 8px 14px;
+      background: #f1f5f9;
+      border-top: 1px solid #cbd5e1;
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .btn-save-green {
+      background: #2E7D32;
+      color: #ffffff;
+      border: none;
+      padding: 6px 16px;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 3px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .btn-save-green:hover { background: #1b5e20; }
+    .btn-cancel-red {
+      background: #ffffff;
+      color: #dc2626;
+      border: 1px solid #dc2626;
+      padding: 6px 16px;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 3px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .btn-cancel-red:hover { background: #fef2f2; }
+
+    /* RIGHT LEDGER SIDEBAR */
+    .sidebar-hdr {
+      background: #1565C0;
+      color: #ffffff;
+      padding: 8px 12px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      text-align: center;
+    }
+    .ledger-empty-msg {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 30px;
+      color: #94a3b8;
+      font-size: 11px;
+      font-weight: 600;
+      text-align: center;
+    }
+    .ledger-card {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      padding: 10px;
+      margin: 10px;
+    }
+    .ledger-card-hdr {
+      font-size: 10px;
+      font-weight: 800;
+      color: #1565C0;
+      text-transform: uppercase;
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 4px;
+      margin-bottom: 6px;
+    }
+    .ledger-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      margin-bottom: 4px;
+    }
+
+    /* MODAL OVERLAY */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-card {
+      background: #ffffff;
+      border-radius: 4px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      overflow: hidden;
+    }
+    .modal-header {
+      background: #1565C0;
+      color: #ffffff;
+      padding: 8px 14px;
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-close { background: none; border: none; color: #fff; font-size: 16px; cursor: pointer; }
+    .modal-body { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+    .modal-footer { padding: 8px 14px; background: #f1f5f9; border-top: 1px solid #cbd5e1; display: flex; justify-content: flex-end; gap: 8px; }
+  </style>
+</head>
+<body>
+
+<div style="display:flex; flex-direction:column; height:100vh; overflow:hidden; background:#fff;">
+
+  <!-- MODULE HEADER -->
+  <div class="module-header">
+    <div>
+      <h1 class="module-title" id="mr-module-title">Member Receipt Entry</h1>
+      
+    </div>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <div style="font-size:10px; color:#64748b; font-weight:700;">
+        Alt+A Add  F2 Edit  Esc Back  Ctrl+P Print  Ctrl+D Multi Del
+      </div>
+      <button class="btn-tb-blue" style="background:#1565C0; color:#fff;"><i class="bi bi-gear-fill"></i> SA PATH</button>
+    </div>
+  </div>
+
+  <!-- SECTION 1: RECEIPT REGISTER LIST -->
+  <div id="mr-section-list" style="display:flex; flex-direction:column; flex:1; overflow:hidden;">
+    
+    <!-- BILL TYPE PILLS STRIP -->
+    <div class="mr-billtype-strip">
+      <span class="billtype-label"><i class="bi bi-tag-fill" style="color:#1565C0;"></i> BILL TYPE:</span>
+      <div id="mr-billtype-pills" style="display:flex; gap:6px; flex:1; align-items:center; overflow-x:auto;">
+        <!-- Dynamically rendered pills -->
+      </div>
+      <span style="font-weight:700; color:#1565C0; font-size:11px;" id="mr-list-count">0 receipts</span>
+    </div>
+
+    <!-- TOOLBAR STRIP -->
+    <div class="mr-toolbar">
+      <div class="add-receipt-wrap" style="position:relative; display:inline-block;">
+        <button class="btn-tb-blue" id="btn-add-receipt" onclick="handleAddReceiptClick(event)">
+          <i class="bi bi-plus-lg"></i> ADD RECEIPT <i class="bi bi-caret-down-fill" id="add-receipt-caret" style="font-size:9px; margin-left:2px; display:none;"></i>
+        </button>
+        <div class="add-bill-dropdown" id="add-receipt-menu" style="display:none; position:absolute; top:100%; left:0; background:#fff; border:1px solid #cbd5e1; border-radius:4px; box-shadow:0 4px 12px rgba(0,0,0,0.15); z-index:999; min-width:160px; padding:4px 0;"></div>
+      </div>
+      <button class="btn-tb-outline" onclick="editSelectedReceipt()"><i class="bi bi-pencil-square"></i> EDIT</button>
+      <button class="btn-tb-outline" onclick="deleteSelectedReceipt()"><i class="bi bi-trash-fill"></i> DELETE</button>
+
+      <div style="border-right:1px solid rgba(255,255,255,0.3); height:16px; margin:0 4px;"></div>
+
+      <button class="btn-tb-outline" onclick="showChequeManagement()"><i class="bi bi-bank"></i> CHEQUE MANAGEMENT</button>
+
+      <div style="border-right:1px solid rgba(255,255,255,0.3); height:16px; margin:0 4px;"></div>
+
+      <button class="btn-tb-outline" onclick="previewReceipt()"><i class="bi bi-eye-fill"></i> PREVIEW</button>
+      <button class="btn-tb-outline" onclick="toggleFilterBar()"><i class="bi bi-funnel-fill"></i> FILTERS</button>
+      <button class="btn-tb-outline" id="btn-multi-change" onclick="openMultiChangeModal()"><i class="bi bi-check2-square"></i> MULTI CHANGE <span id="mc-sel-badge" class="mc-sel-badge" style="display:none; background:#22c55e; color:#fff; border-radius:10px; padding:1px 6px; font-size:10px; margin-left:4px;">0</span></button>
+
+      <div style="border-right:1px solid rgba(255,255,255,0.3); height:16px; margin:0 4px;"></div>
+
+      <div class="mr-dropdown">
+        <button class="btn-tb-outline" onclick="toggleOtherDropdown()">OTHER ▼</button>
+        <div class="mr-dropdown-content" id="mr-other-menu">
+          <a href="#" onclick="openMultiDeleteModal()"><i class="bi bi-trash-fill"></i> Multi Delete (Ctrl+D)</a>
+          <a href="#" onclick="openMultiChangeModal()"><i class="bi bi-input-cursor-text"></i> Multi Change (Ctrl+M)</a>
+          <a href="#" onclick="window.print()"><i class="bi bi-printer"></i> Print Register</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- COLLAPSIBLE FILTER PANEL -->
+    <div class="mr-filter-panel" id="mr-filter-bar" style="display:none;">
+      <div class="filter-group">
+        <span class="filter-lbl">Receipt No</span>
+        <input type="text" class="filter-inp" id="flt-rcptno" placeholder="MRV/..." oninput="applyFilters()" style="width:110px;">
+      </div>
+      <div class="filter-group">
+        <span class="filter-lbl">Member</span>
+        <input type="text" class="filter-inp" id="flt-member" placeholder="Search Member..." oninput="applyFilters()" style="width:140px;">
+      </div>
+      <div class="filter-group">
+        <span class="filter-lbl">Cheque No</span>
+        <input type="text" class="filter-inp" id="flt-chqno" placeholder="Chq No..." oninput="applyFilters()" style="width:110px;">
+      </div>
+      <button class="btn-tb-outline" onclick="clearFilters()" style="color:#1565C0; border-color:#1565C0;"><i class="bi bi-x-circle"></i> Clear</button>
+    </div>
+
+    <!-- MAIN DATA TABLE GRID (EXCEL SCROLLING & COLUMN RESIZING) -->
+    <div class="mr-table-wrapper">
+      <table class="mr-main-table">
+        <thead>
+          <tr>
+            <th style="width:36px; text-align:center;"><input type="checkbox" id="chk-select-all" onclick="ERP_MultiChange.toggleSelectAll(this.checked, receipts.map(r=>r.receiptId||r.voucherId))" title="Select / Deselect All"></th>
+            <th style="width:110px; cursor:pointer;" onclick="toggleReceiptNoSort()" title="Click to sort Top to Bottom / Bottom to Top">
+              NO. <span id="sort-rcptno-icon">▼</span>
+            </th>
+            <th style="width:85px;">DATE</th>
+            <th style="width:110px;">CASH/BANK</th>
+            <th style="width:75px; text-align:center;">FLAT NO</th>
+            <th>MEM. NAME</th>
+            <th style="width:105px; text-align:right;">AMOUNT</th>
+            <th style="width:90px;">CHQ. NO.</th>
+            <th style="width:85px;">CHQ. DATE</th>
+            <th style="width:130px;">BANK</th>
+            <th style="width:110px;">BILL NO.</th>
+            <th style="width:130px;">PARTICULAR 1</th>
+            <th style="width:130px;">PARTICULAR 2</th>
+            <th style="width:90px; text-align:center;">CLEAR DATE</th>
+          </tr>
+        </thead>
+        <tbody id="mr-list-tbody">
+          <!-- Rendered rows -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- SUMMARY FOOTER BAR -->
+    <div class="mr-footer-bar">
+      <span>Total Receipts: <span class="mr-footer-val" id="sum-rcpt-count">0</span></span>
+      <span>Cash Collection: <span class="mr-footer-val" id="sum-rcpt-cash">₹0.00</span></span>
+      <span>Bank Collection: <span class="mr-footer-val" id="sum-rcpt-bank">₹0.00</span></span>
+      <span>Total Collection: <span class="mr-footer-val" id="sum-rcpt-total">₹0.00</span></span>
+    </div>
+  </div>
+
+  <!-- SECTION 2: ADD / EDIT RECEIPT FORM & MEMBER LEDGER PANEL -->
+  <div id="mr-section-form" style="display:none; flex-direction:column; flex:1; overflow:hidden;">
+    
+    <div class="form-main-container">
+      <!-- LEFT FORM PANEL -->
+      <div class="form-left-panel">
+        
+        <!-- ROW 1: RECEIPT NO, DATE, MEMBER NAME -->
+        <div class="form-row" style="display:flex; gap:12px; align-items:flex-end;">
+          <div class="form-field" style="width:180px;">
+            <label style="font-weight:700; color:#475569; font-size:10px;">RECEIPT NO *</label>
+            <input type="text" id="frm-rcptno" class="form-inp" style="width:100%; height:28px; background:#f1f5f9; font-weight:800; color:#0f172a;" readonly>
+          </div>
+          <div class="form-field" style="width:150px;">
+            <label style="font-weight:700; color:#475569; font-size:10px;">RECEIPT DATE *</label>
+            <input type="date" id="frm-rcptdate" class="form-inp" style="width:100%; height:28px;">
+          </div>
+          <div class="form-field" style="flex:1;">
+            <label style="font-weight:800; color:#0288d1; font-size:10px;">MEMBER NAME *</label>
+            <select id="frm-membername" class="form-inp" style="width:100%; height:28px;" onchange="onMemberSelect(this.value)">
+              <!-- Loaded options -->
+            </select>
+          </div>
+        </div>
+
+        <!-- ROW 2: DEBIT ACCOUNT TYPE & DEPOSIT ACCOUNT & BILL TYPE SWITCH -->
+        <div class="form-row" style="display:flex; gap:12px; align-items:flex-start; margin-top:12px; padding-bottom:12px; border-bottom:1px solid #e2e8f0;">
+          <div class="form-field" style="width:160px;">
+            <label style="font-weight:700; color:#475569; font-size:10px; text-transform:uppercase;">DEBIT [DR] ACCOUNT TYPE</label>
+            <div style="display:flex; flex-direction:column; gap:4px; margin-top:4px;">
+              <label style="font-size:11px; font-weight:700; cursor:pointer; color:#334155; display:inline-flex; align-items:center; gap:6px;"><input type="radio" name="payMode" value="Cash" checked onchange="togglePayMode('Cash')"> CASH</label>
+              <label style="font-size:11px; font-weight:700; cursor:pointer; color:#334155; display:inline-flex; align-items:center; gap:6px;"><input type="radio" name="payMode" value="Bank" onchange="togglePayMode('Bank')"> BANK</label>
+            </div>
+          </div>
+          <div class="form-field" style="width:300px;">
+            <label style="font-weight:800; color:#334155; font-size:10px;">DEPOSIT TO (ACCOUNT) *</label>
+            <select id="frm-account" class="form-inp" style="width:100%; height:28px;">
+              <option value="">— Select Option —</option>
+              <option value="Cash In Hand">Cash In Hand</option>
+            </select>
+          </div>
+          <div id="wrap-frm-billtype" class="form-field" style="flex:1; max-width:320px; display:none;">
+            <label style="font-weight:800; color:#0284c7; font-size:10px; display:flex; align-items:center; gap:5px;">
+              <i class="bi bi-arrow-left-right" style="font-size:11px;"></i> BILL TYPE (TRANSFER / SWITCH) *
+            </label>
+            <select id="frm-billtype" class="form-inp" style="width:100%; height:28px; font-weight:700; color:#0369a1; background:#f0f9ff; border:1px solid #bae6fd;" onchange="onBillTypeFormChange(this.value)">
+              <!-- Dynamically populated from bill types -->
+            </select>
+          </div>
+        </div>
+
+        <!-- MEMBERS BANK DETAILS PANEL -->
+        <div class="fieldset-box" style="margin-top:10px;">
+          <span class="fieldset-legend">MEMBERS BANK DETAILS</span>
+          <div class="form-row" style="display:flex; gap:10px;">
+            <div class="form-field" style="width:140px;">
+              <label>TRANS TYPE</label>
+              <select id="frm-transtype" class="form-inp" style="width:100%; height:28px;">
+                <option value="Cheque">Cheque</option>
+                <option value="NEFT">NEFT</option>
+                <option value="UPI">UPI</option>
+                <option value="IMPS">IMPS</option>
+                <option value="IB [Internal Bank Transfer]">IB [Internal Bank Transfer]</option>
+                <option value="RTGS">RTGS</option>
+              </select>
+            </div>
+            <div class="form-field" style="width:130px;">
+              <label>CHQ/REF NO.</label>
+              <input type="text" id="frm-chqno" class="form-inp" style="width:100%; height:28px;">
+            </div>
+            <div class="form-field" style="width:140px;">
+              <label>CHQ/REF DATE</label>
+              <input type="date" id="frm-chqdate" class="form-inp" style="width:100%; height:28px;">
+            </div>
+            <div class="form-field" style="width:140px;">
+              <label>REF / REF NO.</label>
+              <input type="text" id="frm-refno" class="form-inp" style="width:100%; height:28px;">
+            </div>
+            <div class="form-field" style="flex:1;">
+              <label>DRAWN ON (BANK)</label>
+              <input type="text" id="frm-bank" class="form-inp" style="width:100%; height:28px;" placeholder="e.g. HDFC Bank">
+            </div>
+          </div>
+        </div>
+
+        <!-- RECEIVED AMOUNT & BIFURCATION CARDS -->
+        <div class="form-row" style="display:flex; gap:12px; align-items:stretch; margin-top:10px;">
+          <!-- RECEIVED AMOUNT CARD -->
+          <div class="amount-blue-box" style="flex:1; display:flex; flex-direction:column; justify-content:flex-start;">
+            <div class="form-field">
+              <label style="color:#0277BD; font-weight:800; font-size:10.5px;">RECEIVED AMOUNT (₹) <span class="req">*</span></label>
+              <input type="number" id="frm-amount" class="form-inp" style="width:100%; height:28px; font-size:14px; font-weight:800; color:#1565C0; text-align:right; margin-top:4px;" step="0.01" oninput="calcBifurcation()">
+            </div>
+          </div>
+
+          <!-- INTEREST BIFURCATION CARD -->
+          <div class="bifurcation-yellow-box" style="flex:1.4; display:flex; flex-direction:column; justify-content:flex-start;">
+            <div class="bifurcation-hdr" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #ffe082; padding-bottom:3px; margin-bottom:6px;">
+              <span style="font-size:10px; font-weight:800; color:#b76e00; text-transform:uppercase;">INTEREST BIFURCATION</span>
+              <button type="button" class="btn-manual-entry" onclick="enableManualBifurcation()" style="background:#ffa000; color:#fff; border:none; padding:2px 8px; font-size:9.5px; font-weight:700; border-radius:3px; cursor:pointer;"><i class="bi bi-pencil-square"></i> MANUAL ENTRY</button>
+            </div>
+            <div class="form-row" style="display:flex; gap:10px;">
+              <div class="form-field" style="flex:1;">
+                <label style="font-size:9.5px; font-weight:800; color:#b76e00;">PRINCIPAL</label>
+                <input type="number" id="frm-principal" class="form-inp" style="width:100%; height:28px; text-align:right; font-weight:700;" step="0.01" value="" readonly oninput="onManualPrincipalInput()">
+              </div>
+              <div class="form-field" style="flex:1;">
+                <label style="font-size:9.5px; font-weight:800; color:#b76e00;">INTEREST</label>
+                <input type="number" id="frm-interest" class="form-inp" style="width:100%; height:28px; text-align:right; font-weight:700;" step="0.01" value="" readonly oninput="onManualInterestInput()">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ROW 3: AGAINST BILL / INVOICE NO -->
+        <div style="display:flex; align-items:center; gap:10px; margin-top:6px; margin-bottom:6px;">
+          <label style="font-weight:800; font-size:11px; color:#1e293b; text-transform:uppercase; white-space:nowrap;">
+            AGAINST BILL / INVOICE NO.
+          </label>
+          <div id="against-bill-select-wrap" style="flex:1; display:flex;">
+            <select id="frm-against-bill" class="form-inp" style="flex:1; height:28px;" onchange="onAgainstBillSelectChange(this.value)">
+              <option value="">— Select Bill (Optional) —</option>
+            </select>
+          </div>
+          <div id="against-bill-manual-wrap" style="flex:1; display:none;">
+            <input type="text" id="frm-against-bill-manual" class="form-inp" style="flex:1; height:28px;" placeholder="Write Bill / Invoice No. manually..." oninput="onAgainstBillManualInput(this.value)">
+          </div>
+          <button type="button" id="btn-manual-bill-mode" onclick="toggleManualBillMode()" style="background:#334155; color:#fff; border:none; height:28px; width:34px; border-radius:4px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer;" title="Switch Manual / Dropdown Mode">
+            <i class="bi bi-pencil-square"></i>
+          </button>
+          <div style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:14px; padding:2px 10px; font-size:10px; font-weight:800; color:#475569; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; height:28px;" title="Configured in Configuration & Notes Master (Read-Only)">
+            <span>AUTO SELECT:</span>
+            <input type="checkbox" id="chk-auto-select" style="margin:0; pointer-events:none; cursor:not-allowed;" disabled>
+            <span id="lbl-auto-select">OFF</span>
+          </div>
+        </div>
+
+        <!-- PARTICULARS SECTION -->
+        <div class="particulars-box">
+          <div style="font-size:10px; font-weight:800; color:#475569; text-transform:uppercase;">PARTICULARS</div>
+          <div class="form-row">
+            <input type="text" id="frm-particular1" class="form-inp" style="flex:1;" placeholder="Particulars 1...">
+            <button class="btn-ctrl-l" type="button" onclick="appendParticularTag(1)">Ctrl + L</button>
+          </div>
+          <div class="form-row" style="margin-top:6px;">
+            <input type="text" id="frm-particular2" class="form-inp" style="flex:1;" placeholder="Particulars 2...">
+            <button class="btn-ctrl-l" type="button" onclick="appendParticularTag(2)">Ctrl + L</button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT SIDEBAR: MEMBER LEDGER VIEW -->
+      <div class="form-right-sidebar">
+        <div class="sidebar-hdr">MEMBER LEDGER VIEW</div>
+        
+        <!-- EMPTY STATE (WHEN NO MEMBER SELECTED) -->
+        <div id="mr-ledger-empty" class="ledger-empty-msg">
+          Select a member to view live ledger balances.
+        </div>
+
+        <!-- POPULATED STATE (WHEN MEMBER SELECTED) -->
+        <div id="mr-ledger-content" style="display:none; flex:1; overflow-y:auto; padding:10px; flex-direction:column; gap:10px;">
+          
+          <!-- MEMBER INFO CARD -->
+          <div class="ledger-card" style="margin:0;">
+            <div class="ledger-card-hdr">MEMBER INFO</div>
+            <div class="ledger-row"><span>Flat No:</span><strong id="led-flat">—</strong></div>
+            <div class="ledger-row"><span>Area:</span><strong id="led-area">—</strong></div>
+            <div class="ledger-row"><span>Mobile 1:</span><strong id="led-mobile1">—</strong></div>
+            <div class="ledger-row"><span>Mobile 2:</span><strong id="led-mobile2">—</strong></div>
+            <div class="ledger-row" style="margin-top:6px; align-items:center;">
+              <span style="font-size:10px; font-weight:700;">NOC Info:</span>
+              <div style="display:flex; gap:4px;">
+                <select class="filter-sel" style="height:20px; font-size:10px;"><option>From</option></select>
+                <select class="filter-sel" style="height:20px; font-size:10px;"><option>To</option></select>
+              </div>
+            </div>
+          </div>
+
+          <!-- LEDGER BALANCES CARD -->
+          <div class="ledger-card" style="margin:0;">
+            <div class="ledger-card-hdr">LEDGER BALANCES</div>
+            <div class="ledger-row"><span>Principal Balance:</span><strong id="led-prin">0.00</strong></div>
+            <div class="ledger-row"><span>Interest Balance:</span><strong id="led-int">0.00</strong></div>
+            <div class="ledger-row" style="border-top:1px solid #e2e8f0; padding-top:4px; margin-top:4px;">
+              <span style="font-weight:800;">Total Dues:</span>
+              <strong style="color:#dc2626; font-size:13px; font-weight:800;" id="led-tot">0.00</strong>
+            </div>
+          </div>
+
+          <!-- RECENT TRANSACTIONS TABLE -->
+          <div class="ledger-card" style="margin:0; padding:6px;">
+            <div class="ledger-card-hdr">RECENT TRANSACTIONS</div>
+            <table style="width:100%; border-collapse:collapse; font-size:10px;">
+              <thead>
+                <tr style="background:#f1f5f9;">
+                  <th style="border:1px solid #cbd5e1; padding:3px;">Date</th>
+                  <th style="border:1px solid #cbd5e1; padding:3px;">Vch No</th>
+                  <th style="border:1px solid #cbd5e1; padding:3px; text-align:right;">Dr</th>
+                  <th style="border:1px solid #cbd5e1; padding:3px; text-align:right;">Cr</th>
+                </tr>
+              </thead>
+              <tbody id="led-tx-tbody">
+                <tr><td colspan="4" style="text-align:center; padding:8px; color:#94a3b8; font-style:italic;">No recent transactions</td></tr>
+              </tbody>
+            </table>
+            <div style="font-size:9.5px; color:#64748b; font-style:italic; text-align:center; margin-top:6px;">
+              Closing Balance dynamically updates upon save.
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- FORM ACTION BAR -->
+    <div class="form-action-bar">
+      <button class="btn-save-green" onclick="saveReceipt()"><i class="bi bi-check-circle-fill"></i> SAVE (ALT+S)</button>
+      <button class="btn-cancel-red" onclick="showList()"><i class="bi bi-x-circle"></i> CANCEL</button>
+    </div>
+  </div>
+
+  <!-- SECTION 3: PREVIEW SCREEN -->
+  <div id="mr-section-preview" style="display:none; flex-direction:column; flex:1; overflow:hidden;">
+    <div style="padding:8px 14px; background:#f1f5f9; border-bottom:1px solid #cbd5e1; display:flex; justify-content:space-between;">
+      <button class="btn-tb-outline" onclick="showList()"><i class="bi bi-arrow-left"></i> BACK TO LIST</button>
+      <button class="btn-tb-blue" onclick="window.print()"><i class="bi bi-printer-fill"></i> PRINT RECEIPT</button>
+    </div>
+    <div style="flex:1; overflow-y:auto; padding:20px; background:#e2e8f0; display:flex; justify-content:center;">
+      <div id="preview-receipt-card" style="background:#fff; width:210mm; min-height:148mm; padding:15mm; box-shadow:0 4px 12px rgba(0,0,0,0.15);"></div>
+    </div>
+  </div>
+
+  <!-- SECTION 4: CHEQUE MANAGEMENT -->
+  <div id="mr-section-cheque" style="display:none; flex-direction:column; flex:1; overflow:hidden;">
+    <div class="mr-toolbar" style="justify-content:space-between;">
+      <button class="btn-tb-outline" onclick="showList()"><i class="bi bi-arrow-left"></i> BACK TO REGISTER</button>
+      <span style="color:white; font-size:11px; font-weight:700;" id="mr-cheque-count">0 Cheques</span>
+    </div>
+    <div class="mr-table-wrapper">
+      <table class="mr-main-table">
+        <thead>
+          <tr>
+            <th style="width:85px;">DATE</th>
+            <th style="width:110px;">RECEIPT NO</th>
+            <th>MEMBER</th>
+            <th style="width:100px;">CHEQUE NO</th>
+            <th style="width:130px;">BANK</th>
+            <th style="width:120px;">DEPOSIT ACC</th>
+            <th style="width:105px; text-align:right;">AMOUNT</th>
+            <th style="width:80px; text-align:center;">STATUS</th>
+          </tr>
+        </thead>
+        <tbody id="chq-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- MODALS -->
+  <div class="modal-overlay" id="modal-multi-delete" style="display:none;">
+    <div class="modal-card" style="width:400px;">
+      <div class="modal-header" style="background:#dc2626;">
+        <span><i class="bi bi-trash-fill"></i> Multi Delete Receipts</span>
+        <button class="modal-close" onclick="closeModal('modal-multi-delete')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:11px; color:#dc2626; font-weight:700;">WARNING: Permanently deletes all receipt records within specified range.</p>
+        <div style="display:flex; gap:10px;">
+          <div class="form-field" style="flex:1;">
+            <label>FROM RECEIPT NO</label>
+            <input type="text" id="md-from" class="form-inp">
+          </div>
+          <div class="form-field" style="flex:1;">
+            <label>TO RECEIPT NO</label>
+            <input type="text" id="md-to" class="form-inp">
+          </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-tb-outline" onclick="closeModal('modal-multi-delete')">CANCEL</button>
+        <button class="btn-cancel-red" onclick="runMultiDelete()"><i class="bi bi-trash-fill"></i> DELETE RANGE</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: MULTI CHANGE -->
+<div class="modal-overlay" id="modal-multi-change" style="display:none; background:rgba(15,23,42,0.6); backdrop-filter:blur(2px);">
+  <div class="modal-card" style="width:440px; box-shadow:0 10px 25px rgba(0,0,0,0.25); border:1px solid #cbd5e1;">
+    <div class="modal-header" style="background:#0D47A1; padding:12px 16px; font-size:13px; font-weight:800;">
+      <span style="display:flex; align-items:center; gap:8px;"><i class="bi bi-check2-square"></i> <span>Multi Change Member Receipts</span></span>
+      <button class="modal-close" onclick="closeModal('modal-multi-change')">&times;</button>
+    </div>
+    <div class="modal-body" style="padding:16px; gap:12px;">
+      <div id="mc-target-info" style="background:#e0f2fe; border:1px solid #bae6fd; border-radius:4px; padding:8px 12px; font-size:11.5px; font-weight:700; color:#0369a1;">
+        Target: <span id="mc-target-text">All checked receipts</span>
+      </div>
+      <div id="mc-range-box" style="display:none; grid-template-columns:1fr 1fr; gap:10px;">
+        <div class="form-field">
+          <label class="form-label">FROM RECEIPT NO</label>
+          <input type="text" id="mc-from" class="form-inp" placeholder="MRV/...">
+        </div>
+        <div class="form-field">
+          <label class="form-label">TO RECEIPT NO</label>
+          <input type="text" id="mc-to" class="form-inp" placeholder="MRV/...">
+        </div>
+      </div>
+      <div class="form-field">
+        <label class="form-label">FIELD TO CHANGE *</label>
+        <select id="mc-field" class="form-sel" style="font-weight:700;">
+          <option value="voucherDate">Receipt Date (YYYY-MM-DD)</option>
+          <option value="cashBank">Deposit / Bank Account</option>
+          <option value="transType">Payment Mode (Cash / Bank / Cheque)</option>
+          <option value="particular1">Particulars 1 / Narration</option>
+          <option value="particular2">Particulars 2</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label class="form-label">NEW VALUE *</label>
+        <input type="text" id="mc-value" class="form-inp" placeholder="Enter new value..." style="font-weight:700;">
+      </div>
+    </div>
+    <div class="modal-footer" style="padding:10px 16px; background:#f8fafc; border-top:1px solid #cbd5e1;">
+      <button class="btn-tb-outline" onclick="closeModal('modal-multi-change')">Cancel</button>
+      <button class="btn-tb-blue" onclick="runMultiChange()" style="background:#0D47A1; color:#fff; font-weight:800;"><i class="bi bi-check-lg"></i> Apply Multi Change</button>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script src="../../../assets/js/api.js?v=20260827_113"></script>
+<script src="../../../assets/js/auth.js?v=20260827_113"></script>
+<script src="../../../assets/js/utils.js?v=20260827_113"></script>
+<script src="member-receipt.js?v=20260827_113"></script>
+</body>
+</html>

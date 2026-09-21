@@ -1,0 +1,863 @@
+<!-- MODULE: Bill Type & Notes Master — Classic Desktop ERP Redesign -->
+<style>
+  #btm-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: #FFFFFF;
+    font-family: var(--font-main, 'Inter', 'Segoe UI', sans-serif);
+    font-size: 12px;
+    color: #333;
+    overflow: hidden;
+  }
+
+  /* Modern Flat Toolbar */
+  .btm-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: #1565C0;
+    border: none;
+    flex-shrink: 0;
+  }
+
+  .btm-toolbar-sep {
+    width: 1px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    margin: 0 4px;
+  }
+
+  .btm-btn-3d {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 14px;
+    min-height: 28px;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: inherit;
+    color: #424242;
+    background: #FFFFFF;
+    border: 1px solid #BDBDBD;
+    cursor: pointer;
+    outline: none;
+    white-space: nowrap;
+    border-radius: 4px;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    letter-spacing: 0.3px;
+  }
+
+  .btm-btn-3d:hover {
+    background: #E3F2FD;
+    border-color: #1565C0;
+    color: #1565C0;
+  }
+
+  .btm-btn-3d:active,
+  .btm-btn-3d.pressed {
+    background: #BBDEFB;
+    border-color: #1565C0;
+    color: #0D47A1;
+  }
+
+  .btm-toolbar .btm-btn-3d {
+    color: #FFF;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .btm-toolbar .btm-btn-3d:hover {
+    background: #FFFFFF;
+    color: #1565C0;
+    border-color: #FFFFFF;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  }
+
+  .btm-toolbar .btm-btn-3d:active {
+    background: #BBDEFB;
+    color: #0D47A1;
+    border-color: #BBDEFB;
+  }
+
+  /* Dropdown Menus */
+  .btm-menu-wrap {
+    position: relative;
+  }
+
+  .btm-menu-wrap:hover .btm-menu-content,
+  .btm-menu-content.active {
+    display: block;
+  }
+
+  .btm-menu-content {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    min-width: 180px;
+    background: #FFFFFF;
+    border: 1px solid #E0E0E0;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 9999;
+    padding: 4px 0;
+    margin-top: 2px;
+  }
+
+  .btm-menu-item {
+    padding: 6px 16px;
+    font-size: 11px;
+    cursor: pointer;
+    color: #424242;
+    white-space: nowrap;
+    font-weight: 600;
+    transition: background 0.15s;
+  }
+
+  .btm-menu-item:hover {
+    background: #E3F2FD;
+    color: #1565C0;
+  }
+
+  .btm-menu-sep {
+    height: 1px;
+    background: #E0E0E0;
+    margin: 4px 8px;
+  }
+
+  /* Workspace Split */
+  .btm-workspace {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+    padding: 0;
+    gap: 0;
+    background: #F5F5F5;
+    position: relative;
+    transition: all 0.2s ease;
+  }
+
+  .btm-left-panel {
+    flex: 0 0 38%;
+    display: flex;
+    flex-direction: column;
+    background: #FFFFFF;
+    border: none;
+    border-right: 1px solid #E0E0E0;
+    min-width: 0;
+    transition: flex 0.2s ease, width 0.2s ease;
+  }
+
+  .btm-right-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: #FFFFFF;
+    border: none;
+    min-width: 0;
+    overflow: hidden;
+    transition: flex 0.2s ease;
+  }
+
+  /* When Notes Master is toggled OFF */
+  .btm-workspace.notes-collapsed .btm-left-panel {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    border-right: none;
+  }
+
+  .btm-workspace.notes-collapsed .btm-right-panel {
+    display: none !important;
+  }
+
+  .btm-panel-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    min-height: 22px;
+    font-size: 10.5px;
+    font-weight: 700;
+    font-family: inherit;
+    color: #1A237E;
+    background: #FFFFFF;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 3px;
+    cursor: pointer;
+    outline: none;
+    text-transform: uppercase;
+    transition: all 0.15s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    line-height: 1;
+  }
+
+  .btm-panel-toggle-btn:hover {
+    background: #E8EAF6;
+    color: #0D47A1;
+    border-color: #FFFFFF;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  }
+
+  .btm-panel-toggle-btn:active {
+    transform: scale(0.96);
+  }
+
+  .btm-notes-open-quick-btn {
+    color: #1565C0 !important;
+    background: #FFFFFF !important;
+  }
+  .btm-notes-open-quick-btn:hover {
+    background: #E3F2FD !important;
+    color: #0D47A1 !important;
+  }
+
+  /* Docked right strip when Notes Master is closed */
+  .btm-notes-docked-tab {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    width: 32px;
+    background: #1A237E;
+    color: #FFFFFF;
+    cursor: pointer;
+    border-left: 2px solid #3949AB;
+    user-select: none;
+    transition: background 0.15s ease, width 0.15s ease;
+    padding: 14px 0;
+    flex-shrink: 0;
+    box-shadow: -2px 0 6px rgba(0, 0, 0, 0.15);
+  }
+
+  .btm-notes-docked-tab:hover {
+    background: #283593;
+    width: 36px;
+  }
+
+  .btm-notes-docked-tab .docked-icon {
+    font-size: 13px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.15s ease, background 0.15s ease;
+  }
+
+  .btm-notes-docked-tab:hover .docked-icon {
+    transform: translateX(-2px);
+    background: #FFFFFF;
+    color: #1A237E;
+  }
+
+  .btm-notes-docked-tab .docked-text {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    transform: rotate(180deg);
+    font-size: 10.5px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin: 16px 0;
+    white-space: nowrap;
+    color: #E8EAF6;
+  }
+
+  .btm-notes-docked-tab .docked-badge {
+    font-size: 9px;
+    font-weight: 800;
+    padding: 2px 4px;
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* Panel Headers */
+  .btm-panel-header {
+    background: #1565C0;
+    color: #FFF;
+    padding: 8px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    user-select: none;
+    flex-shrink: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  /* Grid (FRMBILLSETTING) */
+  .btm-grid-container {
+    flex: 1;
+    overflow: auto;
+    background: #FFF;
+    border: none;
+    margin: 0;
+  }
+
+  .btm-grid {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+  .btm-grid thead th {
+    position: sticky;
+    top: 0;
+    background: #1565C0;
+    color: #FFF;
+    border-right: 1px solid rgba(255, 255, 255, 0.15);
+    border-bottom: 1px solid #0D47A1;
+    padding: 8px 12px;
+    font-weight: 700;
+    text-align: center;
+    z-index: 1;
+    white-space: nowrap;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  .btm-grid thead th.th-left {
+    text-align: left;
+  }
+
+  .btm-grid tbody td {
+    border-bottom: 1px solid #F0F0F0;
+    border-right: 1px solid #F0F0F0;
+    padding: 4px 8px;
+    height: 28px;
+    cursor: default;
+    vertical-align: middle;
+    color: #424242;
+  }
+
+  .btm-grid tbody td.td-center {
+    text-align: center;
+  }
+
+  .btm-grid tbody tr:hover td {
+    background: #E3F2FD;
+  }
+
+  .btm-grid tbody tr.interest-row td {
+    background: #E3F2FD;
+    font-weight: bold;
+  }
+
+  .btm-grid tbody tr.gst-row td {
+    background: #FFF8E1;
+    font-weight: bold;
+  }
+
+  .btm-grid tbody tr.drag-over {
+    border-top: 2px solid #1565C0;
+  }
+
+  /* Lookup Button in Grid */
+  .btm-lookup-btn {
+    background: #FFFFFF;
+    border: 1px solid #BDBDBD;
+    border-radius: 3px;
+    padding: 2px 4px;
+    font-size: 9.5px;
+    cursor: pointer;
+    width: 100%;
+    max-width: 58px;
+    box-sizing: border-box;
+    text-align: center;
+    white-space: nowrap;
+    font-weight: 700;
+    color: #1565C0;
+    text-transform: uppercase;
+    transition: all 0.2s;
+  }
+
+  .btm-lookup-btn:hover {
+    background: #E3F2FD;
+    border-color: #1565C0;
+  }
+
+  .btm-lookup-btn:active {
+    background: #BBDEFB;
+  }
+
+  /* GST Checkbox in grid */
+  .btm-gst-chk {
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+    margin: 0;
+    accent-color: #1565C0;
+  }
+
+  .btm-gst-col {
+    display: none;
+  }
+
+  .gst-on .btm-gst-col {
+    display: table-cell;
+  }
+
+  /* Notes Editor */
+  .btm-notes-container {
+    flex: 1;
+    overflow: auto;
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .btm-note-row {
+    display: flex;
+    align-items: center;
+  }
+
+  .btm-note-lbl {
+    width: 100px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #616161;
+    text-transform: uppercase;
+  }
+
+  .btm-note-lbl.bank {
+    color: #1565C0;
+  }
+
+  .btm-note-input {
+    flex: 1;
+    height: 28px;
+    padding: 4px 8px;
+    font-size: 12px;
+    font-family: inherit;
+    border: 1px solid #BDBDBD;
+    border-radius: 4px;
+    outline: none;
+    background: #FFF;
+  }
+
+  .btm-note-input:focus {
+    border-color: #1565C0;
+    box-shadow: 0 0 0 2px rgba(21, 101, 192, 0.15);
+    background: #FFF;
+  }
+
+  /* Modals */
+  .btm-modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(1px);
+    z-index: 10000;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .btm-modal-overlay.active {
+    display: flex;
+  }
+
+  .btm-modal {
+    background: #FFFFFF;
+    border: 1px solid #E0E0E0;
+    border-radius: 6px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .btm-modal-titlebar {
+    background: #1565C0;
+    color: #FFF;
+    padding: 10px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    user-select: none;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  .btm-modal-titlebar.warning {
+    background: #C62828;
+  }
+
+  .btm-modal-close {
+    background: transparent;
+    border: none;
+    color: #FFF;
+    opacity: 0.8;
+    width: 20px;
+    height: 20px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    transition: opacity 0.2s;
+  }
+
+  .btm-modal-close:hover {
+    opacity: 1;
+  }
+
+  .btm-modal-body {
+    padding: 16px;
+    flex: 1;
+    overflow: auto;
+    background: #FFFFFF;
+  }
+
+  .btm-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 10px 14px;
+    background: #F5F5F5;
+    border-top: 1px solid #E0E0E0;
+  }
+
+  /* QR Code Upload Box */
+  .btm-qr-box {
+    width: 120px;
+    height: 120px;
+    border: 2px dashed #BDBDBD;
+    background: #FAFAFA;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    border-radius: 4px;
+    transition: all 0.2s;
+  }
+
+  .btm-qr-box:hover {
+    border-color: #1565C0;
+    background: #E3F2FD;
+  }
+
+  .btm-qr-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+
+  .btm-qr-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    color: #9E9E9E;
+    font-size: 10px;
+    text-align: center;
+    pointer-events: none;
+  }
+
+  /* Signature Upload Box */
+  .btm-sig-box {
+    width: 180px;
+    height: 50px;
+    border: 2px dashed #BDBDBD;
+    background: #FAFAFA;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    border-radius: 4px;
+    transition: all 0.2s;
+  }
+
+  .btm-sig-box:hover {
+    border-color: #1565C0;
+    background: #E3F2FD;
+  }
+
+  .btm-sig-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #F5F5F5;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #BDBDBD;
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #9E9E9E;
+  }
+
+  .classic-erp-select {
+    border: 1px solid #BDBDBD;
+    border-radius: 4px;
+    background: #FFF;
+    outline: none;
+    font-family: inherit;
+  }
+
+  .classic-erp-select:focus {
+    border-color: #1565C0;
+    box-shadow: 0 0 0 2px rgba(21, 101, 192, 0.15);
+  }
+</style>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<div class="module-panel" id="btm-panel">
+
+  <!-- MAIN MODULE UI -->
+  <div id="btm-main-ui" style="display:flex; flex-direction:column; flex:1; overflow:hidden;">
+
+    <!-- TOP TOOLBAR -->
+    <div class="btm-toolbar">
+      <button class="btm-btn-3d" onclick="BTM.saveAll()"><i class="bi bi-save"></i> Save</button>
+      <button class="btm-btn-3d" onclick="BTM.reset()"><i class="bi bi-arrow-counterclockwise"></i> Reset</button>
+      <div class="btm-toolbar-sep"></div>
+
+      <!-- OTHER MENU -->
+      <div class="btm-menu-wrap" id="btm-other-menu-wrap">
+        <button class="btm-btn-3d" onclick="BTM.toggleOtherMenu(event)"><i class="bi bi-list"></i> Other ▾</button>
+        <div class="btm-menu-content" id="btm-other-menu-content">
+          <div class="btm-menu-item" style="color:#8B0000;" onclick="BTM.deleteCurrentType()">Delete Bill Type</div>
+          <div class="btm-menu-sep"></div>
+          <div class="btm-menu-item" onclick="BTM.toast('Importing Notes...')">Import Notes</div>
+          <div class="btm-menu-item" onclick="BTM.toast('Exporting Notes...')">Export Notes</div>
+        </div>
+      </div>
+
+      <div class="btm-toolbar-sep"></div>
+
+      <!-- BILL TYPE SELECTOR -->
+      <div class="btm-menu-wrap" id="btm-type-menu-wrap">
+        <button class="btm-btn-3d" id="btm-current-type" onclick="BTM.toggleTypeMenu(event)">Maintenance ▾</button>
+        <div class="btm-menu-content" id="btm-type-menu-content" style="min-width:140px;">
+          <!-- Populated dynamically by BTM.renderTypeMenu() -->
+        </div>
+      </div>
+
+      <!-- ADD BILL TYPE BUTTON -->
+      <button type="button" class="btm-btn-3d" onclick="BTM.openAddType()" title="Add New Bill Type"><i
+          class="bi bi-plus-lg"></i> Add</button>
+
+      <div class="btm-toolbar-sep" style="margin-left:auto;"></div>
+      <button class="btm-btn-3d" onclick="BTM.exit()"><i class="bi bi-box-arrow-right"></i> Exit</button>
+    </div>
+
+    <!-- WORKSPACE SPLIT -->
+    <div class="btm-workspace" id="btm-workspace">
+
+      <!-- LEFT: FRMBILLSETTING -->
+      <div class="btm-left-panel" id="btm-left-panel">
+        <div class="btm-panel-header" style="display:flex; justify-content:space-between; align-items:center;">
+          <span id="btm-panel-title-text" style="text-transform: uppercase;">MAINTENANCE</span>
+          <button type="button" class="btm-panel-toggle-btn btm-notes-open-quick-btn" id="btm-notes-quick-btn" onclick="BTM.toggleNotesPanel()" title="Open Notes Master Panel" style="display:none;">
+            <i class="bi bi-layout-sidebar-reverse"></i> SHOW NOTES MASTER
+          </button>
+        </div>
+
+        <div
+          style="padding:6px 14px; font-size:10px; color:#757575; background:#F5F5F5; border-bottom:1px solid #E0E0E0; display:flex; align-items:center; gap:12px;">
+          <span>Select ledger name using <b>SELECT</b> button. Drag Sr.No. to reorder rows.</span>
+          <span style="margin-left:auto; color:#1565C0; font-weight:bold;" id="btm-gst-badge"></span>
+        </div>
+
+        <div class="btm-grid-container">
+          <table class="btm-grid" id="btm-table">
+            <thead>
+              <tr id="btm-thead-row">
+                <th style="width:36px;">Sr No</th>
+                <th style="width:68px;">Action</th>
+                <th style="width:72px;" class="th-left">Acct Code</th>
+                <th class="th-left">Account Name</th>
+                <th style="width:64px;" class="btm-gst-col">GST App.</th>
+                <th style="width:64px;" class="btm-gst-col">GST Exem.</th>
+              </tr>
+            </thead>
+            <tbody id="btm-tbody">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- RIGHT: NOTES MASTER -->
+      <div class="btm-right-panel" id="btm-right-panel">
+        <div class="btm-panel-header" style="background:#1A237E; display:flex; align-items:center; justify-content:space-between;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span>NOTES MASTER</span>
+            <button type="button" class="btm-panel-toggle-btn" id="btm-notes-toggle-btn" onclick="BTM.toggleNotesPanel()" title="Toggle / Collapse Notes Master to side">
+              <i class="bi bi-chevron-bar-right"></i> TOGGLE
+            </button>
+          </div>
+          <span style="font-size:10px; font-weight:normal; opacity:0.9;">Auto-Prints on Bill</span>
+        </div>
+        <div class="btm-notes-container" id="btm-notes">
+          <!-- Rendered via JS -->
+        </div>
+      </div>
+
+      <!-- DOCKED RIGHT STRIP (WHEN NOTES MASTER IS OFF) -->
+      <div id="btm-notes-docked-tab" class="btm-notes-docked-tab" onclick="BTM.toggleNotesPanel()" title="Click to Open Notes Master">
+        <div class="docked-icon"><i class="bi bi-chevron-bar-left"></i></div>
+        <div class="docked-text">NOTES MASTER</div>
+        <div class="docked-badge">OPEN</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ADD BILL TYPE MODAL -->
+  <div class="btm-modal-overlay" id="btm-add-type-modal">
+    <div class="btm-modal" style="width:300px;">
+      <div class="btm-modal-titlebar">
+        <span>Create New Bill Type</span>
+        <button class="btm-modal-close"
+          onclick="document.getElementById('btm-add-type-modal').classList.remove('active')">✕</button>
+      </div>
+      <div class="btm-modal-body">
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div><label style="font-size:10px; font-weight:bold;">Bill Type Name</label><input type="text"
+              id="btm-new-name" style="width:100%;" class="btm-note-input"></div>
+          <div><label style="font-size:10px; font-weight:bold;">Description</label><input type="text" id="btm-new-desc"
+              style="width:100%;" class="btm-note-input"></div>
+          <div><label style="font-size:10px; font-weight:bold; display:flex; align-items:center; gap:4px;"><input
+                type="checkbox" checked id="btm-new-active"> Active Status</label></div>
+        </div>
+      </div>
+      <div class="btm-modal-footer">
+        <button class="btm-btn-3d" onclick="BTM.addType()"><i class="bi bi-check"></i> Create</button>
+        <button class="btm-btn-3d"
+          onclick="document.getElementById('btm-add-type-modal').classList.remove('active')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACCOUNT MASTER LOOKUP MODAL -->
+  <div class="btm-modal-overlay" id="btm-account-modal">
+    <div class="btm-modal" style="width:500px; height:400px;">
+      <div class="btm-modal-titlebar">
+        <span>Account Lookup</span>
+        <button class="btm-modal-close"
+          onclick="document.getElementById('btm-account-modal').classList.remove('active')">✕</button>
+      </div>
+
+      <div style="padding:6px 14px; background:#F5F5F5; border-bottom:1px solid #E0E0E0; display:flex; gap:6px;">
+        <input type="text" id="btm-acc-search" class="btm-note-input" placeholder="Search by Code/Name"
+          style="width:200px;" oninput="BTM.renderLookup()">
+        <button class="btm-btn-3d" onclick="BTM.renderLookup()"><i class="bi bi-search"></i></button>
+      </div>
+
+      <div class="btm-modal-body" style="padding:0; display:flex; flex-direction:column;">
+        <table class="btm-grid">
+          <thead>
+            <tr>
+              <th style="width:80px;" class="th-left">Code</th>
+              <th class="th-left">Ledger Name</th>
+            </tr>
+          </thead>
+          <tbody id="btm-acc-lookup-tbody">
+            <!-- Dynamically Populated -->
+          </tbody>
+        </table>
+      </div>
+      <div class="btm-modal-footer">
+        <button class="btm-btn-3d" onclick="BTM.confirmLookupSelect()"><i class="bi bi-check"></i> Select</button>
+        <button class="btm-btn-3d"
+          onclick="document.getElementById('btm-account-modal').classList.remove('active')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DUPLICATE ACCOUNT WARNING MODAL -->
+  <div class="btm-modal-overlay" id="btm-warning-modal">
+    <div class="btm-modal" style="width:350px;">
+      <div class="btm-modal-titlebar warning">
+        <span>Validation Error</span>
+        <button class="btm-modal-close"
+          onclick="document.getElementById('btm-warning-modal').classList.remove('active')">✕</button>
+      </div>
+      <div class="btm-modal-body" style="display:flex; align-items:center; gap:10px;">
+        <i class="bi bi-exclamation-triangle-fill" style="font-size:24px; color:#C62828;"></i>
+        <span style="font-size:11px; font-weight:bold;">ACCOUNT ALREADY SELECTED IN ANOTHER BILLTYPE</span>
+      </div>
+      <div class="btm-modal-footer">
+        <button class="btm-btn-3d"
+          onclick="document.getElementById('btm-warning-modal').classList.remove('active')">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CUSTOM CONFIRMATION DIALOG -->
+  <div class="btm-modal-overlay" id="btm-confirm-modal">
+    <div class="btm-modal" style="width:360px;">
+      <div class="btm-modal-titlebar warning" id="btm-confirm-titlebar">
+        <span id="btm-confirm-title">Confirm Deletion</span>
+        <button class="btm-modal-close" onclick="BTM.closeConfirmModal(false)">✕</button>
+      </div>
+      <div class="btm-modal-body" style="display:flex; align-items:flex-start; gap:12px; padding:15px 14px;">
+        <i class="bi bi-exclamation-triangle-fill" id="btm-confirm-icon"
+          style="font-size:28px; color:#C62828; flex-shrink:0;"></i>
+        <div style="display:flex; flex-direction:column; gap:4px; flex:1;">
+          <div id="btm-confirm-message" style="font-size:12px; font-weight:bold; color:#000; line-height:1.4;"></div>
+          <div id="btm-confirm-submessage" style="font-size:11px; color:#555; line-height:1.4; white-space:pre-line;">
+          </div>
+        </div>
+      </div>
+      <div class="btm-modal-footer">
+        <button class="btm-btn-3d" id="btm-confirm-ok-btn"><i class="bi bi-check"></i> OK</button>
+        <button class="btm-btn-3d" onclick="BTM.closeConfirmModal(false)"><i class="bi bi-x"></i> Cancel</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="../../../config.js?v=20260817_08"></script>
+<script src="../../../assets/js/api.js?v=20260817_08"></script>
+<script src="../../../assets/js/auth.js?v=20260817_08"></script>
+<script src="./bill-type-master.js?v=20260817_08"></script>
+</body>
+
+</html>

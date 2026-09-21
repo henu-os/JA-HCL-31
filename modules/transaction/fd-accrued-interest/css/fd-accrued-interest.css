@@ -1,0 +1,320 @@
+/* ═══════════════════════════════════════════════════════
+   JEEVIKA ERP v2 — FD ACCRUED INTEREST STYLESHEET
+   Clean Accounting ERP Component Styles
+   ═══════════════════════════════════════════════════════ */
+
+.fda-canvas {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+  overflow-y: auto;
+  background: #EBF0F5;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.fda-header-bar {
+  background: #1565C0;
+  color: #FFFFFF;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 2px solid #0D47A1;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.fda-header-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.fda-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 12px;
+}
+
+.fda-header-controls select {
+  background: #1E60AA;
+  color: #FFF;
+  border: 1px solid #60A5FA;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.fda-grid-top {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 10px;
+}
+
+.fda-card {
+  background: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.fda-card-title {
+  background: #EBF3FA;
+  color: #003366;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 6px 10px;
+  border-bottom: 1px solid #D0E2F2;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.fda-card-body {
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.fda-field-row {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  align-items: center;
+  gap: 6px;
+}
+
+.fda-field-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #334155;
+  white-space: nowrap;
+}
+
+.fda-input, .fda-select {
+  height: 26px;
+  border: 1px solid #94A3B8;
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-size: 11px;
+  color: #0F172A;
+  width: 100%;
+  box-sizing: border-box;
+  background: #FFF;
+}
+
+.fda-input:focus, .fda-select:focus {
+  border-color: #1565C0;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(21,101,192,0.15);
+}
+
+.fda-input[readonly] {
+  background: #F8FAFC;
+  color: #1E293B;
+  font-weight: 600;
+}
+
+.fda-btn-calc {
+  background: #1565C0;
+  color: #FFF;
+  border: 1px solid #0D47A1;
+  border-radius: 4px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 6px;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.fda-btn-calc:hover { background: #0D47A1; }
+
+.fda-summary-card {
+  background: #F0FDF4;
+  border: 1px solid #BBF7D0;
+  border-radius: 4px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fda-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  padding: 2px 0;
+}
+
+.fda-summary-row.highlight {
+  font-weight: 700;
+  color: #15803D;
+  font-size: 12px;
+  border-top: 1px solid #BBF7D0;
+  padding-top: 4px;
+  margin-top: 2px;
+}
+
+.fda-maturity-card {
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
+  border-radius: 4px;
+  padding: 8px 10px;
+  margin-top: 6px;
+}
+
+.fda-maturity-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: #1E40AF;
+  text-transform: uppercase;
+}
+
+.fda-maturity-val {
+  font-size: 14px;
+  font-weight: 800;
+  color: #1E3A8A;
+  text-align: right;
+}
+
+.fda-maturity-sub {
+  font-size: 9px;
+  color: #64748B;
+  text-align: right;
+}
+
+/* Table */
+.fda-table-container {
+  background: #FFF;
+  border: 1px solid #CBD5E1;
+  border-radius: 4px;
+  overflow-x: auto;
+}
+
+.fda-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.fda-table th {
+  background: #1565C0;
+  color: #FFFFFF;
+  font-weight: 700;
+  padding: 6px 8px;
+  border: 1px solid #0D47A1;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.fda-table td {
+  padding: 5px 8px;
+  border: 1px solid #E2E8F0;
+  color: #0F172A;
+  white-space: nowrap;
+}
+
+.fda-table tr:nth-child(even) { background: #F8FAFC; }
+
+.fda-table tr.total-row {
+  background: #EBF3FA;
+  font-weight: 700;
+  color: #003366;
+  border-top: 2px solid #94A3B8;
+}
+
+.fda-bottom-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+}
+
+.fda-notes-list {
+  font-size: 10px;
+  color: #334155;
+  padding-left: 14px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fda-formula-box {
+  font-size: 10px;
+  color: #1E293B;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: 600;
+}
+
+.fda-action-bar {
+  background: #F1F5F9;
+  border: 1px solid #CBD5E1;
+  border-radius: 4px;
+  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.fda-btn-group { display: flex; align-items: center; gap: 6px; }
+
+.fda-btn {
+  padding: 5px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+}
+
+.fda-btn-save { background: #1565C0; color: #FFF; border-color: #0D47A1; }
+.fda-btn-save:hover { background: #0D47A1; }
+.fda-btn-update { background: #1565C0; color: #FFF; border-color: #0D47A1; }
+.fda-btn-update:hover { background: #0D47A1; }
+.fda-btn-delete { background: #DC2626; color: #FFF; border-color: #B91C1C; }
+.fda-btn-delete:hover { background: #B91C1C; }
+.fda-btn-cancel { background: #1565C0; color: #FFF; border-color: #0D47A1; }
+.fda-btn-cancel:hover { background: #0D47A1; }
+.fda-btn-print { background: #16A34A; color: #FFF; border-color: #15803D; }
+.fda-btn-print:hover { background: #15803D; }
+.fda-btn-excel { background: #16A34A; color: #FFF; border-color: #15803D; }
+.fda-btn-excel:hover { background: #15803D; }
+.fda-btn-close { background: #94A3B8; color: #0F172A; border-color: #64748B; }
+.fda-btn-close:hover { background: #64748B; color: #FFF; }
+
+.fda-status-bar {
+  background: #1565C0;
+  color: #E3F2FD;
+  font-size: 10px;
+  padding: 4px 12px;
+  display: flex;
+  gap: 16px;
+  border-top: 1px solid #0D47A1;
+}

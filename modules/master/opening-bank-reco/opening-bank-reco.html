@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en" style="height:100%; overflow:hidden;">
+<head>
+  <meta charset="UTF-8">
+  <title>Opening Bank Reconciliation — JEEVIKA ERP</title>
+  <link rel="stylesheet" href="../../../assets/css/global.css">
+  <link rel="stylesheet" href="./opening-bank-reco.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body style="height:100%; margin:0; overflow:hidden;">
+
+<div class="classic-erp-canvas" id="obr-panel">
+
+  <!-- MODULE HEADER -->
+  <div class="module-header" style="background:#1565C0; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; flex-shrink:0;">
+    <div>
+      <h2 class="module-title" style="font-size:15px; font-weight:bold; margin:0; color:#FFFFFF; letter-spacing:0.3px;">OPENING BANK RECONCILIATION</h2>
+      
+    </div>
+    <div style="font-size:11px; color:#FFFFFF; font-weight:bold; opacity:0.9;">
+      [Uncleared Bank Voucher Entry & Reco Ledger]
+    </div>
+  </div>
+
+  <!-- SEARCH & FILTER STRIP -->
+  <div class="obr-search-strip">
+    <label style="font-size:11px; font-weight:bold; margin:0; text-transform:uppercase; color:#424242;">Search In:</label>
+    <select id="obr-search-field" class="classic-erp-select" style="height:28px; font-size:11px;" onchange="OBR.renderGrid()">
+      <option value="all">-- All Columns --</option>
+      <option value="vchNo">Voucher No</option>
+      <option value="chqNo">Cheque No</option>
+      <option value="bank">Bank Name</option>
+      <option value="amount">Amount</option>
+      <option value="paidTo">Paid To</option>
+      <option value="vchDate">Date</option>
+    </select>
+
+    <label style="font-size:11px; font-weight:bold; margin:0; text-transform:uppercase; color:#424242; margin-left:8px;">Keyword:</label>
+    <input type="text" id="obr-search-kw" class="classic-erp-input" style="width:220px; height:28px; font-size:11px;" placeholder="Type to filter bank rows..." oninput="OBR.renderGrid()">
+
+    <span style="font-size:11px; font-weight:bold; color:#1565C0; margin-left:auto;" id="obr-status-count">0 Vouchers</span>
+  </div>
+
+  <!-- COMMAND STRIP TOOLBAR -->
+  <div class="obr-toolbar">
+    <button class="obr-btn-modern" id="obr-btn-add" onclick="OBR.openAdd()" title="Create New Reconciliation Item"><i class="bi bi-plus-lg"></i> ADD</button>
+    <button class="obr-btn-modern" id="obr-btn-alter" onclick="OBR.openAlter()" title="Alter Selected Voucher Record"><i class="bi bi-pencil-square"></i> ALTER</button>
+    <button class="obr-btn-modern btn-danger" id="obr-btn-delete" onclick="OBR.deleteSingle()" title="Delete Selected Reconciliation Item"><i class="bi bi-trash"></i> DELETE</button>
+
+    <div class="obr-toolbar-sep"></div>
+
+    <button class="obr-btn-modern" id="obr-btn-view" onclick="OBR.viewVoucher()" title="View full voucher entry details"><i class="bi bi-eye"></i> VIEW DETAILS</button>
+    <button class="obr-btn-modern" onclick="OBR.printRegister()" title="Print Reconciliation Registry"><i class="bi bi-printer"></i> PRINT REGISTER</button>
+
+    <!-- OTHER DROPDOWN MENU -->
+    <div class="obr-menu-wrap" id="obr-other-dropdown">
+      <button class="obr-btn-modern" id="obr-btn-other" type="button">OTHER <i class="bi bi-chevron-down"></i></button>
+      <div class="obr-menu-content" id="obr-other-content">
+        <div class="obr-menu-item" onclick="OBR.multiDeleteMode()"><i class="bi bi-trash-fill"></i> Multi Delete</div>
+        <div class="obr-menu-item" onclick="OBR.multiChangeMode()"><i class="bi bi-pencil-fill"></i> Bulk Change</div>
+        <div class="obr-menu-item" onclick="OBR.importData()"><i class="bi bi-file-earmark-excel-fill"></i> Import Excel</div>
+        <div class="obr-menu-item" onclick="OBR.exportData('excel')"><i class="bi bi-cloud-download-fill"></i> Export Excel</div>
+        <div class="obr-menu-item" onclick="OBR.exportData('csv')"><i class="bi bi-filetype-csv"></i> Export CSV</div>
+      </div>
+    </div>
+
+    <button class="obr-btn-modern btn-danger" style="margin-left:auto;" onclick="OBR.exit()" title="Exit Module"><i class="bi bi-box-arrow-right"></i> EXIT (ESC)</button>
+  </div>
+
+  <!-- OPERATIONAL WORKSPACE GRID -->
+  <div class="obr-grid-container">
+    <div class="classic-erp-grid" style="margin:0 !important; height:100%;">
+      <table class="classic-erp-table" id="obr-table">
+        <thead>
+          <tr>
+            <th id="obr-th-checkbox" style="width:35px; text-align:center; display:none;"><input type="checkbox" id="obr-chk-all" onclick="OBR.toggleAll(this.checked)" style="accent-color:#1565C0; display:none;"></th>
+            <th style="width:110px;">VOUCHER NO</th>
+            <th style="width:110px;">VOUCHER DATE</th>
+            <th style="width:180px;">CASH / BANK LEDGER</th>
+            <th style="width:120px; text-align:right;">UNCLEARED AMOUNT</th>
+            <th style="width:110px;">CHEQUE NO</th>
+            <th style="width:110px;">CHEQUE DATE</th>
+            <th style="width:110px;">BILL REF NO</th>
+            <th style="width:180px;">PAID TO / RECEIVED FROM</th>
+            <th>PARTICULAR (LINE 1)</th>
+            <th>PARTICULAR (LINE 2)</th>
+          </tr>
+        </thead>
+        <tbody id="obr-tbody">
+          <!-- Dynamically Populated -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ENTRY DIALOG MODAL -->
+  <div class="obr-modal-overlay" id="obr-entry-modal">
+    <div class="obr-modal" style="width:580px;">
+      <div class="obr-modal-titlebar">
+        <span id="obr-modal-title"><i class="bi bi-file-earmark-text-fill"></i> New Opening Bank Reco</span>
+        <button class="obr-modal-close" onclick="document.getElementById('obr-entry-modal').classList.remove('active')">✕</button>
+      </div>
+      <div class="obr-modal-body" style="display:flex; flex-direction:column; gap:10px;">
+        <input type="hidden" id="obr-f-id" value="0">
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px 16px;">
+          <div style="display:flex; flex-direction:column; gap:3px;">
+            <label style="color:#424242; font-weight:bold; margin:0; font-size:11px;">Voucher Number (Auto/Manual)</label>
+            <input type="text" id="obr-f-vchno" class="classic-erp-input" style="font-weight:bold; height:28px;" placeholder="e.g. OBR-1001">
+          </div>
+          <div style="display:flex; flex-direction:column; gap:3px;">
+            <label style="color:#424242; font-weight:bold; margin:0; font-size:11px;">Voucher Date *</label>
+            <input type="date" id="obr-f-vchdate" class="classic-erp-input" style="height:28px;">
+          </div>
+          <div style="display:flex; flex-direction:column; gap:3px;">
+            <label style="color:#424242; font-weight:bold; margin:0; font-size:11px;">Cash / Bank Ledger *</label>
+            <select id="obr-f-bank" class="classic-erp-select" style="height:28px;"></select>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:3px;">
+            <label style="color:#424242; font-weight:bold; margin:0; font-size:11px;">Uncleared Amount (₹) *</label>
+            <input type="number" step="0.01" id="obr-f-amt" class="classic-erp-input" style="text-align:right; height:28px; font-weight:bold;" value="0.00">
+          </div>
+          <div style="display:flex; flex-direction:column; gap:3px;">
+            <label style="color:#424242; font-weight:bold; margin:0; font-size:11px;">Cheque Number *</label>
+            <input type="text" id="obr-f-chqno" class="classic-erp-input" style="height:28px;">
+          </div>
+          <div style="display:flex; flex-direction:column; gap:3px;">
+            <label style="color:#424242; font-weight:bold; margin:0; font-size:11px;">Cheque Date *</label>
+            <input type="date" id="obr-f-chqdate" class="classic-erp-input" style="height:28px;">
+          </div>
+          <div style="display:flex; flex-direction:column; gap:3px;">
+            <label style="color:#424242; margin:0; font-size:11px;">Bill Reference No</label>
+            <input type="text" id="obr-f-billno" class="classic-erp-input" style="height:28px;">
+          </div>
+          <div style="display:flex; flex-direction:column; gap:3px;">
+            <label style="color:#424242; font-weight:bold; margin:0; font-size:11px;">Paid To / Recd From *</label>
+            <input type="text" id="obr-f-paidto" class="classic-erp-input" style="height:28px;">
+          </div>
+        </div>
+
+        <div style="border-top:1px dashed #E0E0E0; margin:4px 0;"></div>
+
+        <div style="display:flex; flex-direction:column; gap:3px;">
+          <label style="color:#424242; margin:0; font-size:11px;">Detailed Narration</label>
+          <input type="text" id="obr-f-narration" class="classic-erp-input" style="height:28px;" placeholder="Enter bank reconciliation memo...">
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px 16px;">
+          <div style="display:flex; flex-direction:column; gap:3px;">
+            <label style="color:#424242; margin:0; font-size:11px;">Particular (Line 1)</label>
+            <input type="text" id="obr-f-part1" class="classic-erp-input" style="height:28px;">
+          </div>
+          <div style="display:flex; flex-direction:column; gap:3px;">
+            <label style="color:#424242; margin:0; font-size:11px;">Particular (Line 2)</label>
+            <input type="text" id="obr-f-part2" class="classic-erp-input" style="height:28px;">
+          </div>
+        </div>
+      </div>
+      <div class="obr-modal-footer">
+        <button class="obr-btn-modern" style="color:#424242; background:#FFF;" onclick="document.getElementById('obr-entry-modal').classList.remove('active')">CANCEL</button>
+        <button class="obr-btn-modern" style="background:#1565C0; color:#FFF; border-color:#1565C0;" onclick="OBR.saveVoucher()"><i class="bi bi-check-lg"></i> SAVE</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BULK UPDATE DIALOG MODAL -->
+  <div class="obr-modal-overlay" id="obr-mc-modal">
+    <div class="obr-modal" style="width:380px;">
+      <div class="obr-modal-titlebar">
+        <span><i class="bi bi-pencil-square"></i> BULK VOUCHERS UPDATE</span>
+        <button class="obr-modal-close" onclick="document.getElementById('obr-mc-modal').classList.remove('active')">✕</button>
+      </div>
+      <div class="obr-modal-body" style="display:flex; flex-direction:column; gap:10px;">
+        <div style="display:flex; flex-direction:column; gap:3px;">
+          <label style="color:#424242; font-weight:bold; font-size:11px;">Change Bank Ledger Account</label>
+          <select id="obr-mc-bank" class="classic-erp-select" style="height:28px;"></select>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:3px;">
+          <label style="color:#424242; font-weight:bold; font-size:11px;">Change Cheque Date</label>
+          <input type="date" id="obr-mc-date" class="classic-erp-input" style="height:28px;">
+        </div>
+        <div style="display:flex; flex-direction:column; gap:3px;">
+          <label style="color:#424242; font-weight:bold; font-size:11px;">Change Reconciliation Status</label>
+          <select id="obr-mc-status" class="classic-erp-select" style="height:28px;">
+            <option value="">-- No Change --</option>
+            <option value="cleared">Mark As Cleared</option>
+            <option value="uncleared">Mark As Uncleared</option>
+          </select>
+        </div>
+      </div>
+      <div class="obr-modal-footer">
+        <button class="obr-btn-modern" style="color:#424242; background:#FFF;" onclick="document.getElementById('obr-mc-modal').classList.remove('active')">CANCEL</button>
+        <button class="obr-btn-modern" style="background:#1565C0; color:#FFF; border-color:#1565C0;" onclick="OBR.applyMultiChange()"><i class="bi bi-check-lg"></i> APPLY</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="../../../config.js"></script>
+<script src="../../../assets/js/api.js"></script>
+<script src="../../../assets/js/auth.js"></script>
+<script src="./opening-bank-reco.js"></script>
+</body>
+</html>

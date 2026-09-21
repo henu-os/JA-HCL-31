@@ -1,0 +1,547 @@
+/* ==========================================================================
+   JEEVIKA ERP v2 — Statutory Balance Sheet (Form N T-Format) Stylesheet
+   ========================================================================== */
+
+:root {
+  --navy-primary: #0a3880;
+  --navy-dark: #072554;
+  --navy-light: #e8f0fe;
+  --border-color: #cbd5e1;
+  --border-dark: #64748b;
+  --text-primary: #0f172a;
+  --text-muted: #64748b;
+  --bg-page: #f8fafc;
+  --bg-panel: #ffffff;
+  --bg-subtle: #f1f5f9;
+  --accent-green: #15803d;
+  --accent-red: #b91c1c;
+}
+
+html {
+  height: 100%;
+}
+
+body.erp-module {
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-page);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: var(--text-primary);
+  font-size: 12px;
+  overflow: hidden;
+}
+
+/* ── Top Action & Filter Toolbar (Pinned) ─────────────────────────────────── */
+.bs-toolbar {
+  background: #ffffff;
+  border-bottom: 1px solid var(--border-color);
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  flex-shrink: 0;
+  z-index: 100;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* ── Full Height Scrollable Body Area ────────────────────────────────────── */
+.bs-scroll-wrapper {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: auto;
+  padding: 16px;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Sleek ERP Scrollbars */
+.bs-scroll-wrapper::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.bs-scroll-wrapper::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.bs-scroll-wrapper::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 5px;
+  border: 2px solid #f1f5f9;
+}
+
+.bs-scroll-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+.bs-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.bs-filter-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.bs-filter-item label {
+  cursor: pointer;
+  user-select: none;
+}
+
+.bs-input,
+.bs-select {
+  height: 28px;
+  padding: 2px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 11px;
+  background: #ffffff;
+  color: #0f172a;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.bs-input:focus,
+.bs-select:focus {
+  border-color: #1565C0;
+  box-shadow: 0 0 0 2px rgba(21, 101, 192, 0.15);
+}
+
+.bs-btn {
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  border: 1px solid var(--border-color);
+  background: #ffffff;
+  color: #334155;
+  transition: all 0.15s ease;
+}
+
+.bs-btn:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.bs-btn-primary {
+  background: var(--navy-primary);
+  border-color: var(--navy-dark);
+  color: #ffffff;
+}
+
+.bs-btn-primary:hover {
+  background: #0d47a1;
+  color: #ffffff;
+}
+
+.bs-btn-success {
+  background: #166534;
+  border-color: #14532d;
+  color: #ffffff;
+}
+
+.bs-btn-success:hover {
+  background: #15803d;
+  color: #ffffff;
+}
+
+/* ── Printable Report Container ──────────────────────────────────────────── */
+.bs-report-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  background: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: 24px;
+}
+
+/* ── Header Section ──────────────────────────────────────────────────────── */
+.bs-header {
+  text-align: center;
+  padding-bottom: 16px;
+  border-bottom: 2px solid var(--navy-primary);
+  margin-bottom: 16px;
+}
+
+.bs-soc-name,
+.bs-soc-sub {
+  display: none;
+}
+
+.bs-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #1e293b;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  display: inline-block;
+  background: var(--navy-light);
+  padding: 3px 18px;
+  border-radius: 4px;
+  border: 1px solid #bfdbfe;
+}
+
+/* ── T-Format Side-by-Side Wrapper ───────────────────────────────────────── */
+.bs-t-table-wrapper {
+  width: 100%;
+  border: 1px solid var(--border-color);
+  border-collapse: collapse;
+}
+
+.bs-t-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* Top Dual Column Header (LIABILITIES vs ASSETS) */
+.bs-super-header {
+  background: var(--navy-primary);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  text-align: center;
+  padding: 8px 12px;
+  letter-spacing: 0.5px;
+  border: 1px solid var(--navy-dark);
+}
+
+.bs-col-header {
+  background: #f1f5f9;
+  color: #1e293b;
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 6px 8px;
+  border: 1px solid var(--border-color);
+  vertical-align: middle;
+  line-height: 1.25;
+}
+
+.bs-col-amount,
+.col-amount {
+  width: 1%;
+  min-width: 82px;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.bs-side-divider {
+  border-right: 2px solid var(--border-dark) !important;
+}
+
+/* ── Row & Cell Styling ─────────────────────────────────────────────────── */
+.bs-print-masthead-row,
+.bs-print-sign-row {
+  display: none;
+}
+
+.bs-table-cell {
+  padding: 4px 8px;
+  font-size: 11px;
+  vertical-align: top;
+  border: 1px solid var(--border-color);
+  line-height: 1.35;
+}
+
+.bs-group-header-row {
+  background: #f8fafc;
+}
+
+.bs-group-title {
+  font-weight: 800;
+  color: var(--navy-primary);
+  font-size: 11.5px;
+  text-transform: uppercase;
+  display: inline-block;
+}
+
+.bs-acc-row:hover {
+  background: #f8fafc;
+}
+
+.bs-acc-code {
+  font-family: monospace;
+  font-size: 10px;
+  color: #475569;
+  margin-right: 4px;
+}
+
+.bs-acc-name {
+  color: #1e293b;
+}
+
+.bs-num {
+  text-align: right;
+  font-family: "Courier New", Courier, monospace, sans-serif;
+  font-weight: 600;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.bs-cell-subtotal-outer {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.bs-cell-subtotal-inner {
+  border-top: 1px solid #94a3b8 !important;
+}
+
+.bs-group-total {
+  font-weight: 700;
+  color: var(--navy-primary);
+}
+
+/* Member Dues Sub-table */
+.bs-flat-badge {
+  background: #e0f2fe;
+  color: #0369a1;
+  font-weight: 700;
+  font-size: 9.5px;
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+/* Grand Total Footer */
+.bs-grand-total-row {
+  background: #f1f5f9;
+}
+
+.bs-grand-total-cell {
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 900;
+  color: var(--navy-primary);
+  border: 1px solid var(--border-color);
+  border-top: 2px solid #334155 !important;
+  border-bottom: 4px double var(--navy-primary) !important;
+}
+
+/* Difference Warning Alert (Screen Only) */
+.bs-diff-banner {
+  background: #fee2e2;
+  border: 1px solid #f87171;
+  color: #991b1b;
+  font-weight: 700;
+  font-size: 11.5px;
+  padding: 8px 16px;
+  border-radius: 4px;
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bs-balanced-badge {
+  background: #dcfce7;
+  border: 1px solid #86efac;
+  color: #166534;
+  font-weight: 700;
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── Print Layout (Statutory Form N "Pranav BS" Standard) ─────────────────── */
+@media print {
+  @page {
+    size: landscape;
+    margin: 8mm 6mm;
+  }
+
+  body.erp-module {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 9.5pt !important;
+    min-width: 0 !important;
+  }
+
+  .bs-toolbar,
+  #fileProtocolBanner,
+  #bsDiffBanner,
+  #bsBalancedBanner,
+  .bs-header {
+    display: none !important;
+  }
+
+  .bs-scroll-wrapper {
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+
+  .bs-report-container {
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .bs-t-table-wrapper {
+    border: 1px solid #000000 !important;
+  }
+
+  .bs-t-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  thead {
+    display: table-header-group !important;
+  }
+
+  /* Print Masthead in thead (repeats on every printed page) */
+  .bs-print-masthead-row {
+    display: table-row !important;
+  }
+
+  .bs-print-masthead-cell {
+    border: none !important;
+    padding: 2px 0 10px 0 !important;
+    text-align: center !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  .bs-print-soc-name {
+    font-size: 13.5pt !important;
+    font-weight: 900 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px !important;
+    color: #000000 !important;
+  }
+
+  .bs-print-soc-sub {
+    font-size: 9.5pt !important;
+    color: #000000 !important;
+    font-weight: 500 !important;
+    margin-bottom: 3px !important;
+  }
+
+  .bs-print-title {
+    font-size: 10.5pt !important;
+    font-weight: 800 !important;
+    color: #000000 !important;
+  }
+
+  /* Single-Tier Column Header Row */
+  .bs-col-header-row th {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 9pt !important;
+    font-weight: 800 !important;
+    border: 1px solid #000000 !important;
+    border-top: 1.5px solid #000000 !important;
+    border-bottom: 1.5px solid #000000 !important;
+    padding: 4px 6px !important;
+    line-height: 1.25 !important;
+    vertical-align: middle !important;
+  }
+
+  /* Ruled Cells */
+  .bs-table-cell {
+    border: none !important;
+    border-left: 1px solid #000000 !important;
+    border-right: 1px solid #000000 !important;
+    padding: 2.5px 5px !important;
+    font-size: 9pt !important;
+    line-height: 1.3 !important;
+    background: transparent !important;
+    color: #000000 !important;
+  }
+
+  .bs-side-divider {
+    border-right: 2px solid #000000 !important;
+  }
+
+  .bs-num {
+    font-size: 9pt !important;
+    font-family: Arial, "Helvetica Neue", sans-serif !important;
+  }
+
+  .bs-group-title {
+    font-weight: 800 !important;
+    color: #000000 !important;
+    font-size: 9.5pt !important;
+  }
+
+  .bs-cell-subtotal-outer {
+    border-bottom: 1px solid #000000 !important;
+    font-weight: 800 !important;
+    color: #000000 !important;
+  }
+
+  .bs-cell-subtotal-inner {
+    border-top: 1px solid #000000 !important;
+  }
+
+  /* Grand Total */
+  .bs-grand-total-cell {
+    border-top: 1px solid #000000 !important;
+    border-bottom: 3px double #000000 !important;
+    border-left: 1px solid #000000 !important;
+    border-right: 1px solid #000000 !important;
+    font-size: 10pt !important;
+    font-weight: 900 !important;
+    color: #000000 !important;
+    padding: 4px 6px !important;
+  }
+
+  /* Signatory Attestation (Prints on Last Page) */
+  tfoot {
+    display: table-row-group !important;
+  }
+
+  .bs-print-sign-row {
+    display: table-row !important;
+  }
+
+  .bs-sign-cell {
+    border: none !important;
+    padding-top: 20px !important;
+    padding-bottom: 10px !important;
+    background: transparent !important;
+  }
+
+  .bs-sign-society {
+    font-size: 9.5pt !important;
+    font-weight: 800 !important;
+    margin-bottom: 40px !important;
+    color: #000000 !important;
+  }
+
+  .bs-sign-officers {
+    display: flex !important;
+    justify-content: space-between !important;
+    width: 90% !important;
+    font-size: 9pt !important;
+    font-weight: 800 !important;
+    color: #000000 !important;
+  }
+
+  tr {
+    page-break-inside: avoid;
+  }
+}

@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en" style="height:100%;overflow:hidden;">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Society Master — JEEVIKA ERP</title>
+  <link rel="stylesheet" href="../../../assets/css/global.css">
+  <link rel="stylesheet" href="./society-master.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+
+<body style="margin:0;padding:0;height:100%;overflow:hidden;">
+
+  <div class="sm-canvas" id="sm-panel">
+
+    <!-- MODULE HEADER -->
+    <div class="sm-header">
+      <div>
+        <h2>SOCIETY MASTER</h2>
+        
+      </div>
+      <div class="sm-header-tag">[Society Configuration Workspace]</div>
+    </div>
+
+    <!-- COMMAND STRIP -->
+    <div class="sm-cmd-strip" id="sm-cmd-strip">
+      <button class="sm-btn" id="sm-btn-add" onclick="smAdd()"><i class="bi bi-plus-lg"></i> ADD</button>
+      <button class="sm-btn" id="sm-btn-alter" onclick="smAlter()"><i class="bi bi-pencil-square"></i> ALTER</button>
+      <button class="sm-btn sm-btn-danger" id="sm-btn-delete" onclick="smDelete()"><i class="bi bi-trash"></i>
+        DELETE</button>
+      <div class="sm-sep"></div>
+      <button class="sm-btn sm-btn-hidden" id="sm-btn-save" onclick="smSave()"><i class="bi bi-check-lg"></i>
+        SAVE</button>
+      <button class="sm-btn sm-btn-hidden" id="sm-btn-cancel" onclick="smShowList()"><i class="bi bi-x-circle"></i>
+        CANCEL</button>
+      <div class="sm-sep"></div>
+      <button class="sm-btn" id="sm-btn-print" onclick="window.print()"><i class="bi bi-printer"></i> PRINT
+        REGISTER</button>
+      <!-- OTHER dropdown -->
+      <div style="position:relative;display:inline-block;" id="sm-other-drop"
+        onmouseleave="document.getElementById('sm-other-menu').style.display='none'">
+        <button class="sm-btn" onmouseenter="document.getElementById('sm-other-menu').style.display='block'">
+          OTHER <i class="bi bi-chevron-down"></i>
+        </button>
+        <div id="sm-other-menu"
+          style="display:none;position:absolute;top:26px;left:0;background:#D4D0C8;border:2px solid #808080;box-shadow:2px 2px 10px rgba(0,0,0,0.3);z-index:1000;min-width:150px;padding:2px;">
+          <a href="#" onclick="event.preventDefault();smImportExcel()"
+            style="display:block;padding:4px 8px;color:#000;text-decoration:none;font-size:11px;font-weight:bold;border-bottom:1px solid #808080;"><i
+              class="bi bi-file-earmark-excel-fill"></i> Import Excel</a>
+          <a href="#" onclick="event.preventDefault();smExportExcel()"
+            style="display:block;padding:4px 8px;color:#000;text-decoration:none;font-size:11px;font-weight:bold;"><i
+              class="bi bi-cloud-download-fill"></i> Export Excel</a>
+        </div>
+      </div>
+      <!-- Search toggle -->
+      <button class="sm-btn" id="sm-btn-search" onclick="smToggleSearch()" title="Search"><i
+          class="bi bi-search"></i></button>
+      <button class="sm-btn" style="margin-left:auto;" onclick="smExit()"><i class="bi bi-door-open"></i> EXIT</button>
+    </div>
+
+    <!-- MAIN WORKSPACE -->
+    <div class="sm-workspace">
+
+      <!-- LIST STATE -->
+      <div id="sm-list-state">
+        <div class="sm-grid">
+          <table class="sm-table" id="sm-table">
+            <thead>
+              <tr>
+                <th style="width:80px;">SOCIETY CODE</th>
+                <th>SOCIETY NAME</th>
+                <th style="width:190px;">REGISTRATION NO</th>
+                <th style="width:130px;">CITY</th>
+                <th style="width:130px;">PAN / TAN</th>
+                <th style="width:120px;">GSTIN</th>
+                <th style="width:90px;">ACTIONS</th>
+              </tr>
+            </thead>
+            <tbody id="sm-tbody">
+              <tr>
+                <td colspan="7" style="text-align:center;padding:30px;color:#808080;">
+                  <i class="bi bi-hourglass-split"></i> Loading...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- FORM STATE -->
+      <div id="sm-form-state">
+        <div class="sm-form-grid">
+
+          <!-- LEFT COLUMN -->
+          <div>
+            <!-- Starting Year -->
+            <div class="sm-frame">
+              <div class="sm-frame-title">Starting Year</div>
+              <div class="sm-frame-body">
+                <label>Starting Year</label>
+                <input type="text" id="sm-startyear" class="sm-input" style="width:120px;" placeholder="2025-2026">
+              </div>
+            </div>
+
+            <!-- Society Identification & Details -->
+            <div class="sm-frame">
+              <div class="sm-frame-title">Society Identification &amp; Details</div>
+              <div class="sm-frame-body">
+                <label>Society Code *</label>
+                <input type="text" id="sm-code" class="sm-input" maxlength="10" style="width:120px;">
+
+                <label>Society Name *</label>
+                <input type="text" id="sm-name" class="sm-input" style="grid-column:2; width:100%;">
+
+                <label>Reg. Number</label>
+                <input type="text" id="sm-regno" class="sm-input" style="grid-column:2; width:100%;">
+
+                <label>Reg. Address</label>
+                <input type="text" id="sm-addr" class="sm-input" style="grid-column:2; width:100%;">
+
+                <label>Email ID</label>
+                <input type="email" id="sm-email" class="sm-input" style="grid-column:2; width:100%;">
+
+                <label>PAN &amp; TAN No.</label>
+                <div style="display:flex;gap:4px;grid-column:2;">
+                  <input type="text" id="sm-pan" class="sm-input" style="flex:1;" maxlength="10"
+                    placeholder="PAN Number">
+                  <label style="font-weight:normal;font-size:10px;align-self:center;">TAN</label>
+                  <input type="text" id="sm-tan" class="sm-input" style="flex:1;" maxlength="10"
+                    placeholder="TAN Number">
+                </div>
+
+                <label>P.T. No.</label>
+                <div style="display:flex;gap:4px;grid-column:2;">
+                  <input type="text" id="sm-ptno" class="sm-input" style="flex:1;" placeholder="P.T. Number">
+                  <label style="font-weight:normal;font-size:10px;align-self:center;">U.ID NO.</label>
+                  <input type="text" id="sm-uid" class="sm-input" style="flex:1;" placeholder="U.ID Number">
+                </div>
+
+                <label>Member Area Type</label>
+                <div class="sm-area-row" style="grid-column:2;">
+                  <select id="sm-areatype" class="sm-select">
+                    <option value=""></option>
+                    <option value="RERA">RERA</option>
+                    <option value="MOFA">MOFA</option>
+                    <option value="CIDCO">CIDCO</option>
+                    <option value="MHADA">MHADA</option>
+                    <option value="SRA">SRA</option>
+                    <option value="MMRDA">MMRDA</option>
+                  </select>
+                  <select id="sm-areacat" class="sm-select">
+                    <option value=""></option>
+                    <option value="Carpet">Carpet</option>
+                    <option value="Build up">Build up</option>
+                    <option value="Super build up">Super build up</option>
+                  </select>
+                  <select id="sm-areaunit" class="sm-select">
+                    <option value="Sq.Ft">Sq.Ft</option>
+                    <option value="Sq.Mtr">Sq.Mtr</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- RIGHT COLUMN -->
+          <div>
+            <!-- Communication & Alerts -->
+            <div class="sm-frame">
+              <div class="sm-frame-title">Communication &amp; Alerts</div>
+              <div class="sm-frame-body">
+                <label>Contact-1 Name</label>
+                <input type="text" id="sm-cn1" class="sm-input" style="width:100%;">
+
+                <label>Contact-1 Phone</label>
+                <input type="tel" id="sm-cp1" class="sm-input" style="width:180px;">
+
+                <label>Contact-1 Email</label>
+                <input type="email" id="sm-ce1" class="sm-input" style="width:100%;">
+
+                <label>Contact-2 Name</label>
+                <input type="text" id="sm-cn2" class="sm-input" style="width:100%;">
+
+                <label>Contact-2 Phone</label>
+                <input type="tel" id="sm-cp2" class="sm-input" style="width:180px;">
+
+                <label>Contact-2 Email</label>
+                <input type="email" id="sm-ce2" class="sm-input" style="width:100%;">
+
+                <div style="grid-column:1/3;">
+                  <div class="sm-comm-checks">
+                    <label><input type="checkbox" id="sm-cwa"> WHATSAPP</label>
+                    <label><input type="checkbox" id="sm-csms"> SMS</label>
+                    <label><input type="checkbox" id="sm-crcs"> RCS</label>
+                    <label><input type="checkbox" id="sm-cemail"> EMAIL</label>
+                    <label><input type="checkbox" id="sm-cnotif"> ALERTS</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- GST Configuration -->
+            <div class="sm-frame">
+              <div class="sm-frame-title">Statutory GST Configuration</div>
+              <div style="padding:6px 8px;">
+                <div class="sm-toggle-row">
+                  <label class="toggle-label">APPLICABILITY OF GST (YES/NO)</label>
+                  <label class="sm-toggle-wrap">
+                    <input type="checkbox" id="sm-gst-toggle" onchange="smToggleGST()">
+                    <span class="sm-toggle-track" id="sm-gst-track"></span>
+                    <span class="sm-toggle-thumb" id="sm-gst-thumb"></span>
+                  </label>
+                  <span class="sm-toggle-status" id="sm-gst-status">OFF</span>
+                </div>
+
+                <div class="sm-gst-fields" id="sm-gst-fields">
+                  <div class="sm-gst-row">
+                    <label>GST No.</label>
+                    <input type="text" id="sm-gstin" class="sm-input" maxlength="15">
+                    <label class="right">HSN Code</label>
+                    <input type="text" id="sm-hsn" class="sm-input">
+                  </div>
+                  <div class="sm-gst-row">
+                    <label>CGST Code</label>
+                    <input type="text" id="sm-cgstcode" class="sm-input" readonly>
+                    <label class="right">SGST Code</label>
+                    <input type="text" id="sm-sgstcode" class="sm-input" readonly>
+                  </div>
+                  <div class="sm-gst-row">
+                    <label>CGST %</label>
+                    <input type="number" id="sm-cgstpct" class="sm-input" value="9" step="0.01">
+                    <label class="right">SGST %</label>
+                    <input type="number" id="sm-sgstpct" class="sm-input" value="9" step="0.01">
+                  </div>
+                  <div class="sm-gst-row">
+                    <label>Int. Dues GST</label>
+                    <select id="sm-intdues" class="sm-select" style="width:60px;">
+                      <option value="No">No</option>
+                      <option value="Yes">Yes</option>
+                    </select>
+                    <label class="right" style="width:70px;">Exempt Limit</label>
+                    <input type="number" id="sm-exemptlimit" class="sm-input" style="width:60px;" value="7500">
+                    <label class="right" style="width:80px;">Exempt Amt</label>
+                    <input type="number" id="sm-exemptamt" class="sm-input" style="width:60px;" value="7500">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ALERT DIALOG -->
+  <div class="sm-overlay" id="sm-alert-overlay" style="display:none;">
+    <div class="sm-dialog">
+      <div class="sm-dialog-title">
+        <span id="sm-alert-title"><i class="bi bi-info-circle-fill"></i> INFORMATION</span>
+        <button onclick="smCloseAlert()">✕</button>
+      </div>
+      <div class="sm-dialog-body">
+        <i class="bi bi-info-circle-fill" id="sm-alert-icon"></i>
+        <div class="sm-dialog-msg" id="sm-alert-msg"></div>
+      </div>
+      <div class="sm-dialog-footer">
+        <button class="sm-btn" onclick="smCloseAlert()">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONFIRM DIALOG -->
+  <div class="sm-overlay" id="sm-confirm-overlay" style="display:none;">
+    <div class="sm-dialog">
+      <div class="sm-dialog-title">
+        <span><i class="bi bi-question-circle-fill"></i> CONFIRMATION</span>
+        <button onclick="smCloseConfirm(false)">✕</button>
+      </div>
+      <div class="sm-dialog-body">
+        <i class="bi bi-question-circle-fill"></i>
+        <div class="sm-dialog-msg" id="sm-confirm-msg"></div>
+      </div>
+      <div class="sm-dialog-footer">
+        <button class="sm-btn" id="sm-confirm-yes" style="font-weight:bold;">OK</button>
+        <button class="sm-btn" onclick="smCloseConfirm(false)">CANCEL</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../../../config.js"></script>
+  <script src="../../../assets/js/api.js"></script>
+  <script src="../../../assets/js/auth.js"></script>
+  <script src="../../../assets/js/workspace-bridge.js"></script>
+  <script src="./society-master.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Account Ledger Statement — JEEVIKA ERP</title>
+  <script src="../../../config.js"></script>
+  <link rel="stylesheet" href="../../../assets/css/global.css">
+  <link rel="stylesheet" href="../../../assets/css/components.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    :root {
+      --primary: #0D47A1;
+      --primary-hover: #0a3880;
+      --primary-light: #eff6ff;
+      --border-clr: #cbd5e1;
+      --bg-strip: #f8fafc;
+      --navy: #0f172a;
+    }
+
+    body.erp-module {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: #f1f5f9;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: #1e293b;
+      overflow: hidden;
+    }
+
+    /* Top Module Bar */
+    .module-top-bar {
+      background: #ffffff;
+      padding: 8px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-clr);
+      flex-shrink: 0;
+    }
+    .module-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .module-subtitle {
+      font-size: 11px;
+      color: #64748b;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-top {
+      background: #ffffff;
+      color: var(--primary);
+      border: 1px solid #bfdbfe;
+      padding: 5px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 4px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s ease;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    }
+    .btn-top:hover {
+      background: var(--primary-light);
+      border-color: var(--primary);
+      color: var(--primary-hover);
+    }
+    .btn-top.primary {
+      background: var(--primary);
+      color: #ffffff;
+      border-color: var(--primary);
+    }
+    .btn-top.primary:hover {
+      background: var(--primary-hover);
+    }
+
+    /* Filters Header Panel */
+    .filter-bar {
+      background: #ffffff;
+      padding: 10px 16px 8px 16px;
+      border-bottom: 1px solid var(--border-clr);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .filter-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .filter-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .filter-lbl {
+      font-size: 10px;
+      font-weight: 700;
+      color: #475569;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .filter-input {
+      height: 28px;
+      padding: 2px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      background: #ffffff;
+      color: #1e293b;
+      outline: none;
+      transition: all 0.15s;
+    }
+    .filter-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(13,71,161,0.12);
+    }
+
+    /* Radio Scope Pills */
+    .scope-pills {
+      display: flex;
+      gap: 2px;
+      background: #f1f5f9;
+      padding: 2px;
+      border-radius: 5px;
+      border: 1px solid #e2e8f0;
+    }
+    .scope-pill {
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      color: #64748b;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+    .scope-pill.active {
+      background: var(--primary);
+      color: #ffffff;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+
+    /* Date Preset Chips */
+    .preset-chips {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+    .chip-btn {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      color: #475569;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .chip-btn:hover {
+      background: #e2e8f0;
+      color: var(--primary);
+    }
+    .chip-btn.active {
+      background: #dbeafe;
+      border-color: #93c5fd;
+      color: var(--primary);
+      font-weight: 800;
+    }
+
+    /* Summary Dropdown Popover (Attached to Single Row) */
+    .summary-dropdown-wrap {
+      position: relative;
+    }
+    .summary-dropdown-btn {
+      height: 28px;
+      padding: 2px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      border: 1px solid #bfdbfe;
+      border-radius: 4px;
+      background: #ffffff;
+      color: #0f172a;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    }
+    .summary-dropdown-btn:hover {
+      background: #eff6ff;
+      border-color: #0D47A1;
+    }
+    .summary-dropdown-btn.active {
+      background: #e0f2fe;
+      border-color: #0284c7;
+      color: #0369a1;
+    }
+    .summary-count-badge {
+      background: #dbeafe;
+      color: #1e40af;
+      padding: 1px 6px;
+      border-radius: 10px;
+      font-size: 9.5px;
+      font-weight: 800;
+    }
+    .summary-popover {
+      position: absolute;
+      top: calc(100% + 5px);
+      right: 0;
+      width: 320px;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.1);
+      padding: 12px;
+      z-index: 1000;
+      display: none;
+    }
+    .summary-popover.show {
+      display: block;
+      animation: popIn 0.15s ease-out;
+    }
+    @keyframes popIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .summary-popover-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 8px;
+      margin-bottom: 10px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .summary-popover-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .pop-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 6px 10px;
+      display: flex;
+      flex-direction: column;
+    }
+    .pop-card.full-width {
+      grid-column: 1 / -1;
+      background: #eff6ff;
+      border-color: #bfdbfe;
+    }
+    .pop-lbl {
+      font-size: 9.5px;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+    }
+    .pop-val {
+      font-size: 13px;
+      font-weight: 800;
+      color: #0f172a;
+      margin-top: 1px;
+    }
+    .pop-val.debit { color: #15803d; }
+    .pop-val.credit { color: #b91c1c; }
+
+    /* Ledger Table Container */
+    .table-container {
+      flex: 1;
+      overflow: auto;
+      background: #ffffff;
+      position: relative;
+    }
+    table.ledger-grid {
+      width: 100%;
+      min-width: 1100px;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
+    table.ledger-grid th {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: #0D47A1;
+      color: #ffffff;
+      padding: 7px 10px;
+      font-size: 10.5px;
+      font-weight: 700;
+      text-align: left;
+      border-right: 1px solid rgba(255,255,255,0.15);
+      white-space: nowrap;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    table.ledger-grid td {
+      padding: 5px 10px;
+      border-bottom: 1px solid #e2e8f0;
+      border-right: 1px solid #f1f5f9;
+      color: #334155;
+      vertical-align: middle;
+    }
+    table.ledger-grid tbody tr:hover {
+      background: #f0f7ff;
+    }
+
+    /* Account Section Separator Banner (Modern Navy/Ice-blue) */
+    .row-acc-banner {
+      background: #1e3a8a !important;
+      color: #ffffff !important;
+      font-weight: 800;
+      font-size: 11.5px;
+      letter-spacing: 0.3px;
+    }
+    .row-acc-banner td {
+      padding: 6px 12px !important;
+      color: #ffffff !important;
+      border: none !important;
+    }
+
+    /* Opening & Closing Balance Rows */
+    .row-opening {
+      background: #f0fdf4 !important;
+      font-weight: 700;
+      color: #166534;
+      border-top: 1px solid #bbf7d0;
+      border-bottom: 1px solid #bbf7d0;
+    }
+    .row-closing {
+      background: #f8fafc !important;
+      font-weight: 800;
+      color: #0f172a;
+      border-top: 1.5px solid #0D47A1;
+      border-bottom: 1.5px solid #0D47A1;
+    }
+    .row-divider {
+      height: 12px;
+      background: #f1f5f9 !important;
+      border: none !important;
+    }
+    .row-grand-total {
+      background: #0f172a !important;
+      color: #ffffff !important;
+      font-weight: 800;
+      font-size: 11.5px;
+    }
+    .row-grand-total td {
+      color: #ffffff !important;
+      padding: 8px 12px !important;
+      border: none !important;
+    }
+
+    /* Badges & Tags */
+    .badge-vtype {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 9.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      background: #e2e8f0;
+      color: #334155;
+    }
+    .badge-vtype.rcpt { background: #dcfce7; color: #166534; }
+    .badge-vtype.pmt { background: #fee2e2; color: #991b1b; }
+    .badge-vtype.jv { background: #e0e7ff; color: #3730a3; }
+    .badge-vtype.contra { background: #fef3c7; color: #92400e; }
+    .badge-vtype.mbil { background: #e0f2fe; color: #0369a1; }
+
+    .contra-tag {
+      font-size: 10px;
+      font-weight: 600;
+      color: #1e40af;
+      background: #eff6ff;
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid #dbeafe;
+      display: inline-block;
+      max-width: 280px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .td-num {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+    }
+    .val-debit { color: #15803d; }
+    .val-credit { color: #b91c1c; }
+
+    /* Print Styles (Matching Image 3) */
+    @media print {
+      body.erp-module {
+        height: auto;
+        overflow: visible;
+        background: #ffffff;
+      }
+      .module-top-bar, .filter-bar, .summary-strip, .no-print {
+        display: none !important;
+      }
+      .table-container {
+        overflow: visible;
+      }
+      .print-header {
+        display: block !important;
+        padding-bottom: 8px;
+        margin-bottom: 10px;
+        border-bottom: 1.5px solid #0f172a;
+      }
+      .print-signatures {
+        display: flex !important;
+        justify-content: space-between;
+        margin-top: 35px;
+        padding-top: 15px;
+      }
+      table.ledger-grid th {
+        background: #f1f5f9 !important;
+        color: #0f172a !important;
+        border: 1px solid #94a3b8 !important;
+      }
+      table.ledger-grid td {
+        border: 1px solid #cbd5e1 !important;
+      }
+      .row-acc-banner {
+        background: #e2e8f0 !important;
+        color: #0f172a !important;
+      }
+      .row-acc-banner td {
+        color: #0f172a !important;
+      }
+    }
+    .print-header, .print-signatures {
+      display: none;
+    }
+  </style>
+</head>
+<body class="erp-module">
+
+  <!-- PRINT ONLY HEADER (IMAGE 3 DESIGN) -->
+  <div class="print-header">
+    <div style="text-align:center; margin-bottom:6px;">
+      <h2 style="margin:0; font-size:16px; font-weight:800; color:#0f172a; text-transform:uppercase;" id="prtSocName">Society Name</h2>
+      <div style="font-size:12px; font-weight:700; color:#0D47A1; margin-top:2px;" id="prtReportTitle">Account Ledger from 01/04/2025 to 31/03/2026</div>
+    </div>
+    <div style="display:flex; justify-content:space-between; align-items:center; font-size:10.5px; border-top:1px solid #cbd5e1; padding-top:4px;">
+      <div><strong>F.Y. :</strong> <span id="prtFYLabel">—</span></div>
+      <div><strong>Scope :</strong> <span id="prtScope">—</span></div>
+      <div><strong>Printed On :</strong> <span id="prtPrintDate">—</span></div>
+      <div><strong>Page No :</strong> 1</div>
+    </div>
+  </div>
+
+  <!-- TOP MODULE HEADER -->
+  <header class="module-top-bar no-print">
+    <div>
+      <div class="module-title">
+        <i class="bi bi-journal-text" style="color:var(--primary);"></i>
+        Account Ledger Statement
+      </div>
+      
+    </div>
+    <div class="d-flex align-center gap-6">
+      <button class="btn-top" onclick="exportToExcel()" title="Export Statement to Excel / CSV">
+        <i class="bi bi-file-earmark-excel"></i> Export Excel
+      </button>
+      <button class="btn-top" onclick="triggerPrint()" title="Print Ledger Statement">
+        <i class="bi bi-printer"></i> Print Statement
+      </button>
+      <button class="btn-top primary" onclick="loadLedger()" title="Fetch / Refresh Statement">
+        <i class="bi bi-arrow-clockwise"></i> View Statement
+      </button>
+    </div>
+  </header>
+
+  <!-- FILTER & SEARCH PANEL -->
+  <div class="filter-bar no-print">
+    <!-- Single Compact Horizontal Filter Row -->
+    <div class="filter-row" style="gap:8px;">
+      <!-- Report Scope Dropdown -->
+      <div class="filter-item" style="width:125px;">
+        <label class="filter-lbl">Report Scope</label>
+        <select id="reportScopeSelect" class="filter-input" onchange="setScope(this.value)">
+          <option value="single" selected>Single Account</option>
+          <option value="main-group">Main Group</option>
+          <option value="sub-group">Sub Group</option>
+          <option value="range">Account Range</option>
+          <option value="all">All Accounts</option>
+        </select>
+      </div>
+
+      <!-- Single Account Select -->
+      <div class="filter-item" id="blockSingleAcc" style="min-width:180px; max-width:260px;">
+        <label class="filter-lbl">Select Account</label>
+        <select id="accountSelect" class="filter-input" onchange="loadLedger()">
+          <option value="">— Loading accounts... —</option>
+        </select>
+      </div>
+
+      <!-- Main Group Select -->
+      <div class="filter-item" id="blockMainGroup" style="display:none; width:130px;">
+        <label class="filter-lbl">Main Group</label>
+        <select id="mainGroupSelect" class="filter-input" onchange="loadLedger()">
+          <option value="3">Income</option>
+          <option value="4">Expenditure</option>
+          <option value="1">Assets</option>
+          <option value="2">Liabilities</option>
+        </select>
+      </div>
+
+      <!-- Sub Group Select -->
+      <div class="filter-item" id="blockSubGroup" style="display:none; width:160px;">
+        <label class="filter-lbl">Sub Group</label>
+        <select id="subGroupSelect" class="filter-input" onchange="loadLedger()">
+          <option value="">— Select Sub Group —</option>
+        </select>
+      </div>
+
+      <!-- Range From Account -->
+      <div class="filter-item" id="blockRangeFrom" style="display:none; width:140px;">
+        <label class="filter-lbl">From Account</label>
+        <select id="fromAccSelect" class="filter-input" onchange="loadLedger()"></select>
+      </div>
+
+      <!-- Range To Account -->
+      <div class="filter-item" id="blockRangeTo" style="display:none; width:140px;">
+        <label class="filter-lbl">To Account</label>
+        <select id="toAccSelect" class="filter-input" onchange="loadLedger()"></select>
+      </div>
+
+      <!-- Billing Mode Toggle -->
+      <div class="filter-item" style="width:110px;">
+        <label class="filter-lbl">Billing A/c</label>
+        <select id="billingMode" class="filter-input" onchange="loadLedger()">
+          <option value="summary">Summary</option>
+          <option value="detail">Detail</option>
+        </select>
+      </div>
+
+      <!-- Blank A/c Toggle -->
+      <div class="filter-item" style="width:105px;">
+        <label class="filter-lbl">Blank A/c</label>
+        <select id="blankAcMode" class="filter-input" onchange="loadLedger()">
+          <option value="hide">Hide Blank</option>
+          <option value="show">Show All</option>
+        </select>
+      </div>
+
+      <!-- Date Preset Dropdown -->
+      <div class="filter-item" style="width:125px;">
+        <label class="filter-lbl">Date Preset</label>
+        <select id="datePresetSelect" class="filter-input" onchange="applyPreset(this.value)">
+          <option value="full" selected>Full FY</option>
+          <option value="this-month">This Month</option>
+          <option value="last-month">Last Month</option>
+          <option value="q1">Q1 (Apr-Jun)</option>
+          <option value="q2">Q2 (Jul-Sep)</option>
+          <option value="q3">Q3 (Oct-Dec)</option>
+          <option value="q4">Q4 (Jan-Mar)</option>
+          <option value="custom">Custom Range</option>
+        </select>
+      </div>
+
+      <!-- From Date -->
+      <div class="filter-item" style="width:120px;">
+        <label class="filter-lbl">From Date</label>
+        <input type="date" id="fromDate" class="filter-input" onchange="onDateInputChange()" readonly style="background:#f1f5f9; cursor:default;">
+      </div>
+
+      <!-- To Date -->
+      <div class="filter-item" style="width:120px;">
+        <label class="filter-lbl">To Date</label>
+        <input type="date" id="toDate" class="filter-input" onchange="onDateInputChange()" readonly style="background:#f1f5f9; cursor:default;">
+      </div>
+
+      <!-- Financial Summary Dropdown (Pop-over) -->
+      <div class="filter-item summary-dropdown-wrap" style="width:auto;">
+        <label class="filter-lbl">Statement Summary</label>
+        <button type="button" class="summary-dropdown-btn" id="btnSummaryToggle" onclick="toggleSummaryPopover(event)" title="Click to view Financial Overview">
+          <i class="bi bi-bar-chart-fill" style="color:var(--primary); font-size:11px;"></i>
+          <span>Summary</span>
+          <span class="summary-count-badge" id="badgeAccCount">0 A/c</span>
+          <i class="bi bi-chevron-down" style="font-size:9.5px; color:#64748b; margin-left:2px;"></i>
+        </button>
+
+        <!-- Popover Card -->
+        <div class="summary-popover" id="summaryPopover">
+          <div class="summary-popover-head">
+            <div style="font-size:11.5px; font-weight:800; color:#0f172a; display:flex; align-items:center; gap:6px;">
+              <i class="bi bi-pie-chart-fill" style="color:var(--primary);"></i> Financial Overview
+            </div>
+            <span style="font-size:10px; font-weight:700; color:#0369a1; background:#e0f2fe; padding:1px 6px; border-radius:10px;" id="kpiAccCount">0 Accounts</span>
+          </div>
+
+          <div class="summary-popover-grid">
+            <div class="pop-card">
+              <span class="pop-lbl">Opening Bal Sum</span>
+              <span class="pop-val" id="kpiOpBal">₹ 0.00</span>
+            </div>
+            <div class="pop-card">
+              <span class="pop-lbl">Total Debits</span>
+              <span class="pop-val debit" id="kpiTotalDr">₹ 0.00</span>
+            </div>
+            <div class="pop-card">
+              <span class="pop-lbl">Total Credits</span>
+              <span class="pop-val credit" id="kpiTotalCr">₹ 0.00</span>
+            </div>
+            <div class="pop-card full-width">
+              <span class="pop-lbl">Net Closing Balance</span>
+              <span class="pop-val" id="kpiClosingBal" style="color:var(--primary);">₹ 0.00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LEDGER DATA GRID -->
+  <div class="table-container">
+    <table class="ledger-grid" id="ledgerTable">
+      <thead>
+        <tr>
+          <th style="width:40px; text-align:center;">#</th>
+          <th style="width:85px;">Date</th>
+          <th style="width:130px;">Voucher No & Type</th>
+          <th style="width:200px;">Contra Account</th>
+          <th>Particulars / Narration</th>
+          <th style="width:140px;">Cheque / Ref No.</th>
+          <th style="width:115px; text-align:right;">Debit (₹)</th>
+          <th style="width:115px; text-align:right;">Credit (₹)</th>
+          <th style="width:130px; text-align:right;">Balance (₹)</th>
+        </tr>
+      </thead>
+      <tbody id="ledgerTableBody">
+        <tr>
+          <td colspan="9" style="text-align:center; padding:50px; color:#64748b;">
+            <i class="bi bi-journal-text" style="font-size:26px; color:var(--primary); display:block; margin-bottom:8px;"></i>
+            Please select an Account or Group above to generate the statement.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- PRINT ONLY SIGNATURE BLOCK -->
+  <div class="print-signatures">
+    <div style="text-align:center; width:200px; border-top:1px solid #64748b; font-size:11px; padding-top:4px;">
+      Prepared By
+    </div>
+    <div style="text-align:center; width:200px; border-top:1px solid #64748b; font-size:11px; padding-top:4px;">
+      Checked By / Accountant
+    </div>
+    <div style="text-align:center; width:200px; border-top:1px solid #64748b; font-size:11px; padding-top:4px;">
+      Hon. Secretary / Treasurer
+    </div>
+  </div>
+
+  <!-- SCRIPTS -->
+  <script src="../../../assets/js/api.js?v=20260831_0200"></script>
+  <script src="../../../assets/js/auth.js?v=20260831_0200"></script>
+  <script src="../../../assets/js/utils.js?v=20260831_0200"></script>
+  <script src="account-ledger.js?v=20260831_0200"></script>
+</body>
+</html>

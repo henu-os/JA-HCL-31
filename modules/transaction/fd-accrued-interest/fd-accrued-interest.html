@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FD Accrued Interest / Provision Calculation — JEEVIKA ERP</title>
+  <script src="../../../config.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="css/fd-accrued-interest.css">
+  <style>
+    html, body {
+      margin: 0; padding: 0; min-height: 100%;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #e2e8f0; color: #0f172a;
+    }
+    
+    .fda-top-banner {
+      background: #0D47A1;
+      color: #ffffff;
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      border-bottom: 2px solid #0a3880;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .fda-banner-title {
+      display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.3px;
+    }
+    .fda-banner-right {
+      display: flex; align-items: center; gap: 14px; font-size: 11.5px; font-weight: 600;
+    }
+
+    .fda-main-body {
+      padding: 10px; display: flex; flex-direction: column; gap: 10px; flex: 1;
+    }
+
+    .fda-grid-top {
+      display: grid; grid-template-columns: 1.1fr 1.2fr 1fr 1fr; gap: 10px;
+    }
+
+    .fda-card {
+      background: #ffffff; border: 1px solid #cbd5e1; border-radius: 4px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .fda-card-head {
+      background: #0D47A1; color: #ffffff; padding: 6px 10px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.3px; display: flex; justify-content: space-between; align-items: center;
+    }
+    .fda-card-body {
+      padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; flex: 1;
+    }
+
+    .fda-row {
+      display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 11px; font-weight: 600; color: #334155;
+    }
+    .fda-inp, .fda-sel {
+      height: 25px; border: 1px solid #cbd5e1; border-radius: 3px; padding: 2px 6px; font-size: 11px; outline: none; width: 145px; box-sizing: border-box; background: #fff;
+    }
+    .fda-inp:focus, .fda-sel:focus { border-color: #0D47A1; box-shadow: 0 0 0 1px #0D47A1; }
+
+    .btn-calc {
+      background: #0D47A1; color: #ffffff; border: none; border-radius: 4px; padding: 7px; font-weight: 800; font-size: 11.5px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; margin-top: 6px; text-transform: uppercase;
+    }
+    .btn-calc:hover { background: #1565C0; }
+
+    .fda-summary-card {
+      background: #ffffff; border: 1px solid #cbd5e1; border-radius: 4px; padding: 8px 10px; display: flex; flex-direction: column; gap: 4px;
+    }
+    .fda-summary-row {
+      display: flex; justify-content: space-between; font-size: 11px; color: #334155; font-weight: 600; padding: 2px 0;
+    }
+    .fda-summary-row.highlight {
+      color: #15803D; font-weight: 800; font-size: 12px; border-top: 1px solid #e2e8f0; padding-top: 4px; margin-top: 2px;
+    }
+
+    .fda-maturity-card {
+      background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 4px; padding: 8px 10px; text-align: right;
+    }
+    .fda-maturity-title { font-size: 10px; font-weight: 800; color: #1e40af; text-transform: uppercase; text-align: left; margin-bottom: 2px; }
+    .fda-maturity-val { font-size: 16px; font-weight: 800; color: #1d4ed8; font-family: 'Consolas', monospace; }
+    .fda-maturity-sub { font-size: 9px; font-weight: 600; color: #64748b; margin-top: 2px; }
+
+    /* SCHEDULE TABLE */
+    table.fda-sched-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    table.fda-sched-table th { background: #0D47A1; color: #ffffff; padding: 6px 8px; font-size: 10.5px; font-weight: 800; text-transform: uppercase; border: 1px solid #0a3880; }
+    table.fda-sched-table td { padding: 5px 8px; border: 1px solid #cbd5e1; white-space: nowrap; }
+
+    .fda-bottom-grid {
+      display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 10px;
+    }
+
+    .fda-formula-box {
+      background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 4px; padding: 8px; font-family: 'Consolas', monospace; font-size: 10px; font-weight: 600; color: #334155; display: flex; flex-direction: column; gap: 4px;
+    }
+
+    /* ACTION BAR */
+    .fda-action-bar {
+      background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-shrink: 0;
+    }
+    .btn-act-blue { background: #0D47A1; color: #fff; border: none; border-radius: 4px; padding: 6px 14px; font-size: 11px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; text-transform: uppercase; }
+    .btn-act-red { background: #dc2626; color: #fff; border: none; border-radius: 4px; padding: 6px 14px; font-size: 11px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; text-transform: uppercase; }
+    .btn-act-green { background: #16a34a; color: #fff; border: none; border-radius: 4px; padding: 6px 14px; font-size: 11px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; text-transform: uppercase; }
+    .btn-act-grey { background: #475569; color: #fff; border: none; border-radius: 4px; padding: 6px 14px; font-size: 11px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; text-transform: uppercase; }
+  </style>
+</head>
+<body>
+
+<div style="display:flex; flex-direction:column; min-height:100%;">
+
+  <!-- TOP BLUE BANNER HEADER -->
+  <div class="fda-top-banner">
+    <div class="fda-banner-title">
+      <i class="bi bi-bank2" style="font-size:16px;"></i>
+      <span>FD ACCRUED INTEREST / PROVISION CALCULATION (COMPOUNDING BASIS)</span>
+    </div>
+    <div class="fda-banner-right">
+      <button class="btn-tb-blue" style="background:#ffffff; color:#0D47A1; padding:3px 10px; font-size:10.5px; border-radius:3px; font-weight:800; cursor:pointer; border:none;" onclick="window.parent.WorkspaceManager ? window.parent.WorkspaceManager.openModule('fixed-deposit') : (window.location.href='../fixed-deposit/fixed-deposit.html')"><i class="bi bi-box-seam"></i> FIXED DEPOSIT</button>
+      <button class="btn-tb-blue" style="background:rgba(255,255,255,0.25); color:#ffffff; border:1px solid rgba(255,255,255,0.4); padding:3px 10px; font-size:10.5px; border-radius:3px; font-weight:800; cursor:pointer;" onclick="window.parent.WorkspaceManager ? window.parent.WorkspaceManager.openModule('fd-accrued-interest') : null"><i class="bi bi-calculator"></i> FD ACCRUED INTEREST</button>
+      <i class="bi bi-question-circle" style="cursor:pointer; font-size:14px;" title="Help"></i>
+      <i class="bi bi-gear" style="cursor:pointer; font-size:14px;" title="Settings"></i>
+      <i class="bi bi-x-square" style="cursor:pointer; font-size:14px;" onclick="FDA.exitModule()" title="Close"></i>
+    </div>
+  </div>
+
+  <!-- MAIN CANVAS / BODY CONTAINER -->
+  <div class="fda-main-body">
+
+    <!-- TOP GRID: 4 CARDS -->
+    <div class="fda-grid-top">
+
+      <!-- CARD 1: 1. BANK DETAILS -->
+      <div class="fda-card">
+        <div class="fda-card-head">1. BANK DETAILS</div>
+        <div class="fda-card-body">
+          <div class="fda-row">
+            <span>Bank Name</span>
+            <select id="fda-bank-name" class="fda-sel" onchange="FDA.onBankChange(this.value)"></select>
+          </div>
+          <div class="fda-row">
+            <span>Account Type</span>
+            <select id="fda-account-type" class="fda-sel">
+              <option value="Fixed Deposit (FD)" selected>Fixed Deposit (FD)</option>
+              <option value="Short Term Deposit (STD)">Short Term Deposit (STD)</option>
+            </select>
+          </div>
+          <div class="fda-row">
+            <span>Account Number</span>
+            <input type="text" id="fda-account-number" class="fda-inp">
+          </div>
+          <div class="fda-row">
+            <span>FD Number</span>
+            <select id="fda-fd-number-sel" class="fda-sel" onchange="FDA.onFdSelect(this.value)"></select>
+          </div>
+          <div class="fda-row">
+            <span>Nomination Name</span>
+            <input type="text" id="fda-nomination-name" class="fda-inp">
+          </div>
+          <div class="fda-row">
+            <span>Deposit Slip / Ref. No.</span>
+            <input type="text" id="fda-deposit-ref" class="fda-inp">
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 2: 2. FD DETAILS -->
+      <div class="fda-card">
+        <div class="fda-card-head">2. FD DETAILS</div>
+        <div class="fda-card-body">
+          <div class="fda-row">
+            <span>Principal Amount (₹)</span>
+            <input type="number" id="fda-principal-amount" class="fda-inp" style="text-align:right; font-weight:800; font-family:'Consolas', monospace;" placeholder="" step="1000" oninput="FDA.calculate()">
+          </div>
+          <div class="fda-row">
+            <span>Interest Rate (% p.a.)</span>
+            <input type="number" id="fda-interest-rate" class="fda-inp" style="text-align:right; font-weight:800;" placeholder="" step="0.05" oninput="FDA.calculate()">
+          </div>
+          <div class="fda-row">
+            <span>Interest Type</span>
+            <select id="fda-interest-type" class="fda-sel" onchange="FDA.calculate()">
+              <option value="Quarterly Compounding" selected>Quarterly Compounding</option>
+              <option value="Simple Interest">Simple Interest</option>
+            </select>
+          </div>
+          <div class="fda-row">
+            <span>Compounding Frequency</span>
+            <select id="fda-compounding-freq" class="fda-sel" onchange="FDA.calculate()">
+              <option value="Quarterly (4 Times Per Year)" selected>Quarterly (4 Times Per Year)</option>
+              <option value="Half-Yearly (2 Times Per Year)">Half-Yearly (2 Times Per Year)</option>
+            </select>
+          </div>
+          <div class="fda-row">
+            <span>Deposit Date</span>
+            <input type="date" id="fda-deposit-date" class="fda-inp" onchange="FDA.calculate()">
+          </div>
+          <div class="fda-row">
+            <span>Maturity Date</span>
+            <input type="date" id="fda-maturity-date" class="fda-inp" onchange="FDA.calculate()">
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 3: 3. CALCULATION OPTIONS -->
+      <div class="fda-card">
+        <div class="fda-card-head">3. CALCULATION OPTIONS</div>
+        <div class="fda-card-body">
+          <div class="fda-row">
+            <span>Calculation Date</span>
+            <input type="date" id="fda-calculation-date" class="fda-inp" onchange="FDA.calculate()">
+          </div>
+          <div class="fda-row">
+            <span>Days for Accrual</span>
+            <input type="number" id="fda-days-accrual" class="fda-inp" style="text-align:right; font-weight:800;" value="0" readonly>
+          </div>
+          <div class="fda-row">
+            <span>Financial Year</span>
+            <select id="fda-calc-fy" class="fda-sel">
+            </select>
+          </div>
+          <div class="fda-row">
+            <span>TDS Rate (%)</span>
+            <input type="number" id="fda-tds-rate" class="fda-inp" style="text-align:right; font-weight:800;" value="10.00" step="0.5" oninput="FDA.calculate()">
+          </div>
+
+          <button class="btn-calc" onclick="FDA.calculate()">
+            <i class="bi bi-calculator-fill"></i> CALCULATE
+          </button>
+        </div>
+      </div>
+
+      <!-- CARD 4: SUMMARY & MATURITY DETAILS -->
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <!-- SUMMARY CARD -->
+        <div class="fda-card" style="flex:1;">
+          <div class="fda-card-head">SUMMARY</div>
+          <div class="fda-card-body" style="padding:6px;">
+            <div class="fda-summary-card">
+              <div class="fda-summary-row">
+                <span>Total Accrued Days</span>
+                <strong id="fda-sum-accrued-days">0</strong>
+              </div>
+              <div class="fda-summary-row">
+                <span>Gross Interest (₹)</span>
+                <strong id="fda-sum-gross-interest" style="font-family:'Consolas', monospace;">0.00</strong>
+              </div>
+              <div class="fda-summary-row">
+                <span>TDS Total (₹)</span>
+                <strong id="fda-sum-tds-total" style="font-family:'Consolas', monospace;">0.00</strong>
+              </div>
+              <div class="fda-summary-row highlight">
+                <span>Net Accrued Interest (₹)</span>
+                <strong id="fda-sum-net-interest" style="font-family:'Consolas', monospace;">0.00</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- MATURITY DETAILS CARD -->
+        <div class="fda-card">
+          <div class="fda-card-body" style="padding:6px;">
+            <div class="fda-maturity-card">
+              <div class="fda-maturity-title" id="fda-maturity-header-lbl">MATURITY DETAILS (As on 01/04/2025)</div>
+              <div class="fda-maturity-val" id="fda-maturity-amount">0.00</div>
+              <div class="fda-maturity-sub">(Principal + Total Net Interest)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- MIDDLE SECTION: 4. QUARTER-WISE COMPOUNDING CALCULATION -->
+    <div class="fda-card">
+      <div class="fda-card-head">
+        <span>4. QUARTER-WISE COMPOUNDING CALCULATION (Breakup with TDS)</span>
+      </div>
+      <div style="overflow-x:auto; background:#fff;">
+        <table class="fda-sched-table" id="fda-compounding-table">
+          <thead>
+            <tr>
+              <th style="width:90px;">Quarter</th>
+              <th style="width:95px;">From Date</th>
+              <th style="width:95px;">To Date</th>
+              <th style="width:55px; text-align:center;">Days</th>
+              <th style="width:145px; text-align:right;">Opening Principal (₹)</th>
+              <th style="width:120px; text-align:center;">Interest Rate (%)<br><span style="font-weight:600; font-size:10px;">(A)</span></th>
+              <th style="width:105px; text-align:center;">TDS Rate (%)<br><span style="font-weight:600; font-size:10px;">B</span></th>
+              <th style="width:125px; text-align:right;">TDS Amount (₹)<br><span style="font-weight:600; font-size:10px;">C = A x B / 100</span></th>
+              <th style="width:125px; text-align:right;">Net Interest (₹)<br><span style="font-weight:600; font-size:10px;">D = A - C</span></th>
+              <th style="width:165px; text-align:right;">Closing Principal (Capitalised) (₹)<br><span style="font-weight:600; font-size:10px;">E = Opening Principal + D</span></th>
+              <th>Remarks</th>
+            </tr>
+          </thead>
+          <tbody id="fda-table-tbody">
+            <!-- Rendered schedules -->
+          </tbody>
+          <tfoot>
+            <tr style="background:#e2e8f0; font-weight:800; color:#0f172a;" id="fda-table-total-row">
+              <td style="text-align:center;">Total</td>
+              <td></td>
+              <td></td>
+              <td style="text-align:center;" id="fda-tot-days">0</td>
+              <td></td>
+              <td style="text-align:right; font-weight:800;" id="fda-tot-gross">0.00</td>
+              <td></td>
+              <td style="text-align:right; font-weight:800; color:#dc2626;" id="fda-tot-tds">0.00</td>
+              <td style="text-align:right; font-weight:800; color:#0D47A1;" id="fda-tot-net">0.00</td>
+              <td style="text-align:right; font-weight:800; color:#2E7D32;" id="fda-tot-closing">0.00</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <!-- BOTTOM GRID: 3 CARDS (NOTES, FORMULA, POSTING ENTRY) -->
+    <div class="fda-bottom-grid">
+
+      <!-- CARD 5: 5. NOTES -->
+      <div class="fda-card">
+        <div class="fda-card-head">5. NOTES</div>
+        <div class="fda-card-body" style="font-size:10.5px; color:#334155; line-height:1.6;">
+          <div style="display:flex; gap:6px; margin-bottom:3px;"><span>•</span><span>Interest is calculated on actual days in each quarter.</span></div>
+          <div style="display:flex; gap:6px; margin-bottom:3px;"><span>•</span><span>TDS is deducted as per the selected TDS Rate.</span></div>
+          <div style="display:flex; gap:6px; margin-bottom:3px;"><span>•</span><span>Net Interest is capitalised to FD Principal for next quarter (Compounding).</span></div>
+          <div style="display:flex; gap:6px;"><span>•</span><span>Last row (4th Quarter) is shown as projection till Maturity Date.</span></div>
+        </div>
+      </div>
+
+      <!-- CARD 6: 6. CALCULATION FORMULA -->
+      <div class="fda-card">
+        <div class="fda-card-head">6. CALCULATION FORMULA</div>
+        <div class="fda-card-body">
+          <div class="fda-formula-box" style="font-size:10.5px; line-height:1.6;">
+            <div>Quarterly Interest = Opening Principal × Rate (%) × Days / 365</div>
+            <div>TDS Amount = Gross Interest × TDS Rate (%)</div>
+            <div>Net Interest = Gross Interest − TDS Amount</div>
+            <div>Closing Principal = Opening Principal + Net Interest</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 7: 7. POSTING / PROVISION ENTRY -->
+      <div class="fda-card">
+        <div class="fda-card-head">7. POSTING / PROVISION ENTRY</div>
+        <div class="fda-card-body">
+          <div class="fda-row">
+            <span>Interest Ledger</span>
+            <select id="fda-interest-ledger" class="fda-sel" style="width:160px; font-weight:700;">
+            </select>
+          </div>
+          <div class="fda-row">
+            <span>Provision Entry Date</span>
+            <input type="date" id="fda-provision-date" class="fda-inp" style="width:160px;">
+          </div>
+          <div class="fda-row">
+            <span>Voucher No.</span>
+            <input type="text" id="fda-voucher-no" class="fda-inp" style="width:160px; font-weight:700;">
+          </div>
+          <div class="fda-row">
+            <span>Narration</span>
+            <input type="text" id="fda-narration" class="fda-inp" placeholder="Provision for accrued interest..." style="width:160px;">
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ACTION BUTTONS TOOLBAR -->
+    <div class="fda-action-bar">
+      <div style="display:flex; gap:8px;">
+        <button class="btn-act-blue" onclick="FDA.saveRecord()"><i class="bi bi-floppy-fill"></i> SAVE</button>
+        <button class="btn-act-blue" onclick="FDA.updateRecord()"><i class="bi bi-pencil-square"></i> UPDATE</button>
+        <button class="btn-act-red" onclick="FDA.deleteRecord()"><i class="bi bi-trash-fill"></i> DELETE</button>
+        <button class="btn-act-blue" onclick="FDA.resetForm()"><i class="bi bi-x-circle-fill"></i> CANCEL</button>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn-act-green" onclick="FDA.printSchedule()"><i class="bi bi-printer-fill"></i> PRINT</button>
+        <button class="btn-act-green" onclick="FDA.exportExcel()"><i class="bi bi-file-earmark-excel-fill"></i> EXPORT TO EXCEL</button>
+        <button class="btn-act-grey" onclick="FDA.exitModule()"><i class="bi bi-x-circle"></i> CLOSE</button>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- SCRIPTS -->
+<script src="../../../assets/js/api.js"></script>
+<script src="../../../assets/js/auth.js"></script>
+<script src="../../../assets/js/utils.js"></script>
+<script src="fd-accrued-interest.js"></script>
+</body>
+</html>

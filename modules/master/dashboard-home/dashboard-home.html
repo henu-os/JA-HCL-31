@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Home — JEEVIKA ERP</title>
+  <script src="../../../config.js"></script>
+  <link rel="stylesheet" href="../../../assets/css/global.css">
+  <link rel="stylesheet" href="../../../assets/css/components.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    .dash-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .dash-card {
+      background: var(--clr-face);
+      border-top: 2px solid var(--brd-light);
+      border-left: 2px solid var(--brd-light);
+      border-right: 2px solid var(--brd-mid-dark);
+      border-bottom: 2px solid var(--brd-mid-dark);
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .dash-card-icon {
+      width: 42px;
+      height: 42px;
+      background: var(--clr-navy);
+      color: white;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    .dash-card-val {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--clr-navy);
+      font-family: 'Courier New', monospace;
+    }
+    .dash-card-lbl {
+      font-size: 11px;
+      color: var(--txt-secondary);
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body class="erp-module">
+  <div class="erp-module-header">
+    <div>
+      <div class="erp-module-title">Dashboard Overview</div>
+      
+    </div>
+    <button class="erp-btn" onclick="loadDashboardData()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+  </div>
+
+  <div class="erp-module-body">
+    <!-- Stat Cards -->
+    <div class="dash-grid">
+      <div class="dash-card">
+        <div class="dash-card-icon"><i class="bi bi-people-fill"></i></div>
+        <div>
+          <div class="dash-card-val" id="cntMembers">0</div>
+          <div class="dash-card-lbl">Total Members</div>
+        </div>
+      </div>
+      <div class="dash-card">
+        <div class="dash-card-icon" style="background:#2E7D32;"><i class="bi bi-journal-text"></i></div>
+        <div>
+          <div class="dash-card-val" id="cntAccounts">0</div>
+          <div class="dash-card-lbl">Ledger Accounts</div>
+        </div>
+      </div>
+      <div class="dash-card">
+        <div class="dash-card-icon" style="background:#C00000;"><i class="bi bi-receipt"></i></div>
+        <div>
+          <div class="dash-card-val" id="cntVendors">0</div>
+          <div class="dash-card-lbl">Registered Vendors</div>
+        </div>
+      </div>
+      <div class="dash-card">
+        <div class="dash-card-icon" style="background:#F57F17;"><i class="bi bi-person-badge"></i></div>
+        <div>
+          <div class="dash-card-val" id="cntStaff">0</div>
+          <div class="dash-card-lbl">Society Staff</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions Panel -->
+    <div class="erp-panel">
+      <div class="erp-panel-title">Quick Actions</div>
+      <div class="d-flex gap-8" style="flex-wrap:wrap;">
+        <button class="erp-btn erp-btn-primary" onclick="openNav('member-master')"><i class="bi bi-person-plus"></i> Member Master</button>
+        <button class="erp-btn erp-btn-primary" onclick="openNav('account-master')"><i class="bi bi-folder-plus"></i> Account Master</button>
+        <button class="erp-btn erp-btn-primary" onclick="openNav('journal-voucher')"><i class="bi bi-file-earmark-plus"></i> Journal Voucher</button>
+        <button class="erp-btn erp-btn-primary" onclick="openNav('payment-entry')"><i class="bi bi-cash-stack"></i> Payment Entry</button>
+        <button class="erp-btn erp-btn-primary" onclick="openNav('member-bill')"><i class="bi bi-receipt-cutoff"></i> Generate Bills</button>
+      </div>
+    </div>
+
+    <!-- Society Details Panel -->
+    <div class="erp-panel mt-8">
+      <div class="erp-panel-title">Society Information</div>
+      <table class="erp-table striped" id="socDetailTable">
+        <tbody>
+          <tr><th style="width:200px;">Society Code:</th><td id="infoCode">—</td></tr>
+          <tr><th>Society Name:</th><td id="infoName" class="text-bold text-navy">—</td></tr>
+          <tr><th>Registration No:</th><td id="infoReg">—</td></tr>
+          <tr><th>Address:</th><td id="infoAddr">—</td></tr>
+          <tr><th>City / Pincode:</th><td id="infoCity">—</td></tr>
+          <tr><th>PAN / GSTIN:</th><td id="infoTax">—</td></tr>
+          <tr><th>Bank Account:</th><td id="infoBank">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="../../../assets/js/api.js"></script>
+  <script src="../../../assets/js/auth.js"></script>
+  <script src="../../../assets/js/utils.js"></script>
+  <script src="dashboard-home.js"></script>
+</body>
+</html>

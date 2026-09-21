@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Member Register [Dr/Cr] - JEEVIKA ERP v2</title>
+
+  <!-- Global Styles & Icons -->
+  <link rel="stylesheet" href="../../../assets/css/global.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+  <style>
+    /* BASE LAYOUT */
+    html, body {
+      height: 100% !important;
+      margin: 0 !important;
+      padding: 12px !important;
+      overflow-y: auto !important;
+      box-sizing: border-box !important;
+      background-color: #f8fafc;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: #1e293b;
+    }
+    .ui-only { display: block; width: 100%; min-height: 100%; }
+    .print-only { display: none; }
+
+    /* MODULE HEADER */
+    .module-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .module-title { font-size: 16px; font-weight: 800; color: #0f172a; margin: 0; letter-spacing: -0.2px; }
+    .module-subtitle { font-size: 11px; font-weight: 600; color: #64748b; margin-top: 2px; display: flex; align-items: center; gap: 4px; }
+    .module-subline { font-size: 10px; font-weight: 800; color: #2563eb; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.3px; }
+
+    .btn-print { height: 32px; padding: 0 16px; background: #0f172a; color: #ffffff; border: none; border-radius: 4px; font-size: 11px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; text-transform: uppercase; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+    .btn-print:hover { background: #1e293b; }
+
+    .btn-excel { height: 32px; padding: 0 16px; background: #16a34a; color: #ffffff; border: none; border-radius: 4px; font-size: 11px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; text-transform: uppercase; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+    .btn-excel:hover { background: #15803d; }
+
+    /* FILTER BAR CARD */
+    .filter-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 12px; margin-bottom: 16px; display: flex; flex-wrap: nowrap; gap: 6px; align-items: flex-end; box-shadow: 0 1px 3px rgba(0,0,0,0.03); overflow-x: auto; }
+    .form-group { display: flex; flex-direction: column; gap: 3px; flex-shrink: 0; }
+    .form-label { font-size: 9px; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.2px; white-space: nowrap; }
+    .form-inp, .form-sel { height: 30px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 0 6px; font-size: 11px; outline: none; background: #ffffff; color: #0f172a; font-weight: 600; }
+    .form-inp:focus, .form-sel:focus { border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37,99,235,0.1); }
+
+    .btn-reset { height: 30px; padding: 0 10px; background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 10.5px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; }
+    .btn-reset:hover { background: #e2e8f0; }
+
+    /* WORKSPACE UI SCREEN MEMBER CARD DESIGN */
+    .member-card-ui { background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; margin-bottom: 20px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
+    .member-card-title-ui { padding: 10px 14px; font-size: 12px; font-weight: 800; color: #1e3a8a; display: flex; justify-content: space-between; align-items: center; text-transform: uppercase; background: #ffffff; border-bottom: 1px solid #f1f5f9; }
+
+    /* WORKSPACE UI DATA GRID TABLE & SCROLLBAR */
+    .table-wrap-ui { overflow-x: auto; width: 100%; display: block; -webkit-overflow-scrolling: touch; }
+    .table-wrap-ui::-webkit-scrollbar { height: 7px; }
+    .table-wrap-ui::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+    .table-wrap-ui::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    .table-wrap-ui::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    table.mreg-table-ui { width: 100%; border-collapse: collapse; font-size: 11px; }
+    table.mreg-table-ui th { background: #1d4ed8; color: #ffffff; padding: 8px 10px; font-size: 10px; font-weight: 800; text-transform: uppercase; border: 1px solid #1e40af; text-align: center; white-space: nowrap; letter-spacing: 0.2px; }
+    table.mreg-table-ui td { padding: 7px 10px; border: 1px solid #e2e8f0; white-space: nowrap; color: #334155; }
+    table.mreg-table-ui tbody tr:hover { background: #e0f2fe; }
+
+    .col-center { text-align: center; }
+    .col-left { text-align: left; }
+    .col-right { text-align: right; font-family: 'Consolas', monospace; font-weight: 600; }
+    .bold-num { font-weight: 700; }
+    .text-blue { color: #1d4ed8; font-weight: 700; }
+    .text-red { color: #c62828; font-weight: 700; }
+    .text-green { color: #15803d; font-weight: 700; }
+    .text-opening { color: #d97706; font-style: italic; font-weight: 800; }
+    .text-closing { color: #dc2626; font-weight: 800; }
+    .row-closing-ui { background: #ffffff; font-weight: 800; }
+
+    /* PRINT MODAL DIALOG */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(2px);
+      z-index: 9999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-card {
+      background: #ffffff;
+      border-radius: 12px;
+      width: 460px;
+      max-width: 90vw;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      overflow: hidden;
+      animation: modalFadeIn 0.2s ease-out;
+    }
+
+    @keyframes modalFadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .modal-header-banner {
+      background: #1565C0;
+      color: #ffffff;
+      padding: 14px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header-banner h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    .modal-close-btn {
+      background: transparent;
+      border: none;
+      color: #ffffff;
+      font-size: 20px;
+      cursor: pointer;
+      opacity: 0.85;
+      transition: opacity 0.2s;
+    }
+    .modal-close-btn:hover { opacity: 1; }
+
+    .modal-body-content {
+      padding: 20px;
+    }
+
+    .modal-sub-label {
+      font-size: 12px;
+      color: #475569;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+
+    .print-opt-card {
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: #fafafa;
+    }
+
+    .print-opt-card:hover {
+      border-color: #1565C0;
+      background: #f0f7ff;
+    }
+
+    .print-opt-card.active {
+      border-color: #1565C0;
+      background: #f0f7ff;
+      box-shadow: 0 0 0 1px #1565C0;
+    }
+
+    .print-opt-radio {
+      margin-top: 3px;
+      accent-color: #1565C0;
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
+
+    .print-opt-text h4 {
+      margin: 0 0 4px 0;
+      font-size: 13px;
+      font-weight: 800;
+      color: #0F172A;
+      text-transform: uppercase;
+    }
+
+    .print-opt-text p {
+      margin: 0;
+      font-size: 10px;
+      color: #64748b;
+      font-weight: 700;
+      text-transform: uppercase;
+      line-height: 1.4;
+    }
+
+    .modal-footer-actions {
+      padding: 12px 20px;
+      background: #f8fafc;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .btn-modal-cancel {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      color: #334155;
+      padding: 6px 16px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .btn-modal-print {
+      background: #1565C0;
+      border: none;
+      color: #ffffff;
+      padding: 6px 20px;
+      border-radius: 6px;
+      font-weight: 800;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-modal-print:hover {
+      background: #0D47A1;
+    }
+
+    /* PRINT LAYOUT (@media print) */
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 8mm;
+      }
+      *, *:before, *:after {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      html, body {
+        height: auto !important;
+        min-height: auto !important;
+        overflow: visible !important;
+        overflow-x: visible !important;
+        overflow-y: visible !important;
+        background: #ffffff !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        font-size: 8pt !important;
+        width: 100% !important;
+      }
+      .module-header, .filter-card, .btn-print, .btn-excel, .ui-only {
+        display: none !important;
+      }
+      .print-only {
+        display: block !important;
+        height: auto !important;
+        overflow: visible !important;
+      }
+
+      .print-page-header {
+        text-align: center;
+        margin-bottom: 6px;
+        position: relative;
+      }
+
+      .print-top-right-tag {
+        position: absolute;
+        right: 0; top: 0;
+        font-size: 10px;
+        font-weight: 700;
+      }
+
+      .print-soc-title {
+        font-size: 15pt;
+        font-weight: 900;
+        margin: 0 0 2px 0;
+        text-transform: uppercase;
+      }
+
+      .print-sub-title {
+        font-size: 9.5pt;
+        font-weight: 700;
+        margin-bottom: 4px;
+      }
+
+      .print-meta-line {
+        border-top: 1.5px solid #000000;
+        border-bottom: 1.5px solid #000000;
+        padding: 3px 0;
+        display: flex;
+        justify-content: space-between;
+        font-size: 8.5pt;
+        font-weight: 800;
+        margin-bottom: 8px;
+      }
+
+      .member-card-print {
+        page-break-inside: avoid;
+        margin-bottom: 16px;
+      }
+
+      .print-mem-title-line {
+        border-bottom: 1px solid #1d4ed8;
+        padding-bottom: 2px;
+        margin-bottom: 4px;
+        display: flex;
+        justify-content: space-between;
+        font-size: 9pt;
+        font-weight: 800;
+        color: #1d4ed8 !important;
+      }
+
+      .mreg-table-print {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 8pt;
+      }
+
+      .mreg-table-print th {
+        border-bottom: 1px solid #000000;
+        padding: 4px 6px;
+        font-weight: 800;
+        text-transform: capitalize;
+        font-size: 8pt;
+      }
+
+      .mreg-table-print td {
+        padding: 3px 6px;
+        border: none;
+        font-size: 8pt;
+      }
+
+      .mreg-table-print .col-debit {
+        color: #c62828 !important;
+        font-weight: 700;
+      }
+
+      .mreg-table-print .row-closing-print td {
+        border-top: 1px solid #000000 !important;
+        border-bottom: 2.5px double #000000 !important;
+        font-weight: 800 !important;
+        padding: 5px 6px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 1. WORKSPACE SCREEN VIEW CONTAINER -->
+  <div class="ui-only">
+
+    <!-- MODULE HEADER -->
+    <div class="module-header">
+      <div>
+        <h1 class="module-title">Member Register [Dr/Cr]</h1>
+        
+        <div class="module-subline" id="mregDateSubline">MEMBER ACCOUNT FROM 01-APR-2025 TO 31-MAR-2026</div>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button type="button" class="btn-print" onclick="openPrintModal()">
+          <i class="bi bi-printer-fill"></i> PRINT
+        </button>
+        <button type="button" class="btn-excel" onclick="exportToExcel()">
+          <i class="bi bi-file-earmark-excel-fill"></i> EXCEL
+        </button>
+      </div>
+    </div>
+
+    <!-- FILTER BAR CARD -->
+    <div class="filter-card">
+      <div class="form-group">
+        <label class="form-label">From Member</label>
+        <select id="flt-from-mem" class="form-sel" style="width: 145px;" onchange="onFromMemberChange()">
+          <option value="">-- All Members --</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">To Member</label>
+        <select id="flt-to-mem" class="form-sel" style="width: 145px;" onchange="onToMemberChange()">
+          <option value="">-- All Members --</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Bill Type</label>
+        <select id="flt-bill-type" class="form-sel" style="width: 125px;" onchange="loadMemberRegister()">
+          <option value="">-- All Bill Types --</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">From Date</label>
+        <input type="date" id="flt-from-date" class="form-inp" style="width: 120px;" onchange="loadMemberRegister()">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">To Date</label>
+        <input type="date" id="flt-to-date" class="form-inp" style="width: 120px;" onchange="loadMemberRegister()">
+      </div>
+
+      <button type="button" class="btn-reset" onclick="resetFilters()">
+        <i class="bi bi-arrow-counterclockwise"></i> Reset
+      </button>
+
+      <div class="form-group">
+        <label class="form-label">Individual</label>
+        <select id="flt-ind-mem" class="form-sel" style="width: 145px;" onchange="onIndividualMemberChange()">
+          <option value="">-- All Members --</option>
+        </select>
+      </div>
+
+      <div class="form-group" style="margin-left: 2px;">
+        <label class="form-label">ACCUMULATE PRINCIPAL/INTEREST</label>
+        <label class="toggle-switch" style="display:inline-flex; align-items:center; cursor:pointer; height:32px; gap:6px;">
+          <input type="checkbox" id="chk-accumulate" onchange="toggleAccumulateColumns(this.checked)" style="display:none;">
+          <span class="toggle-slider" id="toggle-slider-btn" style="width:40px; height:20px; background:#cbd5e1; border-radius:20px; position:relative; transition:background 0.2s; display:inline-block;">
+            <span class="toggle-knob" style="width:14px; height:14px; background:#fff; border-radius:50%; position:absolute; top:3px; left:3px; transition:transform 0.2s; box-shadow:0 1px 3px rgba(0,0,0,0.2);"></span>
+          </span>
+          <span id="lbl-accumulate-status" style="font-size:10.5px; font-weight:800; color:#64748b;">OFF</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- DYNAMIC CARDS CONTAINER -->
+    <div id="mreg-cards-container">
+      <div style="text-align:center; padding:40px; color:#64748b; font-weight:700;">
+        <i class="bi bi-arrow-repeat spin"></i> Loading Member Register [Dr/Cr]...
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 2. PRINT OPTIONS SELECTION MODAL (IMAGE 1 DESIGN) -->
+  <div id="printOptionsModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header-banner">
+        <h3>Print Member Register</h3>
+        <button type="button" class="modal-close-btn" onclick="closePrintModal()">✕</button>
+      </div>
+
+      <div class="modal-body-content">
+        <div class="modal-sub-label">Select the print format for the report:</div>
+
+        <div id="optCardCompact" class="print-opt-card active" onclick="selectPrintOption('compact')">
+          <input type="radio" id="radioCompact" name="printFormatOpt" value="compact" class="print-opt-radio" checked>
+          <div class="print-opt-text">
+            <h4>LEDGER REPORT</h4>
+            <p>COLUMNS: DATE, TYPE-NO, PARTICULAR, DEBIT, CREDIT, BALANCE</p>
+          </div>
+        </div>
+
+        <div id="optCardBreakup" class="print-opt-card" onclick="selectPrintOption('breakup')">
+          <input type="radio" id="radioBreakup" name="printFormatOpt" value="breakup" class="print-opt-radio">
+          <div class="print-opt-text">
+            <h4>LEDGER BREAK-UP REPORT</h4>
+            <p>COLUMNS: DATE, TYPE-NO, PARTICULAR, PRINCIPAL, INTEREST, DEBIT, CREDIT, BALANCE</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer-actions">
+        <button type="button" class="btn-modal-cancel" onclick="closePrintModal()">Cancel</button>
+        <button type="button" class="btn-modal-print" onclick="executePrint()">Print Report</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. PRINT ONLY ENGINE CONTAINER -->
+  <div class="print-only">
+    <div class="print-page-header">
+      <div class="print-top-right-tag">Member Register Print</div>
+      <div id="prtSocName" class="print-soc-title">SHREE SAI SOCIETY</div>
+      <div id="prtSubtitle" class="print-sub-title">Member Account from 01/04/2025 to 31/03/2026</div>
+      <div class="print-meta-line">
+        <span id="prtFyLabel">F.Y. : 01/04/2025-31/03/2026</span>
+        <span>ALL LEDGERS</span>
+      </div>
+    </div>
+
+    <div id="mreg-print-container"></div>
+  </div>
+
+  <script src="../../../config.js"></script>
+  <script src="../../../assets/js/api.js"></script>
+  <script src="../../../assets/js/auth.js"></script>
+  <script src="member-register-drcr.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,1577 @@
+<!DOCTYPE html>
+<html lang="en" style="height:100%;overflow:hidden;">
+<head>
+  <meta charset="UTF-8">
+  <title>Member Master — JEEVIKA ERP</title>
+  <link rel="stylesheet" href="../../../assets/css/global.css">
+  <link rel="stylesheet" href="./member-master.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body style="margin:0;padding:0;height:100%;overflow:hidden;">
+
+<div class="mm-canvas" id="mm-panel">
+
+  <!-- MODULE HEADER -->
+  <div class="mm-header">
+    <div>
+      <h2>MEMBER MASTER</h2>
+      
+    </div>
+    <div class="mm-header-tag">[Society Member Ledger Directory]</div>
+  </div>
+
+  <!-- COMMAND STRIP -->
+  <div class="mm-cmd-strip" id="mm-cmd-strip">
+    <button class="mm-btn" id="mm-btn-add" onclick="mmAdd()"><i class="bi bi-plus-lg"></i> ADD</button>
+    <button class="mm-btn" id="mm-btn-alter" onclick="mmAlter()"><i class="bi bi-pencil-square"></i> ALTER</button>
+    <button class="mm-btn mm-btn-danger" id="mm-btn-delete" onclick="mmDelete()"><i class="bi bi-trash"></i> DELETE</button>
+    <div class="mm-sep"></div>
+    <button class="mm-btn mm-btn-hidden" id="mm-btn-save" onclick="mmSave()"><i class="bi bi-check-lg"></i> SAVE</button>
+    <button class="mm-btn mm-btn-hidden" id="mm-btn-cancel" onclick="mmShowList()"><i class="bi bi-x-circle"></i> CANCEL</button>
+    <div class="mm-sep"></div>
+    <button class="mm-btn" id="mm-btn-statement" onclick="mmShowStatement()"><i class="bi bi-eye"></i> SHOW STATEMENT</button>
+    <button class="mm-btn" id="mm-btn-print" onclick="mmPrint()"><i class="bi bi-printer"></i> PRINT REGISTER</button>
+    
+    <!-- OTHER DROPDOWN MENU -->
+    <div style="position:relative;display:inline-block;" id="mm-other-drop"
+         onmouseleave="document.getElementById('mm-other-menu').style.display='none'">
+      <button class="mm-btn" onmouseenter="document.getElementById('mm-other-menu').style.display='block'">
+        OTHER <i class="bi bi-chevron-down"></i>
+      </button>
+      <div id="mm-other-menu" style="display:none;position:absolute;top:26px;left:0;background:#ffffff;border:1px solid #cbd5e1;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:1000;min-width:230px;padding:5px 0;border-radius:6px;">
+        <div style="padding:4px 12px;font-size:10px;font-weight:700;color:#64748b;letter-spacing:0.5px;text-transform:uppercase;">Member Import / Export</div>
+        <a href="#" onclick="event.preventDefault();mmOpenBulkImportModal()" style="display:flex;align-items:center;gap:8px;padding:7px 14px;color:#1e293b;text-decoration:none;font-size:11px;font-weight:600;"><i class="bi bi-file-earmark-arrow-up-fill" style="color:#535fc1;font-size:14px;"></i> Import Members (Bulk Sync)</a>
+        <a href="#" onclick="event.preventDefault();mmExportMembers('xlsx')" style="display:flex;align-items:center;gap:8px;padding:7px 14px;color:#1e293b;text-decoration:none;font-size:11px;font-weight:600;"><i class="bi bi-file-earmark-excel-fill" style="color:#15803d;font-size:14px;"></i> Export Members (.xlsx)</a>
+        <a href="#" onclick="event.preventDefault();mmExportMembers('csv')" style="display:flex;align-items:center;gap:8px;padding:7px 14px;color:#1e293b;text-decoration:none;font-size:11px;font-weight:600;"><i class="bi bi-file-earmark-text-fill" style="color:#0284c7;font-size:14px;"></i> Export Members (.csv)</a>
+        <a href="#" onclick="event.preventDefault();mmExportMembers('xls')" style="display:flex;align-items:center;gap:8px;padding:7px 14px;color:#1e293b;text-decoration:none;font-size:11px;font-weight:600;"><i class="bi bi-filetype-xls" style="color:#16a34a;font-size:14px;"></i> Export Members (.xls)</a>
+        <a href="#" onclick="event.preventDefault();mmDownloadMemberTemplate('xlsx')" style="display:flex;align-items:center;gap:8px;padding:7px 14px;color:#535fc1;text-decoration:none;font-size:11px;font-weight:700;"><i class="bi bi-download" style="color:#535fc1;font-size:14px;"></i> Download Blank Template</a>
+        <div style="height:1px;background:#e2e8f0;margin:5px 0;"></div>
+        <div style="padding:4px 12px;font-size:10px;font-weight:700;color:#64748b;letter-spacing:0.5px;text-transform:uppercase;">Bulk Actions</div>
+        <a href="#" onclick="event.preventDefault();mmOpenBulkReassign()" style="display:flex;align-items:center;gap:8px;padding:7px 14px;color:#1e293b;text-decoration:none;font-size:11px;font-weight:600;"><i class="bi bi-input-cursor-text" style="color:#64748b;font-size:14px;"></i> Bulk Reassignment</a>
+        <a href="#" onclick="event.preventDefault();mmToggleMultiDelete()" style="display:flex;align-items:center;gap:8px;padding:7px 14px;color:#dc2626;text-decoration:none;font-size:11px;font-weight:600;"><i class="bi bi-trash-fill" style="color:#dc2626;font-size:14px;"></i> Multi Delete</a>
+      </div>
+    </div>
+
+    <!-- SEARCH & EXIT -->
+    <button class="mm-btn" id="mm-btn-search" onclick="mmToggleSearch()" title="Search & Filter"><i class="bi bi-search"></i> SEARCH</button>
+    <button class="mm-btn" style="margin-left:auto;" onclick="mmExit()"><i class="bi bi-door-open"></i> EXIT (ESC)</button>
+  </div>
+
+  <!-- MAIN WORKSPACE -->
+  <div class="mm-workspace">
+
+    <!-- LIST STATE (GRID VIEW) -->
+    <div id="mm-list-state">
+      <div class="mm-grid">
+        <table class="mm-table" id="mm-table">
+          <thead>
+            <tr>
+              <th style="width:36px;text-align:center;" id="mm-th-chk"><input type="checkbox" id="mm-chk-all" onclick="mmToggleAll(this.checked)" style="accent-color:#1565C0;display:none;"></th>
+              <th style="width:100px;">CODE</th>
+              <th style="width:90px;">FLAT NO.</th>
+              <th style="width:70px;">WING</th>
+              <th style="width:130px;">BUILDING</th>
+              <th style="width:90px;">TYPE</th>
+              <th>MEMBER NAME</th>
+              <th style="width:80px;">AREA</th>
+              <th style="width:110px;">MOBILE NO.</th>
+              <th style="width:160px;">EMAIL</th>
+            </tr>
+          </thead>
+          <tbody id="mm-tbody">
+            <tr><td colspan="10" style="text-align:center;padding:30px;color:#808080;">
+              <i class="bi bi-hourglass-split"></i> Loading members...
+            </td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- FORM STATE (6 TABS ON ADD, 8 TABS ON ALTER) -->
+    <div id="mm-form-state">
+      <input type="hidden" id="mm-edit-id" value="0">
+
+      <div class="mm-form-title-bar" id="mm-form-mode-title">NEW MEMBER CREATION</div>
+
+      <!-- TABS HEADER -->
+      <div class="mm-tabs-header">
+        <div class="mm-tab-btn active" onclick="mmSwitchTab(0)">1. BASIC DETAILS</div>
+        <div class="mm-tab-btn" onclick="mmSwitchTab(1)">2. NON OCCUPANCY MANAGEMENT</div>
+        <div class="mm-tab-btn" onclick="mmSwitchTab(2)">3. PARKING SLOT</div>
+        <div class="mm-tab-btn" onclick="mmSwitchTab(3)">4. LIEN MARK DETAILS</div>
+        <div class="mm-tab-btn" onclick="mmSwitchTab(4)">5. SHARE CERT.</div>
+        <div class="mm-tab-btn" onclick="mmSwitchTab(5)">6. NOMINEE INFO</div>
+        <div class="mm-tab-btn mm-tab-hidden" id="mm-tab-btn-7" onclick="mmSwitchTab(6)">7. MEMBER TRANSFER</div>
+        <div class="mm-tab-btn mm-tab-hidden" id="mm-tab-btn-8" onclick="mmSwitchTab(7)">8. BILL BREAKUP</div>
+      </div>
+
+      <!-- TABS CONTENT CONTAINER -->
+      <div class="mm-tabs-content">
+
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <!-- TAB 1: BASIC DETAILS                                        -->
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <div class="mm-tab-page active">
+
+          <!-- Frame 1: MEMBER IDENTIFICATION & CORE NOMINEES -->
+          <div class="mm-frame" style="position:relative;">
+            <div class="mm-frame-title" style="display:flex;justify-content:space-between;align-items:center;">
+              <div style="display:flex;align-items:center;gap:14px;">
+                <span>MEMBER IDENTIFICATION &amp; CORE NOMINEES</span>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <label style="margin:0;color:#dc2626;font-size:11px;font-weight:bold;white-space:nowrap;">MEMBER CODE *</label>
+                  <input type="text" id="mm-code" class="mm-input" style="width:140px;font-weight:bold;height:24px;background:#ffffff;color:#1e293b;" placeholder="Enter Member Code..." onkeydown="mmHandlePersonKeyNav(event, 0)">
+                </div>
+              </div>
+              <!-- Member Transfer toggle (Visible ONLY when ALTERING existing entry) -->
+              <div id="mm-transfer-toggle-container" style="display:none;align-items:center;gap:6px;">
+                <label style="color:#dc2626;font-size:10px;font-weight:bold;margin:0;">MEMBER TRANSFER</label>
+                <select id="mm-transfer-toggle" class="mm-select" style="width:80px;font-weight:bold;color:#dc2626;" onchange="mmOnTransferToggleChange(this.value)">
+                  <option value="No">No</option>
+                  <option value="Yes">Yes</option>
+                </select>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;padding:4px 0;">
+              <!-- Left Column: Person 1, 2, 3 -->
+              <div style="display:grid;grid-template-columns:100px 1fr;gap:8px 12px;align-items:center;">
+                <label>PERSON 1 *</label>
+                <input type="text" id="mm-name1" class="mm-input" placeholder="Person 1 name..." onkeydown="mmHandlePersonKeyNav(event, 1)">
+
+                <label>PERSON 2</label>
+                <input type="text" id="mm-name2" class="mm-input" placeholder="Person 2 name..." onkeydown="mmHandlePersonKeyNav(event, 2)">
+
+                <label>PERSON 3</label>
+                <input type="text" id="mm-name3" class="mm-input" placeholder="Person 3 name..." onkeydown="mmHandlePersonKeyNav(event, 3)">
+              </div>
+
+              <!-- Right Column: Person 4, 5, 6 -->
+              <div style="display:grid;grid-template-columns:100px 1fr;gap:8px 12px;align-items:center;">
+                <label>PERSON 4</label>
+                <input type="text" id="mm-name4" class="mm-input" placeholder="Person 4 name..." onkeydown="mmHandlePersonKeyNav(event, 4)">
+
+                <label>PERSON 5</label>
+                <input type="text" id="mm-name5" class="mm-input" placeholder="Person 5 name..." onkeydown="mmHandlePersonKeyNav(event, 5)">
+
+                <label>PERSON 6</label>
+                <input type="text" id="mm-name6" class="mm-input" placeholder="Person 6 name..." onkeydown="mmHandlePersonKeyNav(event, 6)">
+              </div>
+            </div>
+          </div>
+
+          <!-- INLINE EXPANDABLE TRANSFER DRAWER (When Member Transfer = Yes on ALTER mode) -->
+          <div class="mm-frame" id="mm-transfer-drawer" style="display:none;border:1px solid #1565C0;background:#ffffff;margin-top:6px;">
+            <div class="mm-frame-title">
+              <span><i class="bi bi-arrow-left-right"></i> MEMBER TRANSFER - ACTION DETAILS &amp; TRANSFEREE SETUP</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px;padding:4px 0;">
+              <!-- Row 1 -->
+              <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;">
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <label style="color:#dc2626;">TRANSFER DATE *</label>
+                  <input type="date" id="mm-transfer-date" class="mm-input" style="width:130px;">
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <label style="color:#dc2626;">TRANSFER TYPE *</label>
+                  <select id="mm-transfer-type" class="mm-select" style="width:110px;">
+                    <option value="Sell">Sell</option>
+                    <option value="Gift">Gift</option>
+                    <option value="Bank purchase">Bank purchase</option>
+                    <option value="Nomination transfer">Nomination transfer</option>
+                  </select>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <label>TYPE</label>
+                  <select id="mm-transfer-meeting-type" class="mm-select" style="width:180px;">
+                    <option value="AGM">AGM: ANNUAL GENERAL BODY</option>
+                    <option value="SGM">SGM: SPECIAL GENERAL BODY</option>
+                    <option value="MCM">MCM: MANAGING COMMITTEE</option>
+                  </select>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <label>DATE</label>
+                  <input type="date" id="mm-transfer-meeting-date" class="mm-input" style="width:130px;">
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <label>RESOLUTION NO.</label>
+                  <input type="text" id="mm-transfer-resolution-no" class="mm-input" style="width:90px;" placeholder="Res. No.">
+                </div>
+              </div>
+
+              <!-- Row 2 -->
+              <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;">
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <label>TRANSFER NO.</label>
+                  <input type="text" id="mm-transfer-no" class="mm-input" style="width:100px;" placeholder="Trans. No.">
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <label>REGISTER NO. OF TRANSFER</label>
+                  <input type="text" id="mm-transfer-reg-no-transfer" class="mm-input" style="width:140px;" placeholder="Reg. No. Transfer">
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <label>REGISTER NO. OF TRANSFEREE</label>
+                  <input type="text" id="mm-transfer-reg-no-transferee" class="mm-input" style="width:140px;" placeholder="Reg. No. Transferee">
+                </div>
+              </div>
+
+              <!-- Row 3: Dates -->
+              <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:center;border-top:1px dashed #cbd5e1;padding-top:8px;">
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <label>DATE OF AGREEMENT</label>
+                  <input type="date" id="mm-tr-agree-date" class="mm-input" style="width:130px;">
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <label>DATE OF REGISTRATION</label>
+                  <input type="date" id="mm-tr-reg-date" class="mm-input" style="width:130px;">
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <label>DATE OF STAMP DUTY</label>
+                  <input type="date" id="mm-tr-stamp-date" class="mm-input" style="width:130px;">
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <label>AGREEMENT REGISTRATION NO.</label>
+                  <input type="text" id="mm-tr-agree-regno" class="mm-input" style="width:130px;" placeholder="Reg. No.">
+                </div>
+              </div>
+
+              <!-- Row 4: Values -->
+              <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:center;">
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <label>AGREEMENT VALUE (₹)</label>
+                  <input type="number" id="mm-tr-agree-val" class="mm-input" style="width:120px;text-align:right;" placeholder="">
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <label>STAMP DUTY VALUE (₹)</label>
+                  <input type="number" id="mm-tr-stamp-val" class="mm-input" style="width:120px;text-align:right;" placeholder="">
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <label>REGISTRATION FEES VALUE (₹)</label>
+                  <input type="number" id="mm-tr-reg-fees" class="mm-input" style="width:120px;text-align:right;" placeholder="">
+                </div>
+              </div>
+
+              <!-- Transferee Nominees Section -->
+              <div style="border-top:1px dashed #fca5a5;padding-top:8px;font-weight:bold;color:#1565C0;">
+                <i class="bi bi-person-fill-add"></i> Transferee Nominees &amp; Profile Setup
+              </div>
+              <div style="display:grid;grid-template-columns:110px 1fr 110px 1fr;gap:6px 12px;align-items:center;">
+                <label>NEW PERSON 1 *</label>
+                <input type="text" id="mm-tr-new-name1" class="mm-input" placeholder="Transferee Primary Name...">
+
+                <label>NEW PERSON 4</label>
+                <input type="text" id="mm-tr-new-name4" class="mm-input" placeholder="Transferee Nominee 4...">
+
+                <label>NEW PERSON 2</label>
+                <input type="text" id="mm-tr-new-name2" class="mm-input" placeholder="Transferee Nominee 2...">
+
+                <label>NEW PERSON 5</label>
+                <input type="text" id="mm-tr-new-name5" class="mm-input" placeholder="Transferee Nominee 5...">
+
+                <label>NEW PERSON 3</label>
+                <input type="text" id="mm-tr-new-name3" class="mm-input" placeholder="Transferee Nominee 3...">
+
+                <label>NEW PERSON 6</label>
+                <input type="text" id="mm-tr-new-name6" class="mm-input" placeholder="Transferee Nominee 6...">
+
+                <label>NEW MOBILE PHONE</label>
+                <input type="text" id="mm-tr-new-phone" class="mm-input" placeholder="e.g. 9876543210">
+
+                <label>NEW EMAIL ID</label>
+                <input type="email" id="mm-tr-new-email" class="mm-input" placeholder="e.g. transferee@gmail.com">
+              </div>
+
+              <!-- Transferee Document Box -->
+              <div style="border-top:1px dashed #fca5a5;padding-top:8px;font-weight:bold;color:#1565C0;">
+                <i class="bi bi-file-earmark-person-fill"></i> Transferee Documents &amp; KYC Upload
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;">
+                <div style="display:flex;flex-direction:column;gap:4px;">
+                  <label>TRANSFEREE PHOTO</label>
+                  <input type="file" class="mm-input" onchange="mmHandleDocFile(this, 'mm-tr-photo-prev')">
+                  <div class="mm-doc-preview-box" id="mm-tr-photo-prev"><span>No Photo</span></div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:4px;">
+                  <label>AADHAR CARD UPLOAD</label>
+                  <input type="file" class="mm-input" onchange="mmHandleDocFile(this, 'mm-tr-aadhar-prev')">
+                  <div class="mm-doc-preview-box" id="mm-tr-aadhar-prev"><span>No Document</span></div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:4px;">
+                  <label>AGREEMENT UPLOAD</label>
+                  <input type="file" class="mm-input" onchange="mmHandleDocFile(this, 'mm-tr-agree-prev')">
+                  <div class="mm-doc-preview-box" id="mm-tr-agree-prev"><span>No Document</span></div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:4px;">
+                  <label>PAN CARD UPLOAD</label>
+                  <input type="file" class="mm-input" onchange="mmHandleDocFile(this, 'mm-tr-pan-prev')">
+                  <div class="mm-doc-preview-box" id="mm-tr-pan-prev"><span>No Document</span></div>
+                </div>
+              </div>
+
+              <!-- Remarks & Execute -->
+              <div style="display:flex;gap:10px;align-items:center;margin-top:6px;">
+                <label style="white-space:nowrap;">TRANSFER REMARKS</label>
+                <input type="text" id="mm-tr-remarks" class="mm-input" style="flex:1;" placeholder="Enter manual observations / remarks...">
+                <button type="button" class="mm-btn mm-btn-danger" style="height:26px;font-weight:bold;" onclick="mmExecuteMemberTransfer()"><i class="bi bi-check-circle-fill"></i> EXECUTE TRANSFER</button>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Frame 2: FLAT & LOCATION DETAILS -->
+          <div class="mm-frame">
+            <div class="mm-frame-title">FLAT &amp; LOCATION DETAILS</div>
+            <div style="display:grid;grid-template-columns:100px 1fr 100px 1fr 110px 1fr 100px 1fr;gap:6px 12px;align-items:center;">
+              <label>TYPE *</label>
+              <select id="mm-unittype" class="mm-select" onchange="mmOnUnitTypeChange(this.value)">
+                <option value="">-- Select Type --</option>
+                <option value="Flat">Flat</option>
+                <option value="Shop">Shop</option>
+                <option value="Office">Office</option>
+                <option value="Unit">Unit</option>
+                <option value="Room">Room</option>
+                <option value="Residential">Residential</option>
+                <option value="__ADD_UNIT_TYPE__" style="font-weight:bold;color:#0284c7;">Add+</option>
+              </select>
+
+              <label id="lbl-mm-flatno">FLAT NO. *</label>
+              <input type="text" id="mm-flatno" class="mm-input" placeholder="e.g. 101">
+
+              <label>WING NAME/NO.</label>
+              <input type="text" id="mm-wing" class="mm-input" placeholder="e.g. A WING">
+
+              <label>FLOOR NUMBER</label>
+              <input type="text" id="mm-floor" class="mm-input" placeholder="e.g. 1">
+
+              <label id="lbl-mm-flattype">FLAT TYPE</label>
+              <select id="mm-flattype" class="mm-select" onchange="mmOnFlatTypeChange(this.value)">
+                <option value="">-- Select Flat Type --</option>
+                <option value="1 rk">1 rk</option>
+                <option value="1 BHK">1 BHK</option>
+                <option value="2 BHK">2 BHK</option>
+                <option value="3 BHK">3 BHK</option>
+                <option value="4 BHK">4 BHK</option>
+                <option value="5 BHK">5 BHK</option>
+                <option value="PENTHOUSE">PENTHOUSE</option>
+                <option value="DUPLEX">DUPLEX</option>
+                <option value="RAW HOUSE">RAW HOUSE</option>
+                <option value="BUNGLOW">BUNGLOW</option>
+                <option value="HUT">HUT</option>
+                <option value="2BHK">2BHK</option>
+                <option value="__ADD_FLAT_TYPE__" style="font-weight:bold;color:#0284c7;">Add+</option>
+              </select>
+
+              <label>BUILDING NAME</label>
+              <input type="text" id="mm-bldg" class="mm-input" placeholder="e.g. SHREE RAM APTS">
+
+              <label>GSTIN REGISTRATION</label>
+              <input type="text" id="mm-gstin" class="mm-input" placeholder="27ABCDE1234F1Z5" style="text-transform:uppercase;">
+
+              <label>PAN NO.</label>
+              <input type="text" id="mm-panno" class="mm-input" placeholder="ABCDE1234F" style="text-transform:uppercase;">
+
+              <label>AREA VALUE</label>
+              <input type="number" id="mm-areavalue" class="mm-input" placeholder="Enter Area" value="">
+
+              <label>AREA TYPE</label>
+              <div style="grid-column:span 5;display:flex;gap:8px;">
+                <input type="text" id="mm-areatype" class="mm-input" style="flex:1;background:#f1f5f9;text-align:center;" value="RERA" readonly>
+                <input type="text" id="mm-areacat" class="mm-input" style="flex:1;background:#f1f5f9;text-align:center;" value="Carpet" readonly>
+                <input type="text" id="mm-areaunit" class="mm-input" style="flex:1;background:#f1f5f9;text-align:center;" value="Sq.Ft" readonly>
+              </div>
+            </div>
+          </div>
+
+          <!-- Frame 3: OPENING BALANCE INFO -->
+          <div class="mm-frame mm-frame-blue">
+            <div class="mm-frame-title">
+              <div style="display:flex;align-items:center;gap:12px;">
+                <span>OPENING BALANCE INFO</span>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <label style="color:#1d4ed8;margin:0;">BILL TYPE:</label>
+                  <select id="mm-opbal-billtype" class="mm-select" style="width:140px;background:#ffffff;color:#1d4ed8;font-weight:bold;" onchange="mmOnBillTypeChange()">
+                    <option value="Maintenance">Maintenance</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:130px 1fr 130px 1fr 130px 1fr;gap:6px 12px;align-items:center;">
+              <label style="color:#1d4ed8;">OPENING PRINCIPAL</label>
+              <div class="mm-currency-wrapper">
+                <span>₹</span>
+                <input type="number" id="mm-opbal-principal" class="mm-input" value="0.00" step="0.01" oninput="mmCalcTotalBal()">
+              </div>
+
+              <label style="color:#1d4ed8;">OPENING INTEREST</label>
+              <div class="mm-currency-wrapper">
+                <span>₹</span>
+                <input type="number" id="mm-opbal-interest" class="mm-input" value="0.00" step="0.01" oninput="mmCalcTotalBal()">
+              </div>
+
+              <label style="color:#1d4ed8;">TOTAL BALANCE</label>
+              <div class="mm-currency-wrapper">
+                <span>₹</span>
+                <input type="number" id="mm-total-bal" class="mm-input" style="background:#e2e8f0;font-weight:bold;" readonly value="0.00">
+              </div>
+            </div>
+          </div>
+
+          <!-- Frame 4: MEMBER KYC & VERIFICATION -->
+          <div class="mm-frame">
+            <div class="mm-frame-title">MEMBER KYC &amp; VERIFICATION</div>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <div style="display:grid;grid-template-columns:140px 1fr 140px 1fr 140px 1fr 160px 1fr;gap:6px 10px;align-items:center;">
+                <label>DATE OF AGREEMENT</label>
+                <input type="date" id="mm-agreement-date" class="mm-input">
+
+                <label>DATE OF REGISTRATION</label>
+                <input type="date" id="mm-registration-date" class="mm-input">
+
+                <label>DATE OF STAMP DUTY</label>
+                <input type="date" id="mm-stamp-date" class="mm-input">
+
+                <label>AGREEMENT REGISTRATION NO.</label>
+                <input type="text" id="mm-agreement-reg-no" class="mm-input" placeholder="Reg. No.">
+              </div>
+
+              <div style="display:grid;grid-template-columns:140px 1fr 140px 1fr 160px 1fr;gap:6px 10px;align-items:center;">
+                <label>AGREEMENT VALUE (₹)</label>
+                <input type="number" id="mm-agreement-value" class="mm-input" style="text-align:right;" placeholder="">
+
+                <label>STAMP DUTY VALUE (₹)</label>
+                <input type="number" id="mm-stamp-value" class="mm-input" style="text-align:right;" placeholder="">
+
+                <label>REGISTRATION FEES VALUE (₹)</label>
+                <input type="number" id="mm-reg-fees" class="mm-input" style="text-align:right;" placeholder="">
+              </div>
+
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-top:4px;">
+                <div style="display:flex;flex-direction:column;gap:4px;">
+                  <label>MEMBER PHOTO</label>
+                  <input type="file" id="mm-doc-photo-file" accept="image/*" class="mm-input" onchange="mmHandleDocFile(this, 'mm-doc-photo-preview')">
+                  <div class="mm-doc-preview-box" id="mm-doc-photo-preview"><span>No Photo</span></div>
+                </div>
+
+                <div style="display:flex;flex-direction:column;gap:4px;">
+                  <label>AADHAR CARD UPLOAD</label>
+                  <input type="file" id="mm-doc-aadhar-file" accept="image/*,.pdf" class="mm-input" onchange="mmHandleDocFile(this, 'mm-doc-aadhar-preview')">
+                  <div class="mm-doc-preview-box" id="mm-doc-aadhar-preview"><span>No Document</span></div>
+                </div>
+
+                <div style="display:flex;flex-direction:column;gap:4px;">
+                  <label>AGREEMENT UPLOAD</label>
+                  <input type="file" id="mm-doc-agree-file" accept="image/*,.pdf" class="mm-input" onchange="mmHandleDocFile(this, 'mm-doc-agree-preview')">
+                  <div class="mm-doc-preview-box" id="mm-doc-agree-preview"><span>No Document</span></div>
+                </div>
+
+                <div style="display:flex;flex-direction:column;gap:4px;">
+                  <label>PAN CARD UPLOAD</label>
+                  <input type="file" id="mm-doc-pan-file" accept="image/*,.pdf" class="mm-input" onchange="mmHandleDocFile(this, 'mm-doc-pan-preview')">
+                  <div class="mm-doc-preview-box" id="mm-doc-pan-preview"><span>No Document</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Frame 5: MEMBER ADDITIONAL INFO (COLLAPSIBLE WITH + ADD BUTTON) -->
+          <div class="mm-frame">
+            <div class="mm-frame-title">
+              <span>MEMBER ADDITIONAL INFO</span>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <button type="button" class="mm-btn" style="height:22px;padding:0 8px;font-size:10px;" onclick="mmAddAdditionalRow()">+ ADD</button>
+                <button type="button" class="mm-btn" style="height:22px;padding:0 6px;" onclick="mmToggleAdditionalInfo()" id="mm-additional-toggle-btn"><i class="bi bi-chevron-down"></i></button>
+              </div>
+            </div>
+            
+            <div id="mm-additional-body" style="display:none;flex-direction:column;gap:8px;margin-top:6px;">
+              <div style="display:grid;grid-template-columns:140px 90px 1fr 90px 1fr 80px 1fr;gap:6px;align-items:center;border-bottom:1px dashed #cbd5e1;padding-bottom:6px;">
+                <span style="font-weight:bold;color:#1565C0;">1. Bank Details</span>
+                <label style="text-align:right;">Bank Name</label>
+                <input type="text" id="mm-bank" class="mm-input" placeholder="State Bank of India">
+                <label style="text-align:right;">A/c No.</label>
+                <input type="text" id="mm-bankacc" class="mm-input" placeholder="1234567890">
+                <label style="text-align:right;">IFSC</label>
+                <input type="text" id="mm-bankifsc" class="mm-input" placeholder="SBIN0001234" style="text-transform:uppercase;">
+              </div>
+
+              <div style="display:grid;grid-template-columns:140px 90px 1fr 90px 1fr 80px 1fr;gap:6px;align-items:center;border-bottom:1px dashed #cbd5e1;padding-bottom:6px;">
+                <span style="font-weight:bold;color:#1565C0;">2. Electricity Details</span>
+                <label style="text-align:right;">Company</label>
+                <input type="text" id="mm-elec-company" class="mm-input" placeholder="MSEDCL / BEST / Adani">
+                <label style="text-align:right;">Consumer No.</label>
+                <input type="text" id="mm-elec-consumer" class="mm-input" placeholder="Consumer No.">
+                <label style="text-align:right;">Meter No.</label>
+                <input type="text" id="mm-elec-meter" class="mm-input" placeholder="Meter No.">
+              </div>
+
+              <div id="mm-dynamic-additional-rows" style="display:flex;flex-direction:column;gap:8px;"></div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <!-- TAB 2: NON OCCUPANCY MANAGEMENT (NOC)                       -->
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <!-- TAB 2: NON OCCUPANCY MANAGEMENT                             -->
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <div class="mm-tab-page">
+          <div class="mm-frame">
+            <div class="mm-frame-title">NON-OCCUPANCY / TENANT DETAILS</div>
+            
+            <!-- TOP BAR (PRESENT STATUS + ASSIGN TENANT / LEAVE BUTTON + NOC CODE + CHARGES) -->
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #cbd5e1;flex-wrap:wrap;">
+              <label style="font-weight:bold;color:#1e293b;">PRESENT STATUS</label>
+              <span id="mm-nonocc-status-badge" style="padding:4px 14px;font-weight:bold;font-size:11px;border-radius:3px;background:#dc2626;color:#ffffff;">VACANT</span>
+              <button type="button" class="mm-btn" id="mm-nonocc-btn-toggle" onclick="mmToggleNocStatus()" style="font-weight:bold;color:#1565C0;padding:4px 14px;background:#e0f2fe;border:1px solid #0284c7;">ASSIGN TENANT (OCCUPIED)</button>
+              
+              <div style="display:flex;align-items:center;gap:6px;margin-left:6px;">
+                <span style="font-weight:bold;font-size:11px;color:#334155;">NOC Code:</span>
+                <input type="text" id="mm-noc-code" class="mm-input" style="width:90px;text-align:center;font-weight:bold;background:#ffffff;" value="INC-1005" readonly>
+              </div>
+
+              <!-- Top Charges input (shown when Active/Occupied) -->
+              <div id="mm-nonocc-top-charges-wrap" style="display:none;align-items:center;gap:8px;margin-left:auto;">
+                <label style="font-weight:bold;font-size:11px;color:#1e293b;">CHARGES (₹)</label>
+                <input type="number" id="mm-nonocc-charges" class="mm-input" style="width:140px;" value="0" oninput="mmOnNocChargesInput(this.value)">
+              </div>
+            </div>
+
+            <!-- COLLAPSIBLE TENANT DATA ENTRY FORM (Opens ONLY when ASSIGN TENANT / OCCUPIED is active) -->
+            <div id="mm-tenant-form-container" style="display:none;flex-direction:column;gap:12px;margin-bottom:16px;">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;">
+                <!-- LEFT COLUMN -->
+                <div style="display:grid;grid-template-columns:160px 1fr;gap:10px 12px;align-items:center;">
+                  <label>TENANT NAME</label>
+                  <input type="text" id="mm-tenant-name" class="mm-input" placeholder="Name of Tenant / Licensee">
+
+                  <label>MOB NO.</label>
+                  <input type="text" id="mm-tenant-contact" class="mm-input" placeholder="Primary family mobile">
+
+                  <label>SECONDARY MOBILE NO.</label>
+                  <input type="text" id="mm-nonocc-phone2" class="mm-input" placeholder="Secondary family mobile">
+
+                  <label>AGREEMENT PERIOD</label>
+                  <div style="display:flex;align-items:center;gap:6px;">
+                    <input type="date" id="mm-nonocc-period-from" class="mm-input" style="flex:1;">
+                    <span style="font-weight:bold;color:#64748b;">to</span>
+                    <input type="date" id="mm-nonocc-period-to" class="mm-input" style="flex:1;">
+                  </div>
+                </div>
+
+                <!-- RIGHT COLUMN -->
+                <div style="display:grid;grid-template-columns:180px 1fr;gap:10px 12px;align-items:start;">
+                  <label style="margin-top:6px;">FAMILY MEMBER NO.</label>
+                  <input type="number" id="mm-nonocc-members-count" class="mm-input" placeholder="e.g. 4">
+
+                  <label style="margin-top:6px;">FAMILY NAMES</label>
+                  <textarea id="mm-nonocc-family-names" class="mm-input" style="height:60px;padding:6px;font-family:inherit;" placeholder="Enter family members' names..."></textarea>
+
+                  <label style="margin-top:6px;">AGREEMENT ASSIGN BETWEEN</label>
+                  <input type="text" id="mm-nonocc-agreement-assign" class="mm-input" placeholder="e.g. John Doe &amp; Jane Smith">
+                </div>
+              </div>
+
+              <!-- DOCUMENTS & POLICE VERIFICATION SUB-FRAME -->
+              <div class="mm-frame" style="border-color:#cbd5e1;background:#ffffff;margin-top:4px;">
+                <div class="mm-frame-title">DOCUMENTS &amp; POLICE VERIFICATION</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;align-items:start;">
+                  <!-- AGREEMENT INDEX -->
+                  <div style="display:flex;flex-direction:column;gap:4px;">
+                    <label style="font-weight:bold;font-size:11px;color:#1e293b;">AGREEMENT INDEX</label>
+                    <div style="display:flex;gap:6px;align-items:center;">
+                      <select id="mm-noc-agree-verify" class="mm-select" style="width:65px;font-weight:bold;" onchange="mmToggleNocDocWrap('agree', this.value)">
+                        <option value="NO">NO</option>
+                        <option value="YES">YES</option>
+                      </select>
+                      <button type="button" id="mm-noc-agree-btn" class="mm-btn" style="flex:1;height:26px;justify-content:center;opacity:0.5;cursor:not-allowed;background:#f8fafc;" onclick="mmTriggerNocDocUpload('agree')">
+                        <i class="bi bi-upload"></i> <span id="mm-noc-agree-btn-text">Choose File</span>
+                      </button>
+                      <input type="file" id="mm-noc-agree-file" style="display:none;" accept="image/*,application/pdf" onchange="mmHandleNocDocUpload('agree', this)">
+                    </div>
+                    <div id="mm-noc-agree-actions" style="display:none;gap:4px;margin-top:4px;align-items:center;">
+                      <span id="mm-noc-agree-filename" style="font-size:10px;color:#64748b;font-weight:600;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+                      <button type="button" class="mm-btn mm-btn-icon" onclick="mmPreviewNocDoc('agree')" title="Preview Document"><i class="bi bi-eye"></i></button>
+                      <button type="button" class="mm-btn mm-btn-icon" onclick="mmDownloadNocDoc('agree')" title="Download Document"><i class="bi bi-download"></i></button>
+                      <button type="button" class="mm-btn mm-btn-icon mm-btn-danger-outline" onclick="mmDeleteNocDoc('agree')" title="Delete Document"><i class="bi bi-trash"></i></button>
+                    </div>
+                  </div>
+
+                  <!-- TENANT AADHAR CARD -->
+                  <div style="display:flex;flex-direction:column;gap:4px;">
+                    <label style="font-weight:bold;font-size:11px;color:#1e293b;">TENANT AADHAR CARD</label>
+                    <div style="display:flex;gap:6px;align-items:center;">
+                      <select id="mm-noc-aadhar-verify" class="mm-select" style="width:65px;font-weight:bold;" onchange="mmToggleNocDocWrap('aadhar', this.value)">
+                        <option value="NO">NO</option>
+                        <option value="YES">YES</option>
+                      </select>
+                      <button type="button" id="mm-noc-aadhar-btn" class="mm-btn" style="flex:1;height:26px;justify-content:center;opacity:0.5;cursor:not-allowed;background:#f8fafc;" onclick="mmTriggerNocDocUpload('aadhar')">
+                        <i class="bi bi-upload"></i> <span id="mm-noc-aadhar-btn-text">Choose File</span>
+                      </button>
+                      <input type="file" id="mm-noc-aadhar-file" style="display:none;" accept="image/*,application/pdf" onchange="mmHandleNocDocUpload('aadhar', this)">
+                    </div>
+                    <div id="mm-noc-aadhar-actions" style="display:none;gap:4px;margin-top:4px;align-items:center;">
+                      <span id="mm-noc-aadhar-filename" style="font-size:10px;color:#64748b;font-weight:600;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+                      <button type="button" class="mm-btn mm-btn-icon" onclick="mmPreviewNocDoc('aadhar')" title="Preview Document"><i class="bi bi-eye"></i></button>
+                      <button type="button" class="mm-btn mm-btn-icon" onclick="mmDownloadNocDoc('aadhar')" title="Download Document"><i class="bi bi-download"></i></button>
+                      <button type="button" class="mm-btn mm-btn-icon mm-btn-danger-outline" onclick="mmDeleteNocDoc('aadhar')" title="Delete Document"><i class="bi bi-trash"></i></button>
+                    </div>
+                  </div>
+
+                  <!-- POLICE VERIFICATION LETTER -->
+                  <div style="display:flex;flex-direction:column;gap:4px;">
+                    <label style="font-weight:bold;font-size:11px;color:#1e293b;">POLICE VERIFICATION LETTER</label>
+                    <div style="display:flex;gap:6px;align-items:center;">
+                      <select id="mm-noc-police-verify" class="mm-select" style="width:65px;font-weight:bold;" onchange="mmToggleNocDocWrap('police', this.value)">
+                        <option value="NO">NO</option>
+                        <option value="YES">YES</option>
+                      </select>
+                      <button type="button" id="mm-noc-police-btn" class="mm-btn" style="flex:1;height:26px;justify-content:center;opacity:0.5;cursor:not-allowed;background:#f8fafc;" onclick="mmTriggerNocDocUpload('police')">
+                        <i class="bi bi-upload"></i> <span id="mm-noc-police-btn-text">Choose File</span>
+                      </button>
+                      <input type="file" id="mm-noc-police-file" style="display:none;" accept="image/*,application/pdf" onchange="mmHandleNocDocUpload('police', this)">
+                    </div>
+                    <div id="mm-noc-police-actions" style="display:none;gap:4px;margin-top:4px;align-items:center;">
+                      <span id="mm-noc-police-filename" style="font-size:10px;color:#64748b;font-weight:600;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+                      <button type="button" class="mm-btn mm-btn-icon" onclick="mmPreviewNocDoc('police')" title="Preview Document"><i class="bi bi-eye"></i></button>
+                      <button type="button" class="mm-btn mm-btn-icon" onclick="mmDownloadNocDoc('police')" title="Download Document"><i class="bi bi-download"></i></button>
+                      <button type="button" class="mm-btn mm-btn-icon mm-btn-danger-outline" onclick="mmDeleteNocDoc('police')" title="Delete Document"><i class="bi bi-trash"></i></button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- TENANT LEASE HISTORY TABLE -->
+            <div class="mm-frame" style="border-color:#1565C0;">
+              <div class="mm-frame-title">
+                <span>LENDER / TENANT LEASE HISTORY</span>
+                <div style="display:flex;gap:6px;">
+                  <button type="button" class="mm-btn" style="height:22px;padding:0 8px;font-size:10px;font-weight:bold;" onclick="mmAlterTenantHistory()"><i class="bi bi-pencil-square"></i> ALTER ENTRY</button>
+                  <button type="button" class="mm-btn mm-btn-danger-outline" style="height:22px;padding:0 8px;font-size:10px;font-weight:bold;" onclick="mmDeleteTenantHistory()"><i class="bi bi-trash"></i> DELETE ENTRY</button>
+                </div>
+              </div>
+              <div class="mm-grid" style="max-height:180px;margin-top:6px;">
+                <table class="mm-table">
+                  <thead>
+                    <tr style="background:#0055b8;color:#ffffff;">
+                      <th style="width:50px;text-align:center;">SR NO</th>
+                      <th>TENANT NAME</th>
+                      <th style="width:140px;">TIME PERIOD</th>
+                      <th style="width:130px;">MOBILE NUMBER</th>
+                      <th style="width:200px;">AGREEMENT ASSIGN BETWEEN</th>
+                      <th style="width:130px;text-align:center;">AGREEMENT UPLOAD</th>
+                      <th style="width:130px;text-align:center;">AADHAR CARD</th>
+                      <th style="width:140px;text-align:center;">VERIFICATION LETTER</th>
+                    </tr>
+                  </thead>
+                  <tbody id="mm-tenant-history-tbody">
+                    <tr><td colspan="8" style="text-align:center;padding:14px;color:#94a3b8;">No lease history recorded.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <!-- TAB 3: PARKING SLOT                                         -->
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <div class="mm-tab-page">
+          <!-- FOUR WHEELER SLOT ALLOCATION -->
+          <div class="mm-frame">
+            <div class="mm-frame-title">
+              <div style="display:flex;align-items:center;gap:12px;">
+                <span>FOUR WHEELER SLOT ALLOCATION</span>
+                <span style="font-size:11px;font-weight:bold;color:#334155;">CODE: <input type="text" id="mm-park4-code" class="mm-input" style="width:85px;text-align:center;font-weight:bold;background:#ffffff;" value="INC-1006" readonly></span>
+              </div>
+            </div>
+            <div id="mm-park4-rows-container" style="display:flex;flex-direction:column;gap:8px;">
+              <!-- Default 4W Stilt Row -->
+              <div class="mm-park-row" data-wheeler-type="4-Wheeler" data-slot-key="4w-stilt">
+                <label>STILT SLOT NO.</label>
+                <input type="text" id="mm-park4-stilt" class="mm-input" placeholder="e.g. Stilt-11" value="">
+                <label>STILT REG NO.</label>
+                <input type="text" id="mm-park4-stilt-reg" class="mm-input" placeholder="MH-12-AB-1234" value="">
+                <label>CHARGES (₹)</label>
+                <input type="number" id="mm-park4-stilt-charge" class="mm-input mm-park-charge-input" value="0" oninput="mmOnParkingChargeInput(this, '4w')">
+                <label>RC UPLOAD</label>
+                <div class="mm-rc-actions-wrap" id="mm-rc-wrap-4w-stilt">
+                  <button type="button" class="mm-btn mm-btn-icon" onclick="mmTriggerRowRcUpload('4w-stilt')" title="Upload RC"><i class="bi bi-upload"></i></button>
+                </div>
+              </div>
+
+              <!-- Default 4W Podium Row -->
+              <div class="mm-park-row" data-wheeler-type="4-Wheeler" data-slot-key="4w-podium">
+                <label>PODIUM SLOT NO.</label>
+                <input type="text" id="mm-park4-podium" class="mm-input" placeholder="e.g. Podium-115" value="">
+                <label>PODIUM REG NO.</label>
+                <input type="text" id="mm-park4-podium-reg" class="mm-input" placeholder="MH-12-AB-1234" value="">
+                <label>CHARGES (₹)</label>
+                <input type="number" id="mm-park4-podium-charge" class="mm-input mm-park-charge-input" value="0" oninput="mmOnParkingChargeInput(this, '4w')">
+                <label>RC UPLOAD</label>
+                <div class="mm-rc-actions-wrap" id="mm-rc-wrap-4w-podium">
+                  <button type="button" class="mm-btn mm-btn-icon" onclick="mmTriggerRowRcUpload('4w-podium')" title="Upload RC"><i class="bi bi-upload"></i></button>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;padding-top:6px;border-top:1px dashed #cbd5e1;margin-top:6px;">
+              <label style="font-weight:bold;color:#1565C0;">Total (₹)</label>
+              <input type="number" id="mm-park4-total" class="mm-input" style="width:160px;text-align:right;font-weight:bold;background:#f1f5f9;" value="0" readonly>
+            </div>
+          </div>
+
+          <!-- TWO WHEELER SLOT ALLOCATION -->
+          <div class="mm-frame" style="margin-top:10px;">
+            <div class="mm-frame-title">
+              <div style="display:flex;align-items:center;gap:12px;">
+                <span>TWO WHEELER SLOT ALLOCATION</span>
+                <span style="font-size:11px;font-weight:bold;color:#334155;">CODE: <input type="text" id="mm-park2-code" class="mm-input" style="width:85px;text-align:center;font-weight:bold;background:#ffffff;" value="INC-1007" readonly></span>
+              </div>
+            </div>
+            <div id="mm-park2-rows-container" style="display:flex;flex-direction:column;gap:8px;">
+              <!-- Default 2W Stilt Row -->
+              <div class="mm-park-row" data-wheeler-type="2-Wheeler" data-slot-key="2w-stilt">
+                <label>STILT SLOT NO.</label>
+                <input type="text" id="mm-park2-stilt" class="mm-input" placeholder="e.g. Stilt-11" value="">
+                <label>STILT REG NO.</label>
+                <input type="text" id="mm-park2-stilt-reg" class="mm-input" placeholder="MH-12-XY-9999" value="">
+                <label>CHARGES (₹)</label>
+                <input type="number" id="mm-park2-stilt-charge" class="mm-input mm-park-charge-input" value="0" oninput="mmOnParkingChargeInput(this, '2w')">
+                <label>RC UPLOAD</label>
+                <div class="mm-rc-actions-wrap" id="mm-rc-wrap-2w-stilt">
+                  <button type="button" class="mm-btn mm-btn-icon" onclick="mmTriggerRowRcUpload('2w-stilt')" title="Upload RC"><i class="bi bi-upload"></i></button>
+                </div>
+              </div>
+
+              <!-- Default 2W Podium Row -->
+              <div class="mm-park-row" data-wheeler-type="2-Wheeler" data-slot-key="2w-podium">
+                <label>PODIUM SLOT NO.</label>
+                <input type="text" id="mm-park2-podium" class="mm-input" placeholder="e.g. Podium-115" value="">
+                <label>PODIUM REG NO.</label>
+                <input type="text" id="mm-park2-podium-reg" class="mm-input" placeholder="MH-12-XY-9999" value="">
+                <label>CHARGES (₹)</label>
+                <input type="number" id="mm-park2-podium-charge" class="mm-input mm-park-charge-input" value="0" oninput="mmOnParkingChargeInput(this, '2w')">
+                <label>RC UPLOAD</label>
+                <div class="mm-rc-actions-wrap" id="mm-rc-wrap-2w-podium">
+                  <button type="button" class="mm-btn mm-btn-icon" onclick="mmTriggerRowRcUpload('2w-podium')" title="Upload RC"><i class="bi bi-upload"></i></button>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;padding-top:6px;border-top:1px dashed #cbd5e1;margin-top:6px;">
+              <label style="font-weight:bold;color:#1565C0;">Total (₹)</label>
+              <input type="number" id="mm-park2-total" class="mm-input" style="width:160px;text-align:right;font-weight:bold;background:#f1f5f9;" value="0" readonly>
+            </div>
+          </div>
+
+          <!-- BOTTOM GRAND TOTAL & ACTIONS BAR -->
+          <div class="mm-frame" style="margin-top:10px;background:#f8fafc;">
+            <div style="display:flex;align-items:center;gap:16px;">
+              <label style="font-weight:bold;color:#1565C0;">GRAND TOTAL PARKING (₹):</label>
+              <input type="number" id="mm-park-grand-total" class="mm-input" style="width:120px;text-align:right;font-weight:bold;background:#ffffff;" value="0" readonly>
+
+              <label style="font-weight:bold;color:#334155;margin-left:12px;">BILL COMBINED:</label>
+              <select id="mm-park-bill-combined" class="mm-select" style="width:130px;font-weight:bold;" onchange="mmCalcParkingTotals()">
+                <option value="4-Wheeler">4-Wheeler</option>
+                <option value="2-Wheeler">2-Wheeler</option>
+                <option value="Both">Both</option>
+              </select>
+
+              <div style="margin-left:auto;display:flex;gap:8px;">
+                <button type="button" class="mm-btn" onclick="mmOpenAddParkingRowModal()"><i class="bi bi-plus-lg"></i> ADD ROW</button>
+                <button type="button" class="mm-btn" onclick="mmOpenBulkRcModal()"><i class="bi bi-file-earmark-arrow-up"></i> RC UPLOAD</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <!-- TAB 4: LIEN MARK DETAILS                                   -->
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <div class="mm-tab-page">
+          <div class="mm-frame">
+            <div class="mm-frame-title">LIEN MARK DETAILS</div>
+            <div style="display:grid;grid-template-columns:220px 1fr;gap:8px 12px;align-items:center;">
+              <label>NAME OF THE BANK</label>
+              <input type="text" id="mm-lien-bank-name" class="mm-input" placeholder="Enter Name of the Bank...">
+
+              <label>BANK ADDRESS</label>
+              <input type="text" id="mm-lien-bank-addr" class="mm-input" placeholder="Enter Bank Address...">
+
+              <label>LOAN DETAILS</label>
+              <div style="display:flex;align-items:center;gap:12px;">
+                <span style="font-size:11px;font-weight:bold;color:#334155;">Loan Amount (₹)</span>
+                <input type="number" id="mm-lien-amt-val" class="mm-input" style="width:140px;" placeholder="0">
+                <span style="font-size:11px;font-weight:bold;color:#334155;">Period of Loan</span>
+                <input type="text" id="mm-lien-period" class="mm-input" style="width:140px;" placeholder="e.g. 15 Years">
+              </div>
+
+              <label>COMMITTEE MEETING &amp; RESOLUTION</label>
+              <div style="display:flex;align-items:center;gap:12px;">
+                <span style="font-size:11px;font-weight:bold;color:#334155;">Meeting Date</span>
+                <input type="date" id="mm-lien-meeting-date" class="mm-input" style="width:130px;">
+                <span style="font-size:11px;font-weight:bold;color:#334155;">Resolution No.</span>
+                <input type="text" id="mm-lien-res-no" class="mm-input" style="width:140px;" placeholder="Resolution No.">
+              </div>
+
+              <label>BANK SANCTION LETTER</label>
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <input type="date" id="mm-lien-sanction-date" class="mm-input" style="width:140px;">
+                <button type="button" id="mm-lien-sanction-btn" class="mm-btn" onclick="mmTriggerLienDocUpload('sanction')"><i class="bi bi-upload"></i> <span id="mm-lien-sanction-btn-text">UPLOAD</span></button>
+                <input type="file" id="mm-lien-sanction-file" style="display:none;" accept="image/*,application/pdf" onchange="mmHandleLienDocUpload('sanction', this)">
+                <div id="mm-lien-sanction-actions" style="display:none;gap:4px;align-items:center;">
+                  <span id="mm-lien-sanction-filename" style="font-size:10px;color:#64748b;font-weight:600;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+                  <button type="button" class="mm-btn mm-btn-icon" onclick="mmPreviewLienDoc('sanction')" title="Preview Document"><i class="bi bi-eye"></i></button>
+                  <button type="button" class="mm-btn mm-btn-icon" onclick="mmDownloadLienDoc('sanction')" title="Download Document"><i class="bi bi-download"></i></button>
+                  <button type="button" class="mm-btn mm-btn-icon mm-btn-danger-outline" onclick="mmDeleteLienDoc('sanction')" title="Delete Document"><i class="bi bi-trash"></i></button>
+                </div>
+              </div>
+
+              <label>DATE OF NOC BY SOCIETY</label>
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <input type="date" id="mm-lien-noc-date" class="mm-input" style="width:140px;">
+                <button type="button" id="mm-lien-noc-btn" class="mm-btn" onclick="mmTriggerLienDocUpload('noc')"><i class="bi bi-upload"></i> <span id="mm-lien-noc-btn-text">UPLOAD</span></button>
+                <input type="file" id="mm-lien-noc-file" style="display:none;" accept="image/*,application/pdf" onchange="mmHandleLienDocUpload('noc', this)">
+                <div id="mm-lien-noc-actions" style="display:none;gap:4px;align-items:center;">
+                  <span id="mm-lien-noc-filename" style="font-size:10px;color:#64748b;font-weight:600;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+                  <button type="button" class="mm-btn mm-btn-icon" onclick="mmPreviewLienDoc('noc')" title="Preview Document"><i class="bi bi-eye"></i></button>
+                  <button type="button" class="mm-btn mm-btn-icon" onclick="mmDownloadLienDoc('noc')" title="Download Document"><i class="bi bi-download"></i></button>
+                  <button type="button" class="mm-btn mm-btn-icon mm-btn-danger-outline" onclick="mmDeleteLienDoc('noc')" title="Delete Document"><i class="bi bi-trash"></i></button>
+                </div>
+              </div>
+
+              <label>DATE OF LIEN CANCELLATION</label>
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <input type="date" id="mm-lien-cancel-date" class="mm-input" style="width:140px;">
+                <button type="button" id="mm-lien-cancel-btn" class="mm-btn" onclick="mmTriggerLienDocUpload('cancel')"><i class="bi bi-upload"></i> <span id="mm-lien-cancel-btn-text">UPLOAD</span></button>
+                <input type="file" id="mm-lien-cancel-file" style="display:none;" accept="image/*,application/pdf" onchange="mmHandleLienDocUpload('cancel', this)">
+                <div id="mm-lien-cancel-actions" style="display:none;gap:4px;align-items:center;">
+                  <span id="mm-lien-cancel-filename" style="font-size:10px;color:#64748b;font-weight:600;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+                  <button type="button" class="mm-btn mm-btn-icon" onclick="mmPreviewLienDoc('cancel')" title="Preview Document"><i class="bi bi-eye"></i></button>
+                  <button type="button" class="mm-btn mm-btn-icon" onclick="mmDownloadLienDoc('cancel')" title="Download Document"><i class="bi bi-download"></i></button>
+                  <button type="button" class="mm-btn mm-btn-icon mm-btn-danger-outline" onclick="mmDeleteLienDoc('cancel')" title="Delete Document"><i class="bi bi-trash"></i></button>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex;justify-content:flex-end;margin-top:10px;border-bottom:1px dashed #cbd5e1;padding-bottom:10px;">
+              <button type="button" class="mm-btn" onclick="mmArchiveCurrentLien()"><i class="bi bi-archive"></i> ARCHIVE CURRENT LIEN</button>
+            </div>
+
+            <div class="mm-frame" style="margin-top:12px;border-color:#e2e8f0;">
+              <div class="mm-frame-title">
+                <span>PAST LIEN MARK DETAILS HISTORY</span>
+                <div style="display:flex;gap:6px;">
+                  <button type="button" class="mm-btn" style="height:22px;padding:0 8px;font-size:10px;"><i class="bi bi-pencil-square"></i> ALTER ENTRY</button>
+                  <button type="button" class="mm-btn mm-btn-danger-outline" style="height:22px;padding:0 8px;font-size:10px;" onclick="mmDeleteLienHistory()"><i class="bi bi-trash"></i> DELETE ENTRY</button>
+                </div>
+              </div>
+              <div class="mm-grid" style="max-height:140px;margin-top:6px;">
+                <table class="mm-table">
+                  <thead>
+                    <tr style="background:#0055b8;color:#ffffff;">
+                      <th style="width:40px;text-align:center;">SR</th>
+                      <th>BANK NAME</th>
+                      <th style="width:110px;">LOAN AMT (₹)</th>
+                      <th style="width:90px;">PERIOD</th>
+                      <th style="width:110px;">MEETING DATE</th>
+                      <th style="width:90px;">RES NO</th>
+                      <th style="width:110px;">NOC DATE</th>
+                      <th style="width:110px;">CANCEL DATE</th>
+                      <th style="width:100px;text-align:center;">DOCUMENTS</th>
+                    </tr>
+                  </thead>
+                  <tbody id="mm-lien-history-tbody">
+                    <tr><td colspan="9" style="text-align:center;padding:14px;color:#94a3b8;">No lien history recorded.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <!-- TAB 5: SHARE CERT.                                          -->
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <div class="mm-tab-page">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <div class="mm-frame">
+              <div class="mm-frame-title">SHARE CERTIFICATE DATA</div>
+              <div style="display:grid;grid-template-columns:160px 1fr;gap:6px 10px;align-items:center;">
+                <label>SR. NO.</label>
+                <input type="text" id="mm-sc-srno" class="mm-input" placeholder="e.g. 1" value="1">
+
+                <label>SHARE CERTIFICATE NO.</label>
+                <input type="text" id="mm-sc-certno" class="mm-input" value="SC-102">
+
+                <label>MEMBERSHIP NO.</label>
+                <input type="text" id="mm-sc-memno" class="mm-input" value="M-102">
+
+                <label>NUMBERS OF SHARES</label>
+                <input type="number" id="mm-sc-numshares" class="mm-input" value="10" oninput="mmCalcShareCertValues()">
+
+                <label>VALUE OF EACH SHARES</label>
+                <input type="number" id="mm-sc-valeach" class="mm-input" value="100" oninput="mmCalcShareCertValues()">
+
+                <label>SHARES FROM</label>
+                <input type="text" id="mm-sc-from" class="mm-input" value="111">
+
+                <label>SHARES TO</label>
+                <input type="text" id="mm-sc-to" class="mm-input" value="120">
+
+                <label style="font-weight:bold;color:#1565C0;">TOTAL SHARES VALUE</label>
+                <input type="number" id="mm-sc-totalval" class="mm-input" style="font-weight:bold;background:#f1f5f9;" value="1000" readonly>
+
+                <label>MEMBER CLASSIFICATION</label>
+                <select id="mm-sc-class" class="mm-select">
+                  <option value="Ordinary Member">Ordinary Member</option>
+                  <option value="Associate Member">Associate Member</option>
+                  <option value="Nominee Member">Nominee Member</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- RIGHT COLUMN: OLD SHARE CERTIFICATE DATA (DYNAMIC TOGGLE ON / OFF) -->
+            <div class="mm-frame">
+              <div class="mm-frame-title">
+                <span>OLD SHARE CERTIFICATE DATA</span>
+                <select id="mm-old-sc-toggle" class="mm-select" style="width:75px;height:22px;font-size:10px;font-weight:bold;" onchange="mmToggleOldShareCert(this.value)">
+                  <option value="OFF" selected>OFF</option>
+                  <option value="ON">ON</option>
+                </select>
+              </div>
+
+              <!-- COLLAPSIBLE BODY (HIDDEN WHEN TOGGLE IS OFF) -->
+              <div id="mm-old-sc-body" style="display:none;flex-direction:column;gap:10px;">
+                <div style="display:grid;grid-template-columns:160px 1fr;gap:6px 10px;align-items:center;">
+                  <label>SR. NO.</label>
+                  <input type="text" class="mm-input" placeholder="e.g. 1">
+
+                  <label>SHARE CERTIFICATE NO.</label>
+                  <input type="text" class="mm-input" placeholder="e.g. SC-050">
+
+                  <label>MEMBERSHIP NO.</label>
+                  <input type="text" class="mm-input" placeholder="e.g. M-101">
+
+                  <label>NUMBERS OF SHARES</label>
+                  <input type="number" class="mm-input">
+
+                  <label>VALUE OF EACH SHARES</label>
+                  <input type="number" class="mm-input">
+
+                  <label>SHARES FROM</label>
+                  <input type="text" class="mm-input" value="001">
+
+                  <label>SHARES TO</label>
+                  <input type="text" class="mm-input">
+
+                  <label style="font-weight:bold;color:#1565C0;">TOTAL SHARES VALUE</label>
+                  <input type="number" class="mm-input" style="font-weight:bold;background:#f1f5f9;" value="0.00" readonly>
+                </div>
+
+                <!-- JOINT/PAST OWNERS REGISTRY -->
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;border-top:1px dashed #cbd5e1;padding-top:8px;">
+                  <span style="font-size:11px;font-weight:bold;color:#1565C0;">JOINT/PAST OWNERS REGISTRY</span>
+                  <button type="button" class="mm-btn" style="height:22px;padding:0 8px;font-size:10px;" onclick="mmAddJointOwnerBlock()">+ ADD +</button>
+                </div>
+
+                <!-- CONTAINER FOR DYNAMICALLY ADDED JOINT OWNER BLOCKS -->
+                <div id="mm-joint-owners-container" style="display:flex;flex-direction:column;gap:8px;margin-top:6px;"></div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <!-- TAB 6: NOMINEE INFO                                         -->
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <div class="mm-tab-page">
+          <div class="mm-frame">
+            <div class="mm-frame-title">NOMINEE DETAILS</div>
+            <div style="display:grid;grid-template-columns:180px 1fr 180px 1fr;gap:6px 12px;align-items:center;">
+              <label>SR NO.</label>
+              <input type="text" id="mm-nom-srno" class="mm-input" style="width:80px;" value="1">
+
+              <label>NOMINATION FORM RECEIVE DATE</label>
+              <input type="date" id="mm-nom-rcv-date" class="mm-input" style="width:140px;">
+
+              <label>PASSING MEETING TYPE</label>
+              <select id="mm-nom-meeting-type" class="mm-select" style="width:180px;">
+                <option value="">-- Select Meeting Type --</option>
+                <option value="MCM">MCM: MANAGING COMMITTEE</option>
+                <option value="AGM">AGM: ANNUAL GENERAL BODY</option>
+              </select>
+
+              <label>MEETING DATE</label>
+              <input type="date" id="mm-nom-meeting-date" class="mm-input" style="width:140px;">
+
+              <label>MEMBER REGISTER SR NO.</label>
+              <input type="text" id="mm-nom-mem-regno" class="mm-input" placeholder="Enter Member Register Sr No...">
+
+              <label>RESOLUTION NO.</label>
+              <input type="text" id="mm-nom-resno" class="mm-input" placeholder="Enter Resolution No...">
+
+              <label>ADDRESS</label>
+              <input type="text" id="mm-nom-addr" class="mm-input" placeholder="Enter Nominee Address...">
+
+              <label>UPLOAD NOMINEE FORM</label>
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <button type="button" id="mm-nom-doc-btn" class="mm-btn" onclick="mmTriggerNomineeDocUpload()"><i class="bi bi-upload"></i> <span id="mm-nom-doc-btn-text">UPLOAD</span></button>
+                <input type="file" id="mm-nom-doc-file" style="display:none;" accept="image/*,application/pdf" onchange="mmHandleNomineeDocUpload(this)">
+                <div id="mm-nom-doc-actions" style="display:none;gap:4px;align-items:center;">
+                  <span id="mm-nom-doc-filename" style="font-size:10px;color:#64748b;font-weight:600;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+                  <button type="button" class="mm-btn mm-btn-icon" onclick="mmPreviewNomineeDoc()" title="Preview Document"><i class="bi bi-eye"></i></button>
+                  <button type="button" class="mm-btn mm-btn-icon" onclick="mmDownloadNomineeDoc()" title="Download Document"><i class="bi bi-download"></i></button>
+                  <button type="button" class="mm-btn mm-btn-icon mm-btn-danger-outline" onclick="mmDeleteNomineeDoc()" title="Delete Document"><i class="bi bi-trash"></i></button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mm-frame" style="margin-top:10px;">
+            <div class="mm-frame-title">
+              <span>Active Nominees List (SR No. 1)</span>
+              <button type="button" class="mm-btn" style="height:22px;padding:0 8px;font-size:10px;" onclick="mmAddActiveNomineeRow()"><i class="bi bi-plus-lg"></i> ADD NOMINEE ROW</button>
+            </div>
+            <div class="mm-grid" style="max-height:160px;margin-top:6px;">
+              <table class="mm-table">
+                <thead>
+                  <tr style="background:#000080;color:#ffffff;">
+                    <th style="width:40px;text-align:center;">SR</th>
+                    <th>NAME OF NOMINEE</th>
+                    <th style="width:160px;">RELATIONSHIP</th>
+                    <th style="width:100px;text-align:right;">SHARE (%)</th>
+                    <th style="width:130px;">D.O.B</th>
+                    <th style="width:120px;">MAJOR / MINOR</th>
+                    <th style="width:50px;text-align:center;">DEL</th>
+                  </tr>
+                </thead>
+                <tbody id="mm-active-nominees-tbody">
+                  <tr>
+                    <td style="text-align:center;font-weight:bold;">1</td>
+                    <td><input type="text" class="mm-input mm-nom-name" style="width:100%;" placeholder="Name of Nominee..."></td>
+                    <td><input type="text" class="mm-input mm-nom-rel" style="width:100%;" placeholder="Relationship..."></td>
+                    <td><input type="number" class="mm-input mm-nom-pct" style="width:100%;text-align:right;" value="0"></td>
+                    <td><input type="date" class="mm-input mm-nom-dob" style="width:100%;"></td>
+                    <td>
+                      <select class="mm-select mm-nom-major" style="width:100%;">
+                        <option value="Major">Major</option>
+                        <option value="Minor">Minor</option>
+                      </select>
+                    </td>
+                    <td style="text-align:center;">
+                      <button type="button" class="mm-btn mm-btn-danger" style="height:22px;padding:0 6px;" onclick="this.closest('tr').remove()"><i class="bi bi-trash"></i></button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div style="display:flex;justify-content:flex-end;margin-top:8px;">
+              <button type="button" class="mm-btn" style="font-weight:bold;color:#1565C0;" onclick="mmSaveNomination()"><i class="bi bi-plus-lg"></i> + SAVE NOMINATION</button>
+            </div>
+          </div>
+
+          <div class="mm-frame" style="margin-top:10px;">
+            <div class="mm-frame-title">SAVED NOMINATIONS DATABASE</div>
+            <div class="mm-grid" style="max-height:140px;margin-top:6px;">
+              <table class="mm-table">
+                <thead>
+                  <tr style="background:#000080;color:#ffffff;">
+                    <th style="width:40px;text-align:center;">SR</th>
+                    <th style="width:100px;">REC. DATE</th>
+                    <th style="width:120px;">MEETING TYPE</th>
+                    <th style="width:100px;">MEETING DATE</th>
+                    <th style="width:110px;">RESOLUTION NO.</th>
+                    <th>NOMINEE DETAILS</th>
+                    <th style="width:110px;text-align:center;">ALL DETAILS</th>
+                    <th style="width:50px;text-align:center;">DEL</th>
+                  </tr>
+                </thead>
+                <tbody id="mm-saved-nom-tbody">
+                  <tr><td colspan="8" style="text-align:center;padding:14px;color:#94a3b8;">No saved nominations.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <!-- TAB 7: MEMBER TRANSFER (Visible ONLY on ALTER mode)        -->
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <div class="mm-tab-page">
+          <div class="mm-frame">
+            <div class="mm-frame-title"><i class="bi bi-clock-history"></i> UNIT OWNERSHIP &amp; TRANSFER HISTORY LOG</div>
+            <div class="mm-grid" style="overflow-x:auto;max-height:360px;margin-top:6px;border:1px solid #cbd5e1;border-radius:4px;">
+              <table class="mm-table" style="min-width:1450px;white-space:nowrap;">
+                <thead>
+                  <tr style="background:#0055b8;color:#ffffff;font-size:11px;">
+                    <th style="padding:6px 8px;">DATE</th>
+                    <th style="padding:6px 8px;">TRANSFER TYPE</th>
+                    <th style="padding:6px 8px;">MEETING TYPE</th>
+                    <th style="padding:6px 8px;">MEETING DATE</th>
+                    <th style="padding:6px 8px;text-align:center;">RES NO</th>
+                    <th style="padding:6px 8px;text-align:center;">TRANS NO</th>
+                    <th style="padding:6px 8px;">REG NO TRANSFEROR</th>
+                    <th style="padding:6px 8px;">REG NO TRANSFEREE</th>
+                    <th style="padding:6px 8px;">AGREEMENT ASSIGN</th>
+                    <th style="padding:6px 8px;">TRANSFEROR (OLD NAME)</th>
+                    <th style="padding:6px 8px;">TRANSFEREE (NEW NAME)</th>
+                    <th style="padding:6px 8px;">REMARKS</th>
+                    <th style="padding:6px 8px;text-align:center;">PREVIEW</th>
+                    <th style="padding:6px 8px;text-align:center;">DOCUMENTS</th>
+                  </tr>
+                </thead>
+                <tbody id="mm-transfer-log-tbody">
+                  <tr><td colspan="14" style="text-align:center;padding:20px;color:#94a3b8;">No transfer history recorded.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <!-- TAB 8: BILL BREAKUP (Visible ONLY on ALTER mode)           -->
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <div class="mm-tab-page">
+          <div class="mm-frame">
+            <div class="mm-frame-title" style="background:#ffffff;color:#1565c0;font-weight:700;font-size:11px;border-bottom:1px solid #e2e8f0;padding:6px 14px;letter-spacing:0.5px;display:flex;align-items:center;gap:6px;">
+              <i class="bi bi-table"></i> MEMBER BILL BREAKUP (BY BILL TYPE)
+            </div>
+            
+            <!-- Dynamic Bill Type Pills -->
+            <div class="mm-bb-pill-container" id="mm-bb-billtype-pills">
+              <!-- Rendered dynamically -->
+            </div>
+
+            <!-- Breakup Table Container -->
+            <div style="padding:0 14px 14px 14px;">
+              <div style="border:1px solid #cbd5e1;border-radius:4px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+                
+                <!-- Table Header Strip -->
+                <div style="background:#1565C0;color:#ffffff;padding:6px 12px;display:flex;justify-content:space-between;align-items:center;">
+                  <span id="mm-bb-header-title" style="font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.4px;">MAINTENANCE BILL BREAKUP</span>
+                  <div style="display:flex;gap:12px;align-items:center;">
+                    <span id="mm-bb-header-total" style="font-weight:800;font-size:11px;letter-spacing:0.3px;">TOTAL: ₹ 0.00</span>
+                    <button type="button" id="mm-bb-btn-edit" class="mm-btn" onclick="mmToggleBreakupEdit()" style="height:22px;padding:0 8px;font-size:10px;background:#ffffff;color:#1565C0;border:none;font-weight:700;border-radius:3px;cursor:pointer;">
+                      <i class="bi bi-pencil-fill"></i> EDIT
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Breakup Table -->
+                <div style="max-height:360px;overflow-y:auto;">
+                  <table class="mm-table" style="width:100%;border-collapse:collapse;">
+                    <thead>
+                      <tr style="background:#1565C0;color:#ffffff;position:sticky;top:0;z-index:2;">
+                        <th style="width:140px;padding:6px 10px;font-size:10px;font-weight:700;text-align:left;border-right:1px solid rgba(255,255,255,0.15);">ACCT CODE</th>
+                        <th style="padding:6px 10px;font-size:10px;font-weight:700;text-align:left;border-right:1px solid rgba(255,255,255,0.15);">ACCOUNT HEAD NAME</th>
+                        <th style="width:160px;padding:6px 10px;font-size:10px;font-weight:700;text-align:right;">AMOUNT</th>
+                      </tr>
+                    </thead>
+                    <tbody id="mm-bb-tbody">
+                      <tr><td colspan="3" style="text-align:center;padding:30px;color:#808080;"><i class="bi bi-hourglass-split"></i> Loading bill breakup...</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- DIALOG MODALS                                               -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+
+<!-- 1. STATEMENT AUDIT DETAIL MODAL -->
+<div class="mm-overlay" id="mm-detail-overlay" style="display:none;">
+  <div class="mm-dialog" style="width:900px;">
+    <div class="mm-dialog-title">
+      <span><i class="bi bi-eye"></i> <span id="mm-detail-title">MEMBER STATEMENT DETAIL</span></span>
+      <button onclick="mmCloseDetail()">✕</button>
+    </div>
+    <div class="mm-dialog-body" style="flex-direction:column;gap:10px;height:450px;">
+      <div class="mm-frame" id="mm-detail-info" style="margin:0;padding:8px;width:100%;box-sizing:border-box;">
+        <b>UNIT:</b> <span id="mm-stmt-flat">—</span> | <b>NAME:</b> <span id="mm-stmt-name">—</span>
+      </div>
+      <div class="mm-grid" style="flex:1;width:100%;">
+        <table class="mm-table">
+          <thead>
+            <tr style="background:#000080;color:#ffffff;">
+              <th style="width:75px;">DATE</th>
+              <th>PARTICULARS</th>
+              <th style="width:80px;text-align:right;">MAINT.</th>
+              <th style="width:70px;text-align:right;">WATER</th>
+              <th style="width:70px;text-align:right;">ELEC.</th>
+              <th style="width:70px;text-align:right;">PARK</th>
+              <th style="width:70px;text-align:right;">INTEREST</th>
+              <th style="width:60px;text-align:right;">CGST</th>
+              <th style="width:60px;text-align:right;">SGST</th>
+              <th style="width:60px;text-align:right;">NOC</th>
+              <th style="width:75px;text-align:right;">OTHER</th>
+              <th style="width:90px;text-align:right;">TOTAL</th>
+            </tr>
+          </thead>
+          <tbody id="mm-detail-tbody">
+            <tr><td colspan="12" style="text-align:center;padding:30px;color:#808080;">Select a member to audit statement</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="mm-dialog-footer">
+      <button class="mm-btn" onclick="mmCloseDetail()">CLOSE</button>
+      <button class="mm-btn" onclick="mmPrintDetail()"><i class="bi bi-printer"></i> PRINT STATEMENT</button>
+    </div>
+  </div>
+</div>
+
+<!-- 2. BULK REASSIGNMENT MODAL -->
+<div class="mm-overlay" id="mm-mc-overlay" style="display:none;">
+  <div class="mm-dialog" style="width:380px;">
+    <div class="mm-dialog-title">
+      <span><i class="bi bi-input-cursor-text"></i> BULK REASSIGNMENT</span>
+      <button onclick="document.getElementById('mm-mc-overlay').style.display='none'">✕</button>
+    </div>
+    <div class="mm-dialog-body" style="flex-direction:column;gap:10px;">
+      <div style="display:grid;grid-template-columns:110px 1fr;gap:8px;align-items:center;width:100%;">
+        <label>Change Wing</label>
+        <input type="text" id="mm-mc-wing" class="mm-input" placeholder="e.g. B WING">
+
+        <label>Change Bldg</label>
+        <input type="text" id="mm-mc-bldg" class="mm-input" placeholder="e.g. SAI RAM APTS">
+      </div>
+    </div>
+    <div class="mm-dialog-footer">
+      <button class="mm-btn" onclick="document.getElementById('mm-mc-overlay').style.display='none'">CANCEL</button>
+      <button class="mm-btn" onclick="mmApplyBulkReassign()"><i class="bi bi-check-lg"></i> APPLY</button>
+    </div>
+  </div>
+</div>
+
+<!-- 3. MEMBER BULK IMPORT MODAL -->
+<div class="mm-overlay" id="mm-import-overlay" style="display:none;">
+  <div class="mm-dialog" style="width:960px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;border-radius:8px;box-shadow:0 12px 36px rgba(0,0,0,0.25);overflow:hidden;">
+    <div class="mm-dialog-title" style="background:#535fc1;color:#ffffff;padding:10px 16px;">
+      <span style="font-weight:700;font-size:13px;letter-spacing:0.3px;display:flex;align-items:center;gap:8px;">
+        <i class="bi bi-file-earmark-spreadsheet-fill" style="font-size:16px;"></i> MEMBER MASTER BULK IMPORT & SYNC
+        <span style="background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;">28 Standard Columns</span>
+      </span>
+      <button onclick="document.getElementById('mm-import-overlay').style.display='none'" style="color:#ffffff;font-size:16px;">✕</button>
+    </div>
+    
+    <div class="mm-dialog-body" style="flex-direction:column;gap:14px;padding:16px;overflow-y:auto;background:#f8fafc;">
+      <!-- Matching & Deduplication Rule Notice -->
+      <div style="background:#eef2ff;border-left:4px solid #535fc1;padding:10px 14px;border-radius:4px;font-size:11.5px;color:#312e81;line-height:1.5;">
+        <div style="font-weight:700;display:flex;align-items:center;gap:6px;margin-bottom:2px;">
+          <i class="bi bi-shield-check" style="color:#535fc1;font-size:14px;"></i> Smart Deduplication & Upsert Active
+        </div>
+        <div>
+          Existing members matched by <b>Member Code</b> or <b>Wing + Flat No.</b> are updated safely in-place without duplicating entries. New records are added automatically. Unchanged fields remain untouched.
+        </div>
+      </div>
+
+      <!-- Blank Template Download Bar -->
+      <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:6px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+        <div>
+          <div style="font-size:11.5px;font-weight:700;color:#1e293b;">Need the Standard 28-Column Template?</div>
+          <div style="font-size:10px;color:#64748b;">Styled header with <b>#535fc1</b> background and complete field schema.</div>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <button type="button" onclick="mmDownloadMemberTemplate('xlsx')" class="mm-btn" style="background:#f0fdf4;border:1px solid #86efac;color:#166534;font-size:11px;padding:4px 10px;font-weight:700;">
+            <i class="bi bi-file-earmark-excel-fill" style="color:#15803d;"></i> .XLSX
+          </button>
+          <button type="button" onclick="mmDownloadMemberTemplate('csv')" class="mm-btn" style="background:#f0f9ff;border:1px solid #7dd3fc;color:#0369a1;font-size:11px;padding:4px 10px;font-weight:700;">
+            <i class="bi bi-file-earmark-text-fill" style="color:#0284c7;"></i> .CSV
+          </button>
+          <button type="button" onclick="mmDownloadMemberTemplate('xls')" class="mm-btn" style="background:#faf5ff;border:1px solid #d8b4fe;color:#6b21a8;font-size:11px;padding:4px 10px;font-weight:700;">
+            <i class="bi bi-filetype-xls" style="color:#7e22ce;"></i> .XLS
+          </button>
+        </div>
+      </div>
+
+      <!-- File Dropzone -->
+      <div style="background:#ffffff;border:2px dashed #cbd5e1;border-radius:8px;padding:20px;text-align:center;cursor:pointer;transition:border-color 0.2s;"
+           id="mm-import-dropzone"
+           onclick="document.getElementById('mm-import-file').click()"
+           ondragover="event.preventDefault();this.style.borderColor='#535fc1';this.style.background='#f5f7ff';"
+           ondragleave="this.style.borderColor='#cbd5e1';this.style.background='#ffffff';"
+           ondrop="event.preventDefault();this.style.borderColor='#cbd5e1';this.style.background='#ffffff';mmHandleFileDrop(event);">
+        <i class="bi bi-cloud-arrow-up-fill" style="font-size:36px;color:#535fc1;"></i>
+        <div style="font-size:13px;font-weight:700;color:#1e293b;margin-top:6px;">Choose or Drop Member Excel / CSV File</div>
+        <div style="font-size:11px;color:#64748b;margin-top:2px;">Supports <b>.xlsx</b>, <b>.csv</b>, and <b>.xls</b> formats</div>
+        <input type="file" id="mm-import-file" accept=".xlsx,.csv,.xls" style="display:none;" onchange="mmHandleImportFileSelect(this)">
+        <div id="mm-import-selected-file" style="margin-top:10px;display:none;font-size:11.5px;font-weight:700;color:#15803d;background:#f0fdf4;padding:6px 12px;border-radius:4px;border:1px solid #bbf7d0;align-items:center;justify-content:center;gap:8px;">
+          <i class="bi bi-check-circle-fill"></i> <span id="mm-import-filename">filename.xlsx</span>
+          <span id="mm-import-filesize" style="font-weight:normal;color:#64748b;">(0 KB)</span>
+        </div>
+      </div>
+
+      <!-- Pre-import preview summary -->
+      <div id="mm-import-preview-box" style="display:none;background:#ffffff;border:1px solid #e2e8f0;border-radius:6px;padding:12px;">
+        <!-- DUPLICATE CODE ALERT BANNER -->
+        <div id="mm-import-duplicate-alert" style="display:none;background:#fef2f2;border:1px solid #f87171;border-radius:4px;padding:8px 12px;margin-bottom:8px;color:#991b1b;font-size:11px;font-weight:600;">
+          <i class="bi bi-exclamation-triangle-fill" style="color:#dc2626; margin-right:4px;"></i>
+          <span id="mm-duplicate-alert-text">Duplicate Member Codes detected (highlighted in RED). These entries will NOT be imported and will NOT overwrite existing members.</span>
+        </div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <div style="font-size:11.5px;font-weight:700;color:#1e293b;display:flex;align-items:center;gap:6px;">
+            <i class="bi bi-table" style="color:#535fc1;"></i> Data Preview (<span id="mm-preview-row-count">0</span> rows detected)
+          </div>
+          <div style="font-size:10.5px;color:#64748b;" id="mm-preview-col-status">
+            28 Standard Columns Verified
+          </div>
+        </div>
+        <div style="max-height:160px;overflow-x:auto;overflow-y:auto;border:1px solid #cbd5e1;border-radius:4px;">
+          <table style="width:100%;border-collapse:collapse;font-size:10px;text-align:left;" id="mm-preview-table">
+            <thead style="background:#535fc1;color:#ffffff;position:sticky;top:0;">
+              <tr id="mm-preview-thead-row">
+                <!-- Preview headers injected by JS -->
+              </tr>
+            </thead>
+            <tbody id="mm-preview-tbody">
+              <!-- Preview rows injected by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="mm-dialog-footer" style="padding:10px 16px;background:#ffffff;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;">
+      <button class="mm-btn" onclick="document.getElementById('mm-import-overlay').style.display='none'">CANCEL</button>
+      <button class="mm-btn" id="mm-btn-do-import" style="background:#535fc1;color:#ffffff;border-color:#434fa8;font-weight:700;padding:6px 18px;" onclick="mmProcessMemberBulkImport()">
+        <i class="bi bi-cloud-arrow-up-fill"></i> START IMPORT & SYNC
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- IMPORT DUPLICATE REJECTION MODAL -->
+<div class="mm-overlay" id="mm-import-rejection-modal" style="display:none; z-index:99999;">
+  <div class="mm-dialog" style="width:680px; max-width:92vw; background:#ffffff; border-radius:8px; box-shadow:0 12px 36px rgba(0,0,0,0.3); overflow:hidden;">
+    <div class="mm-dialog-title" style="background:#dc2626; color:#ffffff; padding:10px 16px; font-size:13px; font-weight:700; display:flex; justify-content:space-between; align-items:center;">
+      <span><i class="bi bi-shield-slash-fill"></i> IMPORT REPORT: DUPLICATE MEMBER CODES REJECTED</span>
+      <button onclick="document.getElementById('mm-import-rejection-modal').style.display='none'" style="background:none; border:none; color:#ffffff; font-size:16px; cursor:pointer;">✕</button>
+    </div>
+    <div style="padding:16px; font-size:12px; color:#1e293b;">
+      <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:6px; padding:10px 14px; margin-bottom:12px; color:#991b1b; font-size:11.5px; line-height:1.5;">
+        <i class="bi bi-exclamation-octagon-fill" style="font-size:14px; color:#dc2626; margin-right:4px;"></i>
+        <b>Strict Unique Member Code Policy</b>: The following members could <u>not</u> make it to Member Master because their Member Code already exists in the system or is duplicated in your file. <b>Existing member records were preserved and not overwritten.</b>
+      </div>
+      <div style="max-height:240px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:4px;">
+        <table style="width:100%; border-collapse:collapse; font-size:11px; text-align:left;">
+          <thead style="background:#f8fafc; color:#475569; position:sticky; top:0; border-bottom:2px solid #cbd5e1;">
+            <tr>
+              <th style="padding:6px 10px; width:45px;">Row</th>
+              <th style="padding:6px 10px;">Member Code</th>
+              <th style="padding:6px 10px;">Member Name</th>
+              <th style="padding:6px 10px;">Wing / Flat</th>
+              <th style="padding:6px 10px;">Reason / Status</th>
+            </tr>
+          </thead>
+          <tbody id="mm-rejection-tbody">
+            <!-- Populated dynamically -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="mm-dialog-footer" style="padding:10px 16px; background:#f8fafc; border-top:1px solid #e2e8f0; display:flex; justify-content:flex-end;">
+      <button class="mm-btn" style="background:#dc2626; color:#ffffff; border:none; font-weight:700; padding:6px 18px; cursor:pointer;" onclick="document.getElementById('mm-import-rejection-modal').style.display='none'">I UNDERSTAND & CLOSE</button>
+    </div>
+  </div>
+</div>
+
+<!-- ALERT DIALOG -->
+<div class="mm-overlay" id="mm-alert-overlay" style="display:none;">
+  <div class="mm-dialog" style="width:400px;">
+    <div class="mm-dialog-title">
+      <span id="mm-alert-title"><i class="bi bi-info-circle-fill"></i> INFORMATION</span>
+      <button onclick="mmCloseAlert()">✕</button>
+    </div>
+    <div class="mm-dialog-body">
+      <i class="bi bi-info-circle-fill" id="mm-alert-icon"></i>
+      <div class="mm-dialog-msg" id="mm-alert-msg"></div>
+    </div>
+    <div class="mm-dialog-footer">
+      <button class="mm-btn" onclick="mmCloseAlert()">OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM DIALOG -->
+<div class="mm-overlay" id="mm-confirm-overlay" style="display:none;">
+  <div class="mm-dialog" style="width:400px;">
+    <div class="mm-dialog-title">
+      <span><i class="bi bi-question-circle-fill"></i> CONFIRMATION</span>
+      <button onclick="mmCloseConfirm(false)">✕</button>
+    </div>
+    <div class="mm-dialog-body">
+      <i class="bi bi-question-circle-fill"></i>
+      <div class="mm-dialog-msg" id="mm-confirm-msg"></div>
+    </div>
+    <div class="mm-dialog-footer">
+      <button class="mm-btn" id="mm-confirm-yes" style="font-weight:bold;">OK</button>
+      <button class="mm-btn" onclick="mmCloseConfirm(false)">CANCEL</button>
+    </div>
+  </div>
+</div>
+
+<!-- PREVIEW OF OLD MEMBER (READ-ONLY FORM) MODAL -->
+<div class="mm-overlay" id="mm-transfer-preview-overlay" style="display:none;z-index:9999;">
+  <div class="mm-dialog" style="width:960px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;">
+    <div class="mm-dialog-title" style="background:#0055b8;color:#ffffff;padding:8px 16px;display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-weight:bold;font-size:13px;"><i class="bi bi-eye"></i> PREVIEW OF OLD MEMBER — <span id="mm-prev-member-name">TRANSFEROR NAME</span> (READ-ONLY FORM)</span>
+      <button type="button" style="background:none;border:none;color:#ffffff;font-size:16px;cursor:pointer;" onclick="mmCloseTransferPreview()">✕</button>
+    </div>
+    <div class="mm-dialog-body" id="mm-transfer-preview-body" style="flex:1;overflow-y:auto;padding:16px;background:#f8fafc;display:flex;flex-direction:column;gap:12px;">
+      <!-- Content populated dynamically by JavaScript -->
+    </div>
+    <div class="mm-dialog-footer" style="padding:10px 16px;background:#f1f5f9;display:flex;justify-content:center;gap:12px;border-top:1px solid #e2e8f0;">
+      <button class="mm-btn" type="button" onclick="mmPrintTransferPreview()"><i class="bi bi-printer"></i> PRINT FORM</button>
+      <button class="mm-btn" type="button" onclick="mmDownloadTransferPreviewHtml()"><i class="bi bi-download"></i> DOWNLOAD HTML</button>
+      <button class="mm-btn" type="button" onclick="mmCloseTransferPreview()">CLOSE</button>
+    </div>
+  </div>
+</div>
+
+<!-- DOCUMENTS OF OLD MEMBER MODAL -->
+<div class="mm-overlay" id="mm-transfer-docs-overlay" style="display:none;z-index:9999;">
+  <div class="mm-dialog" style="width:550px;max-width:90vw;display:flex;flex-direction:column;">
+    <div class="mm-dialog-title" style="background:#0055b8;color:#ffffff;padding:8px 16px;display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-weight:bold;font-size:13px;"><i class="bi bi-file-earmark-arrow-down"></i> DOCUMENTS OF <span id="mm-docs-member-name">TRANSFEROR NAME</span> (DOWNLOAD ONLY)</span>
+      <button type="button" style="background:none;border:none;color:#ffffff;font-size:16px;cursor:pointer;" onclick="mmCloseTransferDocs()">✕</button>
+    </div>
+    <div class="mm-dialog-body" style="padding:24px;background:#ffffff;min-height:200px;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+      <div id="mm-transfer-docs-list-container" style="width:100%;text-align:center;">
+        <span style="color:#64748b;font-size:13px;">No uploaded documents found for this historical member record.</span>
+      </div>
+    </div>
+    <div class="mm-dialog-footer" style="padding:10px;background:#f1f5f9;display:flex;justify-content:center;border-top:1px solid #e2e8f0;">
+      <button class="mm-btn" type="button" style="min-width:90px;" onclick="mmCloseTransferDocs()">CLOSE</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD NEW UNIT TYPE MODAL -->
+<div class="mm-overlay" id="mm-add-unit-type-overlay" style="display:none;z-index:9999;">
+  <div class="mm-dialog" style="width:440px;max-width:90vw;display:flex;flex-direction:column;border-radius:4px;overflow:hidden;box-shadow:0 10px 25px rgba(0,0,0,0.3);">
+    <div class="mm-dialog-title" style="background:#0055b8;color:#ffffff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;font-weight:bold;font-size:14px;">
+      <span><i class="bi bi-plus-circle-fill"></i> ADD NEW UNIT TYPE</span>
+      <button type="button" style="background:none;border:none;color:#ffffff;font-size:18px;font-weight:bold;cursor:pointer;" onclick="mmCloseAddUnitType()">✕</button>
+    </div>
+    <div class="mm-dialog-body" style="padding:20px;background:#ffffff;display:flex;flex-direction:column;gap:12px;">
+      <label style="font-weight:bold;font-size:12px;color:#1e293b;">UNIT TYPE NAME:</label>
+      <input type="text" id="mm-new-unit-type-input" class="mm-input" style="height:36px;font-size:13px;padding:0 10px;border:1px solid #3b82f6;border-radius:4px;width:100%;" placeholder="e.g. Row House, Godown" onkeydown="if(event.key==='Enter') mmSaveNewUnitType()">
+    </div>
+    <div class="mm-dialog-footer" style="padding:12px 16px;background:#f8fafc;display:flex;justify-content:flex-end;gap:10px;border-top:1px solid #e2e8f0;">
+      <button class="mm-btn" type="button" style="background:#ffffff;border:1px solid #cbd5e1;color:#334155;padding:6px 16px;font-weight:bold;" onclick="mmCloseAddUnitType()">CANCEL</button>
+      <button class="mm-btn" type="button" style="background:#ffffff;border:1px solid #0055b8;color:#0055b8;padding:6px 16px;font-weight:bold;" onclick="mmSaveNewUnitType()"><i class="bi bi-check-lg"></i> OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD NEW FLAT TYPE MODAL -->
+<div class="mm-overlay" id="mm-add-flat-type-overlay" style="display:none;z-index:9999;">
+  <div class="mm-dialog" style="width:440px;max-width:90vw;display:flex;flex-direction:column;border-radius:4px;overflow:hidden;box-shadow:0 10px 25px rgba(0,0,0,0.3);">
+    <div class="mm-dialog-title" style="background:#0055b8;color:#ffffff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;font-weight:bold;font-size:14px;">
+      <span id="lbl-mm-new-flat-type-title"><i class="bi bi-plus-circle-fill"></i> ADD NEW FLAT TYPE</span>
+      <button type="button" style="background:none;border:none;color:#ffffff;font-size:18px;font-weight:bold;cursor:pointer;" onclick="mmCloseAddFlatType()">✕</button>
+    </div>
+    <div class="mm-dialog-body" style="padding:20px;background:#ffffff;display:flex;flex-direction:column;gap:12px;">
+      <label id="lbl-mm-new-flat-type-name" style="font-weight:bold;font-size:12px;color:#1e293b;">FLAT TYPE NAME:</label>
+      <input type="text" id="mm-new-flat-type-input" class="mm-input" style="height:36px;font-size:13px;padding:0 10px;border:1px solid #3b82f6;border-radius:4px;width:100%;" placeholder="e.g. 1.5 BHK, Studio" onkeydown="if(event.key==='Enter') mmSaveNewFlatType()">
+    </div>
+    <div class="mm-dialog-footer" style="padding:12px 16px;background:#f8fafc;display:flex;justify-content:flex-end;gap:10px;border-top:1px solid #e2e8f0;">
+      <button class="mm-btn" type="button" style="background:#ffffff;border:1px solid #cbd5e1;color:#334155;padding:6px 16px;font-weight:bold;" onclick="mmCloseAddFlatType()">CANCEL</button>
+      <button class="mm-btn" type="button" style="background:#ffffff;border:1px solid #0055b8;color:#0055b8;padding:6px 16px;font-weight:bold;" onclick="mmSaveNewFlatType()"><i class="bi bi-check-lg"></i> OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD PARKING SLOT ROW MODAL (Image 3 & 4) -->
+<div class="mm-overlay" id="mm-parking-add-row-modal" style="display:none;z-index:9999;">
+  <div class="mm-dialog" style="width:380px;max-width:90vw;display:flex;flex-direction:column;border-radius:4px;overflow:hidden;box-shadow:0 10px 25px rgba(0,0,0,0.3);">
+    <div class="mm-dialog-title" style="background:#1565C0;color:#ffffff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;font-weight:bold;font-size:14px;">
+      <span><i class="bi bi-plus-circle-fill"></i> ADD PARKING SLOT ROW</span>
+      <button type="button" style="background:none;border:none;color:#ffffff;font-size:18px;font-weight:bold;cursor:pointer;" onclick="mmCloseAddParkingRowModal()">✕</button>
+    </div>
+    <div class="mm-dialog-body" style="padding:20px;background:#ffffff;display:flex;flex-direction:column;gap:14px;">
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <label style="font-weight:bold;font-size:11px;color:#1e293b;text-transform:uppercase;">SELECT WHEELER TYPE:</label>
+        <select id="mm-add-park-wheeler-type" class="mm-select" style="height:34px;font-size:12px;width:100%;">
+          <option value="4-Wheeler">4-Wheeler</option>
+          <option value="2-Wheeler">2-Wheeler</option>
+          <option value="Both (4-Wheeler &amp; 2-Wheeler)">Both (4-Wheeler &amp; 2-Wheeler)</option>
+        </select>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <label style="font-weight:bold;font-size:11px;color:#1e293b;text-transform:uppercase;">HEAD NAME:</label>
+        <input type="text" id="mm-add-park-head-name" class="mm-input" style="height:34px;font-size:12px;width:100%;" placeholder="e.g. Backyard, Garage, Roof" onkeydown="if(event.key==='Enter') mmConfirmAddParkingRow()">
+      </div>
+    </div>
+    <div class="mm-dialog-footer" style="padding:12px 16px;background:#f8fafc;display:flex;justify-content:flex-end;gap:10px;border-top:1px solid #e2e8f0;">
+      <button class="mm-btn" type="button" style="background:#ffffff;border:1px solid #cbd5e1;color:#334155;padding:6px 16px;font-weight:bold;" onclick="mmCloseAddParkingRowModal()">CANCEL</button>
+      <button class="mm-btn" type="button" style="background:#1565C0;border:1px solid #1565C0;color:#ffffff;padding:6px 16px;font-weight:bold;" onclick="mmConfirmAddParkingRow()"><i class="bi bi-check-lg"></i> OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- RC BOOK DOCUMENT UPLOAD MODAL (Image 5) -->
+<div class="mm-overlay" id="mm-parking-bulk-rc-modal" style="display:none;z-index:9999;">
+  <div class="mm-dialog" style="width:480px;max-width:90vw;display:flex;flex-direction:column;border-radius:4px;overflow:hidden;box-shadow:0 10px 25px rgba(0,0,0,0.3);">
+    <div class="mm-dialog-title" style="background:#1565C0;color:#ffffff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;font-weight:bold;font-size:14px;">
+      <span><i class="bi bi-file-earmark-arrow-up-fill"></i> RC BOOK DOCUMENT UPLOAD</span>
+      <button type="button" style="background:none;border:none;color:#ffffff;font-size:18px;font-weight:bold;cursor:pointer;" onclick="mmCloseBulkRcModal()">✕</button>
+    </div>
+    <div class="mm-dialog-body" style="padding:20px;background:#ffffff;display:flex;flex-direction:column;gap:14px;">
+      <label style="font-weight:bold;font-size:11px;color:#1e293b;text-transform:uppercase;">SELECT RC BOOK IMAGES/PDFS (MULTIPLE ALLOWED):</label>
+      <input type="file" id="mm-bulk-rc-input" class="mm-input" multiple accept="image/*,application/pdf" style="height:34px;padding:3px;" onchange="mmHandleBulkRcFiles(this)">
+      
+      <div id="mm-bulk-rc-list-box" style="border:1px solid #cbd5e1;border-radius:4px;min-height:160px;max-height:220px;overflow-y:auto;padding:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fafafa;">
+        <span id="mm-bulk-rc-empty-msg" style="color:#94a3b8;font-size:12px;font-weight:600;">No documents uploaded</span>
+        <div id="mm-bulk-rc-items" style="width:100%;display:none;flex-direction:column;gap:8px;"></div>
+      </div>
+    </div>
+    <div class="mm-dialog-footer" style="padding:12px 16px;background:#f8fafc;display:flex;justify-content:center;border-top:1px solid #e2e8f0;">
+      <button class="mm-btn" type="button" style="background:#ffffff;border:1px solid #64748b;color:#1e293b;padding:6px 28px;font-weight:bold;" onclick="mmCloseBulkRcModal()">CLOSE</button>
+    </div>
+  </div>
+</div>
+
+<!-- RC DOCUMENT PREVIEW / SCAN MODAL -->
+<div class="mm-overlay" id="mm-rc-preview-modal" style="display:none;z-index:9999;">
+  <div class="mm-dialog" style="width:650px;max-width:92vw;display:flex;flex-direction:column;border-radius:4px;overflow:hidden;box-shadow:0 10px 25px rgba(0,0,0,0.3);">
+    <div class="mm-dialog-title" style="background:#1565C0;color:#ffffff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;font-weight:bold;font-size:14px;">
+      <span id="mm-rc-preview-title"><i class="bi bi-file-earmark-medical"></i> RC DOCUMENT PREVIEW</span>
+      <button type="button" style="background:none;border:none;color:#ffffff;font-size:18px;font-weight:bold;cursor:pointer;" onclick="mmCloseRcPreview()">✕</button>
+    </div>
+    <div class="mm-dialog-body" id="mm-rc-preview-body" style="padding:16px;background:#ffffff;max-height:70vh;overflow-y:auto;display:flex;justify-content:center;align-items:center;">
+      <!-- Image / PDF Preview Content -->
+    </div>
+    <div class="mm-dialog-footer" style="padding:10px 16px;background:#f8fafc;display:flex;justify-content:flex-end;gap:10px;border-top:1px solid #e2e8f0;">
+      <button class="mm-btn" type="button" style="background:#ffffff;border:1px solid #64748b;color:#1e293b;padding:5px 18px;font-weight:bold;" onclick="mmCloseRcPreview()">CLOSE</button>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden File Input for Single Row RC Upload -->
+<input type="file" id="mm-single-rc-file-input" style="display:none;" accept="image/*,application/pdf" onchange="mmHandleSingleRcFileSelected(this)">
+
+<script src="../../../config.js?v=20260816_25"></script>
+<script src="../../../assets/js/api.js?v=20260816_25"></script>
+<script src="../../../assets/js/auth.js?v=20260816_25"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="./member-master.js?v=20260816_25"></script>
+</body>
+</html>

@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Select Society &amp; Financial Year — JEEVIKA ERP</title>
+  <meta name="description" content="Select your society and financial year to continue">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #0D0D1A;
+      color: #E0E0E0;
+      overflow: auto;
+    }
+
+    /* ── Animated Background ──────────────── */
+    .setup-bg {
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse at 25% 30%, rgba(0, 0, 128, 0.2) 0%, transparent 50%),
+        linear-gradient(145deg, #0D0D1A 0%, #141428 100%);
+      z-index: 0;
+    }
+
+    .setup-bg::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,0,128,0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,0,128,0.05) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    /* ── Page Layout ──────────────────────── */
+    .setup-page {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 20px;
+    }
+
+    /* ── Card ─────────────────────────────── */
+    .setup-card {
+      width: 100%;
+      max-width: 540px;
+      background: rgba(20, 20, 40, 0.88);
+      border: 1px solid rgba(0, 0, 180, 0.3);
+      border-radius: 10px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 40px rgba(0,0,128,0.1);
+      backdrop-filter: blur(10px);
+      overflow: hidden;
+      animation: cardIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(30px) scale(0.96); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* ── Header ───────────────────────────── */
+    .setup-header {
+      background: linear-gradient(135deg, #000080 0%, #0D47A1 50%, #1565C0 100%);
+      padding: 20px 28px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      position: relative;
+    }
+
+    .setup-header::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    }
+
+    .setup-header-logo {
+      width: 40px; height: 40px;
+      background: rgba(255,255,255,0.1);
+      border: 1.5px solid rgba(255,255,255,0.25);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; font-weight: 900; color: white;
+      flex-shrink: 0;
+    }
+
+    .setup-header-text h1 {
+      font-size: 16px;
+      font-weight: 700;
+      color: white;
+      letter-spacing: 0.5px;
+    }
+
+    .setup-header-text p {
+      font-size: 11px;
+      color: rgba(255,255,255,0.65);
+      margin-top: 2px;
+    }
+
+    /* ── User badge in header ─────────────── */
+    .setup-user-badge {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: rgba(255,255,255,0.8);
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 20px;
+      padding: 4px 10px;
+    }
+
+    /* ── Steps Indicator ──────────────────── */
+    .setup-steps {
+      display: flex;
+      align-items: center;
+      padding: 16px 28px;
+      gap: 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .step-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+    }
+
+    .step-num {
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.08);
+      border: 1.5px solid rgba(255,255,255,0.2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.4);
+      flex-shrink: 0;
+      transition: all 0.3s;
+    }
+
+    .step-num.active {
+      background: #1565C0;
+      border-color: #1565C0;
+      color: white;
+      box-shadow: 0 0 12px rgba(21,101,192,0.5);
+    }
+
+    .step-num.done {
+      background: #2E7D32;
+      border-color: #2E7D32;
+      color: white;
+    }
+
+    .step-label {
+      font-size: 11px;
+      color: rgba(255,255,255,0.35);
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      transition: color 0.3s;
+    }
+
+    .step-item.active .step-label { color: rgba(255,255,255,0.9); }
+    .step-item.done .step-label   { color: rgba(255,255,255,0.6); }
+
+    .step-connector {
+      flex: 1;
+      height: 1px;
+      background: rgba(255,255,255,0.1);
+      margin: 0 8px;
+    }
+
+    /* ── Body ─────────────────────────────── */
+    .setup-body {
+      padding: 24px 28px;
+    }
+
+    /* ── Form Group ───────────────────────── */
+    .setup-form-group {
+      margin-bottom: 20px;
+    }
+
+    .setup-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(200,210,255,0.8);
+      margin-bottom: 8px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .setup-select {
+      width: 100%;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(0,0,180,0.35);
+      border-radius: 5px;
+      padding: 10px 12px;
+      font-family: 'Segoe UI', sans-serif;
+      font-size: 13px;
+      color: #E8EAF6;
+      outline: none;
+      cursor: pointer;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      appearance: auto;
+    }
+
+    .setup-select option {
+      background: #141428;
+      color: #E8EAF6;
+    }
+
+    .setup-select:focus {
+      border-color: rgba(63,130,255,0.8);
+      box-shadow: 0 0 0 3px rgba(63,130,255,0.12);
+    }
+
+    .setup-select:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* ── Info Box ─────────────────────────── */
+    .setup-info-box {
+      display: none;
+      background: rgba(21,101,192,0.12);
+      border: 1px solid rgba(21,101,192,0.3);
+      border-radius: 5px;
+      padding: 12px 14px;
+      margin-top: 12px;
+      font-size: 12px;
+      color: rgba(200,220,255,0.85);
+    }
+
+    .setup-info-box.show { display: block; }
+
+    .setup-info-box table { width: 100%; border-collapse: collapse; }
+    .setup-info-box td { padding: 3px 0; }
+    .setup-info-box td:first-child {
+      width: 40%;
+      color: rgba(180,200,255,0.6);
+      font-size: 11px;
+    }
+    .setup-info-box td:last-child {
+      font-weight: 600;
+      color: rgba(220,235,255,0.95);
+    }
+
+    /* ── Error ────────────────────────────── */
+    .setup-error {
+      display: none;
+      background: rgba(192,0,0,0.12);
+      border: 1px solid rgba(192,0,0,0.4);
+      border-radius: 4px;
+      padding: 9px 12px;
+      font-size: 12px;
+      color: #FF8A80;
+      margin-bottom: 16px;
+      gap: 8px;
+      align-items: center;
+    }
+    .setup-error.show { display: flex; }
+
+    /* ── Navigation Buttons ───────────────── */
+    .setup-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 28px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      gap: 10px;
+    }
+
+    .setup-btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      font-family: 'Segoe UI', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .setup-btn-secondary {
+      background: rgba(255,255,255,0.07);
+      color: rgba(255,255,255,0.7);
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .setup-btn-secondary:hover {
+      background: rgba(255,255,255,0.12);
+      color: white;
+    }
+
+    .setup-btn-primary {
+      background: linear-gradient(135deg, #1565C0, #0D47A1);
+      color: white;
+      box-shadow: 0 4px 14px rgba(13,71,161,0.35);
+    }
+
+    .setup-btn-primary:hover {
+      background: linear-gradient(135deg, #1976D2, #1565C0);
+      transform: translateY(-1px);
+    }
+
+    .setup-btn-primary:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .setup-btn-create-fy {
+      background: rgba(46, 125, 50, 0.2);
+      color: #A5D6A7;
+      border: 1px solid rgba(46, 125, 50, 0.45);
+      padding: 6px 12px;
+      font-size: 11.5px;
+      font-weight: 600;
+      border-radius: 4px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.2s;
+    }
+    .setup-btn-create-fy:hover {
+      background: rgba(46, 125, 50, 0.35);
+      border-color: #81C784;
+      color: #E8F5E9;
+    }
+
+    /* Modal for Create FY */
+    .fy-modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(5, 5, 15, 0.78);
+      backdrop-filter: blur(6px);
+      z-index: 999;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .fy-modal-overlay.show { display: flex; }
+
+    .fy-modal-box {
+      width: 100%;
+      max-width: 460px;
+      background: #141428;
+      border: 1px solid rgba(63, 130, 255, 0.35);
+      border-radius: 8px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+      overflow: hidden;
+      animation: cardIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    .fy-modal-header {
+      background: linear-gradient(135deg, #1565C0 0%, #0D47A1 100%);
+      color: #ffffff;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .fy-modal-header h3 {
+      font-size: 14px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+    }
+
+    .fy-modal-body {
+      padding: 20px;
+    }
+
+    .fy-year-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .fy-preview-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 6px;
+      padding: 14px;
+      margin-top: 14px;
+    }
+
+    .fy-preview-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    .fy-preview-table td {
+      padding: 4px 0;
+    }
+    .fy-preview-table td:first-child {
+      color: rgba(180, 200, 255, 0.6);
+      width: 35%;
+    }
+    .fy-preview-table td:last-child {
+      font-weight: 700;
+      color: #90CAF9;
+    }
+
+    /* Spinner */
+    .btn-spinner {
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Footer ───────────────────────────── */
+    .setup-footer {
+      text-align: center;
+      padding: 10px;
+      font-size: 10px;
+      color: rgba(255,255,255,0.2);
+    }
+  </style>
+</head>
+<body>
+  <div class="setup-bg"></div>
+  <div class="setup-page">
+    <div class="setup-card">
+
+      <!-- Header -->
+      <div class="setup-header">
+        <div class="setup-header-logo">J</div>
+        <div class="setup-header-text">
+          <h1>JEEVIKA ERP</h1>
+          <p>Select Society &amp; Financial Year to Continue</p>
+        </div>
+        <div class="setup-user-badge">
+          <i class="bi bi-person-circle"></i>
+          <span id="userNameBadge">—</span>
+        </div>
+      </div>
+
+      <!-- Steps -->
+      <div class="setup-steps">
+        <div class="step-item active" id="step1Indicator">
+          <div class="step-num active" id="step1Num">1</div>
+          <div class="step-label">Select Society</div>
+        </div>
+        <div class="step-connector"></div>
+        <div class="step-item" id="step2Indicator">
+          <div class="step-num" id="step2Num">2</div>
+          <div class="step-label">Select Financial Year</div>
+        </div>
+        <div class="step-connector"></div>
+        <div class="step-item" id="step3Indicator">
+          <div class="step-num" id="step3Num">3</div>
+          <div class="step-label">Confirm</div>
+        </div>
+      </div>
+
+      <!-- Body -->
+      <div class="setup-body">
+
+        <!-- Error -->
+        <div class="setup-error" id="setupError">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+          <span id="setupErrorMsg"></span>
+        </div>
+
+        <!-- Step 1: Society -->
+        <div id="step1Panel">
+          <div class="setup-form-group">
+            <label class="setup-label" for="societySelect">
+              <i class="bi bi-building"></i> &nbsp;Choose Society
+            </label>
+            <select id="societySelect" class="setup-select">
+              <option value="">— Loading societies... —</option>
+            </select>
+          </div>
+
+          <div class="setup-info-box" id="societyInfo">
+            <table>
+              <tr><td>Code</td><td id="si-code">—</td></tr>
+              <tr><td>City</td><td id="si-city">—</td></tr>
+              <tr><td>Reg. No.</td><td id="si-reg">—</td></tr>
+              <tr><td>PAN</td><td id="si-pan">—</td></tr>
+            </table>
+          </div>
+        </div>
+
+        <!-- Step 2: Financial Year -->
+        <div id="step2Panel" style="display:none;">
+          <div class="setup-form-group">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <label class="setup-label" for="fySelect" style="margin-bottom:0;">
+                <i class="bi bi-calendar3"></i> &nbsp;Choose Financial Year
+              </label>
+              <button type="button" class="setup-btn-create-fy" id="btnOpenCreateFY" onclick="openCreateFYModal()">
+                <i class="bi bi-plus-circle"></i> + Create New Financial Year
+              </button>
+            </div>
+            <select id="fySelect" class="setup-select">
+              <option value="">— Select Financial Year —</option>
+            </select>
+          </div>
+
+          <div class="setup-info-box" id="fyInfo">
+            <table>
+              <tr><td>Period</td><td id="fi-period">—</td></tr>
+              <tr><td>Status</td><td id="fi-status">—</td></tr>
+            </table>
+          </div>
+        </div>
+
+        <!-- Step 3: Confirm -->
+        <div id="step3Panel" style="display:none;">
+          <div class="setup-info-box show" id="confirmBox" style="font-size:13px;">
+            <table>
+              <tr>
+                <td style="width:38%;color:rgba(180,200,255,0.6);font-size:11px;">Society</td>
+                <td id="cf-society" style="font-weight:700;font-size:14px;color:#90CAF9;">—</td>
+              </tr>
+              <tr>
+                <td style="color:rgba(180,200,255,0.6);font-size:11px;">Financial Year</td>
+                <td id="cf-fy" style="font-weight:700;font-size:14px;color:#A5D6A7;">—</td>
+              </tr>
+              <tr>
+                <td style="color:rgba(180,200,255,0.6);font-size:11px;">User</td>
+                <td id="cf-user">—</td>
+              </tr>
+            </table>
+          </div>
+          <p style="font-size:11px;color:rgba(255,255,255,0.4);margin-top:14px;text-align:center;">
+            <i class="bi bi-check-circle"></i> &nbsp;All your data will be scoped to this society and financial year.
+          </p>
+        </div>
+
+      </div>
+
+      <!-- Navigation -->
+      <div class="setup-actions">
+        <button class="setup-btn setup-btn-secondary" id="backBtn" onclick="goBack()" style="display:none;">
+          <i class="bi bi-arrow-left"></i> Back
+        </button>
+        <div style="flex:1;"></div>
+        <button class="setup-btn setup-btn-secondary" id="logoutBtn" onclick="doLogout()" title="Logout">
+          <i class="bi bi-box-arrow-left"></i> Logout
+        </button>
+        <button class="setup-btn setup-btn-primary" id="nextBtn" onclick="goNext()" disabled>
+          <div class="btn-spinner" id="nextSpinner"></div>
+          <span id="nextBtnText">Next</span>
+          <i class="bi bi-arrow-right" id="nextBtnIcon"></i>
+        </button>
+      </div>
+
+      <!-- Footer -->
+      <div class="setup-footer">JEEVIKA ERP v2.0</div>
+    </div>
+  </div>
+
+  <!-- ── MODAL: CREATE NEW FINANCIAL YEAR ── -->
+  <div class="fy-modal-overlay" id="createFYModal">
+    <div class="fy-modal-box">
+      <div class="fy-modal-header">
+        <h3><i class="bi bi-calendar-plus"></i> Create New Financial Year</h3>
+        <button type="button" onclick="closeCreateFYModal()" style="background:none; border:none; color:white; font-size:18px; cursor:pointer;">&times;</button>
+      </div>
+      <div class="fy-modal-body">
+        <div class="setup-error" id="modalFYError" style="margin-bottom:12px;">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+          <span id="modalFYErrorMsg"></span>
+        </div>
+
+        <div class="fy-year-grid">
+          <div>
+            <label class="setup-label" for="fromYearSelect">From Year (Select or Type YYYY)</label>
+            <input type="text" id="fromYearSelect" class="setup-select" list="fromYearsDatalist" placeholder="e.g. 2026" maxlength="4" oninput="onFromYearChange()" onchange="onFromYearChange()" style="cursor:text;">
+            <datalist id="fromYearsDatalist">
+              <!-- Generated Dynamically via Range Policy -->
+            </datalist>
+          </div>
+          <div>
+            <label class="setup-label" for="toYearSelect">To Year (Select or Type YYYY)</label>
+            <input type="text" id="toYearSelect" class="setup-select" list="toYearsDatalist" placeholder="e.g. 2027" maxlength="4" oninput="onToYearChange()" onchange="onToYearChange()" style="cursor:text;">
+            <datalist id="toYearsDatalist">
+              <!-- Generated Dynamically via Range Policy -->
+            </datalist>
+          </div>
+        </div>
+
+        <!-- Preview Card -->
+        <div class="fy-preview-card">
+          <div style="font-size:11px; font-weight:700; color:rgba(255,255,255,0.5); text-transform:uppercase; margin-bottom:8px;">
+            Preview Financial Year
+          </div>
+          <table class="fy-preview-table">
+            <tr>
+              <td>Society:</td>
+              <td id="prevSocietyName">—</td>
+            </tr>
+            <tr>
+              <td>Financial Year:</td>
+              <td id="prevFYLabel" style="color:#A5D6A7; font-size:13px;">—</td>
+            </tr>
+            <tr>
+              <td>From Date:</td>
+              <td id="prevFYStart">—</td>
+            </tr>
+            <tr>
+              <td>To Date:</td>
+              <td id="prevFYEnd">—</td>
+            </tr>
+          </table>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+          <button type="button" class="setup-btn setup-btn-secondary" onclick="closeCreateFYModal()">
+            Cancel
+          </button>
+          <button type="button" class="setup-btn setup-btn-primary" id="btnSubmitCreateFY" onclick="submitCreateFY()">
+            <div class="btn-spinner" id="modalFYSpinner"></div>
+            <span id="modalFYBtnText"><i class="bi bi-check-circle"></i> Create Financial Year</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script>
+    // ── State ──────────────────────────────────────────────
+    let currentStep = 1;
+    let societies = [];
+    let financialYears = [];
+    let selectedSociety = null;
+    let selectedFY = null;
+
+    // ── Init ───────────────────────────────────────────────
+    window.addEventListener('DOMContentLoaded', async () => {
+      // Guard: must be logged in
+      const token = sessionStorage.getItem('jwtToken');
+      if (!token) { window.location.href = 'login.html'; return; }
+
+      // Show user name
+      document.getElementById('userNameBadge').textContent =
+        sessionStorage.getItem('userName') || 'User';
+
+      // Load societies
+      await loadSocieties();
+
+      // Attach change handlers
+      document.getElementById('societySelect').addEventListener('change', onSocietyChange);
+      document.getElementById('fySelect').addEventListener('change', onFYChange);
+    });
+
+    // ── Load Societies from API ────────────────────────────
+    async function loadSocieties() {
+      const sel = document.getElementById('societySelect');
+      sel.innerHTML = '<option value="">— Loading societies... —</option>';
+      sel.disabled = true;
+      document.getElementById('nextBtn').disabled = true;
+
+      try {
+        const token = sessionStorage.getItem('jwtToken');
+        const headers = {};
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+
+        const res = await fetch(getApiBase() + '/societies', { headers });
+
+        if (res.status === 401) {
+          window.location.href = 'login.html';
+          return;
+        }
+
+        const data = await res.json();
+
+        if (data.success && data.data && data.data.length > 0) {
+          societies = data.data;
+          sel.innerHTML = '<option value="">— Select Society —</option>' +
+            societies.map(s =>
+              `<option value="${s.societyId}">${escHtml(s.societyName)} (${escHtml(s.societyCode || 'SOC')})</option>`
+            ).join('');
+          sel.disabled = false;
+          clearError();
+        } else {
+          sel.innerHTML = '<option value="">— No societies found —</option>';
+          showError('No societies found in database. Please create a society first.');
+        }
+      } catch (err) {
+        console.error('loadSocieties error:', err);
+        sel.innerHTML = '<option value="">— Connection Error —</option>';
+        showError('Cannot connect to server API. Make sure backend is running on http://localhost:5002');
+      }
+    }
+
+    // ── On Society Change ──────────────────────────────────
+    function onSocietyChange() {
+      const id = parseInt(document.getElementById('societySelect').value);
+      selectedSociety = societies.find(s => s.societyId === id) || null;
+      clearError();
+
+      if (selectedSociety) {
+        // Show info
+        document.getElementById('si-code').textContent = selectedSociety.societyCode || '—';
+        document.getElementById('si-city').textContent = selectedSociety.city || '—';
+        document.getElementById('si-reg').textContent  = selectedSociety.registrationNo || '—';
+        document.getElementById('si-pan').textContent  = selectedSociety.pANNumber || '—';
+        document.getElementById('societyInfo').classList.add('show');
+        document.getElementById('nextBtn').disabled = false;
+      } else {
+        document.getElementById('societyInfo').classList.remove('show');
+        document.getElementById('nextBtn').disabled = true;
+      }
+    }
+
+    // ── Load Financial Years ───────────────────────────────
+    async function loadFYs(societyId, preferredFYId = null) {
+      const sel = document.getElementById('fySelect');
+      sel.innerHTML = '<option value="">— Loading... —</option>';
+      sel.disabled = true;
+      document.getElementById('nextBtn').disabled = true;
+
+      try {
+        const token = sessionStorage.getItem('jwtToken');
+        const res = await fetch(
+          getApiBase() + '/financial-years?societyId=' + societyId,
+          { headers: { 'Authorization': 'Bearer ' + token } }
+        );
+        const data = await res.json();
+
+        if (data.success && data.data && data.data.length > 0) {
+          financialYears = data.data;
+          sel.innerHTML = '<option value="">— Select Financial Year —</option>' +
+            financialYears.map(fy =>
+              `<option value="${fy.fYId}">${escHtml(fy.fYLabel)}${fy.isClosed ? ' (Closed)' : ''}</option>`
+            ).join('');
+          sel.disabled = false;
+
+          let targetFY = null;
+          if (preferredFYId) {
+            targetFY = financialYears.find(f => f.fYId === preferredFYId);
+          }
+          if (!targetFY) {
+            targetFY = financialYears.find(f => !f.isClosed) || financialYears[0];
+          }
+
+          if (targetFY) {
+            sel.value = targetFY.fYId;
+            onFYChange();
+          }
+        } else {
+          financialYears = [];
+          sel.innerHTML = '<option value="">— No financial years found —</option>';
+          showError('No financial years found for this society. Click "+ Create New Financial Year" to add one.');
+        }
+      } catch (err) {
+        sel.innerHTML = '<option value="">— Error loading —</option>';
+        showError('Failed to load financial years.');
+      }
+    }
+
+    // ── On FY Change ───────────────────────────────────────
+    function onFYChange() {
+      const id = parseInt(document.getElementById('fySelect').value);
+      selectedFY = financialYears.find(f => f.fYId === id) || null;
+      clearError();
+
+      if (selectedFY) {
+        document.getElementById('fi-period').textContent =
+          formatDate(selectedFY.fYStart) + ' — ' + formatDate(selectedFY.fYEnd);
+        document.getElementById('fi-status').textContent =
+          selectedFY.isClosed ? '🔒 Closed' : '✅ Active';
+        document.getElementById('fyInfo').classList.add('show');
+        document.getElementById('nextBtn').disabled = false;
+      } else {
+        document.getElementById('fyInfo').classList.remove('show');
+        document.getElementById('nextBtn').disabled = true;
+      }
+    }
+
+    // ── Step Navigation ────────────────────────────────────
+    async function goNext() {
+      clearError();
+
+      if (currentStep === 1) {
+        if (!selectedSociety) { showError('Please select a society.'); return; }
+        setNextLoading(true);
+        await loadFYs(selectedSociety.societyId);
+        setNextLoading(false);
+        goToStep(2);
+
+      } else if (currentStep === 2) {
+        if (!selectedFY) { showError('Please select a financial year.'); return; }
+        goToStep(3);
+
+      } else if (currentStep === 3) {
+        // Confirm: save context and go to workspace
+        const socIdStr = selectedSociety.societyId.toString();
+        const fyIdStr  = selectedFY.fYId.toString();
+        var gstFlag = (selectedSociety.gstApplicable === true || selectedSociety.GSTApplicable === true || selectedSociety.gstApplicable === 'Y' || selectedSociety.GSTApplicable === 'Y') ? 'Y' : 'N';
+
+        sessionStorage.setItem('activeSocietyId',   socIdStr);
+        sessionStorage.setItem('activeSocietyName', selectedSociety.societyName);
+        sessionStorage.setItem('activeSocietyCode', selectedSociety.societyCode);
+        sessionStorage.setItem('activeFYId',         fyIdStr);
+        sessionStorage.setItem('activeFYLabel',      selectedFY.fYLabel);
+        sessionStorage.setItem('activeFYStart',      selectedFY.fYStart);
+        sessionStorage.setItem('activeSocietyGSTApplicable', gstFlag);
+
+        localStorage.setItem('activeSocietyId',   socIdStr);
+        localStorage.setItem('activeSocietyName', selectedSociety.societyName);
+        localStorage.setItem('activeSocietyCode', selectedSociety.societyCode);
+        localStorage.setItem('activeFYId',         fyIdStr);
+        localStorage.setItem('activeFYLabel',      selectedFY.fYLabel);
+        localStorage.setItem('activeFYStart',      selectedFY.fYStart);
+        localStorage.setItem('activeSocietyGSTApplicable', gstFlag);
+
+        if (window.Auth && typeof window.Auth.setContext === 'function') {
+          window.Auth.setContext({
+            societyId: selectedSociety.societyId,
+            societyName: selectedSociety.societyName,
+            societyCode: selectedSociety.societyCode
+          }, {
+            fYId: selectedFY.fYId,
+            fYLabel: selectedFY.fYLabel,
+            fYStart: selectedFY.fYStart,
+            fYEnd: selectedFY.fYEnd
+          });
+        }
+
+        window.location.href = 'workspace.html';
+      }
+    }
+
+    function goBack() {
+      clearError();
+      if (currentStep > 1) goToStep(currentStep - 1);
+    }
+
+    function goToStep(step) {
+      currentStep = step;
+
+      // Panels
+      document.getElementById('step1Panel').style.display = step === 1 ? 'block' : 'none';
+      document.getElementById('step2Panel').style.display = step === 2 ? 'block' : 'none';
+      document.getElementById('step3Panel').style.display = step === 3 ? 'block' : 'none';
+
+      // Step indicators
+      for (let i = 1; i <= 3; i++) {
+        const num = document.getElementById('step' + i + 'Num');
+        const item = document.getElementById('step' + i + 'Indicator');
+        num.className = 'step-num' + (i === step ? ' active' : (i < step ? ' done' : ''));
+        if (i < step) { num.innerHTML = '✔'; item.className = 'step-item done'; }
+        else if (i === step) { num.innerHTML = i; item.className = 'step-item active'; }
+        else { num.innerHTML = i; item.className = 'step-item'; }
+      }
+
+      // Back button
+      document.getElementById('backBtn').style.display = step > 1 ? 'flex' : 'none';
+
+      // Next button text
+      const texts = { 1: 'Next', 2: 'Next', 3: 'Enter Workspace' };
+      document.getElementById('nextBtnText').textContent = texts[step];
+      document.getElementById('nextBtnIcon').className =
+        step === 3 ? 'bi bi-door-open' : 'bi bi-arrow-right';
+
+      // Enable next based on state
+      if (step === 1) document.getElementById('nextBtn').disabled = !selectedSociety;
+      if (step === 2) document.getElementById('nextBtn').disabled = !selectedFY;
+      if (step === 3) {
+        document.getElementById('nextBtn').disabled = false;
+        // Fill confirm panel
+        document.getElementById('cf-society').textContent = selectedSociety.societyName;
+        document.getElementById('cf-fy').textContent = selectedFY.fYLabel;
+        document.getElementById('cf-user').textContent = sessionStorage.getItem('userName') || '—';
+      }
+    }
+
+    // ── API Base Resolver ─────────────────────────────────
+    function getApiBase() {
+      if (typeof window !== 'undefined' && window.location && window.location.protocol && window.location.protocol.startsWith('http')) {
+        return window.location.origin + '/api';
+      }
+      return (window.APP_CONFIG && window.APP_CONFIG.API_BASE) || 'http://localhost:5002/api';
+    }
+
+    // ── DYNAMIC RANGE POLICY & CREATE FINANCIAL YEAR MODAL ──
+    function openCreateFYModal() {
+      if (!selectedSociety) {
+        showError('Please select a society first.');
+        return;
+      }
+
+      const modal = document.getElementById('createFYModal');
+      document.getElementById('modalFYError').classList.remove('show');
+      document.getElementById('prevSocietyName').textContent = selectedSociety.societyName;
+
+      // Full year range: 2015 to 2050
+      const minYear = 2015;
+      const maxYear = 2050;
+      const currentYear = new Date().getFullYear();
+
+      const fromDatalist = document.getElementById('fromYearsDatalist');
+      const toDatalist = document.getElementById('toYearsDatalist');
+      const fromInput = document.getElementById('fromYearSelect');
+      const toInput = document.getElementById('toYearSelect');
+
+      let optionsHtml = '';
+      for (let y = minYear; y <= maxYear; y++) {
+        optionsHtml += `<option value="${y}">${y}</option>`;
+      }
+
+      if (fromDatalist) fromDatalist.innerHTML = optionsHtml;
+      if (toDatalist) toDatalist.innerHTML = optionsHtml;
+
+      // Default to current year -> next year (e.g. 2026 -> 2027)
+      const defaultFrom = (currentYear >= minYear && currentYear <= maxYear) ? currentYear : 2026;
+      fromInput.value = defaultFrom;
+      toInput.value = defaultFrom + 1;
+
+      updateFYPreview();
+      modal.classList.add('show');
+    }
+
+    function closeCreateFYModal() {
+      document.getElementById('createFYModal').classList.remove('show');
+    }
+
+    function onFromYearChange() {
+      const fromInput = document.getElementById('fromYearSelect');
+      const toInput = document.getElementById('toYearSelect');
+      let val = fromInput.value ? fromInput.value.trim() : '';
+
+      if (val.length === 4) {
+        let fromY = parseInt(val, 10);
+        if (!isNaN(fromY) && fromY >= 1900 && fromY <= 2100) {
+          toInput.value = fromY + 1;
+        }
+      }
+      updateFYPreview();
+    }
+
+    function onToYearChange() {
+      const fromInput = document.getElementById('fromYearSelect');
+      const toInput = document.getElementById('toYearSelect');
+      let val = toInput.value ? toInput.value.trim() : '';
+
+      if (val.length === 4) {
+        let toY = parseInt(val, 10);
+        if (!isNaN(toY) && toY >= 1900 && toY <= 2100) {
+          fromInput.value = toY - 1;
+        }
+      }
+      updateFYPreview();
+    }
+
+    function updateFYPreview() {
+      const fromInput = document.getElementById('fromYearSelect');
+      const toInput = document.getElementById('toYearSelect');
+
+      let fromY = parseInt(fromInput.value, 10);
+      let toY = parseInt(toInput.value, 10);
+
+      const currentYear = new Date().getFullYear();
+      if (isNaN(fromY)) fromY = currentYear;
+      if (isNaN(toY)) toY = fromY + 1;
+
+      const fyLabel = `${fromY}-${toY}`;
+      const startDateStr = `${fromY}-04-01`;
+      const endDateStr = `${toY}-03-31`;
+
+      document.getElementById('prevFYLabel').textContent = fyLabel;
+      document.getElementById('prevFYStart').textContent = `01 April ${fromY}`;
+      document.getElementById('prevFYEnd').textContent = `31 March ${toY}`;
+    }
+
+    async function submitCreateFY() {
+      const modalErr = document.getElementById('modalFYError');
+      const modalErrMsg = document.getElementById('modalFYErrorMsg');
+      modalErr.classList.remove('show');
+
+      let fromY = parseInt(document.getElementById('fromYearSelect').value, 10);
+      let toY = parseInt(document.getElementById('toYearSelect').value, 10);
+
+      if (isNaN(fromY) || isNaN(toY)) {
+        modalErrMsg.textContent = 'Please select valid financial years.';
+        modalErr.classList.add('show');
+        return;
+      }
+
+      if (toY !== fromY + 1) {
+        toY = fromY + 1;
+        document.getElementById('toYearSelect').value = toY;
+        updateFYPreview();
+      }
+
+      const fyLabel = `${fromY}-${toY}`;
+      const startDateStr = `${fromY}-04-01`;
+      const endDateStr = `${toY}-03-31`;
+
+      // Client duplicate pre-check
+      const existing = financialYears.find(f => f.fYLabel && f.fYLabel.toUpperCase() === fyLabel.toUpperCase());
+      if (existing) {
+        modalErrMsg.textContent = `Financial Year '${fyLabel}' already exists for this society.`;
+        modalErr.classList.add('show');
+        return;
+      }
+
+      const btn = document.getElementById('btnSubmitCreateFY');
+      const spinner = document.getElementById('modalFYSpinner');
+      const btnText = document.getElementById('modalFYBtnText');
+
+      btn.disabled = true;
+      spinner.style.display = 'block';
+      btnText.style.display = 'none';
+
+      try {
+        const token = sessionStorage.getItem('jwtToken');
+        const headers = {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        };
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+
+        const apiUrl = getApiBase() + '/financial-years';
+        const res = await fetch(apiUrl, {
+          method: 'POST',
+          headers: headers,
+          body: JSON.stringify({
+            societyId: selectedSociety.societyId,
+            fYLabel: fyLabel,
+            fYStart: startDateStr,
+            fYEnd: endDateStr,
+            isActive: true
+          })
+        });
+
+        let data;
+        try {
+          data = await res.json();
+        } catch (jsonErr) {
+          throw new Error('Server returned invalid response format.');
+        }
+
+        if (res.ok && data.success) {
+          closeCreateFYModal();
+          // Reload FY list and auto-select newly created FY
+          await loadFYs(selectedSociety.societyId, data.fYId);
+        } else {
+          modalErrMsg.textContent = data.message || 'Failed to create financial year.';
+          modalErr.classList.add('show');
+        }
+      } catch (err) {
+        console.error('submitCreateFY error:', err);
+        modalErrMsg.textContent = 'Error: ' + (err.message || 'Failed to connect to backend.');
+        modalErr.classList.add('show');
+      } finally {
+        btn.disabled = false;
+        spinner.style.display = 'none';
+        btnText.style.display = 'inline';
+      }
+    }
+
+    function setNextLoading(loading) {
+      const btn = document.getElementById('nextBtn');
+      const spinner = document.getElementById('nextSpinner');
+      const icon = document.getElementById('nextBtnIcon');
+      btn.disabled = loading;
+      spinner.style.display = loading ? 'block' : 'none';
+      icon.style.display = loading ? 'none' : 'inline';
+    }
+
+    function doLogout() {
+      sessionStorage.clear();
+      window.location.href = 'login.html';
+    }
+
+    // ── Helpers ────────────────────────────────────────────
+    function showError(msg) {
+      const el = document.getElementById('setupError');
+      document.getElementById('setupErrorMsg').textContent = msg;
+      el.classList.add('show');
+    }
+
+    function clearError() {
+      document.getElementById('setupError').classList.remove('show');
+    }
+
+    function formatDate(val) {
+      if (!val) return '—';
+      try {
+        const d = new Date(val);
+        return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+      } catch(_) { return val; }
+    }
+
+    function escHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+    }
+  </script>
+</body>
+</html>

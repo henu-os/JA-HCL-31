@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en" style="height:100%; overflow:hidden;">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Billing Master Matrix — JEEVIKA ERP</title>
+  <link rel="stylesheet" href="../../../assets/css/global.css">
+  <link rel="stylesheet" href="./billing-master.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+
+<body style="height:100%; margin:0; overflow:hidden;">
+
+  <div class="classic-erp-canvas" id="billing-master-panel"
+    style="display:flex; flex-direction:column; height:100%; overflow:hidden;">
+
+    <!-- MODULE HEADER -->
+    <div class="module-header"
+      style="background-color:#FFFFFF; border-bottom:1px solid #DCEBFF; padding:10px 16px; display:flex; justify-content:space-between; align-items:center; flex-shrink:0;">
+      <div>
+        <h2 class="module-title"
+          style="font-size:14.5px; font-weight:800; margin:0; color:#0F172A; letter-spacing:0.3px;">BILLING MASTER MATRIX
+        </h2>
+
+      </div>
+      <div style="font-size:11px; color:#475569; font-weight:700; background:#F7FAFF; border:1px solid #DCEBFF; padding:3px 10px; border-radius:4px;">
+        [Society Maintenance Multi-Head Grid Ledger]
+      </div>
+    </div>
+
+    <!-- MODERN ERP TOOLBAR -->
+    <div class="bm-toolbar">
+      <button class="bm-btn-modern" onclick="BM.saveAll()" title="Save all grid adjustments"><i class="bi bi-save"></i>
+        SAVE MATRIX</button>
+      <div class="bm-toolbar-sep"></div>
+
+      <button class="bm-btn-modern" onclick="BM.openAutoMasterAdd()" title="Auto Master Bulk Add"><i
+          class="bi bi-plus-lg"></i> AUTO ADD</button>
+      <div class="bm-toolbar-sep"></div>
+
+      <button class="bm-btn-modern" onclick="BM.printList()" title="Print Billing matrix"><i class="bi bi-printer"></i>
+        PRINT REGISTER</button>
+
+      <!-- OTHER DROPDOWN MENU -->
+      <div class="bm-menu-wrap" id="bm-other-dropdown">
+        <button class="bm-btn-modern" id="bm-btn-other" type="button">OTHER <i class="bi bi-chevron-down"></i></button>
+        <div class="bm-menu-content" id="bm-other-content" style="top: 100%; right: auto; margin-top: 2px;">
+          <div class="bm-menu-item" onclick="BM.openAutoMasterMultiply()"><i class="bi bi-x-lg"></i> Auto Multiply Factor</div>
+          <div class="bm-menu-item" onclick="BM.multiDeleteMode()"><i class="bi bi-check2-square"></i> Toggle Selection Mode</div>
+          <div style="height:1px; background:#E2E8F0; margin:4px 0;"></div>
+          <div class="bm-menu-item" onclick="BM.downloadTemplate('xlsx')"><i class="bi bi-file-earmark-arrow-down-fill" style="color:#0D9488;"></i> Download Template (Excel)</div>
+          <div class="bm-menu-item" onclick="BM.downloadTemplate('csv')"><i class="bi bi-filetype-csv" style="color:#0284C7;"></i> Download Template (CSV)</div>
+          <div style="height:1px; background:#E2E8F0; margin:4px 0;"></div>
+          <div class="bm-menu-item" onclick="BM.openImportModal()"><i class="bi bi-cloud-upload-fill" style="color:#2563EB;"></i> Import Matrix (Excel/CSV)</div>
+          <div class="bm-menu-item" onclick="BM.exportData('excel')"><i class="bi bi-file-earmark-excel-fill" style="color:#16A34A;"></i> Export Excel</div>
+          <div class="bm-menu-item" onclick="BM.exportData('csv')"><i class="bi bi-filetype-csv" style="color:#059669;"></i> Export CSV</div>
+        </div>
+      </div>
+
+      <div class="bm-toolbar-sep"></div>
+
+      <!-- INTEREST CONTROLS (STACKED: SET INTEREST 0 ABOVE, INTEREST CALC BELOW) -->
+      <div class="bm-btn-stack">
+        <button class="bm-btn-modern bm-btn-compact" id="bm-btn-reset-int" onclick="BM.resetInterestToZero()"
+          title="Set Interest to 0 for all members">
+          <i class="bi bi-arrow-counterclockwise"></i> SET INTEREST 0
+        </button>
+        <button class="bm-btn-modern bm-btn-compact" id="bm-btn-int-calc" onclick="BM.triggerInterestCalc()"
+          title="Calculate interest for all members">
+          <i class="bi bi-percent"></i> INTEREST CALC
+        </button>
+      </div>
+
+      <div class="bm-toolbar-sep" id="bm-gst-sep"></div>
+
+      <!-- GST CONTROLS (STACKED: SET GST 0 ABOVE, GST CALC BELOW) -->
+      <div class="bm-btn-stack" id="bm-gst-controls">
+        <button class="bm-btn-modern bm-btn-compact" id="bm-btn-reset-gst" onclick="BM.resetGstToZero()"
+          title="Set GST (CGST &amp; SGST) to 0 for all members">
+          <i class="bi bi-arrow-counterclockwise"></i> SET GST 0
+        </button>
+        <button class="bm-btn-modern bm-btn-compact" id="bm-btn-gst-calc" onclick="BM.triggerGstCalc()"
+          title="Calculate GST for all members">
+          <i class="bi bi-receipt"></i> GST CALC
+        </button>
+      </div>
+
+      <div class="bm-toolbar-sep"></div>
+
+      <!-- BILL TYPE SELECTOR DROPDOWN -->
+      <div class="bm-menu-wrap" id="bm-type-dropdown">
+        <button class="bm-btn-modern" id="bm-current-type"
+          style="background-color:#FFFFFF; color:#1D4ED8; border-color:#DCEBFF; font-weight:700;">Maintenance ▾</button>
+        <div class="bm-menu-content" id="bm-type-content" style="min-width:145px; top:100%; margin-top:2px;">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <button class="bm-btn-modern btn-danger" style="margin-left:auto;" onclick="BM.exit()" title="Close Module"><i
+          class="bi bi-box-arrow-right"></i> EXIT (ESC)</button>
+    </div>
+
+    <!-- CONFIRMATION MODAL -->
+    <div class="bm-modal-overlay" id="bm-confirm-overlay">
+      <div class="bm-modal" style="width:380px;">
+        <div class="bm-modal-titlebar">
+          <span><i class="bi bi-question-circle"></i> CONFIRM CHANGES</span>
+          <button class="bm-modal-close" onclick="BM.closeConfirm(false)">✕</button>
+        </div>
+        <div class="bm-modal-body"
+          style="padding: 20px 16px; font-weight: 600; font-size: 13px; text-align: center; color: #333;">
+          Do you want to change the matrix values?
+        </div>
+        <div class="bm-modal-footer" style="display:flex; justify-content:flex-end; gap:8px;">
+          <button class="bm-btn-modern" onclick="BM.closeConfirm(false)" style="min-width: 80px;">NO</button>
+          <button class="bm-btn-modern" onclick="BM.closeConfirm(true)"
+            style="background:#1565C0; color:#FFF; border-color:#1565C0; min-width: 80px;"><i
+              class="bi bi-check-lg"></i> YES</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- INTEREST CONFIRMATION MODAL -->
+    <div class="bm-modal-overlay" id="bm-interest-confirm-overlay">
+      <div class="bm-modal" style="width:420px; border-radius:6px; background:#FFFFFF;">
+        <div class="bm-modal-titlebar"
+          style="background:#1565C0; padding:10px 16px; font-weight:800; font-size:12px; letter-spacing:0.3px;">
+          <span><i class="bi bi-percent"></i> CALCULATE INTEREST</span>
+          <button class="bm-modal-close" onclick="BM.closeInterestConfirm(false)">✕</button>
+        </div>
+        <div class="bm-modal-body" style="padding:18px 20px;">
+          <div style="font-size:13px; font-weight:600; color:#1E293B; text-align:center; line-height:1.5;">
+            Do you want to calculate interest for all members using <strong id="bm-int-type-name"
+              style="font-weight:800; color:#0F172A;">Maintenance</strong> settings?
+          </div>
+          <div
+            style="margin-top:14px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:6px; padding:12px 16px; font-size:12px; color:#1E293B; line-height:1.7; font-weight:700;">
+            <div>• Method: <span id="bm-int-method-txt" style="font-weight:700; color:#0F172A;">Monthly | Full Month
+                Charge</span></div>
+            <div>• Rate of Int: <span id="bm-int-rate-txt" style="font-weight:700; color:#0F172A;">21% p.a.</span></div>
+            <div>• Gross Days: <span id="bm-int-gross-txt" style="font-weight:700; color:#0F172A;">N/A</span></div>
+          </div>
+        </div>
+        <div class="bm-modal-footer"
+          style="padding:10px 16px; background:#F8FAFC; border-top:1px solid #E2E8F0; display:flex; justify-content:flex-end; gap:10px;">
+          <button type="button" class="bm-btn-modern" onclick="BM.closeInterestConfirm(false)"
+            style="min-width:85px; height:30px; font-weight:700;">NO</button>
+          <button type="button" class="bm-btn-modern" onclick="BM.closeInterestConfirm(true)"
+            style="background:#1565C0; color:#FFF; border-color:#1565C0; min-width:85px; height:30px; font-weight:700;"><i
+              class="bi bi-check2"></i> YES</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONDITION B MODAL: FIRST SET INTEREST TO ZERO -->
+    <div class="bm-modal-overlay" id="bm-gst-must-zero-overlay">
+      <div class="bm-modal"
+        style="width:420px; border-radius:6px; background:#FFFFFF; border-top:4px solid #DC2626; box-shadow:0 12px 30px rgba(0,0,0,0.25);">
+        <div class="bm-modal-titlebar"
+          style="background:#B91C1C; padding:10px 16px; font-weight:800; font-size:12px; letter-spacing:0.3px;">
+          <span><i class="bi bi-exclamation-octagon-fill"></i> GST CALCULATION ALERT</span>
+          <button class="bm-modal-close" onclick="BM.closeGstMustZeroModal()">✕</button>
+        </div>
+        <div class="bm-modal-body" style="padding:22px 20px; text-align:center;">
+          <div
+            style="width:48px; height:48px; border-radius:50%; background:#FEE2E2; color:#DC2626; display:inline-flex; align-items:center; justify-content:center; font-size:24px; margin-bottom:12px;">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+          </div>
+          <div style="font-size:15px; font-weight:800; color:#991B1B; letter-spacing:0.3px; margin-bottom:8px;">
+            FIRST SET INTEREST TO ZERO
+          </div>
+          <div style="font-size:12px; color:#475569; line-height:1.5; font-weight:500;">
+            Before calculating GST, you must set Interest to zero [0]. Please use the <strong>SET INTEREST 0</strong>
+            button before proceeding.
+          </div>
+        </div>
+        <div class="bm-modal-footer"
+          style="padding:12px 16px; background:#F8FAFC; border-top:1px solid #E2E8F0; display:flex; justify-content:flex-end; gap:10px;">
+          <button type="button" class="bm-btn-modern" onclick="BM.closeGstMustZeroModal()"
+            style="min-width:85px; height:32px; font-weight:700;">CANCEL</button>
+          <button type="button" class="bm-btn-modern" onclick="BM.actionSetZeroFromModal()"
+            style="background:#DC2626; color:#FFF; border-color:#DC2626; min-width:150px; height:32px; font-weight:700;">
+            <i class="bi bi-arrow-counterclockwise"></i> SET INTEREST 0 NOW
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONDITION A MODAL: GST IS CALCULATING ON INTEREST ZERO -->
+    <div class="bm-modal-overlay" id="bm-gst-zero-confirm-overlay">
+      <div class="bm-modal"
+        style="width:430px; border-radius:6px; background:#FFFFFF; border-top:4px solid #F59E0B; box-shadow:0 12px 30px rgba(0,0,0,0.25);">
+        <div class="bm-modal-titlebar"
+          style="background:#D97706; padding:10px 16px; font-weight:800; font-size:12px; letter-spacing:0.3px;">
+          <span><i class="bi bi-info-circle-fill"></i> GST CALCULATION CONFIRMATION</span>
+          <button class="bm-modal-close" onclick="BM.closeGstZeroConfirmModal(false)">✕</button>
+        </div>
+        <div class="bm-modal-body" style="padding:22px 20px; text-align:center;">
+          <div
+            style="width:48px; height:48px; border-radius:50%; background:#FEF3C7; color:#D97706; display:inline-flex; align-items:center; justify-content:center; font-size:24px; margin-bottom:12px;">
+            <i class="bi bi-info-circle-fill"></i>
+          </div>
+          <div style="font-size:15px; font-weight:800; color:#B45309; letter-spacing:0.3px; margin-bottom:8px;">
+            GST IS CALCULATING ON INTEREST ZERO
+          </div>
+          <div style="font-size:12px; color:#475569; line-height:1.5; font-weight:500;">
+            Interest is currently set to zero [0] and has not been recalculated. GST will be calculated using zero
+            interest and Accumulated Principal from Member Account | Head Wise.
+          </div>
+        </div>
+        <div class="bm-modal-footer"
+          style="padding:12px 16px; background:#F8FAFC; border-top:1px solid #E2E8F0; display:flex; justify-content:flex-end; gap:10px;">
+          <button type="button" class="bm-btn-modern" onclick="BM.closeGstZeroConfirmModal(false)"
+            style="min-width:85px; height:32px; font-weight:700;">CANCEL</button>
+          <button type="button" class="bm-btn-modern" onclick="BM.closeGstZeroConfirmModal(true)"
+            style="background:#1565C0; color:#FFF; border-color:#1565C0; min-width:150px; height:32px; font-weight:700;">
+            <i class="bi bi-receipt"></i> PROCEED WITH GST
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- AUTO MASTER BULK ADD POPUP -->
+    <div class="bm-modal-overlay" id="bm-autoadd-overlay">
+      <div class="bm-modal" style="width:400px;">
+        <div class="bm-modal-titlebar">
+          <span><i class="bi bi-plus-circle"></i> AUTO MASTER ADD HEAD</span>
+          <button class="bm-modal-close"
+            onclick="document.getElementById('bm-autoadd-overlay').classList.remove('active')">✕</button>
+        </div>
+        <div class="bm-modal-body" style="display:flex; flex-direction:column; gap:8px;">
+          <div style="display:grid; grid-template-columns:140px 1fr; gap:8px; align-items:center;">
+            <label style="font-weight:bold;">Select Account</label>
+            <select id="bm-add-acc" class="classic-erp-select" style="width:100%; height:28px;"></select>
+
+            <label style="font-weight:bold;">Select Formula Type</label>
+            <select id="bm-add-formula" class="classic-erp-select" style="width:100%; height:28px;"
+              onchange="BM.onFormulaChange()">
+              <option value="By Amount">By Amount</option>
+              <option value="By Sq.ft">By Sq.ft</option>
+              <option value="By Percentage">By Percentage</option>
+            </select>
+
+            <label id="bm-add-val-label" style="font-weight:bold;">Amount (₹)</label>
+            <input type="number" id="bm-add-amt" value="0" class="classic-erp-input"
+              style="width:120px; text-align:right; height:28px;">
+
+            <label style="font-weight:bold;">Target Members</label>
+            <select id="bm-add-target" class="classic-erp-select" style="width:100%; height:28px;"
+              onchange="BM.onTargetChange()">
+              <option value="All">Whole Column (All Rows)</option>
+              <option value="Selected">Selected Toggle Members</option>
+              <option value="Range">Particular Range</option>
+            </select>
+          </div>
+
+          <!-- Particular Range Inputs -->
+          <div id="bm-add-range-wrap"
+            style="display:none; grid-template-columns:140px 1fr; gap:8px; align-items:center; margin-top:4px;">
+            <label style="font-weight:bold;">From Member No.</label>
+            <input type="text" id="bm-add-from-member" placeholder="e.g. A-101" class="classic-erp-input"
+              style="width:120px; height:28px; text-transform:uppercase;">
+
+            <label style="font-weight:bold;">To Member No.</label>
+            <input type="text" id="bm-add-to-member" placeholder="e.g. A-102" class="classic-erp-input"
+              style="width:120px; height:28px; text-transform:uppercase;">
+          </div>
+        </div>
+        <div class="bm-modal-footer">
+          <button class="bm-btn-modern"
+            onclick="document.getElementById('bm-autoadd-overlay').classList.remove('active')">CANCEL</button>
+          <button class="bm-btn-modern" onclick="BM.applyAutoAdd()"
+            style="background:#1565C0; color:#FFF; border-color:#1565C0;"><i class="bi bi-check-lg"></i> APPLY</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- AUTO MASTER MULTIPLY POPUP -->
+    <div class="bm-modal-overlay" id="bm-automul-overlay">
+      <div class="bm-modal" style="width:360px;">
+        <div class="bm-modal-titlebar">
+          <span><i class="bi bi-x-lg"></i> AUTO MASTER MULTIPLY HEAD</span>
+          <button class="bm-modal-close"
+            onclick="document.getElementById('bm-automul-overlay').classList.remove('active')">✕</button>
+        </div>
+        <div class="bm-modal-body" style="display:flex; flex-direction:column; gap:8px;">
+          <div style="display:grid; grid-template-columns:130px 1fr; gap:8px; align-items:center;">
+            <label style="font-weight:bold;">Select Account</label>
+            <select id="bm-mul-acc" class="classic-erp-select" style="width:100%; height:28px;"></select>
+
+            <label style="font-weight:bold;">Multiply Factor</label>
+            <input type="number" id="bm-mul-factor" value="1.00" step="0.01" class="classic-erp-input"
+              style="width:120px; text-align:right; height:28px;">
+          </div>
+        </div>
+        <div class="bm-modal-footer">
+          <button class="bm-btn-modern"
+            onclick="document.getElementById('bm-automul-overlay').classList.remove('active')">CANCEL</button>
+          <button class="bm-btn-modern" onclick="BM.applyAutoMul()"
+            style="background:#1565C0; color:#FFF; border-color:#1565C0;"><i class="bi bi-check-lg"></i>
+            MULTIPLY</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- INDIVIDUAL MEMBER BILL MODAL (VERTICAL BILL ADJUSTMENTS) -->
+    <div class="bm-modal-overlay" id="bm-individual-bill-overlay">
+      <div class="bm-modal"
+        style="width:96%; max-width:1020px; max-height:92vh; border-radius:6px; background:#F8FAFC;">
+
+        <!-- Top Header -->
+        <div
+          style="background:#1565C0; padding:10px 16px; display:flex; justify-content:space-between; align-items:center; flex-shrink:0;">
+          <div>
+            <h2 style="font-size:15px; font-weight:bold; margin:0; color:#FFFFFF; letter-spacing:0.3px;">INDIVIDUAL
+              MEMBER BILL</h2>
+            <div style="font-size:10px; color:rgba(255,255,255,0.85); margin-top:2px;">
+              </span> |
+              <span>FY: <span id="imb-fy" class="module-year">2025-26</span></span>
+            </div>
+          </div>
+          <div style="font-size:11px; color:#FFFFFF; font-weight:bold; opacity:0.9;">
+            [Vertical Bill Adjustments]
+          </div>
+        </div>
+
+        <!-- Action Toolbar Strip -->
+        <div
+          style="background:#FFFFFF; border-bottom:1px solid #E2E8F0; padding:8px 16px; display:flex; gap:10px; align-items:center; flex-shrink:0;">
+          <button type="button" class="bm-btn-modern" onclick="BM.saveIndividualBill()"
+            style="background:#1565C0; color:#FFF; border-color:#1565C0; font-weight:700;">
+            <i class="bi bi-check2-circle"></i> SAVE & UPDATE
+          </button>
+          <button type="button" class="bm-btn-modern" onclick="BM.closeIndividualBill()" style="font-weight:700;">
+            <i class="bi bi-x-circle"></i> CANCEL
+          </button>
+        </div>
+
+        <!-- Modal Body (2-Column Card Grid) -->
+        <div style="padding:16px; display:grid; grid-template-columns:250px 1fr; gap:16px; overflow-y:auto; flex:1;">
+
+          <!-- Left: Member Profile Card -->
+          <div
+            style="background:#FFFFFF; border:1px solid #E2E8F0; border-radius:6px; padding:16px; display:flex; flex-direction:column; gap:12px; height:fit-content; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+            <div
+              style="font-size:11px; font-weight:800; color:#1565C0; display:flex; align-items:center; gap:6px; padding-bottom:8px; border-bottom:1px solid #E2E8F0; letter-spacing:0.3px;">
+              <i class="bi bi-person-fill"></i> MEMBER PROFILE
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:2px;">
+              <span style="font-size:10px; font-weight:700; color:#64748B; letter-spacing:0.3px;">MEMBER CODE</span>
+              <span id="imb-profile-code" style="font-size:14px; font-weight:800; color:#0F172A;">D-101</span>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:2px;">
+              <span style="font-size:10px; font-weight:700; color:#64748B; letter-spacing:0.3px;">MEMBER NAME</span>
+              <span id="imb-profile-name" style="font-size:14px; font-weight:800; color:#0F172A;">JEEVIKA KADAM</span>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+              <div style="display:flex; flex-direction:column; gap:2px;">
+                <span style="font-size:10px; font-weight:700; color:#64748B;">WING</span>
+                <span id="imb-profile-wing" style="font-size:13px; font-weight:800; color:#0F172A;">—</span>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:2px;">
+                <span style="font-size:10px; font-weight:700; color:#64748B;">AREA (SQ.FT)</span>
+                <span id="imb-profile-sqft" style="font-size:13px; font-weight:800; color:#0F172A;">—</span>
+              </div>
+            </div>
+
+            <div style="border-top:1px dashed #CBD5E1; margin:4px 0;"></div>
+
+            <div style="display:flex; flex-direction:column; gap:2px;">
+              <span style="font-size:10px; font-weight:700; color:#64748B;">CURRENT BILL TYPE</span>
+              <span id="imb-profile-type"
+                style="font-size:13px; font-weight:800; color:#1565C0; text-transform:uppercase;">MAINTENANCE</span>
+            </div>
+          </div>
+
+          <!-- Right: Billing Head Breakdown Table Card -->
+          <div
+            style="background:#FFFFFF; border:1px solid #E2E8F0; border-radius:6px; padding:16px; display:flex; flex-direction:column; gap:10px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+            <div
+              style="display:flex; justify-content:space-between; align-items:center; padding-bottom:8px; border-bottom:1px solid #E2E8F0;">
+              <span
+                style="font-size:11px; font-weight:800; color:#1565C0; display:flex; align-items:center; gap:6px; letter-spacing:0.3px;">
+                <i class="bi bi-file-earmark-spreadsheet-fill"></i> BILLING HEAD BREAKDOWN
+              </span>
+              <span style="font-size:11px; color:#64748B; font-weight:500;">
+                Edit values inside the Amount column
+              </span>
+            </div>
+
+            <div style="border:1px solid #E2E8F0; border-radius:4px; overflow:hidden;">
+              <table class="classic-erp-table" style="width:100%; border-collapse:collapse;">
+                <thead>
+                  <tr style="background:#1565C0; color:#FFFFFF; font-size:11px; font-weight:800;">
+                    <th
+                      style="width:60px; padding:8px 10px; text-align:center; border-right:1px solid rgba(255,255,255,0.2);">
+                      SR NO</th>
+                    <th style="padding:8px 10px; text-align:left; border-right:1px solid rgba(255,255,255,0.2);">BILLING
+                      HEAD (ACCOUNT HEAD)</th>
+                    <th style="width:160px; padding:8px 10px; text-align:right;">AMOUNT (₹)</th>
+                  </tr>
+                </thead>
+                <tbody id="imb-table-body">
+                  <!-- Rendered dynamically -->
+                </tbody>
+              </table>
+
+              <!-- Grand Total Footer -->
+              <div
+                style="display:flex; justify-content:flex-end; align-items:center; padding:10px 16px; background:#F8FAFC; border-top:1px solid #E2E8F0;">
+                <span style="font-weight:800; font-size:12px; color:#334155; letter-spacing:0.3px;">GRAND TOTAL:</span>
+                <span id="imb-grand-total" style="font-weight:900; font-size:15px; color:#1565C0; margin-left:16px;">₹
+                  0</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- CENTRAL DATAGRID -->
+    <div class="classic-erp-grid"
+      style="margin:6px; overflow:auto; flex:1; border:1px solid #E0E0E0; border-radius:4px;">
+      <table class="classic-erp-table" id="bm-table" style="width:100%; border-collapse:collapse;"
+        ondragstart="return false;">
+        <thead>
+          <!-- Generated Dynamically -->
+        </thead>
+        <tbody id="bm-tbody">
+          <tr>
+            <td colspan="4" style="text-align:center; padding:40px; color:#9E9E9E;">
+              <i class="bi bi-spinner"
+                style="font-size:24px; animation:spin 1s linear infinite; display:inline-block;"></i> Loading Matrix...
+            </td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <!-- Generated Dynamically -->
+        </tfoot>
+      </table>
+    </div>
+
+  </div>
+
+  <!-- DYNAMIC BILLING MATRIX IMPORT MODAL -->
+  <div class="bm-modal-overlay" id="bm-import-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:99999; justify-content:center; align-items:center;">
+    <div class="bm-modal-dialog" style="width:980px; max-width:96vw; max-height:92vh; display:flex; flex-direction:column; background:#FFFFFF; border-radius:6px; box-shadow:0 20px 45px rgba(0,0,0,0.3); overflow:hidden;">
+      
+      <!-- Modal Header -->
+      <div style="background:#1565C0; color:#FFFFFF; padding:12px 18px; display:flex; justify-content:space-between; align-items:center; flex-shrink:0;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <i class="bi bi-cloud-arrow-up-fill" style="font-size:18px;"></i>
+          <span style="font-weight:800; font-size:14px; letter-spacing:0.3px;">IMPORT BILLING MASTER MATRIX</span>
+          <span id="bm-import-type-badge" style="font-size:11px; background:rgba(255,255,255,0.2); padding:2px 8px; border-radius:12px; font-weight:700;">Maintenance</span>
+        </div>
+        <button type="button" style="background:none; border:none; color:#FFFFFF; font-size:20px; cursor:pointer; line-height:1;" onclick="BM.closeImportModal()">✕</button>
+      </div>
+
+      <!-- Modal Body -->
+      <div style="padding:16px; overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:12px;">
+        
+        <!-- Drop Zone & File Controls -->
+        <div id="bm-import-dropzone" class="bm-import-dropzone" onclick="document.getElementById('bm-import-file-input').click()">
+          <i class="bi bi-file-earmark-excel" style="font-size:36px; color:#1565C0;"></i>
+          <div style="font-weight:700; font-size:13px; color:#1E293B; margin-top:6px;">Click to select or drag &amp; drop an Excel / CSV file</div>
+          <div style="font-size:11px; color:#64748B; margin-top:2px;">Supported formats: .xlsx, .xls, .csv &bull; Columns will be dynamically validated against configured billing heads</div>
+          <input type="file" id="bm-import-file-input" style="display:none;" accept=".xlsx, .xls, .csv" onchange="BM.handleFileSelect(event)">
+        </div>
+
+        <!-- File Info & Summary Stats Bar -->
+        <div id="bm-import-stats-bar" style="display:none; justify-content:space-between; align-items:center; background:#F8FAFC; border:1px solid #E2E8F0; padding:8px 14px; border-radius:4px;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span id="bm-import-filename" style="font-weight:700; font-size:12px; color:#0F172A;"><i class="bi bi-file-earmark-spreadsheet-fill" style="color:#16A34A;"></i> file.xlsx</span>
+            <span id="bm-import-filesize" style="font-size:11px; color:#64748B;">(0 KB)</span>
+          </div>
+          <div style="display:flex; gap:12px; font-size:11.5px; font-weight:700;">
+            <span style="color:#334155;">Total Rows: <strong id="bm-stat-total" style="color:#0F172A;">0</strong></span>
+            <span style="color:#16A34A;">Valid: <strong id="bm-stat-valid" style="color:#16A34A;">0</strong></span>
+            <span id="bm-stat-missing-wrap" style="color:#D97706; display:none;">Missing Heads: <strong id="bm-stat-missing">0</strong></span>
+            <span id="bm-stat-error-wrap" style="color:#DC2626; display:none;">Errors: <strong id="bm-stat-error">0</strong></span>
+          </div>
+        </div>
+
+        <!-- Validation Warning / Error Banner -->
+        <div id="bm-import-alert-box" style="display:none; padding:10px 14px; border-radius:4px; font-size:12px; line-height:1.5;"></div>
+
+        <!-- Dynamic Preview Table Area -->
+        <div id="bm-import-preview-wrap" style="display:none; flex-direction:column; flex:1; min-height:220px; border:1px solid #E2E8F0; border-radius:4px; overflow:hidden;">
+          <div style="background:#F1F5F9; padding:6px 12px; font-size:11px; font-weight:800; color:#475569; display:flex; justify-content:space-between;">
+            <span>DATA PREVIEW (DYNAMIC MATRIX MAPPING)</span>
+            <span style="font-weight:600; color:#64748B;">Scroll horizontally for all heads &rarr;</span>
+          </div>
+          <div style="overflow:auto; max-height:360px; flex:1;">
+            <table id="bm-import-preview-table" style="width:100%; border-collapse:collapse; font-size:11.5px; text-align:left;">
+              <thead id="bm-import-preview-thead" style="position:sticky; top:0; background:#E2E8F0; z-index:2;">
+                <!-- Dynamically populated -->
+              </thead>
+              <tbody id="bm-import-preview-tbody">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div style="padding:10px 18px; background:#F8FAFC; border-top:1px solid #E2E8F0; display:flex; justify-content:space-between; align-items:center; flex-shrink:0;">
+        <button type="button" class="bm-btn-modern" onclick="BM.downloadTemplate('xlsx')" style="font-size:11px;">
+          <i class="bi bi-download"></i> Download Blank Template
+        </button>
+        <div style="display:flex; gap:10px;">
+          <button type="button" class="bm-btn-modern" onclick="BM.closeImportModal()" style="font-weight:600;">CANCEL</button>
+          <button type="button" class="bm-btn-modern" id="bm-btn-commit-import" style="background:#1565C0; color:#FFFFFF; border-color:#1565C0; font-weight:800;" disabled onclick="BM.commitImport()">
+            <i class="bi bi-check2-circle"></i> COMMIT IMPORT
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="../../../assets/js/xlsx-js-style.bundle.js"></script>
+  <script>
+    if (typeof XLSX === 'undefined' || !XLSX.writeFile) {
+      document.write('<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"><\/script>');
+    }
+  </script>
+  <script src="../../../config.js?v=20260817_05"></script>
+  <script src="../../../assets/js/api.js?v=20260817_05"></script>
+  <script src="../../../assets/js/auth.js?v=20260817_05"></script>
+  <script src="./billing-master.js?v=20260907_02"></script>
+</body>
+</html>

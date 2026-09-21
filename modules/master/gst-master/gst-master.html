@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GST Master Configuration — JEEVIKA ERP</title>
+  <script src="../../../config.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 12px;
+      background: #FFFFFF;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      color: #333;
+    }
+
+    #gst-master-panel {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+      background: #FFFFFF;
+    }
+
+    /* MODULE HEADER */
+    .gst-header {
+      background: #FFFFFF;
+      padding: 10px 18px 8px;
+      flex-shrink: 0;
+    }
+
+    .gst-header h2 {
+      font-size: 16px;
+      font-weight: 700;
+      color: #1a1a2e;
+      letter-spacing: 0.3px;
+      margin: 0 0 2px 0;
+      text-transform: uppercase;
+    }
+
+    .gst-header .subtitle {
+      font-size: 11px;
+      color: #666;
+    }
+
+    /* FULL BLUE TOP TOOLBAR */
+    .gst-toolbar {
+      background: #1565C0;
+      padding: 6px 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .gst-btn-toolbar {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #FFFFFF;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 3px;
+      cursor: pointer;
+      font-family: inherit;
+      white-space: nowrap;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      transition: all 0.15s ease-in-out;
+    }
+
+    .gst-btn-toolbar:hover {
+      background: #FFFFFF;
+      color: #1565C0;
+      border-color: #FFFFFF;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    }
+
+    .gst-btn-toolbar.btn-danger {
+      margin-left: auto;
+      background: #D32F2F;
+      border-color: #D32F2F;
+      color: #FFFFFF;
+    }
+
+    .gst-btn-toolbar.btn-danger:hover {
+      background: #B71C1C;
+      border-color: #B71C1C;
+      color: #FFFFFF;
+    }
+
+    /* WORKSPACE CONTENT */
+    .gst-workspace {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      background: #FFFFFF;
+      padding: 24px 28px;
+    }
+
+    .gst-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+      max-width: 960px;
+    }
+
+    .gst-field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+
+    .gst-field-group label.field-lbl {
+      font-weight: 700;
+      color: #555;
+      font-size: 10.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .gst-input {
+      height: 30px;
+      border: 1px solid #ccc;
+      background: #FFFFFF;
+      color: #333;
+      font-size: 12px;
+      padding: 0 10px;
+      border-radius: 4px;
+      outline: none;
+      box-sizing: border-box;
+      transition: all 0.15s;
+    }
+
+    .gst-input:focus {
+      border-color: #1565C0;
+      box-shadow: 0 0 0 2px rgba(21, 101, 192, 0.15);
+    }
+
+    .gst-input:disabled {
+      background: #F5F5F5;
+      color: #666;
+      border-color: #E0E0E0;
+    }
+
+    .gst-check-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 6px;
+      margin-bottom: 16px;
+    }
+
+    .gst-check-row label {
+      font-weight: 700;
+      color: #444;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .gst-check-row input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+      accent-color: #1565C0;
+    }
+
+    /* POLICY CALLOUT BANNER */
+    .gst-policy-banner {
+      margin-top: 24px;
+      padding: 14px 18px;
+      background: #E3F2FD;
+      border-left: 4px solid #1565C0;
+      border-radius: 0 6px 6px 0;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      max-width: 960px;
+    }
+
+    .gst-policy-banner i {
+      color: #1565C0;
+      font-size: 18px;
+      margin-top: 1px;
+    }
+
+    .gst-policy-banner .txt {
+      font-size: 11.5px;
+      color: #1C3D5A;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="gst-master-panel">
+
+    <!-- MODULE HEADER -->
+    <div class="gst-header">
+      <h2>GST MASTER CONFIGURATION</h2>
+      
+    </div>
+
+    <!-- FULL BLUE TOOLBAR -->
+    <div class="gst-toolbar">
+      <button class="gst-btn-toolbar" onclick="GST.saveSettings()"><i class="bi bi-save"></i> SAVE SETTINGS</button>
+      <button class="gst-btn-toolbar" onclick="GST.resetSettings()"><i class="bi bi-arrow-counterclockwise"></i>
+        RESET</button>
+      <button class="gst-btn-toolbar btn-danger" onclick="GST.exit()"><i class="bi bi-box-arrow-right"></i> EXIT
+        (ESC)</button>
+    </div>
+
+    <!-- WORKSPACE CONTENT -->
+    <div class="gst-workspace">
+
+      <div class="gst-grid" id="gst-fields-grid">
+
+        <!-- LEFT COLUMN -->
+        <div>
+          <!-- CGST Account Code -->
+          <div class="gst-field-group">
+            <label class="field-lbl">CGST ACCOUNT CODE</label>
+            <div style="display:flex; align-items:center; gap:12px;">
+              <input type="text" id="gst-cgst-code" class="gst-input"
+                style="width:100px; text-align:center; font-weight:700;" value="LIA-1032" readonly disabled>
+              <span id="gst-cgst-lbl" style="font-weight:700; color:#1565C0; font-size:12px;">CGST - 9%</span>
+            </div>
+          </div>
+
+          <!-- Interest on Dues Apply For GST -->
+          <div class="gst-check-row">
+            <input type="checkbox" id="gst-interest-apply" checked>
+            <label for="gst-interest-apply">INTEREST ON DUES APPLY FOR GST</label>
+          </div>
+
+          <!-- Rate of CGST -->
+          <div class="gst-field-group" style="margin-top:10px;">
+            <label class="field-lbl">RATE OF CGST (%)</label>
+            <input type="number" step="0.01" id="gst-cgst-rate" class="gst-input" style="width:150px;" value="9"
+              onchange="GST.syncRates('cgst', this.value)">
+          </div>
+
+          <!-- Rounded Upto -->
+          <div class="gst-field-group">
+            <label class="field-lbl">ROUNDED UPTO</label>
+            <input type="number" id="gst-cgst-round" class="gst-input" style="width:150px;" value="0">
+          </div>
+
+          <!-- Limit of GST Exempt -->
+          <div class="gst-field-group">
+            <label class="field-lbl">LIMIT OF GST EXEMPT (₹)</label>
+            <input type="number" id="gst-exempt-limit" class="gst-input" style="width:150px;" value="7500">
+          </div>
+        </div>
+
+        <!-- RIGHT COLUMN -->
+        <div>
+          <!-- SGST Account Code -->
+          <div class="gst-field-group">
+            <label class="field-lbl">SGST ACCOUNT CODE</label>
+            <div style="display:flex; align-items:center; gap:12px;">
+              <input type="text" id="gst-sgst-code" class="gst-input"
+                style="width:100px; text-align:center; font-weight:700;" value="LIA-1033" readonly disabled>
+              <span id="gst-sgst-lbl" style="font-weight:700; color:#1565C0; font-size:12px;">SGST - 9%</span>
+            </div>
+          </div>
+
+          <!-- Interest on Dues Apply GST Exempt Amount Limit -->
+          <div class="gst-check-row">
+            <input type="checkbox" id="gst-interest-exempt">
+            <label for="gst-interest-exempt">INTEREST ON DUES APPLY GST EXEMPT AMOUNT LIMIT</label>
+          </div>
+
+          <!-- Rate of SGST -->
+          <div class="gst-field-group" style="margin-top:10px;">
+            <label class="field-lbl">RATE OF SGST (%)</label>
+            <input type="number" step="0.01" id="gst-sgst-rate" class="gst-input" style="width:150px;" value="9"
+              onchange="GST.syncRates('sgst', this.value)">
+          </div>
+
+          <!-- Rounded Upto (SGST) -->
+          <div class="gst-field-group">
+            <label class="field-lbl">ROUNDED UPTO</label>
+            <input type="number" id="gst-sgst-round" class="gst-input" style="width:150px;" value="0">
+          </div>
+        </div>
+
+      </div><!-- /gst-grid -->
+
+      <!-- POLICY CALLOUT BANNER -->
+      <div class="gst-policy-banner">
+        <i class="bi bi-info-circle-fill"></i>
+        <div class="txt">
+          <strong style="color:#1565C0;">GST MASTER POLICY:</strong> When GST is <strong>ENABLED</strong>, exactly 33 heads are maintained in Bill Type Master with rows 31, 32, and 33 fixed for Interest, CGST, and SGST. If the gross taxable dues are below the
+          <strong>GST Exempt Limit (₹7,500)</strong>, member maintenance remains tax-exempt under Society Bye-Laws.
+        </div>
+      </div>
+
+    </div><!-- /gst-workspace -->
+
+  </div>
+
+  <script src="../../../assets/js/api.js"></script>
+  <script src="../../../assets/js/auth.js"></script>
+  <script src="../../../assets/js/utils.js"></script>
+  <script>
+    (function () {
+      'use strict';
+
+      function getActiveSocietyId() {
+        if (window.Auth && typeof window.Auth.getSocietyId === 'function') {
+          var s = window.Auth.getSocietyId();
+          if (s && parseInt(s, 10) > 0) return parseInt(s, 10);
+        }
+        var s1 = sessionStorage.getItem('activeSocietyId');
+        if (s1 && parseInt(s1, 10) > 0) return parseInt(s1, 10);
+        var s2 = localStorage.getItem('activeSocietyId');
+        if (s2 && parseInt(s2, 10) > 0) return parseInt(s2, 10);
+        return 1;
+      }
+
+      function toast(m, ok) {
+        if (typeof window.showToast === 'function') {
+          window.showToast(m, ok ? 'success' : 'error');
+        } else {
+          var d = document.createElement('div');
+          d.style.cssText = 'position:fixed;top:12px;right:12px;z-index:99999;padding:9px 18px;font-size:12px;font-weight:600;color:#FFF;border-radius:3px;box-shadow:0 3px 12px rgba(0,0,0,0.2);background:' + (ok !== false ? '#2E7D32' : '#C62828') + ';';
+          d.textContent = m;
+          document.body.appendChild(d);
+          setTimeout(function () { d.remove(); }, 2500);
+        }
+      }
+
+      function getApiBase() {
+        if (window.CONFIG && window.CONFIG.apiBase) return window.CONFIG.apiBase;
+        if (window.APP_CONFIG && window.APP_CONFIG.API_BASE) return window.APP_CONFIG.API_BASE.replace(/\/api\/?$/, '');
+        return 'http://localhost:5002';
+      }
+
+      var currentGstSettings = {
+        societyId: 1,
+        gstApplicable: false,
+        gstNumber: '',
+        cgstCode: 'LIA-1032',
+        sgstCode: 'LIA-1033',
+        cgstPct: 9,
+        sgstPct: 9,
+        intDuesGST: 'No',
+        exemptLimit: 7500
+      };
+
+      async function loadSettings() {
+        var sid = getActiveSocietyId();
+        try {
+          var res = await fetch(getApiBase() + '/api/gst-master/settings?societyId=' + sid);
+          if (res.ok) {
+            var json = await res.json();
+            if (json && json.success && json.data) {
+              currentGstSettings = json.data;
+              currentGstSettings.societyId = sid;
+
+              document.getElementById('gst-cgst-code').value = currentGstSettings.cgstCode || 'LIA-1032';
+              document.getElementById('gst-cgst-lbl').textContent = 'CGST - ' + (currentGstSettings.cgstPct || 9) + '%';
+              document.getElementById('gst-sgst-code').value = currentGstSettings.sgstCode || 'LIA-1033';
+              document.getElementById('gst-sgst-lbl').textContent = 'SGST - ' + (currentGstSettings.sgstPct || 9) + '%';
+
+              var intVal = (currentGstSettings.intDuesGST || '').toLowerCase();
+              document.getElementById('gst-interest-apply').checked = (intVal === 'yes' || intVal === 'before gst' || intVal === 'true' || intVal === 'y');
+              document.getElementById('gst-interest-exempt').checked = (intVal === 'before gst');
+
+              document.getElementById('gst-cgst-rate').value = currentGstSettings.cgstPct !== undefined ? currentGstSettings.cgstPct : 9;
+              document.getElementById('gst-sgst-rate').value = currentGstSettings.sgstPct !== undefined ? currentGstSettings.sgstPct : 9;
+
+              document.getElementById('gst-exempt-limit').value = currentGstSettings.exemptLimit || 7500;
+
+              sessionStorage.setItem('activeSocietyGSTApplicable', currentGstSettings.gstApplicable ? 'Y' : 'N');
+              localStorage.setItem('activeSocietyGSTApplicable', currentGstSettings.gstApplicable ? 'Y' : 'N');
+            }
+          }
+        } catch (e) {
+          console.warn('Could not fetch GST settings from DB:', e);
+        }
+      }
+
+      window.GST = {
+        saveSettings: async function () {
+          var sid = getActiveSocietyId();
+          var cgstRate = parseFloat(document.getElementById('gst-cgst-rate').value) || 0;
+          var sgstRate = parseFloat(document.getElementById('gst-sgst-rate').value) || 0;
+          var exemptLimit = parseFloat(document.getElementById('gst-exempt-limit').value) || 0;
+
+          var intApply = document.getElementById('gst-interest-apply').checked;
+          var intExempt = document.getElementById('gst-interest-exempt').checked;
+          var intDues = 'No';
+          if (intApply) {
+            intDues = intExempt ? 'Before GST' : 'Yes';
+          }
+
+          var payload = {
+            societyId: sid,
+            gstApplicable: currentGstSettings.gstApplicable,
+            gstNumber: currentGstSettings.gstNumber || '',
+            cgstCode: document.getElementById('gst-cgst-code').value || 'LIA-1032',
+            sgstCode: document.getElementById('gst-sgst-code').value || 'LIA-1033',
+            cgstPct: cgstRate,
+            sgstPct: sgstRate,
+            intDuesGST: intDues,
+            exemptLimit: exemptLimit
+          };
+
+          try {
+            var res = await fetch(getApiBase() + '/api/gst-master/settings', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+            var json = await res.json();
+
+            if (res.ok && json.success) {
+              toast('GST Master settings saved to database successfully.', true);
+            } else {
+              toast((json && json.message) || 'Error saving settings.', false);
+            }
+          } catch (e) {
+            toast('Network error saving GST settings.', false);
+          }
+        },
+
+        resetSettings: function () {
+          loadSettings();
+          toast('Settings reset to last saved state from database.', true);
+        },
+
+        syncRates: function (type, val) {
+          var parsed = parseFloat(val) || 0;
+          if (type === 'cgst') {
+            document.getElementById('gst-sgst-rate').value = parsed;
+            document.getElementById('gst-cgst-lbl').textContent = 'CGST - ' + parsed + '%';
+            document.getElementById('gst-sgst-lbl').textContent = 'SGST - ' + parsed + '%';
+          } else {
+            document.getElementById('gst-cgst-rate').value = parsed;
+            document.getElementById('gst-cgst-lbl').textContent = 'CGST - ' + parsed + '%';
+            document.getElementById('gst-sgst-lbl').textContent = 'SGST - ' + parsed + '%';
+          }
+        },
+
+        exit: function () {
+          if (typeof window.WorkspaceBridge !== 'undefined') {
+            window.WorkspaceBridge.closeTab('gst-master');
+          } else {
+            var panel = document.getElementById('gst-master-panel');
+            if (panel) panel.style.display = 'none';
+          }
+        }
+      };
+
+      document.addEventListener('keydown', function (e) {
+        var panel = document.getElementById('gst-master-panel');
+        if (!panel || panel.offsetWidth === 0 || panel.offsetHeight === 0) return;
+        if (e.key === 'Escape') GST.exit();
+      });
+
+      // Init context & config
+      (function init() {
+        if (window.Auth) {
+          try {
+            var sn = Auth.getSocietyName ? Auth.getSocietyName() : null;
+            var fy = Auth.getFYLabel ? Auth.getFYLabel() : null;
+            if (sn) document.getElementById('gstSocName').textContent = sn;
+            if (fy) document.getElementById('gstFyLabel').textContent = fy;
+          } catch (e) { }
+        }
+        loadSettings();
+      })();
+
+    })();
+  </script>
+</body>
+
+</html>

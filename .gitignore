@@ -1,4 +1,11 @@
-﻿Desktop/dist/
+Desktop/dist/
 Desktop/node_modules/
 node_modules/
 dist/
+Backend/bin/
+Backend/obj/
+Database/test_*.db
+Database/fresh_target_*.db
+Database/*.db-journal
+Database/*.db-wal
+Database/*.db-shm

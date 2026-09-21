@@ -1,16 +1,4 @@
-# Build results
-**/[Bb]in/
-**/[Oo]bj/
-
-# Visual Studio / VS Code
-.vs/
-.vscode/
-*.user
-*.suo
-
-# OS generated files
-Thumbs.db
-ehthumbs.db
-Desktop.ini
-$RECYCLE.BIN/
-.DS_Store
+﻿Desktop/dist/
+Desktop/node_modules/
+node_modules/
+dist/

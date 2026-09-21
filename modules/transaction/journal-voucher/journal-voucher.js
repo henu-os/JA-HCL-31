@@ -488,7 +488,7 @@
     if (!selPerson) return;
 
     if (!pType || pType === 'NONE') {
-      selPerson.innerHTML = '<option value="">— None (Direct Accounts) —</option>';
+      selPerson.innerHTML = '<option value="">— NONE —</option>';
       selPerson.disabled = true;
       if (btnAdd) {
         btnAdd.disabled = true;

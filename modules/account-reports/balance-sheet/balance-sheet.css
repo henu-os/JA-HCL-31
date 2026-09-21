@@ -243,8 +243,12 @@ body.erp-module {
   text-align: center;
 }
 
+.col-subtotal {
+  min-width: 90px;
+}
+
 .bs-side-divider {
-  border-right: 2px solid var(--border-dark) !important;
+  border-right: 3.5px solid #0f172a !important;
 }
 
 /* ── Row & Cell Styling ─────────────────────────────────────────────────── */
@@ -259,6 +263,14 @@ body.erp-module {
   vertical-align: top;
   border: 1px solid var(--border-color);
   line-height: 1.35;
+}
+
+.bs-table-cell.bs-acc-row {
+  border-right: 1px solid var(--border-color);
+}
+
+.bs-table-cell.bs-inner-amt {
+  border-left: 1px solid var(--border-color);
 }
 
 .bs-group-header-row {
@@ -363,23 +375,34 @@ body.erp-module {
   gap: 6px;
 }
 
-/* ── Print Layout (Statutory Form N "Pranav BS" Standard) ─────────────────── */
+/* ── Print Layout (Matches Executive Statement / Image 2 Standard) ────────── */
 @media print {
   @page {
     size: landscape;
-    margin: 8mm 6mm;
+    margin: 6mm 8mm;
   }
 
+  *,
+  *::before,
+  *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    box-sizing: border-box !important;
+  }
+
+  html,
   body.erp-module {
     background: #ffffff !important;
-    color: #000000 !important;
-    font-size: 9.5pt !important;
+    color: #0f172a !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+    font-size: 8.5pt !important;
     min-width: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
   }
 
   .bs-toolbar,
   #fileProtocolBanner,
-  #bsDiffBanner,
   #bsBalancedBanner,
   .bs-header {
     display: none !important;
@@ -388,18 +411,26 @@ body.erp-module {
   .bs-scroll-wrapper {
     overflow: visible !important;
     padding: 0 !important;
+    margin: 0 !important;
   }
 
   .bs-report-container {
     max-width: 100% !important;
     margin: 0 !important;
-    padding: 0 !important;
-    border: none !important;
+    padding: 10px 14px !important;
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 6px !important;
     box-shadow: none !important;
   }
 
   .bs-t-table-wrapper {
-    border: 1px solid #000000 !important;
+    width: 100% !important;
+    border: 1px solid #cbd5e1 !important;
+    border-top: 2px solid #0a3880 !important;
+    border-radius: 4px !important;
+    overflow: hidden !important;
+    background: #ffffff !important;
   }
 
   .bs-t-table {
@@ -421,92 +452,154 @@ body.erp-module {
     padding: 2px 0 10px 0 !important;
     text-align: center !important;
     background: #ffffff !important;
-    color: #000000 !important;
   }
 
   .bs-print-soc-name {
-    font-size: 13.5pt !important;
-    font-weight: 900 !important;
+    font-size: 13pt !important;
+    font-weight: 800 !important;
     text-transform: uppercase !important;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.4px !important;
     margin-bottom: 2px !important;
-    color: #000000 !important;
+    color: #0f172a !important;
   }
 
   .bs-print-soc-sub {
-    font-size: 9.5pt !important;
-    color: #000000 !important;
-    font-weight: 500 !important;
-    margin-bottom: 3px !important;
+    font-size: 8.5pt !important;
+    color: #64748b !important;
+    font-weight: 600 !important;
+    margin-bottom: 6px !important;
   }
 
+  /* Centered Pill Badge matching Image 2 */
+  .bs-title,
   .bs-print-title {
     font-size: 10.5pt !important;
     font-weight: 800 !important;
-    color: #000000 !important;
+    color: #0a3880 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.3px !important;
+    display: inline-block !important;
+    background: #e8f0fe !important;
+    padding: 4px 20px !important;
+    border-radius: 4px !important;
+    border: 1px solid #bfdbfe !important;
+    margin: 4px auto 8px auto !important;
   }
 
   /* Single-Tier Column Header Row */
   .bs-col-header-row th {
-    background: #ffffff !important;
-    color: #000000 !important;
-    font-size: 9pt !important;
+    background: #f1f5f9 !important;
+    color: #1e293b !important;
+    font-size: 8.5pt !important;
     font-weight: 800 !important;
-    border: 1px solid #000000 !important;
-    border-top: 1.5px solid #000000 !important;
-    border-bottom: 1.5px solid #000000 !important;
-    padding: 4px 6px !important;
+    text-transform: uppercase !important;
+    border: 1px solid #cbd5e1 !important;
+    border-top: 2px solid #0a3880 !important;
+    border-bottom: 1.5px solid #94a3b8 !important;
+    padding: 5px 6px !important;
     line-height: 1.25 !important;
     vertical-align: middle !important;
+    text-align: center !important;
   }
 
-  /* Ruled Cells */
+  .bs-col-header-row th.bs-side-divider {
+    border-right: 3.5px solid #000000 !important;
+  }
+
+  /* Ruled Cells - NO STRAY VERTICAL LINES */
   .bs-table-cell {
-    border: none !important;
-    border-left: 1px solid #000000 !important;
-    border-right: 1px solid #000000 !important;
-    padding: 2.5px 5px !important;
-    font-size: 9pt !important;
-    line-height: 1.3 !important;
-    background: transparent !important;
-    color: #000000 !important;
+    border: 1px solid #e2e8f0 !important;
+    padding: 3.5px 7px !important;
+    font-size: 8.5pt !important;
+    line-height: 1.35 !important;
+    background: #ffffff !important;
+    color: #1e293b !important;
+    vertical-align: top !important;
+  }
+
+  /* Column border definitions */
+  .bs-table-cell.bs-acc-row {
+    border-right: 1px solid #e2e8f0 !important;
+  }
+
+  .bs-table-cell.bs-inner-amt {
+    border-left: 1px solid #e2e8f0 !important;
   }
 
   .bs-side-divider {
-    border-right: 2px solid #000000 !important;
+    border-right: 3.5px solid #000000 !important;
   }
 
   .bs-num {
-    font-size: 9pt !important;
-    font-family: Arial, "Helvetica Neue", sans-serif !important;
+    font-size: 8.5pt !important;
+    font-family: "Courier New", Courier, monospace, sans-serif !important;
+    font-weight: 600 !important;
+    text-align: right !important;
+    white-space: nowrap !important;
+  }
+
+  .bs-acc-code {
+    font-family: monospace !important;
+    font-size: 8pt !important;
+    color: #64748b !important;
+    margin-right: 4px !important;
+  }
+
+  .bs-acc-name {
+    color: #1e293b !important;
+  }
+
+  .bs-group-header-row,
+  td[colspan="2"] {
+    background: #f8fafc !important;
   }
 
   .bs-group-title {
     font-weight: 800 !important;
-    color: #000000 !important;
-    font-size: 9.5pt !important;
+    color: #0a3880 !important;
+    font-size: 9pt !important;
+    text-transform: uppercase !important;
+    display: inline-block !important;
   }
 
   .bs-cell-subtotal-outer {
-    border-bottom: 1px solid #000000 !important;
-    font-weight: 800 !important;
-    color: #000000 !important;
+    font-weight: 700 !important;
+    color: #0f172a !important;
   }
 
   .bs-cell-subtotal-inner {
-    border-top: 1px solid #000000 !important;
+    border-top: 1px solid #94a3b8 !important;
+  }
+
+  /* Member Dues Sections */
+  .bs-flat-badge {
+    background: #e0f2fe !important;
+    color: #0369a1 !important;
+    font-weight: 700 !important;
+    font-size: 8pt !important;
+    padding: 1px 4px !important;
+    border-radius: 3px !important;
+    display: inline-block !important;
   }
 
   /* Grand Total */
+  .bs-grand-total-row {
+    background: #f1f5f9 !important;
+  }
+
   .bs-grand-total-cell {
-    border-top: 1px solid #000000 !important;
-    border-bottom: 3px double #000000 !important;
-    border-left: 1px solid #000000 !important;
-    border-right: 1px solid #000000 !important;
-    font-size: 10pt !important;
+    background: #f1f5f9 !important;
+    border: 1px solid #cbd5e1 !important;
+    border-top: 2px solid #334155 !important;
+    border-bottom: 4px double #0a3880 !important;
+    font-size: 9.5pt !important;
     font-weight: 900 !important;
-    color: #000000 !important;
-    padding: 4px 6px !important;
+    color: #0a3880 !important;
+    padding: 6px 8px !important;
+  }
+
+  .bs-grand-total-cell.bs-side-divider {
+    border-right: 3.5px solid #000000 !important;
   }
 
   /* Signatory Attestation (Prints on Last Page) */
@@ -516,29 +609,46 @@ body.erp-module {
 
   .bs-print-sign-row {
     display: table-row !important;
+    page-break-inside: avoid !important;
   }
 
   .bs-sign-cell {
     border: none !important;
-    padding-top: 20px !important;
-    padding-bottom: 10px !important;
+    padding-top: 22px !important;
+    padding-bottom: 8px !important;
     background: transparent !important;
   }
 
   .bs-sign-society {
-    font-size: 9.5pt !important;
+    font-size: 9pt !important;
     font-weight: 800 !important;
-    margin-bottom: 40px !important;
-    color: #000000 !important;
+    margin-bottom: 35px !important;
+    color: #0f172a !important;
   }
 
   .bs-sign-officers {
     display: flex !important;
     justify-content: space-between !important;
     width: 90% !important;
-    font-size: 9pt !important;
+    font-size: 8.5pt !important;
     font-weight: 800 !important;
-    color: #000000 !important;
+    color: #1e293b !important;
+  }
+
+  /* Discrepancy Banner in Print */
+  .bs-diff-banner {
+    display: flex !important;
+    background: #fee2e2 !important;
+    border: 1px solid #f87171 !important;
+    color: #991b1b !important;
+    font-weight: 700 !important;
+    font-size: 8.5pt !important;
+    padding: 6px 14px !important;
+    border-radius: 4px !important;
+    margin-top: 10px !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    page-break-inside: avoid !important;
   }
 
   tr {

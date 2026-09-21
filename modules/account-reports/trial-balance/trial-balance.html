@@ -292,6 +292,9 @@
       text-align: right;
       font-variant-numeric: tabular-nums;
       font-weight: 600;
+      white-space: nowrap;
+      width: 1%;
+      min-width: 80px;
     }
     .val-debit { color: #dc2626; }
     .val-credit { color: #16a34a; }
@@ -756,14 +759,32 @@
     <table class="ledger-grid" id="mainTable">
       <thead>
         <tr>
-          <th style="width:110px; text-align:center;">Acc Code</th>
-          <th>Account Name</th>
-          <th style="width:125px; text-align:right;">Opening Dr</th>
-          <th style="width:125px; text-align:right;">Opening Cr</th>
-          <th style="width:130px; text-align:right;">Transaction Debit</th>
-          <th style="width:130px; text-align:right;">Transaction Credit</th>
-          <th style="width:130px; text-align:right;">Closing Dr</th>
-          <th style="width:130px; text-align:right;">Closing Cr</th>
+          <th style="width:85px; text-align:center; vertical-align:bottom;">Acc Code</th>
+          <th style="text-align:left; vertical-align:bottom;">Account Name</th>
+          <th style="width:1%; min-width:80px; text-align:right; white-space:nowrap; line-height:1.2; vertical-align:bottom;">
+            <span style="font-size:9px; font-weight:700; color:#64748b; display:block;">OPENING</span>
+            <span>Dr</span>
+          </th>
+          <th style="width:1%; min-width:80px; text-align:right; white-space:nowrap; line-height:1.2; vertical-align:bottom;">
+            <span style="font-size:9px; font-weight:700; color:#64748b; display:block;">OPENING</span>
+            <span>Cr</span>
+          </th>
+          <th style="width:1%; min-width:80px; text-align:right; white-space:nowrap; line-height:1.2; vertical-align:bottom;">
+            <span style="font-size:9px; font-weight:700; color:#64748b; display:block;">TRANSACTION</span>
+            <span>Dr</span>
+          </th>
+          <th style="width:1%; min-width:80px; text-align:right; white-space:nowrap; line-height:1.2; vertical-align:bottom;">
+            <span style="font-size:9px; font-weight:700; color:#64748b; display:block;">TRANSACTION</span>
+            <span>Cr</span>
+          </th>
+          <th style="width:1%; min-width:80px; text-align:right; white-space:nowrap; line-height:1.2; vertical-align:bottom;">
+            <span style="font-size:9px; font-weight:700; color:#64748b; display:block;">CLOSING</span>
+            <span>Dr</span>
+          </th>
+          <th style="width:1%; min-width:80px; text-align:right; white-space:nowrap; line-height:1.2; vertical-align:bottom;">
+            <span style="font-size:9px; font-weight:700; color:#64748b; display:block;">CLOSING</span>
+            <span>Cr</span>
+          </th>
         </tr>
       </thead>
       <tbody id="mainTableBody">

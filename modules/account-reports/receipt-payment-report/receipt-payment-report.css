@@ -399,7 +399,7 @@ body.erp-module {
 }
 
 .rp-side-divider {
-  border-right: 2.5px solid #0f172a !important;
+  border-right: 3.5px solid #0f172a !important;
 }
 
 /* ── Table Cell Styling ──────────────────────────────────────────────────── */
@@ -659,7 +659,7 @@ body.erp-module {
   }
 
   .rp-side-divider {
-    border-right: 2px solid #000000 !important;
+    border-right: 3.5px solid #000000 !important;
   }
 
   .rp-grand-total-row {

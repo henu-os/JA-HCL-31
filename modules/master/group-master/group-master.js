@@ -329,7 +329,7 @@ async function gmDelete() {
 
   const g = gmList.find(x => (x.socGroupId || x.groupId || x.SocGroupId) === gmSelectedId);
   if (g && (g.grpType === 2 || g.GrpType === 2 || g._isDefault)) {
-    gmAlert('This is a default group and cannot be deleted.', true);
+    gmAlert('This is a default system group and cannot be deleted at any cost.', true);
     return;
   }
 
@@ -464,7 +464,7 @@ async function gmExecuteMultiDelete() {
   });
 
   if (hasDefault) {
-    gmAlert('One or more selected groups are default system groups and cannot be deleted.', true);
+    gmAlert('One or more selected groups are default system groups and cannot be deleted at any cost.', true);
     return;
   }
 

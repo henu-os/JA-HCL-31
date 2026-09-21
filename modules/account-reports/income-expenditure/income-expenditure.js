@@ -182,7 +182,13 @@
 
     const printTitleEl = document.getElementById('print-disp-title');
     if (printTitleEl) {
-      printTitleEl.textContent = `Income & Expenditure Account For The Year Ended ${curToStr || '—'}`;
+      if (curFromStr && curToStr) {
+        printTitleEl.textContent = `Income & Expenditure Statement For The Period ${curFromStr} To ${curToStr}`;
+      } else if (curToStr) {
+        printTitleEl.textContent = `Income & Expenditure Statement For The Year Ended ${curToStr}`;
+      } else {
+        printTitleEl.textContent = 'Income & Expenditure Statement';
+      }
     }
 
     // Print Signatory Society Name
@@ -367,13 +373,14 @@
         });
       } else if (accCount > 1) {
         // Multi-account group: Inner amounts (Col C / Col G), subtotal on the last row in outer column (Col D / Col H)
+        const hasAnyAccPrev = filteredAccounts.some(a => Math.abs(a.prevAmount) > 0.005);
         filteredAccounts.forEach((acc, idx) => {
           const isLast = (idx === accCount - 1);
           rows.push({
             type: 'account-multi',
             accCode: acc.accCode || '',
             accName: acc.accName || '',
-            prevAmount: acc.prevAmount || (idx === 0 ? g.totalPrev : 0),
+            prevAmount: hasAnyAccPrev ? (acc.prevAmount || 0) : (idx === 0 ? g.totalPrev : 0),
             currentAmount: acc.currentAmount || 0,
             outerAmount: isLast ? g.totalCurrent : null,
             isLast: isLast
@@ -406,8 +413,8 @@
     if (!rowObj) {
       return `
         <td class="ie-table-cell col-prev ie-num" style="${prevStyle}">&nbsp;</td>
-        <td class="ie-table-cell">&nbsp;</td>
-        <td class="ie-table-cell ie-num">&nbsp;</td>
+        <td class="ie-table-cell ie-acc-row">&nbsp;</td>
+        <td class="ie-table-cell ie-num ie-inner-amt">&nbsp;</td>
         <td class="ie-table-cell ie-num ${dividerClass}">&nbsp;</td>
       `;
     }
@@ -415,7 +422,7 @@
     if (rowObj.type === 'group-header') {
       return `
         <td class="ie-table-cell col-prev ie-num" style="${prevStyle}">&nbsp;</td>
-        <td class="ie-table-cell" colspan="2" style="font-weight:800; background:#f8fafc;">
+        <td class="ie-table-cell ie-group-header-cell" colspan="2" style="font-weight:800; background:#f8fafc;">
           <span class="ie-group-title">${escHtml(rowObj.groupName)}</span>
         </td>
         <td class="ie-table-cell ie-num ${dividerClass}" style="background:#f8fafc;">&nbsp;</td>
@@ -429,7 +436,7 @@
         <td class="ie-table-cell ie-acc-row">
           ${codeHtml}${escHtml(rowObj.accName)}
         </td>
-        <td class="ie-table-cell ie-num">&nbsp;</td>
+        <td class="ie-table-cell ie-num ie-inner-amt">&nbsp;</td>
         <td class="ie-table-cell ie-num ie-cell-subtotal-outer ${dividerClass}">${formatINR(rowObj.currentAmount, true)}</td>
       `;
     }
@@ -445,7 +452,7 @@
         <td class="ie-table-cell ie-acc-row" style="padding-left:16px;">
           ${codeHtml}${escHtml(rowObj.accName)}
         </td>
-        <td class="ie-table-cell ie-num">${formatINR(rowObj.currentAmount, true)}</td>
+        <td class="ie-table-cell ie-num ie-inner-amt">${formatINR(rowObj.currentAmount, true)}</td>
         <td class="ie-table-cell ie-num ${outerClass} ${dividerClass}">${outerHtml}</td>
       `;
     }
@@ -453,7 +460,7 @@
     if (rowObj.type === 'group-summary') {
       return `
         <td class="ie-table-cell col-prev ie-num" style="font-weight:700; ${prevStyle}">${formatINR(rowObj.prevAmount, true)}</td>
-        <td class="ie-table-cell" colspan="2" style="font-weight:800; color:var(--navy-primary);">
+        <td class="ie-table-cell ie-group-summary-cell" colspan="2" style="font-weight:800; color:var(--navy-primary);">
           ${escHtml(rowObj.groupName)}
         </td>
         <td class="ie-table-cell ie-num ie-cell-subtotal-outer ${dividerClass}" style="font-weight:800;">${formatINR(rowObj.currentAmount, true)}</td>
@@ -601,10 +608,11 @@
       alignment: { horizontal: 'center', vertical: 'center' },
       border: getBorders(1, thinBorder, thinBorder)
     });
-    setCell(hRow, 2, '', 's', {
+    setCell(hRow, 2, 'Sub Total\nAmount(Rs.)', 's', {
+      font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: '000000' } },
+      alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
       border: getBorders(2, thinBorder, thinBorder)
     });
-    merges.push({ s: { r: hRow, c: 1 }, e: { r: hRow, c: 2 } });
 
     setCell(hRow, 3, curDateHeader, 's', {
       font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: '000000' } },
@@ -622,10 +630,11 @@
       alignment: { horizontal: 'center', vertical: 'center' },
       border: getBorders(5, thinBorder, thinBorder)
     });
-    setCell(hRow, 6, '', 's', {
+    setCell(hRow, 6, 'Sub Total\nAmount(Rs.)', 's', {
+      font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: '000000' } },
+      alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
       border: getBorders(6, thinBorder, thinBorder)
     });
-    merges.push({ s: { r: hRow, c: 5 }, e: { r: hRow, c: 6 } });
 
     setCell(hRow, 7, curDateHeader, 's', {
       font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: '000000' } },

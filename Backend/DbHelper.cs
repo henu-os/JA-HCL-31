@@ -211,6 +211,9 @@ namespace JeevikaERP
                         );
                         ALTER TABLE jeevika_erp.SocBillTypeHead ADD COLUMN IF NOT EXISTS AccountCode VARCHAR(50);
                         ALTER TABLE jeevika_erp.SocBillTypeHead ADD COLUMN IF NOT EXISTS AccountName VARCHAR(255);
+                        ALTER TABLE jeevika_erp.SocBillTypeHead ADD COLUMN IF NOT EXISTS DisplayName VARCHAR(255);
+                        ALTER TABLE jeevika_erp.SocBillTypeHead ADD COLUMN IF NOT EXISTS GstCategory VARCHAR(50);
+                        ALTER TABLE jeevika_erp.SocBillTypeHead ADD COLUMN IF NOT EXISTS IncludeThreshold BOOLEAN DEFAULT FALSE;
 
                         ALTER TABLE jeevika_erp.SocietyInfo ALTER COLUMN IntDuesGST TYPE VARCHAR(50);
 
@@ -252,6 +255,21 @@ namespace JeevikaERP
                         ALTER TABLE jeevika_erp.SocBillTypeNote ADD COLUMN IF NOT EXISTS BillDate VARCHAR(50) DEFAULT '01';
                         ALTER TABLE jeevika_erp.SocBillTypeNote ADD COLUMN IF NOT EXISTS BillDue VARCHAR(50) DEFAULT '15';
                         ALTER TABLE jeevika_erp.SocBillTypeNote ADD COLUMN IF NOT EXISTS BillPeriod TEXT;
+
+                        -- Fix default group LI-15 if it was incorrectly named INPUT GST
+                        UPDATE jeevika_erp.SocGroup
+                        SET GrpName = 'OUTPUT GST', GrpPrimaryName = 'OUTPUT GST'
+                        WHERE GrpCode = 'LI-15' AND GrpMainId = 2 AND GrpName ILIKE '%INPUT GST%';
+
+                        -- Fix default accounts LIA-1021 and LIA-1022 if they were incorrectly named INPUT CGST/SGST
+                        UPDATE jeevika_erp.SocAccount
+                        SET AccName = 'Output CGST', AccBSName = 'Output CGST'
+                        WHERE AccCode = 'LIA-1021' AND GrpMainId = 2 AND AccName ILIKE '%INPUT%';
+
+                        UPDATE jeevika_erp.SocAccount
+                        SET AccName = 'Output SGST', AccBSName = 'Output SGST'
+                        WHERE AccCode = 'LIA-1022' AND GrpMainId = 2 AND AccName ILIKE '%INPUT%';
+
                         CREATE TABLE IF NOT EXISTS jeevika_erp.SocBillingMatrix (
                             MatrixId SERIAL PRIMARY KEY, SocietyId INT NOT NULL, FYId INT, BillTypeId INT NOT NULL, MemberId INT NOT NULL,
                             AccountCode VARCHAR(50) NOT NULL, Amount NUMERIC(18,2) DEFAULT 0, UpdatedAt TIMESTAMPTZ DEFAULT NOW(),
@@ -273,6 +291,7 @@ namespace JeevikaERP
                         ALTER TABLE jeevika_erp.SocMemberBill ADD COLUMN IF NOT EXISTS Period VARCHAR(100);
                         ALTER TABLE jeevika_erp.SocMemberBill ADD COLUMN IF NOT EXISTS Particular1 TEXT;
                         ALTER TABLE jeevika_erp.SocMemberBill ADD COLUMN IF NOT EXISTS Particular2 TEXT;
+                        ALTER TABLE jeevika_erp.SocMemberOpBalance ADD COLUMN IF NOT EXISTS BillTypeId INT;
 
                         CREATE TABLE IF NOT EXISTS jeevika_erp.SocMemberBillItem (
                             ItemId SERIAL PRIMARY KEY,
@@ -305,7 +324,11 @@ namespace JeevikaERP
                         -- Only 'Maintenance' is the default bill type
                         INSERT INTO jeevika_erp.SocBillType (SocietyId, BillTypeCode, BillTypeName, Description) VALUES
                             (1, 'MAINT', 'Maintenance', 'Regular Monthly Maintenance Bill')
-                        ON CONFLICT DO NOTHING;";
+                        ON CONFLICT DO NOTHING;
+
+                        -- Clean up any orphaned opening balances and billing matrix rows belonging to deleted members
+                        DELETE FROM jeevika_erp.SocMemberOpBalance WHERE MemberId IN (SELECT MemberId FROM jeevika_erp.SocMember WHERE IsDeleted = TRUE);
+                        DELETE FROM jeevika_erp.SocBillingMatrix WHERE MemberId IN (SELECT MemberId FROM jeevika_erp.SocMember WHERE IsDeleted = TRUE);";
                     ensureTables.ExecuteNonQuery();
                 }
             }

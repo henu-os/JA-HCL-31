@@ -160,6 +160,28 @@ async function loadBillTypes() {
   }
 }
 
+function getDisplayBillTypeName(selectedType, fallbackRecords = []) {
+  if (!selectedType || selectedType.toUpperCase() !== 'ALL') {
+    return selectedType || '—';
+  }
+
+  // 1. Get concrete bill types dynamically from society master list (excluding 'ALL')
+  const masterTypes = availableBillTypes.filter(bt => bt && bt.toUpperCase() !== 'ALL');
+  if (masterTypes.length > 0) {
+    return masterTypes.join(' & ');
+  }
+
+  // 2. Dynamic fallback: extract distinct bill type names from actual loaded records
+  if (Array.isArray(fallbackRecords) && fallbackRecords.length > 0) {
+    const fromRecords = [...new Set(fallbackRecords.map(r => (r.billType || r.BillType || '').trim()).filter(Boolean))];
+    if (fromRecords.length > 0) {
+      return fromRecords.join(' & ');
+    }
+  }
+
+  return 'All Bill Types';
+}
+
 function onBillTypeChange() {
   loadDuesAdvanceData();
 }
@@ -173,7 +195,7 @@ async function loadDuesAdvanceData() {
   const billType = document.getElementById('billTypeSelect')?.value || defaultBt;
   const isAll = (billType.toUpperCase() === 'ALL');
   const pBtEl = document.getElementById('printBillType');
-  if (pBtEl) pBtEl.textContent = billType;
+  if (pBtEl) pBtEl.textContent = getDisplayBillTypeName(billType);
 
   const fromDate = document.getElementById('fromDate')?.value || '';
   const toDate   = document.getElementById('toDate')?.value || '';
@@ -215,6 +237,10 @@ async function loadDuesAdvanceData() {
     const allDebitNotes = Array.isArray(dnRes.data) ? dnRes.data : (Array.isArray(dnRes) ? dnRes : []);
     const allTransfers = Array.isArray(trRes.data) ? trRes.data : (Array.isArray(trRes) ? trRes : []);
     const allReversals = Array.isArray(revRes.data) ? revRes.data : (Array.isArray(revRes) ? revRes : []);
+
+    if (isAll && pBtEl) {
+      pBtEl.textContent = getDisplayBillTypeName(billType, [...allBills, ...allReceipts]);
+    }
 
     // Filter bills and receipts strictly matching the selected Bill Type (or all if ALL)
     const bills = isAll ? allBills : allBills.filter(b => {
@@ -658,3 +684,12 @@ function exportCsv() {
   document.body.removeChild(link);
   showToast(`Dues/Advance Ledger (${selectedBT}) exported to CSV.`, 'success');
 }
+
+// Ensure print header always reflects the dynamic bill type names before print dialog opens
+window.addEventListener('beforeprint', () => {
+  const billType = document.getElementById('billTypeSelect')?.value || 'ALL';
+  const pBtEl = document.getElementById('printBillType');
+  if (pBtEl) {
+    pBtEl.textContent = getDisplayBillTypeName(billType, duesAdvanceData || []);
+  }
+});

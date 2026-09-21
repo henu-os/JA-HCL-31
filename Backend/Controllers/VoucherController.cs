@@ -97,6 +97,10 @@ namespace JeevikaERP.Controllers
                     {
                         sql += " AND VoucherType IN ('Contra', 'CV')";
                     }
+                    else if (type.Equals("Journal", StringComparison.OrdinalIgnoreCase) || type.Equals("JV", StringComparison.OrdinalIgnoreCase))
+                    {
+                        sql += " AND VoucherType IN ('Journal', 'JV')";
+                    }
                     else
                     {
                         sql += " AND VoucherType = @type";

@@ -34,6 +34,7 @@ namespace JeevikaERP.Controllers
             ("Accrued Interest", 1, "AS-10"),
             ("Income & Expenditure", 1, "AS-11"),
             ("Advance & Deposit", 1, "AS-12"),
+            ("INPUT GST", 1, "AS-13"),
 
             // Liabilities (MainId = 2)
             ("Current Liabilities & Provisions", 2, "LI-01"),
@@ -50,6 +51,7 @@ namespace JeevikaERP.Controllers
             ("Education Fund", 2, "LI-12"),
             ("Major Repair Fund", 2, "LI-13"),
             ("Dues from Members", 2, "LI-14"),
+            ("OUTPUT GST", 2, "LI-15"),
 
             // Income (MainId = 3)
             ("Maintenance & Service Charges", 3, "IN-01"),
@@ -257,7 +259,7 @@ namespace JeevikaERP.Controllers
                 var typeObj = checkTypeCmd.ExecuteScalar();
                 if (typeObj != null && Convert.ToInt32(typeObj) == 2)
                 {
-                    return BadRequest(new { success = false, message = "This is a default group and cannot be deleted." });
+                    return BadRequest(new { success = false, message = "Default system groups cannot be deleted at any cost." });
                 }
 
                 // Check if accounts exist under this group
@@ -269,32 +271,16 @@ namespace JeevikaERP.Controllers
                 if (count > 0)
                     return Conflict(new { success = false, message = $"Cannot delete: {count} account ledgers belong to this group." });
 
-                // Check if any historical accounts ever referenced this group
-                using var checkHistCmd = conn.CreateCommand();
-                checkHistCmd.CommandText = "SELECT COUNT(*) FROM jeevika_erp.SocAccount WHERE GroupId = @id";
-                checkHistCmd.Parameters.AddWithValue("@id", id);
-                var histCount = Convert.ToInt64(checkHistCmd.ExecuteScalar() ?? 0L);
-
-                int rows;
-                if (histCount > 0)
-                {
-                    using var delCmd = conn.CreateCommand();
-                    delCmd.CommandText = "UPDATE jeevika_erp.SocGroup SET IsDeleted = TRUE WHERE GroupId = @id AND IsDeleted = FALSE";
-                    delCmd.Parameters.AddWithValue("@id", id);
-                    rows = delCmd.ExecuteNonQuery();
-                }
-                else
-                {
-                    using var delCmd = conn.CreateCommand();
-                    delCmd.CommandText = "DELETE FROM jeevika_erp.SocGroup WHERE GroupId = @id";
-                    delCmd.Parameters.AddWithValue("@id", id);
-                    rows = delCmd.ExecuteNonQuery();
-                }
+                // Delete directly from DB
+                using var delCmd = conn.CreateCommand();
+                delCmd.CommandText = "DELETE FROM jeevika_erp.SocGroup WHERE GroupId = @id";
+                delCmd.Parameters.AddWithValue("@id", id);
+                var rows = delCmd.ExecuteNonQuery();
 
                 if (rows == 0)
                     return NotFound(new { success = false, message = "Group not found." });
 
-                return Ok(new { success = true, message = "Group deleted successfully." });
+                return Ok(new { success = true, message = "Group deleted successfully from database." });
             }
             catch (Exception ex)
             {
@@ -312,31 +298,30 @@ namespace JeevikaERP.Controllers
             chkSoc.Parameters.AddWithValue("@sid", societyId);
             if (Convert.ToInt64(chkSoc.ExecuteScalar() ?? 0L) == 0) return;
 
-            using var countCmd = conn.CreateCommand();
-            countCmd.CommandText = "SELECT COUNT(*) FROM jeevika_erp.SocGroup WHERE SocietyId = @sid AND IsDeleted = FALSE";
-            countCmd.Parameters.AddWithValue("@sid", societyId);
-            var cnt = Convert.ToInt64(countCmd.ExecuteScalar() ?? 0L);
-
-            if (cnt == 0)
+            foreach (var g in DefaultGroups)
             {
-                using var tx = conn.BeginTransaction();
-                foreach (var g in DefaultGroups)
-                {
-                    using var ins = conn.CreateCommand();
-                    ins.Transaction = tx;
-                    ins.CommandText = @"
-                        INSERT INTO jeevika_erp.SocGroup
-                            (SocietyId, GrpCode, GrpName, GrpMainId, GrpPrimaryName, GrpType, GrpSubtotal, IsDeleted, CreatedAt)
-                        VALUES
-                            (@sid, @code, @name, @mainId, @name, 2, FALSE, FALSE, NOW())
-                        ON CONFLICT DO NOTHING";
-                    ins.Parameters.AddWithValue("@sid", societyId);
-                    ins.Parameters.AddWithValue("@code", g.code);
-                    ins.Parameters.AddWithValue("@name", g.name);
-                    ins.Parameters.AddWithValue("@mainId", g.mainId);
-                    ins.ExecuteNonQuery();
-                }
-                tx.Commit();
+                using var ins = conn.CreateCommand();
+                ins.CommandText = @"
+                    INSERT INTO jeevika_erp.SocGroup
+                        (SocietyId, GrpCode, GrpName, GrpMainId, GrpPrimaryName, GrpType, GrpSubtotal, IsDeleted, CreatedAt)
+                    SELECT @sid, @code, @name, @mainId, @name, 2, FALSE, FALSE, NOW()
+                    WHERE NOT EXISTS (
+                        SELECT 1 FROM jeevika_erp.SocGroup
+                        WHERE SocietyId = @sid AND GrpCode = @code
+                    );
+
+                    UPDATE jeevika_erp.SocGroup
+                    SET GrpType = 2,
+                        GrpName = CASE WHEN GrpCode = 'LI-15' AND GrpName ILIKE '%INPUT GST%' THEN @name ELSE GrpName END,
+                        GrpPrimaryName = CASE WHEN GrpCode = 'LI-15' AND GrpPrimaryName ILIKE '%INPUT GST%' THEN @name ELSE GrpPrimaryName END,
+                        IsDeleted = FALSE
+                    WHERE SocietyId = @sid AND GrpCode = @code;
+                ";
+                ins.Parameters.AddWithValue("@sid", societyId);
+                ins.Parameters.AddWithValue("@code", g.code);
+                ins.Parameters.AddWithValue("@name", g.name);
+                ins.Parameters.AddWithValue("@mainId", g.mainId);
+                ins.ExecuteNonQuery();
             }
         }
 

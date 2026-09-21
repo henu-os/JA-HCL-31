@@ -409,6 +409,177 @@
     display: table-cell;
   }
 
+  /* Detailed View (Image 1 style when toggle is OFF) */
+  .btm-grid.detailed-view thead th {
+    background: #EBF3FC;
+    color: #0D47A1;
+    font-weight: 700;
+    font-size: 11px;
+    border-right: 1px solid #D0DDF0;
+    border-bottom: 2px solid #BBDEFB;
+    padding: 6px 8px;
+    white-space: nowrap;
+  }
+
+  .btm-grid.detailed-view tbody td {
+    padding: 4px 6px;
+    height: 34px;
+    border-bottom: 1px solid #EAEAEA;
+    border-right: 1px solid #EAEAEA;
+  }
+
+  .btm-grid.detailed-view tbody tr:hover td {
+    background: #F4F8FD;
+  }
+
+  .btm-disp-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 4px 8px;
+    font-size: 11px;
+    font-family: inherit;
+    color: #263238;
+    background: #FFFFFF;
+    border: 1px solid #CFD8DC;
+    border-radius: 4px;
+    outline: none;
+    transition: all 0.15s ease;
+  }
+  .btm-disp-input:focus {
+    border-color: #1565C0;
+    box-shadow: 0 0 0 2px rgba(21, 101, 192, 0.15);
+  }
+
+  .btm-gst-cat-select {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 3px 6px;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: inherit;
+    border-radius: 4px;
+    outline: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .btm-gst-cat-select.cat-nongst {
+    border: 1px solid #90CAF9;
+    background: #F3F8FF;
+    color: #1565C0;
+  }
+  .btm-gst-cat-select.cat-exempt {
+    border: 1px solid #A5D6A7;
+    background: #F1F8F2;
+    color: #2E7D32;
+  }
+  .btm-gst-cat-select.cat-gst {
+    border: 1px solid #FFCC80;
+    background: #FFF8E7;
+    color: #E65100;
+  }
+  .btm-gst-cat-select.cat-both {
+    border: 1px solid #B39DDB;
+    background: #F3E5F5;
+    color: #4A148C;
+  }
+
+  .btm-thresh-badge {
+    display: inline-block;
+    font-size: 11.5px;
+    font-weight: 800;
+    cursor: pointer;
+    user-select: none;
+    padding: 2px 8px;
+    border-radius: 4px;
+    transition: all 0.15s;
+  }
+  .btm-thresh-badge.yes {
+    color: #2E7D32;
+    background: #E8F5E9;
+  }
+  .btm-thresh-badge.no {
+    color: #D32F2F;
+    background: #FFEBEE;
+  }
+
+  .btm-rate-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 24px;
+    background: #F8F9FA;
+    border: 1px solid #CFD8DC;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #424242;
+    user-select: none;
+  }
+
+  .btm-reorder-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+  .btm-arrow-btn {
+    border: none;
+    background: transparent;
+    color: #455A64;
+    font-size: 13px;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 3px;
+    line-height: 1;
+    transition: all 0.15s ease;
+  }
+  .btm-arrow-btn:hover:not(:disabled) {
+    background: #E3F2FD;
+    color: #1565C0;
+  }
+  .btm-arrow-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  .btm-action-icons-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .btm-icon-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.15s ease;
+  }
+  .btm-icon-action-btn.edit {
+    background: #E3F2FD;
+    color: #1565C0;
+    border-color: #BBDEFB;
+  }
+  .btm-icon-action-btn.edit:hover {
+    background: #BBDEFB;
+    color: #0D47A1;
+  }
+  .btm-icon-action-btn.delete {
+    background: #FFEBEE;
+    color: #D32F2F;
+    border-color: #FFCDD2;
+  }
+  .btm-icon-action-btn.delete:hover {
+    background: #FFCDD2;
+    color: #B71C1C;
+  }
+
   /* Notes Editor */
   .btm-notes-container {
     flex: 1;
@@ -686,20 +857,20 @@
     </div>
 
     <!-- WORKSPACE SPLIT -->
-    <div class="btm-workspace" id="btm-workspace">
+    <div class="btm-workspace notes-collapsed" id="btm-workspace">
 
       <!-- LEFT: FRMBILLSETTING -->
       <div class="btm-left-panel" id="btm-left-panel">
         <div class="btm-panel-header" style="display:flex; justify-content:space-between; align-items:center;">
           <span id="btm-panel-title-text" style="text-transform: uppercase;">MAINTENANCE</span>
-          <button type="button" class="btm-panel-toggle-btn btm-notes-open-quick-btn" id="btm-notes-quick-btn" onclick="BTM.toggleNotesPanel()" title="Open Notes Master Panel" style="display:none;">
-            <i class="bi bi-layout-sidebar-reverse"></i> SHOW NOTES MASTER
+          <button type="button" class="btm-panel-toggle-btn btm-notes-open-quick-btn" id="btm-notes-quick-btn" onclick="BTM.toggleNotesPanel()" title="Notes Master is OFF. Click to turn ON." style="display:inline-flex; gap:6px; align-items:center;">
+            <i class="bi bi-toggle-off" style="font-size:14px; color:#757575;"></i> NOTES MASTER: OFF
           </button>
         </div>
 
         <div
           style="padding:6px 14px; font-size:10px; color:#757575; background:#F5F5F5; border-bottom:1px solid #E0E0E0; display:flex; align-items:center; gap:12px;">
-          <span>Select ledger name using <b>SELECT</b> button. Drag Sr.No. to reorder rows.</span>
+          <span id="btm-instruction-text">Select ledger name using <b>SELECT</b> button. Drag Sr.No. to reorder rows.</span>
           <span style="margin-left:auto; color:#1565C0; font-weight:bold;" id="btm-gst-badge"></span>
         </div>
 
@@ -725,12 +896,7 @@
       <!-- RIGHT: NOTES MASTER -->
       <div class="btm-right-panel" id="btm-right-panel">
         <div class="btm-panel-header" style="background:#1A237E; display:flex; align-items:center; justify-content:space-between;">
-          <div style="display:flex; align-items:center; gap:10px;">
-            <span>NOTES MASTER</span>
-            <button type="button" class="btm-panel-toggle-btn" id="btm-notes-toggle-btn" onclick="BTM.toggleNotesPanel()" title="Toggle / Collapse Notes Master to side">
-              <i class="bi bi-chevron-bar-right"></i> TOGGLE
-            </button>
-          </div>
+          <span>NOTES MASTER</span>
           <span style="font-size:10px; font-weight:normal; opacity:0.9;">Auto-Prints on Bill</span>
         </div>
         <div class="btm-notes-container" id="btm-notes">
@@ -739,7 +905,7 @@
       </div>
 
       <!-- DOCKED RIGHT STRIP (WHEN NOTES MASTER IS OFF) -->
-      <div id="btm-notes-docked-tab" class="btm-notes-docked-tab" onclick="BTM.toggleNotesPanel()" title="Click to Open Notes Master">
+      <div id="btm-notes-docked-tab" class="btm-notes-docked-tab" onclick="BTM.toggleNotesPanel()" title="Click to Open Notes Master" style="display:flex;">
         <div class="docked-icon"><i class="bi bi-chevron-bar-left"></i></div>
         <div class="docked-text">NOTES MASTER</div>
         <div class="docked-badge">OPEN</div>

@@ -375,12 +375,20 @@
               <button type="button" onclick="confirmAddLineItem()" class="btn-tb-blue" style="height:30px; padding:0 18px; background:#1565C0; color:#ffffff; border-radius:4px; font-weight:800; display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
                 <i class="bi bi-check-circle" style="color:#ffffff;"></i> <span style="color:#ffffff;">Confirm</span>
               </button>
-              <div style="display:flex; align-items:center; gap:4px; margin-left:6px; border-left:1px solid #cbd5e1; padding-left:8px;" title="Quickly calculate & add TDS Payable (LIA-1008) Credit deduction">
-                <span class="form-label form-label-orange" style="margin-bottom:0; font-size:10px; white-space:nowrap; font-weight:800;">+ TDS DEDUCTION:</span>
-                <button type="button" onclick="quickApplyTds(1)" class="erp-btn erp-btn-sm" style="font-size:10px; font-weight:800; padding:2px 7px; background:#fff7ed; border:1px solid #fdba74; color:#c2410c; cursor:pointer;" title="Add 1% TDS Payable (Sec 194C Individual/HUF)">1%</button>
-                <button type="button" onclick="quickApplyTds(2)" class="erp-btn erp-btn-sm" style="font-size:10px; font-weight:800; padding:2px 7px; background:#fff7ed; border:1px solid #fdba74; color:#c2410c; cursor:pointer;" title="Add 2% TDS Payable (Sec 194C Company/Firm)">2%</button>
-                <button type="button" onclick="quickApplyTds(5)" class="erp-btn erp-btn-sm" style="font-size:10px; font-weight:800; padding:2px 7px; background:#fff7ed; border:1px solid #fdba74; color:#c2410c; cursor:pointer;" title="Add 5% TDS Payable (Sec 194H/194IB)">5%</button>
-                <button type="button" onclick="quickApplyTds(10)" class="erp-btn erp-btn-sm" style="font-size:10px; font-weight:800; padding:2px 7px; background:#fff7ed; border:1px solid #fdba74; color:#c2410c; cursor:pointer;" title="Add 10% TDS Payable (Sec 194J Professional/Technical)">10%</button>
+              <div style="display:flex; flex-direction:column; gap:3px; margin-left:6px; border-left:1px solid #cbd5e1; padding-left:8px;">
+                <div style="display:flex; align-items:center; gap:4px;" title="Quickly calculate & add Input CGST & SGST (Asset accounts)">
+                  <span class="form-label" style="margin-bottom:0; font-size:10px; white-space:nowrap; font-weight:800; color:#0284c7;">+ GST CALC:</span>
+                  <button type="button" onclick="quickApplyGst(2.5)" class="erp-btn erp-btn-sm" style="font-size:10px; font-weight:800; padding:1px 7px; background:#f0f9ff; border:1px solid #7dd3fc; color:#0369a1; cursor:pointer;" title="Add 2.5% CGST & 2.5% SGST (5% Total GST)">2.5%</button>
+                  <button type="button" onclick="quickApplyGst(9)" class="erp-btn erp-btn-sm" style="font-size:10px; font-weight:800; padding:1px 7px; background:#f0f9ff; border:1px solid #7dd3fc; color:#0369a1; cursor:pointer;" title="Add 9% CGST & 9% SGST (18% Total GST)">9%</button>
+                  <button type="button" onclick="quickApplyGst(20)" class="erp-btn erp-btn-sm" style="font-size:10px; font-weight:800; padding:1px 7px; background:#f0f9ff; border:1px solid #7dd3fc; color:#0369a1; cursor:pointer;" title="Add 20% CGST & 20% SGST (40% Total GST)">20%</button>
+                </div>
+                <div style="display:flex; align-items:center; gap:4px;" title="Quickly calculate & add TDS Payable (LIA-1008) Credit deduction">
+                  <span class="form-label form-label-orange" style="margin-bottom:0; font-size:10px; white-space:nowrap; font-weight:800;">+ TDS DEDUCTION:</span>
+                  <button type="button" onclick="quickApplyTds(1)" class="erp-btn erp-btn-sm" style="font-size:10px; font-weight:800; padding:1px 7px; background:#fff7ed; border:1px solid #fdba74; color:#c2410c; cursor:pointer;" title="Add 1% TDS Payable (Sec 194C Individual/HUF)">1%</button>
+                  <button type="button" onclick="quickApplyTds(2)" class="erp-btn erp-btn-sm" style="font-size:10px; font-weight:800; padding:1px 7px; background:#fff7ed; border:1px solid #fdba74; color:#c2410c; cursor:pointer;" title="Add 2% TDS Payable (Sec 194C Company/Firm)">2%</button>
+                  <button type="button" onclick="quickApplyTds(5)" class="erp-btn erp-btn-sm" style="font-size:10px; font-weight:800; padding:1px 7px; background:#fff7ed; border:1px solid #fdba74; color:#c2410c; cursor:pointer;" title="Add 5% TDS Payable (Sec 194H/194IB)">5%</button>
+                  <button type="button" onclick="quickApplyTds(10)" class="erp-btn erp-btn-sm" style="font-size:10px; font-weight:800; padding:1px 7px; background:#fff7ed; border:1px solid #fdba74; color:#c2410c; cursor:pointer;" title="Add 10% TDS Payable (Sec 194J Professional/Technical)">10%</button>
+                </div>
               </div>
             </div>
           </div>

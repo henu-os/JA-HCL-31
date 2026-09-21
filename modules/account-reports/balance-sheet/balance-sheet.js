@@ -198,7 +198,7 @@
     });
 
     // 1. Build Left Side (Liabilities) Rows
-    const leftRows = buildSideRows(currentBSReport.liabilities || [], 'liab', viewMode, hideZero, false);
+    const leftRows = buildSideRows(currentBSReport.liabilities || [], 'liab', viewMode, hideZero, showMemberBreakup, currentBSReport.memberAdvances || []);
 
     // 2. Build Right Side (Assets) Rows
     const rightRows = buildSideRows(currentBSReport.assets || [], 'asset', viewMode, hideZero, showMemberBreakup, currentBSReport.memberDues || []);
@@ -257,22 +257,23 @@
    * Builds an array of row objects for either Liabilities or Assets adhering to Pranav BS layout.
    * Eliminates redundant "TOTAL <GROUP>" rows and correctly formats single vs multi-item groups.
    */
-  function buildSideRows(groups, sideType, viewMode, hideZero, showMemberBreakup, memberDues = []) {
+  function buildSideRows(groups, sideType, viewMode, hideZero, showMemberBreakup, memberItems = []) {
     const rows = [];
 
-    // Separate Income & Expenditure to ensure it sits at the bottom of Liabilities
+    // Separate Income & Expenditure to ensure it sits at the bottom of the section (Liabilities for Surplus, Assets for Deficit)
     let sortedGroups = [...groups];
-    if (sideType === 'liab') {
-      const ieIndex = sortedGroups.findIndex(g => (g.groupName || '').toLowerCase().includes('income & expenditure'));
-      if (ieIndex >= 0) {
-        const [ieGroup] = sortedGroups.splice(ieIndex, 1);
-        sortedGroups.push(ieGroup);
-      }
+    const ieIndex = sortedGroups.findIndex(g => (g.groupName || '').toLowerCase().includes('income & expenditure'));
+    if (ieIndex >= 0) {
+      const [ieGroup] = sortedGroups.splice(ieIndex, 1);
+      sortedGroups.push(ieGroup);
     }
 
     sortedGroups.forEach(g => {
       const accounts = g.accounts || [];
-      const isDuesGroup = (g.groupName || '').toLowerCase().includes('dues from member');
+      const gNameLower = (g.groupName || '').toLowerCase();
+      const isMemberBreakupGroup = (sideType === 'liab')
+        ? (gNameLower.includes('advance') && gNameLower.includes('member'))
+        : (gNameLower.includes('dues') && gNameLower.includes('member'));
 
       // Filter zero balance accounts if requested
       const filteredAccounts = hideZero
@@ -288,11 +289,17 @@
 
       if (viewMode === 'summary' && !g.grpSubtotal) {
         // In summary mode: single summary line
+        const curAmt = (isMemberBreakupGroup && memberItems.length > 0)
+          ? memberItems.reduce((sum, m) => sum + (parseFloat(m.dueAmount != null ? m.dueAmount : m.advanceAmount) || 0), 0)
+          : g.totalCurrent;
+        const prevAmt = (isMemberBreakupGroup && memberItems.length > 0)
+          ? (memberItems.reduce((sum, m) => sum + (parseFloat(m.prevAmount) || 0), 0) || g.totalPrev)
+          : g.totalPrev;
         rows.push({
           type: 'group-summary',
           groupName: groupTitle,
-          prevAmount: g.totalPrev,
-          currentAmount: g.totalCurrent
+          prevAmount: prevAmt,
+          currentAmount: curAmt
         });
         return;
       }
@@ -304,22 +311,75 @@
         groupCode: g.groupCode || ''
       });
 
-      // 2. Member Dues Breakup (if enabled)
-      if (isDuesGroup && showMemberBreakup && memberDues.length > 0) {
-        const totalMembers = memberDues.length;
-        memberDues.forEach((m, idx) => {
-          const isLast = (idx === totalMembers - 1);
-          rows.push({
-            type: 'member-dues-item',
-            flatDisplay: m.flatDisplay || `${m.wing}-${m.flatNo}`,
-            memName: m.memName,
-            prevAmount: (idx === 0) ? g.totalPrev : '',
-            dueAmount: m.dueAmount,
-            outerAmount: isLast ? g.totalCurrent : null,
-            isLast: isLast
-          });
+      // 2. Member Dues / Advances: Breakup (when tick ON) or Bill Type Summary (when tick OFF)
+      if (isMemberBreakupGroup && memberItems.length > 0) {
+        const groupsByBT = {};
+        memberItems.forEach(m => {
+          const bt = (m.billType || 'MAINTENANCE').trim().toUpperCase();
+          if (!groupsByBT[bt]) groupsByBT[bt] = [];
+          groupsByBT[bt].push(m);
         });
-        return;
+
+        const btKeys = Object.keys(groupsByBT).sort((a, b) => {
+          const aMaint = a.includes('MAINT');
+          const bMaint = b.includes('MAINT');
+          if (aMaint && !bMaint) return -1;
+          if (!aMaint && bMaint) return 1;
+          return a.localeCompare(b);
+        });
+
+        const totalItemsCount = memberItems.length;
+        const memberItemsTotal = memberItems.reduce((sum, m) => sum + (parseFloat(m.dueAmount != null ? m.dueAmount : m.advanceAmount) || 0), 0);
+        const memberItemsPrevTotal = memberItems.reduce((sum, m) => sum + (parseFloat(m.prevAmount) || 0), 0);
+
+        if (showMemberBreakup) {
+          // Member Dues Breakup TICK IS ON:
+          // Show bill type section header and each individual member under it with previous year balance & current due
+          let processedCount = 0;
+          btKeys.forEach((bt) => {
+            const items = groupsByBT[bt];
+            if (!items || items.length === 0) return;
+
+            rows.push({
+              type: 'member-dues-section',
+              billType: bt,
+              prevAmount: ''
+            });
+
+            items.forEach((m) => {
+              processedCount++;
+              const isLastOfAll = (processedCount === totalItemsCount);
+              const itemAmt = parseFloat(m.dueAmount != null ? m.dueAmount : m.advanceAmount) || 0;
+              const itemPrevAmt = parseFloat(m.prevAmount) || 0;
+
+              rows.push({
+                type: 'member-dues-item',
+                billType: bt,
+                flatDisplay: m.flatDisplay || `${m.wing}-${m.flatNo}`,
+                memName: m.memName,
+                prevAmount: itemPrevAmt,
+                dueAmount: itemAmt,
+                outerAmount: isLastOfAll ? memberItemsTotal : null,
+                isLast: isLastOfAll
+              });
+            });
+          });
+          return;
+        } else {
+          // Member Dues Breakup TICK IS OFF:
+          // "WHEN TOGGLE IS OFF THEN THE "MAINTENANCE + MAJOR REPAIR" SHOULD BE TOTAL IN 'MAINTENANCE'. 
+          // AND THE TOTAL AMOUNT OF 'DUES FROM MEMBER' ALSO SHOULD BE SEEN."
+          rows.push({
+            type: 'account-multi',
+            accCode: '',
+            accName: 'Maintenance',
+            prevAmount: memberItemsPrevTotal || g.totalPrev || 0,
+            currentAmount: memberItemsTotal,
+            outerAmount: memberItemsTotal,
+            isLast: true
+          });
+          return;
+        }
       }
 
       // 3. Regular Accounts in Group
@@ -337,13 +397,14 @@
         });
       } else if (accCount > 1) {
         // Multi-account group: Inner amounts (Col C / Col G), subtotal on the last row in outer column (Col D / Col H)
+        const hasAnyAccPrev = filteredAccounts.some(a => Math.abs(a.prevAmount) > 0.005);
         filteredAccounts.forEach((acc, idx) => {
           const isLast = (idx === accCount - 1);
           rows.push({
             type: 'account-multi',
             accCode: acc.accCode || '',
             accName: acc.accName || '',
-            prevAmount: acc.prevAmount || (idx === 0 ? g.totalPrev : 0),
+            prevAmount: hasAnyAccPrev ? (acc.prevAmount || 0) : (idx === 0 ? g.totalPrev : 0),
             currentAmount: acc.currentAmount || 0,
             outerAmount: isLast ? g.totalCurrent : null,
             isLast: isLast,
@@ -377,8 +438,8 @@
     if (!rowObj) {
       return `
         <td class="bs-table-cell col-prev bs-num" style="${prevStyle}">&nbsp;</td>
-        <td class="bs-table-cell">&nbsp;</td>
-        <td class="bs-table-cell bs-num">&nbsp;</td>
+        <td class="bs-table-cell bs-acc-row">&nbsp;</td>
+        <td class="bs-table-cell bs-num bs-inner-amt">&nbsp;</td>
         <td class="bs-table-cell bs-num ${dividerClass}">&nbsp;</td>
       `;
     }
@@ -386,7 +447,7 @@
     if (rowObj.type === 'group-header') {
       return `
         <td class="bs-table-cell col-prev bs-num" style="${prevStyle}">&nbsp;</td>
-        <td class="bs-table-cell" colspan="2" style="font-weight:800; background:#f8fafc;">
+        <td class="bs-table-cell bs-group-header-cell" colspan="2" style="font-weight:800; background:#f8fafc;">
           <span class="bs-group-title">${escHtml(rowObj.groupName)}</span>
         </td>
         <td class="bs-table-cell bs-num ${dividerClass}" style="background:#f8fafc;">&nbsp;</td>
@@ -401,7 +462,7 @@
         <td class="bs-table-cell bs-acc-row" style="${surplusStyle}">
           ${codeHtml}${escHtml(rowObj.accName)}
         </td>
-        <td class="bs-table-cell bs-num">&nbsp;</td>
+        <td class="bs-table-cell bs-num bs-inner-amt">&nbsp;</td>
         <td class="bs-table-cell bs-num bs-cell-subtotal-outer ${dividerClass}" style="${surplusStyle}">${formatINR(rowObj.currentAmount, true)}</td>
       `;
     }
@@ -418,8 +479,19 @@
         <td class="bs-table-cell bs-acc-row" style="padding-left:16px; ${surplusStyle}">
           ${codeHtml}${escHtml(rowObj.accName)}
         </td>
-        <td class="bs-table-cell bs-num" style="${surplusStyle}">${formatINR(rowObj.currentAmount, true)}</td>
+        <td class="bs-table-cell bs-num bs-inner-amt" style="${surplusStyle}">${formatINR(rowObj.currentAmount, true)}</td>
         <td class="bs-table-cell bs-num ${outerClass} ${dividerClass}">${outerHtml}</td>
+      `;
+    }
+
+    if (rowObj.type === 'member-dues-section') {
+      return `
+        <td class="bs-table-cell col-prev bs-num text-muted" style="${prevStyle}">${rowObj.prevAmount ? formatINR(rowObj.prevAmount, true) : '&nbsp;'}</td>
+        <td class="bs-table-cell bs-acc-row" style="padding-left:14px; font-weight:800; color:#0D47A1; font-size:10.5px; text-transform:uppercase; background:#f0f7ff; letter-spacing:0.3px;">
+          <i class="bi bi-bookmark-fill" style="font-size:9px; margin-right:5px; opacity:0.8;"></i>${escHtml(rowObj.billType)}
+        </td>
+        <td class="bs-table-cell bs-num bs-inner-amt" style="background:#f0f7ff;">&nbsp;</td>
+        <td class="bs-table-cell bs-num ${dividerClass}" style="background:#f0f7ff;">&nbsp;</td>
       `;
     }
 
@@ -430,11 +502,11 @@
       const outerClass = rowObj.isLast ? 'bs-cell-subtotal-outer' : '';
       return `
         <td class="bs-table-cell col-prev bs-num text-muted" style="${prevStyle}">${formatINR(rowObj.prevAmount, true)}</td>
-        <td class="bs-table-cell" style="padding-left:16px; font-size:10px; color:#1e293b;">
+        <td class="bs-table-cell bs-acc-row" style="padding-left:24px; font-size:10px; color:#1e293b;">
           <span class="bs-flat-badge">${escHtml(rowObj.flatDisplay)}</span>
           <span style="margin-left:4px;">${escHtml(rowObj.memName)}</span>
         </td>
-        <td class="bs-table-cell bs-num" style="font-size:10px;">${formatINR(rowObj.dueAmount, true)}</td>
+        <td class="bs-table-cell bs-num bs-inner-amt" style="font-size:10px;">${formatINR(rowObj.dueAmount, true)}</td>
         <td class="bs-table-cell bs-num ${outerClass} ${dividerClass}">${outerHtml}</td>
       `;
     }
@@ -463,7 +535,7 @@
 
   window.toggleMemberBreakup = async function () {
     const chk = document.getElementById('chk-member-breakup');
-    if (chk && chk.checked && (!currentBSReport.memberDues || currentBSReport.memberDues.length === 0)) {
+    if (chk && chk.checked && (!currentBSReport || currentBSReport.memberDues === undefined)) {
       await loadBalanceSheetData();
     } else {
       renderBalanceSheetView();
@@ -585,10 +657,11 @@
       alignment: { horizontal: 'center', vertical: 'center' },
       border: getBorders(1, thinBorder, thinBorder)
     });
-    setCell(hRow, 2, '', 's', {
+    setCell(hRow, 2, 'Sub Total\nAmount(Rs.)', 's', {
+      font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: '000000' } },
+      alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
       border: getBorders(2, thinBorder, thinBorder)
     });
-    merges.push({ s: { r: hRow, c: 1 }, e: { r: hRow, c: 2 } });
 
     setCell(hRow, 3, curDateHeader, 's', {
       font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: '000000' } },
@@ -606,10 +679,11 @@
       alignment: { horizontal: 'center', vertical: 'center' },
       border: getBorders(5, thinBorder, thinBorder)
     });
-    setCell(hRow, 6, '', 's', {
+    setCell(hRow, 6, 'Sub Total\nAmount(Rs.)', 's', {
+      font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: '000000' } },
+      alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
       border: getBorders(6, thinBorder, thinBorder)
     });
-    merges.push({ s: { r: hRow, c: 5 }, e: { r: hRow, c: 6 } });
 
     setCell(hRow, 7, curDateHeader, 's', {
       font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: '000000' } },
@@ -624,7 +698,7 @@
     const comparePrev = true;
     const showVoucherNo = document.getElementById('chk-voucher-no') ? document.getElementById('chk-voucher-no').checked : true;
 
-    const leftRows = buildSideRows(currentBSReport.liabilities || [], 'liab', viewMode, hideZero, false);
+    const leftRows = buildSideRows(currentBSReport.liabilities || [], 'liab', viewMode, hideZero, showMemberBreakup, currentBSReport.memberAdvances || []);
     const rightRows = buildSideRows(currentBSReport.assets || [], 'asset', viewMode, hideZero, showMemberBreakup, currentBSReport.memberDues || []);
     const maxRows = Math.max(leftRows.length, rightRows.length);
 
@@ -694,6 +768,49 @@
           // Inner Amount in Col C
           setCell(curR, 2, parseFloat(l.currentAmount) || 0, 'n', {
             font: { name: 'Calibri', sz: 10, color: { rgb: '000000' } },
+            alignment: { horizontal: 'right', vertical: 'center' },
+            border: getBorders(2)
+          }, '#,##0.00');
+
+          if (l.isLast) {
+            const sumFormula = `SUM(C${liabGroupStartRow}:C${curR + 1})`;
+            setCell(curR, 3, parseFloat(l.outerAmount) || 0, 'n', {
+              font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: '000000' } },
+              alignment: { horizontal: 'right', vertical: 'center' },
+              border: getBorders(3, undefined, thinBorder)
+            }, '#,##0.00', sumFormula);
+            liabOuterCells.push(`D${curR + 1}`);
+          }
+        } else if (l.type === 'member-dues-section') {
+          setCell(curR, 1, `  ${l.billType || ''}`, 's', {
+            font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: '0D47A1' } },
+            alignment: { horizontal: 'left', vertical: 'center' },
+            border: getBorders(1)
+          });
+          if (comparePrev && l.prevAmount) {
+            setCell(curR, 0, parseFloat(l.prevAmount) || 0, 'n', {
+              font: { name: 'Calibri', sz: 10, color: { rgb: '000000' } },
+              alignment: { horizontal: 'right', vertical: 'center' },
+              border: getBorders(0)
+            }, '#,##0.00');
+          }
+        } else if (l.type === 'member-dues-item') {
+          const memLabel = `    ${l.flatDisplay || ''} - ${l.memName || ''}`;
+          setCell(curR, 1, memLabel, 's', {
+            font: { name: 'Calibri', sz: 9.5, color: { rgb: '000000' } },
+            alignment: { horizontal: 'left', vertical: 'center' },
+            border: getBorders(1)
+          });
+          if (comparePrev && l.prevAmount) {
+            setCell(curR, 0, parseFloat(l.prevAmount) || 0, 'n', {
+              font: { name: 'Calibri', sz: 10, color: { rgb: '000000' } },
+              alignment: { horizontal: 'right', vertical: 'center' },
+              border: getBorders(0)
+            }, '#,##0.00');
+          }
+          // Inner advance amount in Col C
+          setCell(curR, 2, parseFloat(l.dueAmount) || 0, 'n', {
+            font: { name: 'Calibri', sz: 9.5, color: { rgb: '000000' } },
             alignment: { horizontal: 'right', vertical: 'center' },
             border: getBorders(2)
           }, '#,##0.00');
@@ -789,8 +906,21 @@
             }, '#,##0.00', sumFormula);
             assetOuterCells.push(`H${curR + 1}`);
           }
+        } else if (rData.type === 'member-dues-section') {
+          setCell(curR, 5, `  ${rData.billType || ''}`, 's', {
+            font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: '0D47A1' } },
+            alignment: { horizontal: 'left', vertical: 'center' },
+            border: getBorders(5)
+          });
+          if (comparePrev && rData.prevAmount) {
+            setCell(curR, 4, parseFloat(rData.prevAmount) || 0, 'n', {
+              font: { name: 'Calibri', sz: 10, color: { rgb: '000000' } },
+              alignment: { horizontal: 'right', vertical: 'center' },
+              border: getBorders(4)
+            }, '#,##0.00');
+          }
         } else if (rData.type === 'member-dues-item') {
-          const memLabel = `  ${rData.flatDisplay || ''} - ${rData.memName || ''}`;
+          const memLabel = `    ${rData.flatDisplay || ''} - ${rData.memName || ''}`;
           setCell(curR, 5, memLabel, 's', {
             font: { name: 'Calibri', sz: 9.5, color: { rgb: '000000' } },
             alignment: { horizontal: 'left', vertical: 'center' },

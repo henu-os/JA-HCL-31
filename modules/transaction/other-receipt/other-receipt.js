@@ -807,6 +807,106 @@
     return null;
   }
 
+  window.quickApplyGst = function (rate) {
+    var isGstRow = function (r) {
+      var c = (r.code || '').toUpperCase();
+      var n = (r.name || '').toLowerCase();
+      return c === 'LIA-1021' || c === 'LIA-1022' || c === 'LIA-1032' || c === 'LIA-1033' || n.includes('input cgst') || n.includes('input sgst') || n.includes('output cgst') || n.includes('output sgst') || (n.includes('cgst') && !n.includes('tds')) || (n.includes('sgst') && !n.includes('tds'));
+    };
+
+    var baseAmt = gridRows.filter(function (r) { return !isGstRow(r); }).reduce(function (s, r) { return s + (parseFloat(r.cr) || 0); }, 0);
+    if (baseAmt <= 0) {
+      baseAmt = parseFloat(document.getElementById('entry-amount') ? document.getElementById('entry-amount').value : 0) || 0;
+    }
+    if (baseAmt <= 0) {
+      toast('Please enter or add an Income Credit line first before calculating GST.', false);
+      return;
+    }
+
+    var gstRate = parseFloat(rate) || 0;
+    if (gstRate <= 0) {
+      toast('Invalid GST rate.', false);
+      return;
+    }
+
+    var cgstAmt = Math.round(baseAmt * (gstRate / 100) * 100) / 100;
+    var sgstAmt = cgstAmt;
+
+    // Lookup Liability Accounts (Group: Liability / LI-15 OUTPUT GST)
+    var cgstAcc = accounts.find(function (a) {
+      var c = (a.accCode || '').toUpperCase();
+      var n = (a.accName || '').toLowerCase();
+      var g = (a.groupName || '').toLowerCase();
+      var isLiability = a.grpMainId == 2 || (a.mainGroup && a.mainGroup.toLowerCase() === 'liability');
+      return c === 'LIA-1021' || (isLiability && (g.includes('output gst') || g.includes('input gst')) && n.includes('cgst')) || (isLiability && (n.includes('output cgst') || n === 'input cgst'));
+    });
+    var sgstAcc = accounts.find(function (a) {
+      var c = (a.accCode || '').toUpperCase();
+      var n = (a.accName || '').toLowerCase();
+      var g = (a.groupName || '').toLowerCase();
+      var isLiability = a.grpMainId == 2 || (a.mainGroup && a.mainGroup.toLowerCase() === 'liability');
+      return c === 'LIA-1022' || (isLiability && (g.includes('output gst') || g.includes('input gst')) && n.includes('sgst')) || (isLiability && (n.includes('output sgst') || n === 'input sgst'));
+    });
+
+    var cgstCode = cgstAcc ? cgstAcc.accCode : 'LIA-1021';
+    var cgstName = cgstAcc ? cgstAcc.accName : 'Output CGST';
+    var sgstCode = sgstAcc ? sgstAcc.accCode : 'LIA-1022';
+    var sgstName = sgstAcc ? sgstAcc.accName : 'Output SGST';
+
+    // Find existing Output/Input CGST row or push new
+    var cgstIdx = gridRows.findIndex(function (r) {
+      var c = (r.code || '').toUpperCase();
+      var n = (r.name || '').toLowerCase();
+      return c === 'LIA-1021' || c === cgstCode.toUpperCase() || n.includes('output cgst') || n.includes('input cgst');
+    });
+
+    if (cgstIdx >= 0) {
+      gridRows[cgstIdx].code = cgstCode;
+      gridRows[cgstIdx].name = cgstName;
+      gridRows[cgstIdx].dr = 0;
+      gridRows[cgstIdx].cr = cgstAmt;
+      gridRows[cgstIdx].particulars = cgstName + ' @ ' + gstRate + '% on ' + baseAmt.toFixed(2);
+    } else {
+      gridRows.push({
+        sr: gridRows.length + 1,
+        code: cgstCode,
+        name: cgstName,
+        dr: 0,
+        cr: cgstAmt,
+        particulars: cgstName + ' @ ' + gstRate + '% on ' + baseAmt.toFixed(2)
+      });
+    }
+
+    // Find existing Output/Input SGST row or push new
+    var sgstIdx = gridRows.findIndex(function (r) {
+      var c = (r.code || '').toUpperCase();
+      var n = (r.name || '').toLowerCase();
+      return c === 'LIA-1022' || c === sgstCode.toUpperCase() || n.includes('output sgst') || n.includes('input sgst');
+    });
+
+    if (sgstIdx >= 0) {
+      gridRows[sgstIdx].code = sgstCode;
+      gridRows[sgstIdx].name = sgstName;
+      gridRows[sgstIdx].dr = 0;
+      gridRows[sgstIdx].cr = sgstAmt;
+      gridRows[sgstIdx].particulars = sgstName + ' @ ' + gstRate + '% on ' + baseAmt.toFixed(2);
+    } else {
+      gridRows.push({
+        sr: gridRows.length + 1,
+        code: sgstCode,
+        name: sgstName,
+        dr: 0,
+        cr: sgstAmt,
+        particulars: sgstName + ' @ ' + gstRate + '% on ' + baseAmt.toFixed(2)
+      });
+    }
+
+    gridRows.forEach(function (r, i) { r.sr = i + 1; });
+    renderGridTable();
+    var totalGst = (cgstAmt + sgstAmt).toFixed(2);
+    toast('Applied ' + gstRate + '% ' + cgstName + ' (₹' + cgstAmt.toFixed(2) + ') & ' + gstRate + '% ' + sgstName + ' (₹' + sgstAmt.toFixed(2) + ') [Total GST ₹' + totalGst + ']', true);
+  };
+
   window.quickApplyTds = function (rate) {
     var grossCr = gridRows.reduce(function (s, r) { return s + (parseFloat(r.cr) || 0); }, 0);
     if (grossCr <= 0) {

@@ -123,6 +123,7 @@ const WorkspaceManager = (() => {
     { id: 'ar-receipt-register', label: 'Receipt Register', category: 'account-report', path: 'modules/account-reports/receipt-register/receipt-register.html' },
     { id: 'ar-payment-register', label: 'Payment Register', category: 'account-report', path: 'modules/account-reports/payment-register/payment-register.html' },
     { id: 'ar-contra-register', label: 'Contra Register', category: 'account-report', path: 'modules/account-reports/contra-register/contra-register.html' },
+    { id: 'ar-journal-register', label: 'Journal Register', category: 'account-report', path: 'modules/account-reports/journal-register/journal-register.html' },
     { id: 'ar-monthly-report', label: 'Monthly Report', category: 'account-report', path: 'modules/account-reports/monthly-report/monthly-report.html' },
 
     // ADDITIONAL REPORTS

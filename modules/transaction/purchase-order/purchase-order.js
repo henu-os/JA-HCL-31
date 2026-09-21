@@ -836,6 +836,104 @@
     }
   }
 
+  window.quickApplyGst = function (rate) {
+    var isGstRow = function (r) {
+      var c = (r.code || '').toUpperCase();
+      var n = (r.name || '').toLowerCase();
+      return c === 'ASS-1027' || c === 'ASS-1028' || n.includes('input cgst') || n.includes('input sgst') || (n.includes('cgst') && !n.includes('tds')) || (n.includes('sgst') && !n.includes('tds'));
+    };
+
+    var baseAmt = gridRows.filter(function (r) { return !isGstRow(r); }).reduce(function (s, r) { return s + (parseFloat(r.dr) || 0); }, 0);
+    if (baseAmt <= 0) {
+      baseAmt = parseFloat(document.getElementById('entry-amount') ? document.getElementById('entry-amount').value : 0) || 0;
+    }
+    if (baseAmt <= 0) {
+      toast('Please enter or add an Expense Debit line first before calculating GST.', false);
+      return;
+    }
+
+    var gstRate = parseFloat(rate) || 0;
+    if (gstRate <= 0) {
+      toast('Invalid GST rate.', false);
+      return;
+    }
+
+    var cgstAmt = Math.round(baseAmt * (gstRate / 100) * 100) / 100;
+    var sgstAmt = cgstAmt;
+
+    // Lookup Asset Accounts (Group: INPUT GST / Asset)
+    var cgstAcc = accounts.find(function (a) {
+      var c = (a.accCode || '').toUpperCase();
+      var n = (a.accName || '').toLowerCase();
+      var isAsset = a.grpMainId == 1 || (a.mainGroup && a.mainGroup.toLowerCase() === 'asset');
+      return c === 'ASS-1027' || n.includes('input cgst') || (n.includes('cgst') && isAsset);
+    });
+    var sgstAcc = accounts.find(function (a) {
+      var c = (a.accCode || '').toUpperCase();
+      var n = (a.accName || '').toLowerCase();
+      var isAsset = a.grpMainId == 1 || (a.mainGroup && a.mainGroup.toLowerCase() === 'asset');
+      return c === 'ASS-1028' || n.includes('input sgst') || (n.includes('sgst') && isAsset);
+    });
+
+    var cgstCode = cgstAcc ? cgstAcc.accCode : 'ASS-1027';
+    var cgstName = cgstAcc ? cgstAcc.accName : 'INPUT CGST';
+    var sgstCode = sgstAcc ? sgstAcc.accCode : 'ASS-1028';
+    var sgstName = sgstAcc ? sgstAcc.accName : 'INPUT SGST';
+
+    // Find existing Input CGST row or push new
+    var cgstIdx = gridRows.findIndex(function (r) {
+      var c = (r.code || '').toUpperCase();
+      var n = (r.name || '').toLowerCase();
+      return c === 'ASS-1027' || n.includes('input cgst') || (c === cgstCode.toUpperCase());
+    });
+
+    if (cgstIdx >= 0) {
+      gridRows[cgstIdx].code = cgstCode;
+      gridRows[cgstIdx].name = cgstName;
+      gridRows[cgstIdx].dr = cgstAmt;
+      gridRows[cgstIdx].cr = 0;
+      gridRows[cgstIdx].particulars = 'Input CGST @ ' + gstRate + '% on ' + baseAmt.toFixed(2);
+    } else {
+      gridRows.push({
+        sr: gridRows.length + 1,
+        code: cgstCode,
+        name: cgstName,
+        dr: cgstAmt,
+        cr: 0,
+        particulars: 'Input CGST @ ' + gstRate + '% on ' + baseAmt.toFixed(2)
+      });
+    }
+
+    // Find existing Input SGST row or push new
+    var sgstIdx = gridRows.findIndex(function (r) {
+      var c = (r.code || '').toUpperCase();
+      var n = (r.name || '').toLowerCase();
+      return c === 'ASS-1028' || n.includes('input sgst') || (c === sgstCode.toUpperCase());
+    });
+
+    if (sgstIdx >= 0) {
+      gridRows[sgstIdx].code = sgstCode;
+      gridRows[sgstIdx].name = sgstName;
+      gridRows[sgstIdx].dr = sgstAmt;
+      gridRows[sgstIdx].cr = 0;
+      gridRows[sgstIdx].particulars = 'Input SGST @ ' + gstRate + '% on ' + baseAmt.toFixed(2);
+    } else {
+      gridRows.push({
+        sr: gridRows.length + 1,
+        code: sgstCode,
+        name: sgstName,
+        dr: sgstAmt,
+        cr: 0,
+        particulars: 'Input SGST @ ' + gstRate + '% on ' + baseAmt.toFixed(2)
+      });
+    }
+
+    gridRows.forEach(function (r, i) { r.sr = i + 1; });
+    renderGridTable();
+    var totalGst = (cgstAmt + sgstAmt).toFixed(2);
+    toast('Applied ' + gstRate + '% CGST (₹' + cgstAmt.toFixed(2) + ') & ' + gstRate + '% SGST (₹' + sgstAmt.toFixed(2) + ') [Total GST ₹' + totalGst + ']', true);
+  };
+
   window.quickApplyTds = function (rate) {
     var grossDr = gridRows.reduce(function (s, r) { return s + (parseFloat(r.dr) || 0); }, 0);
     if (grossDr <= 0) {

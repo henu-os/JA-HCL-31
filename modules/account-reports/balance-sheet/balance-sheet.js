@@ -272,15 +272,21 @@
       const accounts = g.accounts || [];
       const gNameLower = (g.groupName || '').toLowerCase();
       const isMemberBreakupGroup = (sideType === 'liab')
-        ? (gNameLower.includes('advance') && gNameLower.includes('member'))
-        : (gNameLower.includes('dues') && gNameLower.includes('member'));
+        ? ((gNameLower.includes('advance') && gNameLower.includes('member')) || (g.groupCode || '').toUpperCase() === 'LI-14')
+        : ((gNameLower.includes('dues') && gNameLower.includes('member')) || (g.groupCode || '').toUpperCase() === 'AS-05');
 
       // Filter zero balance accounts if requested
       const filteredAccounts = hideZero
         ? accounts.filter(a => Math.abs(a.currentAmount) > 0.005 || Math.abs(a.prevAmount) > 0.005)
         : accounts;
 
-      if (hideZero && filteredAccounts.length === 0 && Math.abs(g.totalCurrent) < 0.005 && Math.abs(g.totalPrev) < 0.005) {
+      const hasMemberItems = isMemberBreakupGroup && memberItems.some(m => {
+        const amt = parseFloat(m.dueAmount != null ? m.dueAmount : m.advanceAmount) || 0;
+        const pAmt = parseFloat(m.prevAmount) || 0;
+        return Math.abs(amt) > 0.005 || Math.abs(pAmt) > 0.005;
+      });
+
+      if (hideZero && filteredAccounts.length === 0 && !hasMemberItems && Math.abs(g.totalCurrent) < 0.005 && Math.abs(g.totalPrev) < 0.005) {
         return; // Skip empty group in hideZero mode
       }
 
@@ -311,8 +317,31 @@
         groupCode: g.groupCode || ''
       });
 
-      // 2. Member Dues / Advances: Breakup (when tick ON) or Bill Type Summary (when tick OFF)
-      if (isMemberBreakupGroup && memberItems.length > 0) {
+      // 2. Member Dues / Advances: Render accounts first (if any), then bill types / detailed members
+      if (isMemberBreakupGroup && (memberItems.length > 0 || filteredAccounts.length > 0)) {
+        // A. Render any constituent Ledger Accounts in this group that have opening/previous/current balance
+        filteredAccounts.forEach(acc => {
+          rows.push({
+            type: 'account-multi',
+            accCode: acc.accCode || '',
+            accName: acc.accName || '',
+            prevAmount: acc.prevAmount || 0,
+            currentAmount: acc.currentAmount || 0,
+            outerAmount: null,
+            isLast: false,
+            isSurplus: false
+          });
+        });
+
+        // If no member items exist, mark the last account as last
+        if (memberItems.length === 0) {
+          if (filteredAccounts.length > 0) {
+            rows[rows.length - 1].isLast = true;
+            rows[rows.length - 1].outerAmount = g.totalCurrent;
+          }
+          return;
+        }
+
         const groupsByBT = {};
         memberItems.forEach(m => {
           const bt = (m.billType || 'MAINTENANCE').trim().toUpperCase();
@@ -331,6 +360,11 @@
         const totalItemsCount = memberItems.length;
         const memberItemsTotal = memberItems.reduce((sum, m) => sum + (parseFloat(m.dueAmount != null ? m.dueAmount : m.advanceAmount) || 0), 0);
         const memberItemsPrevTotal = memberItems.reduce((sum, m) => sum + (parseFloat(m.prevAmount) || 0), 0);
+
+        function formatBillTypeName(bt) {
+          if (!bt) return '';
+          return bt.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+        }
 
         if (showMemberBreakup) {
           // Member Dues Breakup TICK IS ON:
@@ -367,16 +401,22 @@
           return;
         } else {
           // Member Dues Breakup TICK IS OFF:
-          // "WHEN TOGGLE IS OFF THEN THE "MAINTENANCE + MAJOR REPAIR" SHOULD BE TOTAL IN 'MAINTENANCE'. 
-          // AND THE TOTAL AMOUNT OF 'DUES FROM MEMBER' ALSO SHOULD BE SEEN."
-          rows.push({
-            type: 'account-multi',
-            accCode: '',
-            accName: 'Maintenance',
-            prevAmount: memberItemsPrevTotal || g.totalPrev || 0,
-            currentAmount: memberItemsTotal,
-            outerAmount: memberItemsTotal,
-            isLast: true
+          // Below the account, show the total of each bill type
+          btKeys.forEach((bt, idx) => {
+            const items = groupsByBT[bt] || [];
+            const btTotal = items.reduce((sum, m) => sum + (parseFloat(m.dueAmount != null ? m.dueAmount : m.advanceAmount) || 0), 0);
+            const btPrevTotal = items.reduce((sum, m) => sum + (parseFloat(m.prevAmount) || 0), 0);
+            const isLast = (idx === btKeys.length - 1);
+
+            rows.push({
+              type: 'account-multi',
+              accCode: '',
+              accName: formatBillTypeName(bt),
+              prevAmount: btPrevTotal || 0,
+              currentAmount: btTotal,
+              outerAmount: isLast ? memberItemsTotal : null,
+              isLast: isLast
+            });
           });
           return;
         }

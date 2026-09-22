@@ -50,7 +50,7 @@ namespace JeevikaERP.Controllers
             ("Sundry Creditors", 2, "LI-11"),
             ("Education Fund", 2, "LI-12"),
             ("Major Repair Fund", 2, "LI-13"),
-            ("Dues from Members", 2, "LI-14"),
+            ("Advance from Members", 2, "LI-14"),
             ("OUTPUT GST", 2, "LI-15"),
 
             // Income (MainId = 3)

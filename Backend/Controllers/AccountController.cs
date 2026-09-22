@@ -120,7 +120,7 @@ namespace JeevikaERP.Controllers
             ("LIA-1017", "Prov. Pest Control Exp.", "Current Liabilities & Provisions", 2),
             ("LIA-1018", "Prov. Accounting Software AMC Exp.", "Current Liabilities & Provisions", 2),
             ("LIA-1019", "Prov. Income Tax", "Current Liabilities & Provisions", 2),
-            ("LIA-1020", "Advance From Members", "Dues from Members", 2),
+            ("LIA-1020", "Advance From Members", "Advance from Members", 2),
             ("LIA-1021", "Output CGST", "OUTPUT GST", 2),
             ("LIA-1022", "Output SGST", "OUTPUT GST", 2),
             ("LIA-1023", "Output IGST", "OUTPUT GST", 2),
@@ -132,7 +132,7 @@ namespace JeevikaERP.Controllers
         // ── GET /api/accounts?societyId=X ───────────────────────
         [HttpGet]
         [AllowAnonymous]
-        public IActionResult GetAll([FromQuery] int societyId = 0, [FromQuery] int? groupId = null)
+        public IActionResult GetAll([FromQuery] int societyId = 0, [FromQuery] int? groupId = null, [FromQuery] int fyId = 0)
         {
             try
             {
@@ -144,15 +144,28 @@ namespace JeevikaERP.Controllers
                 // Auto seed default accounts for society if missing
                 EnsureDefaultAccounts(conn, societyId);
 
+                if (fyId <= 0)
+                {
+                    using var fyCmd = conn.CreateCommand();
+                    fyCmd.CommandText = "SELECT FYId FROM jeevika_erp.financialyear WHERE SocietyId = @sid AND IsActive = TRUE ORDER BY FYId DESC LIMIT 1";
+                    fyCmd.Parameters.AddWithValue("@sid", societyId);
+                    var fRes = fyCmd.ExecuteScalar();
+                    if (fRes != null && fRes != DBNull.Value) fyId = Convert.ToInt32(fRes);
+                }
+
                 using var cmd = conn.CreateCommand();
                 var sql = @"
                     SELECT a.AccountId, a.SocietyId, a.AccCode, a.AccName, a.AccMarName, a.AccBSName,
-                           a.GroupId, g.GrpName, a.GrpMainId, a.OpBal, a.OpDrCr, a.PrBal, a.PrDrCr,
+                           a.GroupId, g.GrpName, a.GrpMainId,
+                           COALESCE(ob.OpenBal, a.OpBal, 0) AS OpBal,
+                           COALESCE(ob.DrCr, a.OpDrCr, 'Dr') AS OpDrCr,
+                           a.PrBal, a.PrDrCr,
                            a.ClBal, a.DepAnnual, a.DepHalf, a.AccAddress, a.AccPAN, a.AccTAN,
                            a.GSTIN, a.Mobile, a.Mobile2, a.Email, a.TdsRate, a.TdsSection,
                            a.IsDefault, a.IsDeleted, a.CreatedAt
                     FROM jeevika_erp.SocAccount a
                     LEFT JOIN jeevika_erp.SocGroup g ON a.GroupId = g.GroupId
+                    LEFT JOIN jeevika_erp.SocOpeningBalance ob ON a.AccountId = ob.AccountId AND ob.FYId = @fyid
                     WHERE a.SocietyId = @sid AND a.IsDeleted = FALSE";
 
                 if (groupId.HasValue && groupId.Value > 0)
@@ -172,6 +185,7 @@ namespace JeevikaERP.Controllers
 
                 cmd.CommandText = sql;
                 cmd.Parameters.AddWithValue("@sid", societyId);
+                cmd.Parameters.AddWithValue("@fyid", fyId);
 
                 var list = new List<object>();
                 using var r = cmd.ExecuteReader();
@@ -187,19 +201,42 @@ namespace JeevikaERP.Controllers
 
         // ── GET /api/accounts/{id} ───────────────────────────────
         [HttpGet("{id:int}")]
-        public IActionResult GetById(int id)
+        public IActionResult GetById(int id, [FromQuery] int fyId = 0)
         {
             try
             {
                 using var conn = DbHelper.GetConn();
+                if (fyId <= 0)
+                {
+                    using var sCmd = conn.CreateCommand();
+                    sCmd.CommandText = @"
+                        SELECT f.FYId 
+                        FROM jeevika_erp.SocAccount a
+                        JOIN jeevika_erp.financialyear f ON a.SocietyId = f.SocietyId AND f.IsActive = TRUE
+                        WHERE a.AccountId = @id
+                        ORDER BY f.FYId DESC LIMIT 1";
+                    sCmd.Parameters.AddWithValue("@id", id);
+                    var fRes = sCmd.ExecuteScalar();
+                    if (fRes != null && fRes != DBNull.Value) fyId = Convert.ToInt32(fRes);
+                }
+
                 using var cmd = conn.CreateCommand();
                 cmd.CommandText = @"
-                    SELECT a.*, g.GrpName
+                    SELECT a.AccountId, a.SocietyId, a.AccCode, a.AccName, a.AccMarName, a.AccBSName,
+                           a.GroupId, g.GrpName, a.GrpMainId,
+                           COALESCE(ob.OpenBal, a.OpBal, 0) AS OpBal,
+                           COALESCE(ob.DrCr, a.OpDrCr, 'Dr') AS OpDrCr,
+                           a.PrBal, a.PrDrCr,
+                           a.ClBal, a.DepAnnual, a.DepHalf, a.AccAddress, a.AccPAN, a.AccTAN,
+                           a.GSTIN, a.Mobile, a.Mobile2, a.Email, a.TdsRate, a.TdsSection,
+                           a.IsDefault, a.IsDeleted, a.CreatedAt
                     FROM jeevika_erp.SocAccount a
                     LEFT JOIN jeevika_erp.SocGroup g ON a.GroupId = g.GroupId
+                    LEFT JOIN jeevika_erp.SocOpeningBalance ob ON a.AccountId = ob.AccountId AND ob.FYId = @fyid
                     WHERE a.AccountId = @id AND a.IsDeleted = FALSE
                     LIMIT 1";
                 cmd.Parameters.AddWithValue("@id", id);
+                cmd.Parameters.AddWithValue("@fyid", fyId);
 
                 using var r = cmd.ExecuteReader();
                 if (!r.Read())
@@ -255,6 +292,38 @@ namespace JeevikaERP.Controllers
                 AddAccountParams(cmd, model);
 
                 var newId = Convert.ToInt32(cmd.ExecuteScalar());
+
+                // Auto-sync into SocOpeningBalance for active Financial Year
+                int fyId = model.FYId.GetValueOrDefault(0);
+                if (fyId <= 0 && sid > 0)
+                {
+                    using var fyCmd = conn.CreateCommand();
+                    fyCmd.CommandText = "SELECT FYId FROM jeevika_erp.financialyear WHERE SocietyId = @sid AND IsActive = TRUE ORDER BY FYId DESC LIMIT 1";
+                    fyCmd.Parameters.AddWithValue("@sid", sid);
+                    var fRes = fyCmd.ExecuteScalar();
+                    if (fRes != null && fRes != DBNull.Value) fyId = Convert.ToInt32(fRes);
+                }
+
+                if (fyId > 0 && newId > 0)
+                {
+                    using var obCmd = conn.CreateCommand();
+                    obCmd.CommandText = @"
+                        INSERT INTO jeevika_erp.SocOpeningBalance
+                            (SocietyId, FYId, AccountId, OpenBal, DrCr, EntryDate)
+                        VALUES
+                            (@sid, @fyid, @accId, @opbal, @drcr, CURRENT_DATE)
+                        ON CONFLICT (SocietyId, FYId, AccountId) DO UPDATE SET
+                            OpenBal   = EXCLUDED.OpenBal,
+                            DrCr      = EXCLUDED.DrCr,
+                            EntryDate = EXCLUDED.EntryDate";
+                    obCmd.Parameters.AddWithValue("@sid", sid);
+                    obCmd.Parameters.AddWithValue("@fyid", fyId);
+                    obCmd.Parameters.AddWithValue("@accId", newId);
+                    obCmd.Parameters.AddWithValue("@opbal", model.OpBal);
+                    obCmd.Parameters.AddWithValue("@drcr", string.IsNullOrWhiteSpace(model.OpDrCr) ? "Dr" : model.OpDrCr);
+                    obCmd.ExecuteNonQuery();
+                }
+
                 return Ok(new { success = true, message = "Account created successfully.", accountId = newId, accCode = model.AccCode });
             }
             catch (PostgresException ex) when (ex.SqlState == "23505")
@@ -306,6 +375,47 @@ namespace JeevikaERP.Controllers
                 var rows = cmd.ExecuteNonQuery();
                 if (rows == 0)
                     return NotFound(new { success = false, message = "Account not found." });
+
+                // Auto-sync into SocOpeningBalance for active Financial Year
+                int sid = model.SocietyId;
+                if (sid <= 0)
+                {
+                    using var sCmd = conn.CreateCommand();
+                    sCmd.CommandText = "SELECT SocietyId FROM jeevika_erp.SocAccount WHERE AccountId = @id LIMIT 1";
+                    sCmd.Parameters.AddWithValue("@id", id);
+                    var sRes = sCmd.ExecuteScalar();
+                    if (sRes != null && sRes != DBNull.Value) sid = Convert.ToInt32(sRes);
+                }
+
+                int fyId = model.FYId.GetValueOrDefault(0);
+                if (fyId <= 0 && sid > 0)
+                {
+                    using var fyCmd = conn.CreateCommand();
+                    fyCmd.CommandText = "SELECT FYId FROM jeevika_erp.financialyear WHERE SocietyId = @sid AND IsActive = TRUE ORDER BY FYId DESC LIMIT 1";
+                    fyCmd.Parameters.AddWithValue("@sid", sid);
+                    var fRes = fyCmd.ExecuteScalar();
+                    if (fRes != null && fRes != DBNull.Value) fyId = Convert.ToInt32(fRes);
+                }
+
+                if (fyId > 0)
+                {
+                    using var obCmd = conn.CreateCommand();
+                    obCmd.CommandText = @"
+                        INSERT INTO jeevika_erp.SocOpeningBalance
+                            (SocietyId, FYId, AccountId, OpenBal, DrCr, EntryDate)
+                        VALUES
+                            (@sid, @fyid, @accId, @opbal, @drcr, CURRENT_DATE)
+                        ON CONFLICT (SocietyId, FYId, AccountId) DO UPDATE SET
+                            OpenBal   = EXCLUDED.OpenBal,
+                            DrCr      = EXCLUDED.DrCr,
+                            EntryDate = EXCLUDED.EntryDate";
+                    obCmd.Parameters.AddWithValue("@sid", sid);
+                    obCmd.Parameters.AddWithValue("@fyid", fyId);
+                    obCmd.Parameters.AddWithValue("@accId", id);
+                    obCmd.Parameters.AddWithValue("@opbal", model.OpBal);
+                    obCmd.Parameters.AddWithValue("@drcr", string.IsNullOrWhiteSpace(model.OpDrCr) ? "Dr" : model.OpDrCr);
+                    obCmd.ExecuteNonQuery();
+                }
 
                 return Ok(new { success = true, message = "Account updated successfully." });
             }
@@ -763,5 +873,6 @@ namespace JeevikaERP.Controllers
         public string?  Email      { get; set; }
         public decimal  TdsRate    { get; set; } = 0;
         public string?  TdsSection { get; set; }
+        public int?     FYId       { get; set; }
     }
 }

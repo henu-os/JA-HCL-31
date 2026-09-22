@@ -343,7 +343,7 @@ namespace JeevikaERP.Controllers
                 {
                     using var connF = DbHelper.GetConn();
                     using var cmdF = connF.CreateCommand();
-                    cmdF.CommandText = "SELECT FYId FROM jeevika_erp.SocFinancialYear WHERE (SocietyId = @sid OR SocietyId = 0) ORDER BY IsActive DESC, FYId DESC LIMIT 1";
+                    cmdF.CommandText = "SELECT FYId FROM jeevika_erp.financialyear WHERE (SocietyId = @sid OR SocietyId = 0) ORDER BY IsActive DESC, FYId DESC LIMIT 1";
                     cmdF.Parameters.AddWithValue("@sid", societyId);
                     var fRes = cmdF.ExecuteScalar();
                     if (fRes != null && fRes != DBNull.Value) fyId = Convert.ToInt32(fRes);

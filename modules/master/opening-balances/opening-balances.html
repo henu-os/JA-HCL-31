@@ -923,7 +923,10 @@
         var apiBase = getApiBase();
 
         if (t === 'BS' || t === 'IE') {
-          var accUrl = apiBase + '/api/accounts?societyId=' + socId;
+          var fyId = (typeof Auth !== 'undefined' && Auth.getFYId) 
+            ? Auth.getFYId() 
+            : (sessionStorage.getItem('activeFYId') || localStorage.getItem('activeFYId') || '1');
+          var accUrl = apiBase + '/api/accounts?societyId=' + socId + '&fyId=' + fyId;
           var memSummaryUrl = apiBase + '/api/opening-balances/member-summary?societyId=' + socId;
           try {
             var accPromise = fetch(accUrl, { headers: headers });

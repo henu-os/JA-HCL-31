@@ -1,27 +1,39 @@
 // ═══════════════════════════════════════════════════════════
-// JEEVIKA ERP v2 — DbHelper
-// Single place to manage PostgreSQL connection.
-// Connection string comes from appsettings.json — NEVER hardcoded.
-// Auto-creates database jeevika_db_v2 and runs schema/seed if missing!
+// JEEVIKA ERP v2 — DbHelper.cs
+// PostgreSQL database helper using Npgsql.
+// Handles connection strings, initialization, and queries.
 // ═══════════════════════════════════════════════════════════
 
 using Npgsql;
 using Microsoft.Extensions.Configuration;
+using System.Text.RegularExpressions;
 
 namespace JeevikaERP
 {
     public static class DbHelper
     {
         private static string? _connectionString;
+        public static IDbConnectionFactory? ConnectionFactory { get; private set; }
 
         public static void Initialize(IConfiguration config)
         {
+            var provider = config["DatabaseProvider"] ?? "PostgreSQL";
+            if (provider.Equals("SQLite", StringComparison.OrdinalIgnoreCase))
+            {
+                ConnectionFactory = JeevikaERP.Database.DatabaseInitializer.Initialize(config);
+                return;
+            }
+
             _connectionString = config.GetConnectionString("Default")
                 ?? throw new InvalidOperationException(
                     "Connection string 'Default' not found in appsettings.json. " +
                     "Please set Host, Port, Database, Username, Password.");
 
             ResolveWorkingConnectionString();
+            if (!string.IsNullOrEmpty(_connectionString))
+            {
+                ConnectionFactory = new PostgresConnectionFactory(_connectionString);
+            }
             EnsureDatabaseCreated();
         }
 
@@ -38,58 +50,55 @@ namespace JeevikaERP
             if (!string.IsNullOrWhiteSpace(configuredPass)) candidates.Add(configuredPass);
             candidates.AddRange(new[] { "postgres", "admin", "root", "1234", "henuos" });
 
-            var targetDb = builder.Database;
             foreach (var pass in candidates.Distinct())
             {
                 builder.Password = pass;
-                var testBuilder = new NpgsqlConnectionStringBuilder(builder.ConnectionString)
-                {
-                    Database = "postgres",
-                    Timeout = 3
-                };
-
                 try
                 {
-                    using var conn = new NpgsqlConnection(testBuilder.ConnectionString);
-                    conn.Open();
-                    builder.Database = targetDb;
+                    using var testConn = new NpgsqlConnection(builder.ConnectionString);
+                    testConn.Open();
                     _connectionString = builder.ConnectionString;
+                    Console.WriteLine($"[DbHelper] Database authenticated using password: '{(pass.Length > 0 ? "*****" : "(empty)")}'");
                     return;
                 }
-                catch (PostgresException pEx) when (pEx.SqlState == "28P01")
+                catch (NpgsqlException)
                 {
-                    continue;
+                    // continue searching candidates
                 }
-                catch
+                catch (Exception)
                 {
-                    // Fall back to trying next
+                    // other errors
                 }
             }
+
+            // Restore configured if none succeeded
+            builder.Password = configuredPass;
+            _connectionString = builder.ConnectionString;
         }
 
-        private static void EnsureDatabaseCreated()
+        public static void EnsureDatabaseCreated()
         {
-            if (string.IsNullOrEmpty(_connectionString)) return;
-
             try
             {
+                if (string.IsNullOrEmpty(_connectionString)) return;
+
                 var builder = new NpgsqlConnectionStringBuilder(_connectionString);
                 var targetDb = builder.Database;
 
-                // 1. Connect to default 'postgres' database to check/create target db
+                // 1. Connect to postgres default DB to check if target exists
                 builder.Database = "postgres";
-                using (var masterConn = new NpgsqlConnection(builder.ConnectionString))
+                using (var conn = new NpgsqlConnection(builder.ConnectionString))
                 {
-                    masterConn.Open();
-                    using var checkCmd = masterConn.CreateCommand();
-                    checkCmd.CommandText = "SELECT COUNT(*) FROM pg_database WHERE datname = @dbname";
-                    checkCmd.Parameters.AddWithValue("@dbname", targetDb);
-
+                    conn.Open();
+                    using var checkCmd = conn.CreateCommand();
+                    checkCmd.CommandText = "SELECT COUNT(*) FROM pg_database WHERE datname = @db";
+                    checkCmd.Parameters.AddWithValue("@db", targetDb ?? "jeevika_erp");
                     var exists = Convert.ToInt64(checkCmd.ExecuteScalar() ?? 0) > 0;
-                    if (!exists)
+
+                    if (!exists && !string.IsNullOrEmpty(targetDb))
                     {
-                        Console.WriteLine($"[DbHelper] Database '{targetDb}' not found. Creating database...");
-                        using var createCmd = masterConn.CreateCommand();
+                        Console.WriteLine($"[DbHelper] Database '{targetDb}' does not exist. Creating...");
+                        using var createCmd = conn.CreateCommand();
                         createCmd.CommandText = $"CREATE DATABASE \"{targetDb}\"";
                         createCmd.ExecuteNonQuery();
                         Console.WriteLine($"[DbHelper] Database '{targetDb}' created successfully.");
@@ -110,14 +119,25 @@ namespace JeevikaERP
                         var baseDir = AppContext.BaseDirectory;
                         var rootDir = Path.GetFullPath(Path.Combine(baseDir, "..", "..", "..", ".."));
 
-                        var schemaPath = Path.Combine(rootDir, "Database", "schema.sql");
-                        var seedPath   = Path.Combine(rootDir, "Database", "seed.sql");
+                        var schemaPath = Path.Combine(rootDir, "Database", "Web", "schema", "schema.sql");
+                        var seedPath   = Path.Combine(rootDir, "Database", "Web", "seeds", "seed.sql");
+
+                        if (!File.Exists(schemaPath))
+                        {
+                            schemaPath = Path.Combine(rootDir, "Database", "schema.sql");
+                            seedPath   = Path.Combine(rootDir, "Database", "seed.sql");
+                        }
 
                         if (!File.Exists(schemaPath))
                         {
                             // fallback search
-                            schemaPath = Path.Combine(Directory.GetCurrentDirectory(), "..", "Database", "schema.sql");
-                            seedPath   = Path.Combine(Directory.GetCurrentDirectory(), "..", "Database", "seed.sql");
+                            schemaPath = Path.Combine(Directory.GetCurrentDirectory(), "..", "Database", "Web", "schema", "schema.sql");
+                            seedPath   = Path.Combine(Directory.GetCurrentDirectory(), "..", "Database", "Web", "seeds", "seed.sql");
+                            if (!File.Exists(schemaPath))
+                            {
+                                schemaPath = Path.Combine(Directory.GetCurrentDirectory(), "..", "Database", "schema.sql");
+                                seedPath   = Path.Combine(Directory.GetCurrentDirectory(), "..", "Database", "seed.sql");
+                            }
                         }
 
                         if (File.Exists(schemaPath))
@@ -139,41 +159,39 @@ namespace JeevikaERP
                         }
                     }
 
-                    // Always ensure Member Master child tables exist
+                    // 3. Ensure required tables exist even if schema was created previously
                     using var ensureTables = targetConn.CreateCommand();
                     ensureTables.CommandText = @"
-                        -- Drop old non-partial unique constraints so deleted records do not block code reuse
-                        DO $$
-                        BEGIN
-                            IF EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'socgroup_societyid_grpcode_key' AND table_name = 'socgroup') THEN
-                                ALTER TABLE jeevika_erp.SocGroup DROP CONSTRAINT socgroup_societyid_grpcode_key;
-                            END IF;
-                            IF EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'socaccount_societyid_acccode_key' AND table_name = 'socaccount') THEN
-                                ALTER TABLE jeevika_erp.SocAccount DROP CONSTRAINT socaccount_societyid_acccode_key;
-                            END IF;
-                        END $$;
-
-                        -- Clean up any orphaned soft-deleted groups that have no accounts attached
-                        DELETE FROM jeevika_erp.SocGroup WHERE IsDeleted = TRUE AND GroupId NOT IN (SELECT GroupId FROM jeevika_erp.SocAccount WHERE GroupId IS NOT NULL);
-
-                        -- Create partial unique indexes so only active records enforce unique codes
-                        CREATE UNIQUE INDEX IF NOT EXISTS uq_socgroup_code_active ON jeevika_erp.SocGroup (SocietyId, GrpCode) WHERE IsDeleted = FALSE;
-                        CREATE UNIQUE INDEX IF NOT EXISTS uq_socaccount_code_active ON jeevika_erp.SocAccount (SocietyId, AccCode) WHERE IsDeleted = FALSE;
-
-                        CREATE TABLE IF NOT EXISTS jeevika_erp.SocMemberTransfer (
-                            TransferId SERIAL PRIMARY KEY, SocietyId INT NOT NULL, MemberId INT NOT NULL,
-                            TransferDate DATE, TransferType VARCHAR(100), MeetingType VARCHAR(50), MeetingDate DATE,
-                            ResolutionNo VARCHAR(100), TransferNo VARCHAR(50), RegNoTransferor VARCHAR(100),
-                            RegNoTransferee VARCHAR(100), AgreementAssign VARCHAR(255), TransferorName VARCHAR(255),
-                            TransfereeName VARCHAR(255), Remarks TEXT, OldOwnerSnapshot JSONB, CreatedAt TIMESTAMPTZ DEFAULT NOW()
+                        CREATE TABLE IF NOT EXISTS jeevika_erp.SocStaff (
+                            StaffId SERIAL PRIMARY KEY, SocietyId INT NOT NULL, StaffCode VARCHAR(50),
+                            StaffName VARCHAR(255) NOT NULL, Role VARCHAR(100), Phone VARCHAR(50),
+                            Salary NUMERIC(18,2) DEFAULT 0, StartDate DATE, CreatedAt TIMESTAMPTZ DEFAULT NOW()
                         );
-                        CREATE TABLE IF NOT EXISTS jeevika_erp.SocMemberLien (
-                            LienId SERIAL PRIMARY KEY, SocietyId INT NOT NULL, MemberId INT NOT NULL,
-                            BankName VARCHAR(255), BankAddress TEXT, LoanAmount NUMERIC(18,2) DEFAULT 0,
-                            PeriodYears VARCHAR(50), MeetingDate DATE, ResolutionNo VARCHAR(100), SanctionDate DATE,
-                            NocDate DATE, CancelDate DATE, Status VARCHAR(50) DEFAULT 'Active', IsArchived BOOLEAN DEFAULT FALSE, CreatedAt TIMESTAMPTZ DEFAULT NOW()
+                        CREATE TABLE IF NOT EXISTS jeevika_erp.SocVendor (
+                            VendorId SERIAL PRIMARY KEY, SocietyId INT NOT NULL, VendorCode VARCHAR(50),
+                            VendorName VARCHAR(255) NOT NULL, Category VARCHAR(100), ContactPerson VARCHAR(255),
+                            Phone VARCHAR(50), Email VARCHAR(255), PanNo VARCHAR(50), GstNo VARCHAR(50),
+                            Address TEXT, CreatedAt TIMESTAMPTZ DEFAULT NOW()
                         );
-                        CREATE TABLE IF NOT EXISTS jeevika_erp.SocMemberTenant (
+                        CREATE TABLE IF NOT EXISTS jeevika_erp.SocPurchaseOrder (
+                            POId SERIAL PRIMARY KEY, SocietyId INT NOT NULL, PONo VARCHAR(50) NOT NULL,
+                            PODate DATE NOT NULL, VendorId INT REFERENCES jeevika_erp.SocVendor(VendorId),
+                            SubTotal NUMERIC(18,2) DEFAULT 0, TaxAmount NUMERIC(18,2) DEFAULT 0,
+                            TotalAmount NUMERIC(18,2) DEFAULT 0, Status VARCHAR(50) DEFAULT 'Draft',
+                            Remarks TEXT, CreatedAt TIMESTAMPTZ DEFAULT NOW()
+                        );
+                        CREATE TABLE IF NOT EXISTS jeevika_erp.SocPurchaseOrderItem (
+                            POItemId SERIAL PRIMARY KEY, POId INT NOT NULL REFERENCES jeevika_erp.SocPurchaseOrder(POId) ON DELETE CASCADE,
+                            ItemName VARCHAR(255) NOT NULL, Qty NUMERIC(18,4) DEFAULT 1, UnitPrice NUMERIC(18,2) DEFAULT 0,
+                            Amount NUMERIC(18,2) DEFAULT 0, TaxRate NUMERIC(5,2) DEFAULT 0, TaxAmount NUMERIC(18,2) DEFAULT 0,
+                            Total NUMERIC(18,2) DEFAULT 0
+                        );
+                        CREATE TABLE IF NOT EXISTS jeevika_erp.SocCommittee (
+                            CommitteeId SERIAL PRIMARY KEY, SocietyId INT NOT NULL, MemberId INT,
+                            Designation VARCHAR(100) NOT NULL, FromDate DATE, ToDate DATE,
+                            IsActive BOOLEAN DEFAULT TRUE, CreatedAt TIMESTAMPTZ DEFAULT NOW()
+                        );
+                        CREATE TABLE IF NOT EXISTS jeevika_erp.SocTenant (
                             TenantId SERIAL PRIMARY KEY, SocietyId INT NOT NULL, MemberId INT NOT NULL,
                             TenantName VARCHAR(255), FamilyCount INT DEFAULT 1, FamilyNames TEXT, PrimaryMobile VARCHAR(50),
                             SecondaryMobile VARCHAR(50), AgreementAssignBetween VARCHAR(255), PeriodFrom DATE, PeriodTo DATE,
@@ -348,6 +366,11 @@ namespace JeevikaERP
             return conn;
         }
 
+        public static System.Data.Common.DbConnection GetDbConnection()
+        {
+            return ConnectionFactory?.CreateOpenConnection() ?? GetConn();
+        }
+
         public static void Execute(string sql, Action<NpgsqlCommand>? configure = null)
         {
             using var conn = GetConn();
@@ -361,7 +384,12 @@ namespace JeevikaERP
         {
             try
             {
-                using var conn = GetConn();
+                if (ConnectionFactory != null)
+                {
+                    using var conn = ConnectionFactory.CreateOpenConnection();
+                    return (true, $"Connected successfully to {ConnectionFactory.ProviderName}.");
+                }
+                using var pConn = GetConn();
                 return (true, "Connected successfully.");
             }
             catch (Exception ex)

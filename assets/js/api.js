@@ -63,11 +63,14 @@ const API = (() => {
       // Handle non-OK responses
       if (!res.ok) {
         let errMsg = `Server error (${res.status})`;
+        let errData = null;
         try {
-          const errData = await res.json();
-          errMsg = errData.message || errData.error || errMsg;
+          errData = await res.json();
+          errMsg = errData.message || errData.error || errData.report?.statusMessage || errMsg;
         } catch (_) {}
-        throw new Error(errMsg);
+        const err = new Error(errMsg);
+        if (errData) err.data = errData;
+        throw err;
       }
 
       if (raw) return res;
@@ -121,4 +124,6 @@ const API = (() => {
 
 if (typeof window !== 'undefined') {
   window.API = API;
+  window.Api = API;
 }
+const Api = API;

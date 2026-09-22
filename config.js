@@ -9,7 +9,15 @@ window.APP_CONFIG = {
   API_BASE:             'http://localhost:5002/api',
   APP_NAME:             'JEEVIKA ERP',
   APP_VERSION:          '2.0.0',
-  SESSION_TIMEOUT_HOURS: 8
+  SESSION_TIMEOUT_HOURS: 8,
+  SUPABASE_URL:         'https://mvoskgwpqtjaeszvtvdz.supabase.co',
+  SUPABASE_ANON_KEY:    'sb_publishable_gO93ZL2r3X8sXVtgbCUnPg_q_VUr0G0'
+};
+
+// Supabase Global Config
+window.SUPABASE_CONFIG = {
+  url: 'https://mvoskgwpqtjaeszvtvdz.supabase.co',
+  anonKey: 'sb_publishable_gO93ZL2r3X8sXVtgbCUnPg_q_VUr0G0'
 };
 
 // Global aliases for legacy & master module helper methods
@@ -93,4 +101,3 @@ window.getApiBaseUrl = function () {
     session: createSafeStorage(nativeSession, _memSession)
   };
 })();
-

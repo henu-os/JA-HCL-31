@@ -9,6 +9,203 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using JeevikaERP;
 
+// Check for Phase 3 database verification CLI flag
+if (args.Length > 0 && args[0] == "--verify-db")
+{
+    Console.WriteLine("[Verification] Running Phase 3 Database Verification Suite...");
+    var baseDir = AppContext.BaseDirectory;
+    var rootDir = Path.GetFullPath(Path.Combine(baseDir, "..", "..", "..", ".."));
+    if (!Directory.Exists(Path.Combine(rootDir, "Database")))
+    {
+        rootDir = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), ".."));
+    }
+    var testDbPath = Path.Combine(rootDir, "Database", "test_verification.db");
+    var migrationsDir = Path.Combine(rootDir, "Database", "Local", "migrations");
+    if (!Directory.Exists(migrationsDir))
+    {
+        migrationsDir = Path.Combine(rootDir, "Database", "migrations", "sqlite");
+    }
+
+    var results = JeevikaERP.Database.Integrity.DatabaseVerificationSuite.RunVerification(testDbPath, migrationsDir);
+    Console.WriteLine("============================================================");
+    Console.WriteLine("DATABASE VERIFICATION TEST RESULTS");
+    Console.WriteLine("============================================================");
+    bool allPass = true;
+    foreach (var r in results)
+    {
+        Console.WriteLine($"[{r.Status}] {r.TestName}: {r.Details}");
+        if (r.Status != "PASS") allPass = false;
+    }
+    Console.WriteLine("============================================================");
+    Console.WriteLine($"Overall Status: {(allPass ? "ALL TESTS PASSED (PASS)" : "TESTS FAILED (FAIL)")}");
+    Console.WriteLine("============================================================");
+    try { if (File.Exists(testDbPath)) File.Delete(testDbPath); } catch { }
+    return;
+}
+
+// Check for Stage 7 export/import verification CLI flag
+if (args.Length > 0 && args[0] == "--verify-export-import")
+{
+    Console.WriteLine("[Verification] Running Stage 7 Database Export & Import Verification Suite...");
+    var baseDir = AppContext.BaseDirectory;
+    var rootDir = Path.GetFullPath(Path.Combine(baseDir, "..", "..", "..", ".."));
+    if (!Directory.Exists(Path.Combine(rootDir, "Database")))
+    {
+        rootDir = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), ".."));
+    }
+    var testDbPath = Path.Combine(rootDir, "Database", "test_export_import.db");
+    var migrationsDir = Path.Combine(rootDir, "Database", "Local", "migrations");
+    if (!Directory.Exists(migrationsDir))
+    {
+        migrationsDir = Path.Combine(rootDir, "Database", "migrations", "sqlite");
+    }
+
+    var results = JeevikaERP.Database.Integrity.ExportImportVerificationSuite.RunVerification(testDbPath, migrationsDir);
+    Console.WriteLine("============================================================");
+    Console.WriteLine("EXPORT & IMPORT VERIFICATION TEST RESULTS");
+    Console.WriteLine("============================================================");
+    bool allPass = true;
+    foreach (var r in results)
+    {
+        Console.WriteLine($"[{r.Status}] {r.TestName}: {r.Details}");
+        if (r.Status != "PASS") allPass = false;
+    }
+    Console.WriteLine("============================================================");
+    Console.WriteLine($"Overall Status: {(allPass ? "ALL TESTS PASSED (PASS)" : "TESTS FAILED (FAIL)")}");
+    Console.WriteLine("============================================================");
+    try { if (File.Exists(testDbPath)) File.Delete(testDbPath); } catch { }
+    return;
+}
+
+// Check for Stage 9 synchronization verification CLI flag
+if (args.Length > 0 && args[0] == "--verify-sync")
+{
+    Console.WriteLine("[Verification] Running Stage 9 Database Synchronization Verification Suite...");
+    var baseDir = AppContext.BaseDirectory;
+    var rootDir = Path.GetFullPath(Path.Combine(baseDir, "..", "..", "..", ".."));
+    if (!Directory.Exists(Path.Combine(rootDir, "Database")))
+    {
+        rootDir = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), ".."));
+    }
+    var testDbPath = Path.Combine(rootDir, "Database", "test_sync.db");
+    var migrationsDir = Path.Combine(rootDir, "Database", "Local", "migrations");
+    if (!Directory.Exists(migrationsDir))
+    {
+        migrationsDir = Path.Combine(rootDir, "Database", "migrations", "sqlite");
+    }
+
+    var results = JeevikaERP.Database.Integrity.SynchronizationVerificationSuite.RunVerification(testDbPath, migrationsDir);
+    Console.WriteLine("============================================================");
+    Console.WriteLine("SYNCHRONIZATION VERIFICATION TEST RESULTS");
+    Console.WriteLine("============================================================");
+    bool allPass = true;
+    foreach (var r in results)
+    {
+        Console.WriteLine($"[{r.Status}] {r.TestName}: {r.Details}");
+        if (r.Status != "PASS") allPass = false;
+    }
+    Console.WriteLine("============================================================");
+    Console.WriteLine($"Overall Status: {(allPass ? "ALL TESTS PASSED (PASS)" : "TESTS FAILED (FAIL)")}");
+    Console.WriteLine("============================================================");
+    try { if (File.Exists(testDbPath)) File.Delete(testDbPath); } catch { }
+    return;
+}
+
+// Check for Stage 8 universal import/export merge verification CLI flag
+if (args.Length > 0 && args[0] == "--verify-import-merge")
+{
+    Console.WriteLine("[Verification] Running Stage 8 Universal Database Import/Export Merge Verification Suite...");
+    var baseDir = AppContext.BaseDirectory;
+    var rootDir = Path.GetFullPath(Path.Combine(baseDir, "..", "..", "..", ".."));
+    if (!Directory.Exists(Path.Combine(rootDir, "Database")))
+    {
+        rootDir = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), ".."));
+    }
+    var testDbPath = Path.Combine(rootDir, "Database", "test_import_merge.db");
+    var migrationsDir = Path.Combine(rootDir, "Database", "Local", "migrations");
+    if (!Directory.Exists(migrationsDir))
+    {
+        migrationsDir = Path.Combine(rootDir, "Database", "migrations", "sqlite");
+    }
+
+    var results = JeevikaERP.Database.Integrity.UniversalMergeVerificationSuite.RunVerification(testDbPath, migrationsDir);
+    Console.WriteLine("============================================================");
+    Console.WriteLine("UNIVERSAL IMPORT & MERGE VERIFICATION TEST RESULTS");
+    Console.WriteLine("============================================================");
+    bool allPass = true;
+    foreach (var r in results)
+    {
+        Console.WriteLine($"[{r.Status}] {r.TestName}: {r.Details}");
+        if (r.Status != "PASS") allPass = false;
+    }
+    Console.WriteLine("============================================================");
+    Console.WriteLine($"Overall Status: {(allPass ? "ALL TESTS PASSED (PASS)" : "TESTS FAILED (FAIL)")}");
+    Console.WriteLine("============================================================");
+    try { if (File.Exists(testDbPath)) File.Delete(testDbPath); } catch { }
+    return;
+}
+
+// Check for Financial Year Management & FY-Aware Export/Import verification CLI flag
+if (args.Length > 0 && args[0] == "--verify-financial-year")
+{
+    Console.WriteLine("[Verification] Running Financial Year Management & Universal Export/Import Verification Suite...");
+    var baseDir = AppContext.BaseDirectory;
+    var rootDir = Path.GetFullPath(Path.Combine(baseDir, "..", "..", "..", ".."));
+    if (!Directory.Exists(Path.Combine(rootDir, "Database")))
+    {
+        rootDir = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), ".."));
+    }
+    var testDbPath = Path.Combine(rootDir, "Database", "test_financial_year.db");
+    var migrationsDir = Path.Combine(rootDir, "Database", "Local", "migrations");
+    if (!Directory.Exists(migrationsDir))
+    {
+        migrationsDir = Path.Combine(rootDir, "Database", "migrations", "sqlite");
+    }
+
+    var results = JeevikaERP.Database.Integrity.FinancialYearVerificationSuite.RunVerification(testDbPath, migrationsDir);
+    Console.WriteLine("============================================================");
+    Console.WriteLine("FINANCIAL YEAR MANAGEMENT & EXPORT/IMPORT TEST RESULTS");
+    Console.WriteLine("============================================================");
+    bool allPass = true;
+    foreach (var r in results)
+    {
+        Console.WriteLine($"[{r.Status}] {r.TestName}: {r.Details}");
+        if (r.Status != "PASS") allPass = false;
+    }
+    Console.WriteLine("============================================================");
+    Console.WriteLine($"Overall Status: {(allPass ? "ALL TESTS PASSED (PASS)" : "TESTS FAILED (FAIL)")}");
+    Console.WriteLine("============================================================");
+    try { if (File.Exists(testDbPath)) File.Delete(testDbPath); } catch { }
+    return;
+}
+
+// Check for Production Database Verification CLI flag
+if (args.Length > 0 && args[0] == "--verify-production-db")
+{
+    Console.WriteLine("[Verification] Running Production Database Verification Suite...");
+    var config = new ConfigurationBuilder()
+        .SetBasePath(Directory.GetCurrentDirectory())
+        .AddJsonFile("appsettings.json", optional: false)
+        .AddEnvironmentVariables()
+        .Build();
+
+    DbHelper.Initialize(config);
+    var results = JeevikaERP.Database.Integrity.ProductionDatabaseVerificationSuite.RunVerification();
+    Console.WriteLine("============================================================");
+    Console.WriteLine("PRODUCTION DATABASE VERIFICATION RESULTS");
+    Console.WriteLine("============================================================");
+    bool allPass = true;
+    foreach (var r in results)
+    {
+        Console.WriteLine($"[{r.Status}] {r.CheckName}: {r.Details}");
+        if (r.Status != "PASS") allPass = false;
+    }
+    Console.WriteLine("============================================================");
+    Console.WriteLine($"Overall Status: {(allPass ? "ALL CHECKS PASSED (PASS)" : "CHECKS FAILED OR BLOCKED (FAIL/BLOCKED)")}");
+    Console.WriteLine("============================================================");
+    return;
+}
+
 var builder = WebApplication.CreateBuilder(args);
 
 // ── 1. CORS: Allow all origins (file://, null, localhost) ───

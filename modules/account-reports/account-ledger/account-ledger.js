@@ -444,7 +444,7 @@ function resetLedgerGrid(msg = 'Please select an Account or Group above to gener
   if (tbody) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="9" style="text-align:center; padding:50px; color:#64748b;">
+        <td colspan="8" style="text-align:center; padding:50px; color:#64748b;">
           <i class="bi bi-journal-text" style="font-size:26px; color:var(--primary); display:block; margin-bottom:8px;"></i>
           ${msg}
         </td>
@@ -519,7 +519,7 @@ function renderContinuousLedger(data, fromDate, toDate) {
     // 1. Account Section Banner (Clean Navy/Slate Bar)
     html += `
       <tr class="row-acc-banner">
-        <td colspan="9">
+        <td colspan="8">
           <div style="display:flex; justify-content:space-between; align-items:center;">
             <div>
               <span style="background:rgba(255,255,255,0.2); padding:2px 8px; border-radius:3px; font-weight:800; margin-right:6px;">[ ${escHtml(acc.accCode)} ]</span>
@@ -536,9 +536,8 @@ function renderContinuousLedger(data, fromDate, toDate) {
     // 2. Opening Balance Row
     html += `
       <tr class="row-opening">
-        <td style="text-align:center; color:#166534;">0</td>
         <td><strong>${opDateStr}</strong></td>
-        <td><span class="badge-vtype" style="background:#bbf7d0;color:#14532d;">OPENING</span></td>
+        <td><div style="text-align:left;"><span class="badge-vtype" style="background:#bbf7d0;color:#14532d;">OPENING</span></div></td>
         <td><strong>OPENING BALANCE B/F</strong></td>
         <td colspan="2" style="font-size:10px; color:#166534;">Initial balance brought forward</td>
         <td class="td-num val-debit">${opType === 'Dr' && opAmt > 0 ? formatAmount(opAmt) : '—'}</td>
@@ -551,27 +550,32 @@ function renderContinuousLedger(data, fromDate, toDate) {
     if (txs.length === 0) {
       html += `
         <tr>
-          <td colspan="9" style="text-align:center; padding:12px; color:#64748b; font-style:italic;">
+          <td colspan="8" style="text-align:center; padding:12px; color:#64748b; font-style:italic;">
             No transactions recorded for this account in the selected period.
           </td>
         </tr>
       `;
     } else {
-      txs.forEach((t, idx) => {
+      txs.forEach((t) => {
         const vtypeClass = getVoucherTypeClass(t.voucherType);
         const chqStr = formatChequeDetails(t.chqNo, t.chqDate, t.bankName);
+        let vNo = (t.voucherNo || '').trim();
+        if (!vNo || vNo.toUpperCase() === 'MEMBER BILL') {
+          vNo = t.billNo || t.refNo || (t.voucherType === 'Member Bill' ? 'MBIL' : '—');
+        }
 
         html += `
           <tr>
-            <td style="text-align:center; color:#64748b;">${idx + 1}</td>
             <td>${formatDateDMY(t.voucherDate)}</td>
             <td>
-              <span class="badge-vtype ${vtypeClass}">${escHtml(t.voucherType || 'VOUCHER')}</span>
-              <span style="font-weight:700; color:#0f172a; margin-left:3px;">${escHtml(t.voucherNo || '')}</span>
+              <div style="text-align:center; font-weight:700; color:#0D47A1; letter-spacing:0.2px;">${escHtml(vNo)}</div>
+              <div style="text-align:left; margin-top:3px;">
+                <span class="badge-vtype ${vtypeClass}">${escHtml(t.voucherType || 'VOUCHER')}</span>
+              </div>
             </td>
             <td>
-              <span class="contra-tag" title="${escHtml(t.contraAccount || '—')}">
-                ${escHtml(t.contraAccount || '—')}
+              <span class="contra-tag" title="${escHtml(formatContraAccount(t.contraAccount || '—'))}">
+                ${escHtml(formatContraAccount(t.contraAccount || '—'))}
               </span>
             </td>
             <td>
@@ -590,14 +594,14 @@ function renderContinuousLedger(data, fromDate, toDate) {
     // 4. Closing Balance Row
     html += `
       <tr class="row-closing">
-        <td colspan="6" style="text-align:right; font-weight:800; text-transform:uppercase;">
+        <td colspan="5" style="text-align:right; font-weight:800; text-transform:uppercase;">
           Closing Balance C/F : [ ${escHtml(acc.accCode)} ] ${escHtml(acc.accName)}
         </td>
         <td class="td-num val-debit" style="font-weight:800;">${formatAmount(acc.totalDebit || 0)}</td>
         <td class="td-num val-credit" style="font-weight:800;">${formatAmount(acc.totalCredit || 0)}</td>
         <td class="td-num" style="font-weight:800; color:var(--primary);">${formatAmount(closeAmt)} ${closeType}</td>
       </tr>
-      <tr class="row-divider"><td colspan="9"></td></tr>
+      <tr class="row-divider"><td colspan="8"></td></tr>
     `;
   });
 
@@ -605,7 +609,7 @@ function renderContinuousLedger(data, fromDate, toDate) {
   if (accounts.length > 1) {
     html += `
       <tr class="row-grand-total">
-        <td colspan="6" style="text-align:right; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">
+        <td colspan="5" style="text-align:right; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">
           GRAND TOTAL (All ${accounts.length} Accounts) :
         </td>
         <td class="td-num" style="color:#86efac !important; font-weight:800;">${formatAmount(totalDr)}</td>
@@ -644,6 +648,20 @@ function formatChequeDetails(chqNo, chqDate, bankName) {
   if (chqDate) parts.push(`Dt: ${formatDateDMY(chqDate)}`);
   if (bankName) parts.push(escHtml(bankName));
   return parts.length > 0 ? parts.join(' | ') : '—';
+}
+
+function formatContraAccount(contra) {
+  if (!contra || contra === '—') return '—';
+  return contra.split(' / ').map(part => {
+    part = part.trim();
+    const match = part.match(/^(.*?)\s*\[([^\]]+)\]$/);
+    if (match) {
+      const name = match[1].trim();
+      const code = match[2].trim();
+      return `[${code}] ${name}`;
+    }
+    return part;
+  }).join(' / ');
 }
 
 function formatDateDMY(dStr) {
@@ -699,13 +717,12 @@ function exportToExcel() {
 
   currentReportData.accounts.forEach(acc => {
     rows.push([`"ACCOUNT: [${acc.accCode}] ${acc.accName}"`, `"{ ${getMainGroupName(acc.grpMainId)} } - { ${acc.grpName || ''} }"`]);
-    rows.push(['"Sr No"', '"Date"', '"Voucher No"', '"Voucher Type"', '"Contra Account"', '"Particulars / Narration"', '"Cheque / Ref"', '"Debit (Rs)"', '"Credit (Rs)"', '"Running Balance (Rs)"', '"Dr/Cr"']);
+    rows.push(['"Date"', '"Voucher No"', '"Voucher Type"', '"Contra Account"', '"Particulars / Narration"', '"Cheque / Ref"', '"Debit (Rs)"', '"Credit (Rs)"', '"Running Balance (Rs)"', '"Dr/Cr"']);
 
     // Opening Row
     const opAmt = acc.opBal || 0;
     const opType = acc.opDrCr || 'Dr';
     rows.push([
-      '0',
       `"${formatDateDMY(fromDate)}"`,
       '""',
       '"OPENING"',
@@ -719,13 +736,16 @@ function exportToExcel() {
     ]);
 
     // Transaction rows
-    (acc.transactions || []).forEach((t, idx) => {
+    (acc.transactions || []).forEach((t) => {
+      let vNo = (t.voucherNo || '').trim();
+      if (!vNo || vNo.toUpperCase() === 'MEMBER BILL') {
+        vNo = t.billNo || t.refNo || (t.voucherType === 'Member Bill' ? 'MBIL' : '');
+      }
       rows.push([
-        idx + 1,
         `"${formatDateDMY(t.voucherDate)}"`,
-        `"${t.voucherNo || ''}"`,
+        `"${vNo}"`,
         `"${t.voucherType || ''}"`,
-        `"${(t.contraAccount || '').replace(/"/g, '""')}"`,
+        `"${(formatContraAccount(t.contraAccount || '')).replace(/"/g, '""')}"`,
         `"${(t.narration || '').replace(/"/g, '""')}"`,
         `"${(t.chqNo ? 'Chq: ' + t.chqNo : '').replace(/"/g, '""')}"`,
         (t.debit || 0).toFixed(2),
@@ -740,8 +760,8 @@ function exportToExcel() {
       '""',
       '""',
       '""',
-      '""',
       `"CLOSING BALANCE: [${acc.accCode}]"`,
+      '""',
       '""',
       '""',
       (acc.totalDebit || 0).toFixed(2),

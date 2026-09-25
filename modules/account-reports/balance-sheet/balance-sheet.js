@@ -697,7 +697,7 @@
       alignment: { horizontal: 'center', vertical: 'center' },
       border: getBorders(1, thinBorder, thinBorder)
     });
-    setCell(hRow, 2, 'Sub Total\nAmount(Rs.)', 's', {
+    setCell(hRow, 2, '', 's', {
       font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: '000000' } },
       alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
       border: getBorders(2, thinBorder, thinBorder)
@@ -719,7 +719,7 @@
       alignment: { horizontal: 'center', vertical: 'center' },
       border: getBorders(5, thinBorder, thinBorder)
     });
-    setCell(hRow, 6, 'Sub Total\nAmount(Rs.)', 's', {
+    setCell(hRow, 6, '', 's', {
       font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: '000000' } },
       alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
       border: getBorders(6, thinBorder, thinBorder)
@@ -730,6 +730,8 @@
       alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
       border: getBorders(7, thinBorder, thinBorder)
     });
+    merges.push({ s: { r: hRow, c: 1 }, e: { r: hRow, c: 2 } });
+    merges.push({ s: { r: hRow, c: 5 }, e: { r: hRow, c: 6 } });
 
     // Data Rows
     const showMemberBreakup = document.getElementById('chk-member-breakup')?.checked;

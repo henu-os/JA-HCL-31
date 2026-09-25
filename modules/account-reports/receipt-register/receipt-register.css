@@ -150,63 +150,112 @@ body.erp-module {
   border-color: #15803d;
 }
 
-/* ── KPI Stat Summary Cards ─────────────────────────────────────── */
-.reg-kpi-bar {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 12px;
-  padding: 12px 20px;
-  background: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
-  flex-shrink: 0;
+/* ── Statement Summary Popover ─────────────────────────────────────────── */
+.summary-dropdown-wrap {
+  position: relative;
+  display: inline-flex;
 }
 
-.reg-kpi-card {
+.summary-dropdown-btn {
   background: #ffffff;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+  padding: 5px 12px;
+  font-size: 11.5px;
+  font-weight: 700;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+}
+
+.summary-dropdown-btn:hover {
+  background: #eff6ff;
+  border-color: #0284c7;
+}
+
+.summary-dropdown-btn.active {
+  background: #e0f2fe;
+  border-color: #0284c7;
+  color: #0369a1;
+}
+
+.summary-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: auto;
+  width: 330px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.1);
+  padding: 12px;
+  z-index: 1000;
+  display: none;
+}
+
+.summary-popover.show {
+  display: block;
+  animation: popIn 0.15s ease-out;
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.summary-popover-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 8px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.summary-popover-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.pop-card {
+  background: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 6px;
-  padding: 10px 14px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.02);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.reg-kpi-card:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 3px 6px rgba(0,0,0,0.04);
-}
-
-.reg-kpi-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 17px;
-  flex-shrink: 0;
-}
-
-.reg-kpi-info {
+  padding: 8px 10px;
   display: flex;
   flex-direction: column;
 }
 
-.reg-kpi-label {
-  font-size: 10px;
+.pop-card.full-width {
+  grid-column: 1 / -1;
+}
+
+.pop-lbl {
+  font-size: 9.5px;
   font-weight: 700;
   color: #64748b;
   text-transform: uppercase;
-  letter-spacing: 0.3px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
-.reg-kpi-value {
-  font-size: 16px;
+.pop-val {
+  font-size: 13px;
   font-weight: 800;
+  margin-top: 3px;
   color: #0f172a;
-  margin-top: 1px;
+}
+
+/* ── KPI Stat Summary Cards (Fallback / Legacy) ─────────────────────────── */
+.reg-kpi-bar {
+  display: none;
 }
 
 /* ── Scrollable Body Area ───────────────────────────────────────── */
@@ -376,6 +425,18 @@ body.erp-module {
   line-height: 1.4;
 }
 
+.reg-narr-line1 {
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.reg-narr-line2 {
+  color: #64748b;
+  font-size: 10px;
+  margin-top: 2px;
+  font-style: normal;
+}
+
 .reg-chip {
   display: inline-flex;
   align-items: center;
@@ -473,70 +534,797 @@ body.erp-module {
   font-weight: 700;
 }
 
-/* ── Print Styles (Statutory Landscape Document) ────────────────── */
+/* ── Print Styles (Supports Both Portrait and Landscape Seamlessly) ──────── */
 @media print {
   @page {
-    size: A4 landscape;
-    margin: 8mm 6mm 8mm 6mm;
+    size: auto;
+    margin: 6mm 8mm;
   }
 
+  body.print-landscape {
+    @page {
+      size: landscape;
+      margin: 6mm 8mm;
+    }
+  }
+
+  body.print-portrait {
+    @page {
+      size: portrait;
+      margin: 6mm 8mm;
+    }
+  }
+
+  *,
+  *::before,
+  *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    box-sizing: border-box !important;
+  }
+
+  html,
   body.erp-module {
     height: auto !important;
     overflow: visible !important;
     background: #ffffff !important;
+    color: #0f172a !important;
+    font-size: 8.5pt !important;
   }
 
-  .reg-toolbar, .reg-kpi-bar {
+  .reg-toolbar,
+  .reg-kpi-bar,
+  .summary-popover,
+  .summary-dropdown-wrap,
+  .no-print {
     display: none !important;
   }
 
   .reg-scroll-wrapper {
     padding: 0 !important;
+    margin: 0 !important;
     overflow: visible !important;
+    display: block !important;
+    height: auto !important;
   }
 
   .reg-card-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
     border: none !important;
     box-shadow: none !important;
+    background: #ffffff !important;
   }
 
   .reg-print-header {
     display: block !important;
+    text-align: center !important;
+    margin-bottom: 8px !important;
+    padding-bottom: 6px !important;
+  }
+
+  .reg-print-soc-name {
+    font-size: 13pt !important;
+    font-weight: 800 !important;
+    color: #0f172a !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.3px !important;
+  }
+
+  .reg-print-soc-sub {
+    font-size: 8pt !important;
+    color: #64748b !important;
+    margin-top: 1px !important;
+  }
+
+  .reg-print-title {
+    font-size: 9.5pt !important;
+    font-weight: 800 !important;
+    color: #0284c7 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.4px !important;
+    display: inline-block !important;
+    background: #f0f9ff !important;
+    padding: 2px 14px !important;
+    border-radius: 4px !important;
+    border: 1px solid #bae6fd !important;
+    margin-top: 4px !important;
+  }
+
+  .reg-table-container {
+    width: 100% !important;
+    overflow: visible !important;
+  }
+
+  .reg-table {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-collapse: collapse !important;
+    table-layout: auto !important;
+  }
+
+  .reg-table thead {
+    display: table-header-group !important;
+  }
+
+  .reg-table tbody {
+    display: table-row-group !important;
   }
 
   .reg-table thead th {
-    background: #e2e8f0 !important;
-    color: #000 !important;
-    border-top: 1.5px solid #000 !important;
-    border-bottom: 1.5px solid #000 !important;
+    background: #f1f5f9 !important;
+    color: #1e293b !important;
+    font-size: 8pt !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+    border-top: 2px solid #0284c7 !important;
+    border-bottom: 1.5px solid #0284c7 !important;
+    border-left: none !important;
+    border-right: none !important;
+    padding: 4px 6px !important;
     position: static !important;
   }
 
   .reg-table td {
     padding: 4px 6px !important;
-    border-bottom: 1px solid #ccc !important;
-    color: #000 !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    color: #1e293b !important;
+    font-size: 8.5pt !important;
   }
 
   .reg-voucher-main td {
-    border-top: 1.5px solid #666 !important;
+    border-top: 1.5px solid #cbd5e1 !important;
+  }
+
+  .reg-voucher-split td {
+    border-top: 1px dashed #f1f5f9 !important;
+  }
+
+  /* Keep full color styling for badges, pills, and callout boxes */
+  .voucher-pill {
+    background: #eff6ff !important;
+    border: 1px solid #bfdbfe !important;
+    color: #1d4ed8 !important;
+    font-weight: 700 !important;
+    padding: 1px 5px !important;
+    border-radius: 3px !important;
+    text-decoration: none !important;
+    display: inline-block !important;
+  }
+
+  .acc-code-pill {
+    display: inline-block !important;
+    font-size: 8pt !important;
+    font-weight: 700 !important;
+    padding: 1px 4px !important;
+    border-radius: 3px !important;
+    margin-right: 4px !important;
+  }
+
+  .acc-code-inc {
+    background: #f0fdf4 !important;
+    color: #166534 !important;
+    border: 1px solid #bbf7d0 !important;
+  }
+
+  .acc-code-bank {
+    background: #e0f2fe !important;
+    color: #0369a1 !important;
+    border: 1px solid #bae6fd !important;
+  }
+
+  .acc-code-deposit {
+    background: #fef3c7 !important;
+    color: #92400e !important;
+    border: 1px solid #fde68a !important;
+  }
+
+  .reg-chip {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 3px !important;
+    font-size: 7.5pt !important;
+    padding: 1px 5px !important;
+    border-radius: 3px !important;
+    margin-right: 4px !important;
+    font-weight: 600 !important;
+  }
+
+  .reg-chip-party {
+    background: #dcfce7 !important;
+    color: #15803d !important;
+    border: 1px solid #bbf7d0 !important;
+  }
+
+  .reg-chip-chq {
+    background: #ede9fe !important;
+    color: #6d28d9 !important;
+    border: 1px solid #ddd6fe !important;
   }
 
   .reg-narr-box {
-    background: transparent !important;
-    border-left: 2px solid #333 !important;
-    padding: 2px 4px !important;
-    color: #000 !important;
+    margin-top: 3px !important;
+    padding: 3px 6px !important;
+    background: #f8fafc !important;
+    border-left: 3px solid #10b981 !important;
+    border-radius: 0 4px 4px 0 !important;
+    font-size: 8pt !important;
+    color: #475569 !important;
+    line-height: 1.3 !important;
   }
 
-  .voucher-pill, .acc-code-pill, .reg-chip {
-    border: 1px solid #666 !important;
-    background: transparent !important;
-    color: #000 !important;
+  .reg-narr-line1 {
+    color: #1e293b !important;
+    font-weight: 600 !important;
+  }
+
+  .reg-narr-line2 {
+    color: #64748b !important;
+    font-size: 7.5pt !important;
+  }
+
+  .td-amt.dr {
+    color: #0D47A1 !important;
+    font-weight: 700 !important;
+  }
+
+  .td-amt.cr {
+    color: #1e293b !important;
+    font-weight: 700 !important;
   }
 
   .reg-table tfoot tr {
-    border-top: 2px solid #000 !important;
-    border-bottom: 2px solid #000 !important;
+    background: #f8fafc !important;
+    border-top: 2px solid #0f172a !important;
+    border-bottom: 2px solid #0f172a !important;
+    font-weight: 800 !important;
+  }
+
+  .reg-balanced-bar {
+    background: #f0fdf4 !important;
+    border-top: 1px solid #bbf7d0 !important;
+    color: #166534 !important;
+    font-weight: 700 !important;
+    display: flex !important;
+  }
+
+  .reg-diff-bar {
+    background: #fef2f2 !important;
+    border-top: 1px solid #fecaca !important;
+    color: #b91c1c !important;
+    font-weight: 700 !important;
   }
 }
+
+/* ═════════════════════════════════════════════════════════════════════
+   PRINT FORMAT SELECTION MODAL
+   ═════════════════════════════════════════════════════════════════════ */
+.pf-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: pfFadeIn 0.15s ease-out;
+}
+
+@keyframes pfFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.pf-modal-card {
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 20px 25px -5px rgba(0,0,0,0.25), 0 10px 10px -5px rgba(0,0,0,0.1);
+  width: 92%;
+  max-width: 580px;
+  overflow: hidden;
+  border: 1px solid #cbd5e1;
+  animation: pfSlideUp 0.18s ease-out;
+}
+
+@keyframes pfSlideUp {
+  from { transform: translateY(12px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.pf-modal-header {
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 14px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pf-modal-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pf-modal-close {
+  background: transparent;
+  border: none;
+  font-size: 22px;
+  color: #64748b;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 4px;
+  transition: color 0.15s;
+}
+
+.pf-modal-close:hover {
+  color: #0f172a;
+}
+
+.pf-modal-body {
+  padding: 18px 20px;
+}
+
+.pf-modal-prompt {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 12px;
+}
+
+.pf-options-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pf-option-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pf-option-box:hover {
+  border-color: #93c5fd;
+  background: #f8fafc;
+}
+
+.pf-option-box.active {
+  border-color: #0D47A1;
+  background: #f0f7ff;
+}
+
+.pf-option-radio {
+  margin-top: 3px;
+}
+
+.pf-option-radio input[type="radio"] {
+  accent-color: #0D47A1;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.pf-option-main {
+  flex: 1;
+}
+
+.pf-option-badge {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 1px 7px;
+  border-radius: 10px;
+  background: #e2e8f0;
+  color: #475569;
+  margin-bottom: 4px;
+}
+
+.pf-badge-voucher {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.pf-option-heading {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pf-option-text {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 3px;
+  line-height: 1.4;
+}
+
+.pf-member-alert {
+  margin-top: 8px;
+  padding: 6px 10px;
+  background: #e0f2fe;
+  border: 1px solid #bae6fd;
+  border-radius: 6px;
+  color: #0369a1;
+  font-size: 10.5px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pf-member-row {
+  margin-top: 14px;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.pf-modal-footer {
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  padding: 12px 20px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   RECEIPT VOUCHER (IMAGE 1 LAYOUT) — 2 PER PAGE
+   ═════════════════════════════════════════════════════════════════════ */
+.voucher-print-area {
+  display: none;
+}
+
+@media print {
+  /* Hide voucher area when printing standard register */
+  body.print-register-mode .voucher-print-area {
+    display: none !important;
+  }
+
+  /* When printing in voucher mode */
+  body.print-voucher-mode {
+    background: #ffffff !important;
+  }
+
+  body.print-voucher-mode {
+    @page {
+      size: A4 portrait;
+      margin: 4mm 6mm;
+    }
+  }
+
+  body.print-voucher-mode .reg-toolbar,
+  body.print-voucher-mode .reg-scroll-wrapper,
+  body.print-voucher-mode .reg-print-header,
+  body.print-voucher-mode .summary-popover,
+  body.print-voucher-mode .summary-dropdown-wrap,
+  body.print-voucher-mode .pf-modal-backdrop,
+  body.print-voucher-mode #vDetailModalBackdrop,
+  body.print-voucher-mode .no-print {
+    display: none !important;
+  }
+
+  body.print-voucher-mode .voucher-print-area {
+    display: block !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .voucher-sheet {
+    width: 100% !important;
+    height: 285mm !important;
+    max-height: 285mm !important;
+    page-break-after: always !important;
+    break-after: page !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    box-sizing: border-box !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .voucher-sheet:last-child {
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+  .voucher-card {
+    width: 100% !important;
+    height: 138mm !important;
+    max-height: 138mm !important;
+    border: 1px solid #111 !important;
+    outline: 1px solid #111 !important;
+    outline-offset: -3px !important;
+    padding: 4mm 7mm !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    background: #ffffff !important;
+    position: relative !important;
+    overflow: hidden !important;
+  }
+
+  .voucher-cut-line {
+    height: 4mm !important;
+    line-height: 4mm !important;
+    text-align: center !important;
+    font-size: 8px !important;
+    color: #64748b !important;
+    overflow: hidden !important;
+    user-select: none !important;
+  }
+
+  .vcard-header {
+    text-align: center !important;
+    position: relative !important;
+  }
+
+  .vcard-title {
+    font-size: 13pt !important;
+    font-weight: 800 !important;
+    text-decoration: underline !important;
+    text-align: center !important;
+    color: #000 !important;
+    letter-spacing: 0.3px !important;
+    margin-bottom: 2px !important;
+  }
+
+  .vcard-soc-name {
+    font-size: 11pt !important;
+    font-weight: 800 !important;
+    text-align: center !important;
+    color: #000 !important;
+    margin-top: 1px !important;
+    line-height: 1.25 !important;
+  }
+
+  .vcard-soc-reg {
+    font-size: 8pt !important;
+    font-weight: 600 !important;
+    text-align: center !important;
+    color: #111 !important;
+    margin-top: 2px !important;
+  }
+
+  .vcard-soc-addr,
+  .vcard-soc-contact {
+    font-size: 7.5pt !important;
+    text-align: center !important;
+    color: #222 !important;
+    margin-top: 1px !important;
+    line-height: 1.2 !important;
+  }
+
+  .vcard-copy-badge {
+    position: absolute !important;
+    top: 0 !important;
+    right: 0 !important;
+    font-size: 7pt !important;
+    font-weight: 700 !important;
+    border: 1px solid #475569 !important;
+    padding: 1px 6px !important;
+    border-radius: 3px !important;
+    text-transform: uppercase !important;
+    color: #1e293b !important;
+  }
+
+  .vcard-hr {
+    border-top: 1px solid #111 !important;
+    margin: 3px 0 !important;
+  }
+
+  .vcard-meta-row {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    font-size: 9pt !important;
+    font-weight: 600 !important;
+    color: #000 !important;
+    padding: 1px 0 !important;
+  }
+
+  .vcard-meta-no strong,
+  .vcard-meta-date strong {
+    font-size: 9.5pt !important;
+  }
+
+  .vcard-payer-row {
+    display: flex !important;
+    align-items: baseline !important;
+    gap: 8px !important;
+    font-size: 9pt !important;
+    padding: 2px 0 !important;
+  }
+
+  .vcard-thanks-box {
+    border: 1px solid #94a3b8 !important;
+    padding: 1px 8px !important;
+    border-radius: 3px !important;
+    font-size: 8.5pt !important;
+    font-weight: 600 !important;
+    color: #1e293b !important;
+    white-space: nowrap !important;
+  }
+
+  .vcard-payer-name {
+    font-size: 9.5pt !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+    color: #000 !important;
+    letter-spacing: 0.3px !important;
+  }
+
+  .vcard-body-table-wrap {
+    flex: 1 !important;
+    min-height: 38mm !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+  }
+
+  .vcard-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 8.5pt !important;
+  }
+
+  .vcard-table th {
+    border-top: 1px solid #111 !important;
+    border-bottom: 1px solid #111 !important;
+    padding: 3px 4px !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+    color: #000 !important;
+  }
+
+  .vcard-table th.th-part {
+    text-align: left !important;
+  }
+
+  .vcard-table th.th-amt {
+    text-align: right !important;
+    width: 110px !important;
+  }
+
+  .vcard-table td {
+    padding: 2.5px 4px !important;
+    color: #000 !important;
+    vertical-align: top !important;
+  }
+
+  .vcard-table td.td-part {
+    text-align: left !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+  }
+
+  .vcard-table td.td-amt {
+    text-align: right !important;
+    font-family: monospace, ui-monospace !important;
+    font-weight: 600 !important;
+  }
+
+  .vcard-total-row {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: flex-end !important;
+    padding: 4px 4px !important;
+    font-size: 9pt !important;
+    margin-top: auto !important;
+  }
+
+  .vcard-words {
+    font-weight: 700 !important;
+    color: #000 !important;
+    font-style: italic !important;
+    flex: 1 !important;
+    padding-right: 12px !important;
+  }
+
+  .vcard-total-box {
+    text-align: right !important;
+    min-width: 110px !important;
+    border-top: 1px solid #111 !important;
+    padding-top: 2px !important;
+  }
+
+  .vcard-total-num {
+    font-family: monospace, ui-monospace !important;
+    font-size: 10pt !important;
+    font-weight: 800 !important;
+    color: #000 !important;
+  }
+
+  .vcard-footer-grid {
+    display: flex !important;
+    justify-content: space-between !important;
+    padding: 4px 2px 2px !important;
+    font-size: 8pt !important;
+    color: #000 !important;
+  }
+
+  .vcard-footer-left {
+    flex: 1 !important;
+    max-width: 58% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+  }
+
+  .vcard-chq-text {
+    font-weight: 600 !important;
+    margin-bottom: 2px !important;
+  }
+
+  .vcard-narr-text {
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    margin-bottom: 4px !important;
+  }
+
+  .vcard-disclaimer {
+    font-size: 7.5pt !important;
+    font-style: italic !important;
+    color: #333 !important;
+  }
+
+  .vcard-footer-right {
+    text-align: right !important;
+    max-width: 40% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    align-items: flex-end !important;
+  }
+
+  .vcard-sign-soc {
+    font-weight: 700 !important;
+    font-size: 8pt !important;
+    text-align: right !important;
+    line-height: 1.2 !important;
+  }
+
+  .vcard-sign-space {
+    height: 16mm !important;
+  }
+
+  .vcard-sign-title {
+    font-weight: 600 !important;
+    font-size: 8pt !important;
+    border-top: 1px dashed #666 !important;
+    padding-top: 2px !important;
+    display: inline-block !important;
+    text-align: right !important;
+  }
+}
+

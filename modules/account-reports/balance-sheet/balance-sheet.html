@@ -70,6 +70,18 @@
       <!-- T-Format Side-by-Side Statement -->
       <div class="bs-t-table-wrapper">
         <table class="bs-t-table" id="bsMainTable">
+          <colgroup>
+            <!-- Liabilities Side (50%) -->
+            <col class="col-prev col-prev-liab" style="width: 10%;">
+            <col class="col-particulars col-liab" style="width: 21%;">
+            <col class="col-subtotal col-sub-liab" style="width: 8.5%;">
+            <col class="col-cur col-cur-liab" style="width: 10.5%;">
+            <!-- Assets Side (50%) -->
+            <col class="col-prev col-prev-asset" style="width: 10%;">
+            <col class="col-particulars col-asset" style="width: 21%;">
+            <col class="col-subtotal col-sub-asset" style="width: 8.5%;">
+            <col class="col-cur col-cur-asset" style="width: 10.5%;">
+          </colgroup>
           <thead>
             <!-- Repeated Header for Print (All Pages) -->
             <tr class="bs-print-masthead-row">
@@ -82,13 +94,11 @@
             <!-- Clean Single-Tier Column Headers -->
             <tr class="bs-col-header-row">
               <th class="bs-col-header col-prev text-center col-amount" id="th-prev-liab">31/03/2025<br>Amount(Rs.)</th>
-              <th class="bs-col-header text-center" id="th-liab-title">Liabilities</th>
-              <th class="bs-col-header text-center col-amount col-subtotal" id="th-sub-liab">Sub Total<br>Amount(Rs.)</th>
+              <th class="bs-col-header text-center" colspan="2" id="th-liab-title">Liabilities</th>
               <th class="bs-col-header text-center bs-side-divider col-amount" id="th-cur-liab">31/03/2026<br>Amount(Rs.)</th>
 
               <th class="bs-col-header col-prev text-center col-amount" id="th-prev-asset">31/03/2025<br>Amount(Rs.)</th>
-              <th class="bs-col-header text-center" id="th-asset-title">Assets</th>
-              <th class="bs-col-header text-center col-amount col-subtotal" id="th-sub-asset">Sub Total<br>Amount(Rs.)</th>
+              <th class="bs-col-header text-center" colspan="2" id="th-asset-title">Assets</th>
               <th class="bs-col-header text-center col-amount" id="th-cur-asset">31/03/2026<br>Amount(Rs.)</th>
             </tr>
           </thead>

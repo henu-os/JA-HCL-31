@@ -194,6 +194,10 @@
       if (dispPeriod) {
         dispPeriod.textContent = `${data.fromDateDisplay || fromDate} TO ${data.toDateDisplay || toDate}`;
       }
+      const popoverPeriod = document.getElementById('popover-period');
+      if (popoverPeriod) {
+        popoverPeriod.textContent = `${data.fromDateDisplay || fromDate} TO ${data.toDateDisplay || toDate}`;
+      }
 
       // Update KPIs
       const kpiOpening = document.getElementById('kpi-opening');
@@ -335,7 +339,7 @@
       // Group Header Row
       leftRows.push({
         type: 'group',
-        text: `<div class="rp-group-title"><span class="rp-group-bullet">■</span> ${grp.groupName}</div>`,
+        text: `<div class="rp-group-title">${grp.groupName}</div>`,
         subAmt: '',
         totAmt: formatINR(grp.totalAmount)
       });
@@ -401,7 +405,7 @@
       // Group Header Row
       rightRows.push({
         type: 'group',
-        text: `<div class="rp-group-title"><span class="rp-group-bullet">■</span> ${grp.groupName}</div>`,
+        text: `<div class="rp-group-title">${grp.groupName}</div>`,
         subAmt: '',
         totAmt: formatINR(grp.totalAmount)
       });
@@ -491,22 +495,22 @@
         if (L.type === 'section') {
           html += `<td colspan="3" class="rp-table-cell rp-section-header rp-side-divider">${L.text}</td>`;
         } else if (L.type === 'group') {
-          html += `<td class="rp-table-cell rp-group-row">${L.text}</td>`;
-          html += `<td class="rp-table-cell rp-num rp-group-row">${L.subAmt}</td>`;
-          html += `<td class="rp-table-cell rp-num rp-group-row rp-side-divider">${L.totAmt}</td>`;
+          html += `<td class="rp-table-cell rp-group-row col-particulars">${L.text}</td>`;
+          html += `<td class="rp-table-cell rp-num rp-group-row col-sub-amt">${L.subAmt}</td>`;
+          html += `<td class="rp-table-cell rp-num rp-group-row col-tot-amt rp-side-divider">${L.totAmt}</td>`;
         } else if (L.type === 'subtotal') {
-          html += `<td class="rp-table-cell rp-subtotal-row" style="font-weight:800;">${L.text}</td>`;
-          html += `<td class="rp-table-cell rp-num rp-subtotal-row">${L.subAmt}</td>`;
-          html += `<td class="rp-table-cell rp-num rp-subtotal-row rp-side-divider" style="font-weight:800;">${L.totAmt}</td>`;
+          html += `<td class="rp-table-cell rp-subtotal-row col-particulars" style="font-weight:800;">${L.text}</td>`;
+          html += `<td class="rp-table-cell rp-num rp-subtotal-row col-sub-amt">${L.subAmt}</td>`;
+          html += `<td class="rp-table-cell rp-num rp-subtotal-row col-tot-amt rp-side-divider" style="font-weight:800;">${L.totAmt}</td>`;
         } else {
           // Normal head / item row
           const indentClass = L.isHead ? 'rp-head-indent' : '';
-          html += `<td class="rp-table-cell rp-head-row ${indentClass}">${L.text}</td>`;
-          html += `<td class="rp-table-cell rp-num rp-head-row">${L.subAmt}</td>`;
-          html += `<td class="rp-table-cell rp-num rp-head-row rp-side-divider">${L.totAmt}</td>`;
+          html += `<td class="rp-table-cell rp-head-row ${indentClass} col-particulars">${L.text}</td>`;
+          html += `<td class="rp-table-cell rp-num rp-head-row col-sub-amt">${L.subAmt}</td>`;
+          html += `<td class="rp-table-cell rp-num rp-head-row col-tot-amt rp-side-divider">${L.totAmt}</td>`;
         }
       } else {
-        html += `<td class="rp-table-cell rp-empty-cell"></td><td class="rp-table-cell rp-empty-cell"></td><td class="rp-table-cell rp-empty-cell rp-side-divider"></td>`;
+        html += `<td class="rp-table-cell rp-empty-cell col-particulars"></td><td class="rp-table-cell rp-empty-cell col-sub-amt"></td><td class="rp-table-cell rp-empty-cell col-tot-amt rp-side-divider"></td>`;
       }
 
       // Right (Payments) 3 columns
@@ -514,22 +518,22 @@
         if (R.type === 'section') {
           html += `<td colspan="3" class="rp-table-cell rp-section-header">${R.text}</td>`;
         } else if (R.type === 'group') {
-          html += `<td class="rp-table-cell rp-group-row">${R.text}</td>`;
-          html += `<td class="rp-table-cell rp-num rp-group-row">${R.subAmt}</td>`;
-          html += `<td class="rp-table-cell rp-num rp-group-row">${R.totAmt}</td>`;
+          html += `<td class="rp-table-cell rp-group-row col-particulars">${R.text}</td>`;
+          html += `<td class="rp-table-cell rp-num rp-group-row col-sub-amt">${R.subAmt}</td>`;
+          html += `<td class="rp-table-cell rp-num rp-group-row col-tot-amt">${R.totAmt}</td>`;
         } else if (R.type === 'subtotal') {
-          html += `<td class="rp-table-cell rp-subtotal-row" style="font-weight:800;">${R.text}</td>`;
-          html += `<td class="rp-table-cell rp-num rp-subtotal-row">${R.subAmt}</td>`;
-          html += `<td class="rp-table-cell rp-num rp-subtotal-row" style="font-weight:800;">${R.totAmt}</td>`;
+          html += `<td class="rp-table-cell rp-subtotal-row col-particulars" style="font-weight:800;">${R.text}</td>`;
+          html += `<td class="rp-table-cell rp-num rp-subtotal-row col-sub-amt">${R.subAmt}</td>`;
+          html += `<td class="rp-table-cell rp-num rp-subtotal-row col-tot-amt" style="font-weight:800;">${R.totAmt}</td>`;
         } else {
           // Normal head / item row
           const indentClass = R.isHead ? 'rp-head-indent' : '';
-          html += `<td class="rp-table-cell rp-head-row ${indentClass}">${R.text}</td>`;
-          html += `<td class="rp-table-cell rp-num rp-head-row">${R.subAmt}</td>`;
-          html += `<td class="rp-table-cell rp-num rp-head-row">${R.totAmt}</td>`;
+          html += `<td class="rp-table-cell rp-head-row ${indentClass} col-particulars">${R.text}</td>`;
+          html += `<td class="rp-table-cell rp-num rp-head-row col-sub-amt">${R.subAmt}</td>`;
+          html += `<td class="rp-table-cell rp-num rp-head-row col-tot-amt">${R.totAmt}</td>`;
         }
       } else {
-        html += `<td class="rp-table-cell rp-empty-cell"></td><td class="rp-table-cell rp-empty-cell"></td><td class="rp-table-cell rp-empty-cell"></td>`;
+        html += `<td class="rp-table-cell rp-empty-cell col-particulars"></td><td class="rp-table-cell rp-empty-cell col-sub-amt"></td><td class="rp-table-cell rp-empty-cell col-tot-amt"></td>`;
       }
 
       html += '</tr>';
@@ -543,6 +547,37 @@
     if (footRec) footRec.textContent = formatCurrency(data.grandTotalReceiptSide);
     if (footPay) footPay.textContent = formatCurrency(data.grandTotalPaymentSide);
   };
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Statement Summary Popover Toggle
+  // ───────────────────────────────────────────────────────────────────────────
+  window.toggleSummaryPopover = function (event) {
+    if (event) event.stopPropagation();
+    const pop = document.getElementById('summaryPopover');
+    const btn = document.getElementById('btnSummaryToggle');
+    if (!pop) return;
+
+    const isShown = pop.classList.contains('show');
+    if (isShown) {
+      pop.classList.remove('show');
+      if (btn) btn.classList.remove('active');
+    } else {
+      pop.classList.add('show');
+      if (btn) btn.classList.add('active');
+    }
+  };
+
+  // Close summary popover when clicking anywhere outside
+  document.addEventListener('click', (e) => {
+    const pop = document.getElementById('summaryPopover');
+    const btn = document.getElementById('btnSummaryToggle');
+    if (pop && pop.classList.contains('show')) {
+      if (!pop.contains(e.target) && e.target !== btn && !btn?.contains(e.target)) {
+        pop.classList.remove('show');
+        if (btn) btn.classList.remove('active');
+      }
+    }
+  });
 
   // ───────────────────────────────────────────────────────────────────────────
   // Print Statement

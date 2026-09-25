@@ -64,6 +64,44 @@
 
     <!-- Action Buttons -->
     <div style="display:flex; align-items:center; gap:8px;">
+      <!-- Statement Summary Dropdown (Pop-over) -->
+      <div class="summary-dropdown-wrap">
+        <button type="button" class="summary-dropdown-btn" id="btnSummaryToggle" onclick="toggleSummaryPopover(event)" title="Click to view Statement Summary">
+          <i class="bi bi-bar-chart-fill" style="color:var(--reg-primary, #0284c7); font-size:12px;"></i>
+          <span>Statement Summary</span>
+          <i class="bi bi-chevron-down" style="font-size:9.5px; color:#64748b; margin-left:2px;"></i>
+        </button>
+
+        <!-- Popover Card -->
+        <div class="summary-popover" id="summaryPopover">
+          <div class="summary-popover-head">
+            <div style="font-size:12px; font-weight:800; color:#0f172a; display:flex; align-items:center; gap:6px;">
+              <i class="bi bi-pie-chart-fill" style="color:var(--reg-primary, #0284c7);"></i> Statement Summary
+            </div>
+            <span style="font-size:10px; font-weight:700; color:#0369a1; background:#e0f2fe; padding:2px 8px; border-radius:10px;" id="popover-period">Overview</span>
+          </div>
+
+          <div class="summary-popover-grid">
+            <div class="pop-card">
+              <span class="pop-lbl"><i class="bi bi-arrow-left-right" style="color:#1d4ed8;"></i> Contra Vouchers</span>
+              <span class="pop-val" id="kpiTotalVouchers" style="color:#1d4ed8;">0</span>
+            </div>
+            <div class="pop-card">
+              <span class="pop-lbl"><i class="bi bi-cash-coin" style="color:#16a34a;"></i> Total Fund Transfers</span>
+              <span class="pop-val" id="kpiTotalAmount" style="color:#16a34a;">₹ 0.00</span>
+            </div>
+            <div class="pop-card">
+              <span class="pop-lbl"><i class="bi bi-bank2" style="color:#0369a1;"></i> Bank Outflow (Cr)</span>
+              <span class="pop-val" id="kpiBankOutflow" style="color:#0369a1;">₹ 0.00</span>
+            </div>
+            <div class="pop-card">
+              <span class="pop-lbl"><i class="bi bi-wallet2" style="color:#d97706;"></i> Cash Outflow (Cr)</span>
+              <span class="pop-val" id="kpiCashOutflow" style="color:#d97706;">₹ 0.00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <button class="reg-btn reg-btn-primary" onclick="loadContraRegister()" title="Refresh records from server">
         <i class="bi bi-arrow-clockwise"></i> Refresh
       </button>
@@ -73,49 +111,6 @@
       <button class="reg-btn reg-btn-success" onclick="exportToExcel()" title="Export register to Excel .xlsx">
         <i class="bi bi-file-earmark-excel"></i> Export Excel
       </button>
-    </div>
-  </div>
-
-  <!-- ── Top KPI Stat Summary Cards ─────────────────────────────────────────── -->
-  <div class="reg-kpi-bar">
-    <div class="reg-kpi-card">
-      <div class="reg-kpi-icon" style="background:#eff6ff; color:#1d4ed8;">
-        <i class="bi bi-arrow-left-right"></i>
-      </div>
-      <div class="reg-kpi-info">
-        <div class="reg-kpi-label">Contra Vouchers</div>
-        <div class="reg-kpi-value" id="kpiTotalVouchers">0</div>
-      </div>
-    </div>
-
-    <div class="reg-kpi-card">
-      <div class="reg-kpi-icon" style="background:#f0fdf4; color:#16a34a;">
-        <i class="bi bi-cash-coin"></i>
-      </div>
-      <div class="reg-kpi-info">
-        <div class="reg-kpi-label">Total Fund Transfers</div>
-        <div class="reg-kpi-value" id="kpiTotalAmount">₹ 0.00</div>
-      </div>
-    </div>
-
-    <div class="reg-kpi-card">
-      <div class="reg-kpi-icon" style="background:#e0f2fe; color:#0369a1;">
-        <i class="bi bi-bank2"></i>
-      </div>
-      <div class="reg-kpi-info">
-        <div class="reg-kpi-label">Bank Outflow (Cr)</div>
-        <div class="reg-kpi-value" id="kpiBankOutflow">₹ 0.00</div>
-      </div>
-    </div>
-
-    <div class="reg-kpi-card">
-      <div class="reg-kpi-icon" style="background:#fffbeb; color:#d97706;">
-        <i class="bi bi-wallet2"></i>
-      </div>
-      <div class="reg-kpi-info">
-        <div class="reg-kpi-label">Cash Outflow (Cr)</div>
-        <div class="reg-kpi-value" id="kpiCashOutflow">₹ 0.00</div>
-      </div>
     </div>
   </div>
 

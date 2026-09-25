@@ -244,6 +244,11 @@
             voucherType: 'Journal',
             amount: j.amount || j.totalAmount,
             narration: j.narration,
+            particular1: j.particular1 || j.narration || '',
+            particular2: j.particular2 || '',
+            refNo: j.refNo || '',
+            chqNo: j.chqNo || '',
+            chqDate: j.chqDate || null,
             status: j.status || 'Posted',
             items: j.items || []
           }));
@@ -265,6 +270,36 @@
     renderRegisterView();
   };
 
+  // Helper: Extract Line 1 and Line 2 narration/particulars
+  function getNarrationLines(v) {
+    let line1 = (v.particular1 || '').trim();
+    let line2 = (v.particular2 || '').trim();
+
+    if (!line1 && v.narration) {
+      const parts = v.narration.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+      line1 = parts[0] || '';
+      if (!line2 && parts.length > 1) {
+        line2 = parts.slice(1).join(' ');
+      }
+    } else if (line1 && !line2 && v.narration) {
+      const narr = v.narration.trim();
+      if (narr !== line1) {
+        line2 = narr;
+      }
+    } else if (line1 && line2 && v.narration) {
+      const narr = v.narration.trim();
+      if (narr !== line1 && narr !== line2) {
+        line2 += ` (${narr})`;
+      }
+    }
+
+    if (!line1 && !line2) {
+      line1 = 'Journal Voucher';
+    }
+
+    return { line1, line2 };
+  }
+
   // ── 4. RENDER REGISTER VIEW ────────────────────────────────────────────────
   window.renderRegisterView = function () {
     const q = (document.getElementById('searchInput')?.value || '').trim().toLowerCase();
@@ -276,8 +311,11 @@
       if (q) {
         const vNo = (v.voucherNo || '').toLowerCase();
         const narr = (v.narration || '').toLowerCase();
+        const p1 = (v.particular1 || '').toLowerCase();
+        const p2 = (v.particular2 || '').toLowerCase();
         const ref = (v.refNo || '').toLowerCase();
-        const matchHead = vNo.includes(q) || narr.includes(q) || ref.includes(q);
+        const chq = (v.chqNo || '').toLowerCase();
+        const matchHead = vNo.includes(q) || narr.includes(q) || p1.includes(q) || p2.includes(q) || ref.includes(q) || chq.includes(q);
         let matchLines = false;
         if (Array.isArray(v.items)) {
           matchLines = v.items.some(it => {
@@ -377,6 +415,27 @@
           ? `<span class="acc-dr-label">Dr.</span>`
           : `<span class="acc-cr-label" style="margin-left:14px;">To</span>`;
 
+        let narrBoxHtml = '';
+        if (idx === allLines.length - 1) {
+          const { line1, line2 } = getNarrationLines(v);
+          let metaChips = '';
+          if (v.chqNo && v.chqNo !== '-') {
+            metaChips += `<span class="reg-chip reg-chip-chq"><i class="bi bi-card-text"></i> Chq: ${escHtml(v.chqNo)}${v.chqDate ? ' (' + formatDate(v.chqDate) + ')' : ''}</span>`;
+          }
+          if (v.refNo) {
+            metaChips += `<span class="reg-chip"><i class="bi bi-hash"></i> Ref: ${escHtml(v.refNo)}</span>`;
+          }
+          if (line1 || line2 || metaChips) {
+            narrBoxHtml = `
+              <div class="reg-narr-box">
+                ${metaChips ? `<div style="margin-bottom:2px;">${metaChips}</div>` : ''}
+                ${line1 ? `<div class="reg-narr-line1">${escHtml(line1)}</div>` : ''}
+                ${line2 ? `<div class="reg-narr-line2">${escHtml(line2)}</div>` : ''}
+              </div>
+            `;
+          }
+        }
+
         html += `
           <tr class="${isFirst ? 'reg-voucher-main' : ''}">
             <td class="td-center" style="font-weight:${isFirst ? '700' : 'normal'}; color:${isFirst ? '#0f172a' : 'transparent'};">
@@ -394,11 +453,7 @@
                 ${prefix} ${codeHtml} <strong>${escHtml(line.accountName || '—')}</strong>
               </div>
               ${line.narration ? `<div style="font-size:10px; color:#64748b; margin-left:22px;">— ${escHtml(line.narration)}</div>` : ''}
-              ${(idx === allLines.length - 1 && v.narration) ? `
-                <div class="reg-narr-box">
-                  <strong>Narration:</strong> (Being ${escHtml(v.narration)})
-                </div>
-              ` : ''}
+              ${narrBoxHtml}
             </td>
             <td class="td-amt" style="color:${drVal > 0 ? '#dc2626' : '#94a3b8'};">
               ${drVal > 0 ? drVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
@@ -461,6 +516,35 @@
     renderRegisterView();
   };
 
+  // ── Statement Summary Popover Toggle ───────────────────────────────────────
+  window.toggleSummaryPopover = function (event) {
+    if (event) event.stopPropagation();
+    const pop = document.getElementById('summaryPopover');
+    const btn = document.getElementById('btnSummaryToggle');
+    if (!pop) return;
+
+    const isShown = pop.classList.contains('show');
+    if (isShown) {
+      pop.classList.remove('show');
+      if (btn) btn.classList.remove('active');
+    } else {
+      pop.classList.add('show');
+      if (btn) btn.classList.add('active');
+    }
+  };
+
+  // Close summary popover when clicking anywhere outside
+  document.addEventListener('click', (e) => {
+    const pop = document.getElementById('summaryPopover');
+    const btn = document.getElementById('btnSummaryToggle');
+    if (pop && pop.classList.contains('show')) {
+      if (!pop.contains(e.target) && e.target !== btn && !btn?.contains(e.target)) {
+        pop.classList.remove('show');
+        if (btn) btn.classList.remove('active');
+      }
+    }
+  });
+
   // ── 5. OPEN JOURNAL VOUCHER (PRINT / VIEW) ──────────────────────────────────
   window.openJournalVoucher = function (vNo, vId) {
     if (window.parent && typeof window.parent.openModule === 'function') {
@@ -472,7 +556,13 @@
 
   // ── 6. STATUTORY PRINT ─────────────────────────────────────────────────────
   window.printRegister = function () {
+    const socName = (currentSocietyInfo && (currentSocietyInfo.societyName || currentSocietyInfo.name)) || 
+                    (window.Auth && Auth.getSocietyName && Auth.getSocietyName()) ||
+                    sessionStorage.getItem('activeSocietyName') || 'Journal_Register';
+    const origTitle = document.title;
+    document.title = `${socName}_Journal_Register`.replace(/\s+/g, '_');
     window.print();
+    setTimeout(() => { document.title = origTitle; }, 1000);
   };
 
   // ── 7. EXPORT TO EXCEL (.XLSX) ─────────────────────────────────────────────

@@ -1275,7 +1275,7 @@ namespace JeevikaERP.Controllers
                                vh.Narration AS HeaderNarr, vd.Narration AS LineNarr,
                                vd.Debit, vd.Credit,
                                (
-                                   SELECT STRING_AGG(DISTINCT CONCAT(COALESCE(a2.AccName, vd2.AccountName), ' [', COALESCE(a2.AccCode, vd2.AccountCode), ']'), ' / ')
+                                   SELECT STRING_AGG(DISTINCT CONCAT('[', COALESCE(a2.AccCode, vd2.AccountCode), '] ', COALESCE(a2.AccName, vd2.AccountName)), ' / ')
                                    FROM jeevika_erp.SocVoucherDetail vd2
                                    LEFT JOIN jeevika_erp.SocAccount a2 ON vd2.AccountId = a2.AccountId
                                    WHERE vd2.VoucherId = vh.VoucherId 
@@ -1372,7 +1372,9 @@ namespace JeevikaERP.Controllers
                         {
                             using var cmdBSum = conn.CreateCommand();
                             var sqlBSum = @"
-                                SELECT b.BillDate, COUNT(DISTINCT b.BillId) AS BillCount, SUM(b.TotalAmount) AS TotalAmount
+                                SELECT b.BillDate, COUNT(DISTINCT b.BillId) AS BillCount,
+                                       MIN(b.BillNo) AS MinBillNo, MAX(b.BillNo) AS MaxBillNo,
+                                       SUM(b.TotalAmount) AS TotalAmount
                                 FROM jeevika_erp.SocMemberBill b
                                 WHERE b.SocietyId = @sid 
                                   AND (b.FYId = @fyid OR (b.BillDate >= @fyStart AND b.BillDate <= @fyEnd)) 
@@ -1395,12 +1397,16 @@ namespace JeevikaERP.Controllers
                                 decimal amt = Convert.ToDecimal(rBSum["TotalAmount"]);
                                 int count = Convert.ToInt32(rBSum["BillCount"]);
                                 DateTime bDate = (DateTime)rBSum["BillDate"];
+                                string minB = rBSum["MinBillNo"] != DBNull.Value ? rBSum["MinBillNo"].ToString() ?? "" : "";
+                                string maxB = rBSum["MaxBillNo"] != DBNull.Value ? rBSum["MaxBillNo"].ToString() ?? "" : "";
+                                string bNoDisplay = (minB == maxB || string.IsNullOrEmpty(maxB)) ? minB : $"{minB}..{maxB}";
+                                if (string.IsNullOrWhiteSpace(bNoDisplay)) bNoDisplay = "MBIL";
 
                                 rawTxList.Add(new LedgerItemInternal
                                 {
                                     DetailId = 0,
                                     VoucherId = 0,
-                                    VoucherNo = "MEMBER BILL",
+                                    VoucherNo = bNoDisplay,
                                     VoucherType = "Member Bill",
                                     VoucherDate = bDate,
                                     ContraAccount = "Member Income Heads",
@@ -1470,8 +1476,8 @@ namespace JeevikaERP.Controllers
                         {
                             using var cmdBISum = conn.CreateCommand();
                             var sqlBISum = @"
-                                SELECT b.BillDate, 
-                                       COUNT(DISTINCT b.BillId) AS BillCount,
+                                SELECT b.BillDate, COUNT(DISTINCT b.BillId) AS BillCount,
+                                       MIN(b.BillNo) AS MinBillNo, MAX(b.BillNo) AS MaxBillNo,
                                        SUM(bi.Amount) AS TotalAmount
                                 FROM jeevika_erp.SocMemberBillItem bi
                                 JOIN jeevika_erp.SocMemberBill b ON bi.BillId = b.BillId
@@ -1499,15 +1505,19 @@ namespace JeevikaERP.Controllers
                                 decimal amt = Convert.ToDecimal(rBISum["TotalAmount"]);
                                 int count = Convert.ToInt32(rBISum["BillCount"]);
                                 DateTime bDate = (DateTime)rBISum["BillDate"];
+                                string minB = rBISum["MinBillNo"] != DBNull.Value ? rBISum["MinBillNo"].ToString() ?? "" : "";
+                                string maxB = rBISum["MaxBillNo"] != DBNull.Value ? rBISum["MaxBillNo"].ToString() ?? "" : "";
+                                string bNoDisplay = (minB == maxB || string.IsNullOrEmpty(maxB)) ? minB : $"{minB}..{maxB}";
+                                if (string.IsNullOrWhiteSpace(bNoDisplay)) bNoDisplay = "MBIL";
 
                                 rawTxList.Add(new LedgerItemInternal
                                 {
                                     DetailId = 0,
                                     VoucherId = 0,
-                                    VoucherNo = "MEMBER BILL",
+                                    VoucherNo = bNoDisplay,
                                     VoucherType = "Member Bill",
                                     VoucherDate = bDate,
-                                    ContraAccount = "Dues From Members [ASS-1025]",
+                                    ContraAccount = "[ASS-1025] Dues From Members",
                                     PersonName = "By Member Billing",
                                     Narration = $"By Monthly Member Billing ({count} {(count == 1 ? "Bill" : "Bills")})",
                                     ChqNo = "—",
@@ -1560,7 +1570,7 @@ namespace JeevikaERP.Controllers
                                     VoucherNo = bNo,
                                     VoucherType = "Member Bill",
                                     VoucherDate = bDate,
-                                    ContraAccount = "Dues From Members [ASS-1025]",
+                                    ContraAccount = "[ASS-1025] Dues From Members",
                                     PersonName = bMem,
                                     Narration = $"{bMem} - {hName}",
                                     ChqNo = "—",

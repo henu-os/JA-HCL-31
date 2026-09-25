@@ -373,12 +373,46 @@
 
   // ── 5. KPI & FOOTER BALANCING ────────────────────────────────────────────
   function updateKPIs(count, total, bank, cash) {
-    document.getElementById('kpiTotalVouchers').textContent = count.toLocaleString('en-IN');
-    document.getElementById('kpiTotalAmount').textContent = '₹ ' + formatINR(total);
-    document.getElementById('kpiBankAmount').textContent = '₹ ' + formatINR(bank);
-    document.getElementById('kpiCashAmount').textContent = '₹ ' + formatINR(cash);
-    document.getElementById('recordCountLabel').textContent = `${count} Vouchers Displayed`;
+    const elCount = document.getElementById('kpiTotalVouchers');
+    const elTotal = document.getElementById('kpiTotalAmount');
+    const elBank = document.getElementById('kpiBankAmount');
+    const elCash = document.getElementById('kpiCashAmount');
+    if (elCount) elCount.textContent = count.toLocaleString('en-IN');
+    if (elTotal) elTotal.textContent = '₹ ' + formatINR(total);
+    if (elBank) elBank.textContent = '₹ ' + formatINR(bank);
+    if (elCash) elCash.textContent = '₹ ' + formatINR(cash);
+    const recCount = document.getElementById('recordCountLabel');
+    if (recCount) recCount.textContent = `${count} Vouchers Displayed`;
   }
+
+  // ── Statement Summary Popover Toggle ───────────────────────────────────────
+  window.toggleSummaryPopover = function (event) {
+    if (event) event.stopPropagation();
+    const pop = document.getElementById('summaryPopover');
+    const btn = document.getElementById('btnSummaryToggle');
+    if (!pop) return;
+
+    const isShown = pop.classList.contains('show');
+    if (isShown) {
+      pop.classList.remove('show');
+      if (btn) btn.classList.remove('active');
+    } else {
+      pop.classList.add('show');
+      if (btn) btn.classList.add('active');
+    }
+  };
+
+  // Close summary popover when clicking anywhere outside
+  document.addEventListener('click', (e) => {
+    const pop = document.getElementById('summaryPopover');
+    const btn = document.getElementById('btnSummaryToggle');
+    if (pop && pop.classList.contains('show')) {
+      if (!pop.contains(e.target) && e.target !== btn && !btn?.contains(e.target)) {
+        pop.classList.remove('show');
+        if (btn) btn.classList.remove('active');
+      }
+    }
+  });
 
   function updateFooters(debit, credit) {
     const footDr = document.getElementById('footTotDebit');
@@ -508,8 +542,17 @@
 
   // ── 8. PRINT REGISTER ───────────────────────────────────────────────────
   window.printRegister = function () {
+    if (typeof syncSocietyInfo === 'function') syncSocietyInfo();
     updatePrintDates();
+    const socName = (window.Auth && Auth.getSocietyName && Auth.getSocietyName() !== '—') 
+      ? Auth.getSocietyName() 
+      : (sessionStorage.getItem('activeSocietyName') || 'Society');
+    const fromDate = document.getElementById('fromDate')?.value || '';
+    const toDate = document.getElementById('toDate')?.value || '';
+    const origTitle = document.title;
+    document.title = `${socName}_Payment_Register_${fromDate}_${toDate}`.replace(/[^a-zA-Z0-9_-]/g, '_');
     window.print();
+    setTimeout(() => { document.title = origTitle; }, 1000);
   };
 
   // ── 9. VIEW VOUCHER DETAILS MODAL ───────────────────────────────────────

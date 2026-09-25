@@ -254,26 +254,41 @@
     .badge-vtype.jv { background: #e0e7ff; color: #3730a3; }
     .badge-vtype.contra { background: #fef3c7; color: #92400e; }
 
+    table.ledger-grid th.col-amount {
+      width: 1%;
+      white-space: nowrap;
+      text-align: right;
+    }
+
     .td-num {
       text-align: right;
       font-variant-numeric: tabular-nums;
       font-weight: 600;
+      white-space: nowrap;
+      width: 1%;
     }
     .val-debit { color: #16a34a; }
     .val-credit { color: #dc2626; }
 
     /* Print Styles */
     @media print {
-      body.erp-module {
-        height: auto;
-        overflow: visible;
-        background: #ffffff;
+      @page {
+        size: auto;
+        margin: 8mm 6mm;
+      }
+      html, body.erp-module {
+        height: auto !important;
+        overflow: visible !important;
+        background: #ffffff !important;
+        display: block !important;
       }
       .module-top-bar, .filter-bar, .summary-strip, .no-print {
         display: none !important;
       }
       .table-container {
-        overflow: visible;
+        display: block !important;
+        overflow: visible !important;
+        position: static !important;
       }
       .print-header {
         display: block !important;
@@ -286,21 +301,55 @@
         justify-content: space-between;
         margin-top: 35px;
         padding-top: 15px;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+      table.ledger-grid {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        font-size: 8pt !important;
+      }
+      table.ledger-grid thead {
+        display: table-header-group !important;
+      }
+      table.ledger-grid tbody {
+        display: table-row-group !important;
+      }
+      table.ledger-grid tr {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
       }
       table.ledger-grid th {
+        position: static !important;
+        top: auto !important;
+        z-index: auto !important;
         background: #f1f5f9 !important;
         color: #0f172a !important;
         border: 1px solid #94a3b8 !important;
+        padding: 5px 8px !important;
+        font-size: 8pt !important;
+        font-weight: 800 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.3px !important;
+        white-space: nowrap !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
       }
       table.ledger-grid td {
         border: 1px solid #cbd5e1 !important;
-      }
-      .row-acc-banner {
-        background: #e2e8f0 !important;
+        padding: 4px 8px !important;
+        font-size: 8pt !important;
         color: #0f172a !important;
       }
-      .row-acc-banner td {
-        color: #0f172a !important;
+      .row-opening {
+        background: #f0fdf4 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      .row-closing {
+        background: #f8fafc !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
       }
     }
     .print-header, .print-signatures {
@@ -412,11 +461,11 @@
         <span class="kpi-value" id="kpiOpeningBal">₹ 0.00</span>
       </div>
       <div class="kpi-item">
-        <span class="kpi-label">Total Cash/Bank In (Dr):</span>
+        <span class="kpi-label">Total Debit (Dr):</span>
         <span class="kpi-value debit" id="kpiTotalDr">₹ 0.00</span>
       </div>
       <div class="kpi-item">
-        <span class="kpi-label">Total Cash/Bank Out (Cr):</span>
+        <span class="kpi-label">Total Credit (Cr):</span>
         <span class="kpi-value credit" id="kpiTotalCr">₹ 0.00</span>
       </div>
       <div class="kpi-item">
@@ -434,20 +483,19 @@
     <table class="ledger-grid" id="cashBankTable">
       <thead>
         <tr>
-          <th style="width:40px; text-align:center;">#</th>
           <th style="width:90px;">Date</th>
-          <th style="width:130px;">Voucher No &amp; Type</th>
+          <th style="width:130px; text-align:center;">Voucher No &amp; Type</th>
           <th style="width:200px;">Contra Account / Head</th>
           <th>Particulars / Narration</th>
           <th style="width:140px;">Cheque / Ref No.</th>
-          <th style="width:120px; text-align:right;">Cash/Bank In (₹)</th>
-          <th style="width:120px; text-align:right;">Cash/Bank Out (₹)</th>
-          <th style="width:130px; text-align:right;">Running Balance (₹)</th>
+          <th class="col-amount">Debit (₹)</th>
+          <th class="col-amount">Credit (₹)</th>
+          <th class="col-amount">Balance (₹)</th>
         </tr>
       </thead>
       <tbody id="cashBankTableBody">
         <tr>
-          <td colspan="9" style="text-align:center; padding:50px; color:#64748b;">
+          <td colspan="8" style="text-align:center; padding:50px; color:#64748b;">
             <i class="bi bi-bank" style="font-size:26px; color:var(--primary); display:block; margin-bottom:8px;"></i>
             Please select a Cash or Bank account above to load the register.
           </td>

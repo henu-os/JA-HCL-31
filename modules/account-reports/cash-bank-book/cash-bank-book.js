@@ -169,7 +169,7 @@
     const fromDate = document.getElementById('fromDate').value || window._fyStartDate;
     const toDate = document.getElementById('toDate').value || window._fyEndDate;
 
-    tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted" style="padding:40px;"><i class="bi bi-arrow-repeat spin" style="font-size:20px; color:#0D47A1;"></i><br>Loading Cash/Bank statement...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted" style="padding:40px;"><i class="bi bi-arrow-repeat spin" style="font-size:20px; color:#0D47A1;"></i><br>Loading Cash/Bank statement...</td></tr>';
 
     try {
       let txs = [];
@@ -195,7 +195,7 @@
 
     } catch (err) {
       console.error('Failed to load Cash/Bank Book', err);
-      tbody.innerHTML = '<tr><td colspan="9" class="text-center text-danger" style="padding:40px;">Failed to load Cash/Bank Book statement.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger" style="padding:40px;">Failed to load Cash/Bank Book statement.</td></tr>';
     }
   };
 
@@ -230,9 +230,8 @@
     // Opening Balance Row
     html += `
       <tr class="row-opening">
-        <td style="text-align:center;"><i class="bi bi-box-arrow-in-right"></i></td>
         <td><strong>${formatDate(document.getElementById('fromDate').value || window._fyStartDate)}</strong></td>
-        <td><span class="badge-vtype" style="background:#dcfce7; color:#166534;">OPENING BAL</span></td>
+        <td><div style="text-align:left;"><span class="badge-vtype" style="background:#dcfce7; color:#166534;">OPENING BAL</span></div></td>
         <td colspan="3"><strong>Opening Balance Brought Forward (B/F)</strong></td>
         <td class="td-num val-debit">${currentOpeningBal > 0 && currentOpeningType !== 'Cr' ? formatAmount(currentOpeningBal) : '—'}</td>
         <td class="td-num val-credit">${currentOpeningBal > 0 && currentOpeningType === 'Cr' ? formatAmount(currentOpeningBal) : '—'}</td>
@@ -243,13 +242,13 @@
     if (filtered.length === 0) {
       html += `
         <tr>
-          <td colspan="9" class="text-center text-muted" style="padding:35px;">
+          <td colspan="8" class="text-center text-muted" style="padding:35px;">
             No transactions found for the selected account and filters in this date range.
           </td>
         </tr>
       `;
     } else {
-      filtered.forEach((t, idx) => {
+      filtered.forEach((t) => {
         const dr = parseFloat(t.debit || t.cashIn || t.bankIn) || 0;
         const cr = parseFloat(t.credit || t.cashOut || t.bankOut) || 0;
 
@@ -266,13 +265,14 @@
 
         html += `
           <tr>
-            <td style="text-align:center; font-weight:700; color:#64748b;">${idx + 1}</td>
             <td style="font-weight:600;">${formatDate(t.voucherDate)}</td>
             <td>
-              <strong style="color:#0D47A1;">${escHtml(t.voucherNo || '—')}</strong>
-              <span class="${badgeClass}" style="margin-left:4px;">${escHtml(t.voucherType || 'Voucher')}</span>
+              <div style="text-align:center; font-weight:700; color:#0D47A1; letter-spacing:0.2px;">${escHtml(t.voucherNo || '—')}</div>
+              <div style="text-align:left; margin-top:3px;">
+                <span class="${badgeClass}">${escHtml(t.voucherType || 'Voucher')}</span>
+              </div>
             </td>
-            <td style="font-weight:600; color:#1e293b;">${escHtml(t.contraAccount || t.headName || '—')}</td>
+            <td style="font-weight:600; color:#1e293b;">${escHtml(formatContraAccount(t.contraAccount || t.headName || '—'))}</td>
             <td>${escHtml(t.particulars || t.narration || '—')}</td>
             <td style="font-family:monospace; font-size:10.5px; color:#475569;">${escHtml(t.chequeNo || t.refNo || '—')}</td>
             <td class="td-num val-debit">${dr > 0 ? formatAmount(dr) : '—'}</td>
@@ -286,7 +286,6 @@
     // Closing Balance Row
     html += `
       <tr class="row-closing">
-        <td style="text-align:center;"><i class="bi bi-flag-fill" style="color:#0D47A1;"></i></td>
         <td><strong>${formatDate(document.getElementById('toDate').value || window._fyEndDate)}</strong></td>
         <td colspan="4"><strong>CLOSING BALANCE CARRIED FORWARD (C/F) &amp; PERIOD TOTALS</strong></td>
         <td class="td-num val-debit" style="font-size:12px; font-weight:800;">${formatAmount(totalDebit)}</td>
@@ -342,6 +341,20 @@
     link.click();
     document.body.removeChild(link);
   };
+
+  function formatContraAccount(contra) {
+    if (!contra || contra === '—') return '—';
+    return contra.split(' / ').map(part => {
+      part = part.trim();
+      const match = part.match(/^(.*?)\s*\[([^\]]+)\]$/);
+      if (match) {
+        const name = match[1].trim();
+        const code = match[2].trim();
+        return `[${code}] ${name}`;
+      }
+      return part;
+    }).join(' / ');
+  }
 
   function formatDate(dStr) {
     if (!dStr) return '—';

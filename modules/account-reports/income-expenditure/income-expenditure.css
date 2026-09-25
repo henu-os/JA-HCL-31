@@ -161,13 +161,13 @@ body.erp-module {
 /* ── Printable Report Container ──────────────────────────────────────────── */
 .ie-report-container {
   max-width: 1400px;
-  min-width: 980px;
   margin: 0 auto;
   background: #ffffff;
   border: 1px solid var(--border-color);
   border-radius: 6px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   padding: 24px;
+  box-sizing: border-box;
 }
 
 /* ── Header Section ──────────────────────────────────────────────────────── */
@@ -178,22 +178,37 @@ body.erp-module {
   margin-bottom: 16px;
 }
 
-.ie-soc-name,
+.ie-soc-name {
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--navy-primary);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
 .ie-soc-sub {
-  display: none;
+  font-size: 11px;
+  color: #475569;
+  font-weight: 600;
+  margin-bottom: 6px;
 }
 
 .ie-title {
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 800;
-  color: #1e293b;
+  color: #0a3880;
   text-transform: uppercase;
   letter-spacing: 0.3px;
   display: inline-block;
-  background: var(--navy-light);
-  padding: 3px 18px;
+  background: #e8f0fe;
+  padding: 4px 20px;
   border-radius: 4px;
   border: 1px solid #bfdbfe;
+}
+
+.ie-print-masthead-row {
+  display: none;
 }
 
 /* ── T-Format Side-by-Side Wrapper ───────────────────────────────────────── */
@@ -206,6 +221,28 @@ body.erp-module {
 .ie-t-table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
+}
+
+/* Proportional Column Widths (50% Expenditure, 50% Income = 100%) */
+.col-prev {
+  width: 10%;
+  text-align: right;
+}
+
+.col-particulars {
+  width: 21%;
+  text-align: left;
+}
+
+.col-subtotal {
+  width: 8.5%;
+  text-align: right;
+}
+
+.col-cur {
+  width: 10.5%;
+  text-align: right;
 }
 
 /* Top Dual Column Header (EXPENDITURE vs INCOME) */
@@ -235,14 +272,8 @@ body.erp-module {
 
 .ie-col-amount,
 .col-amount {
-  width: 1%;
-  min-width: 82px;
   white-space: nowrap;
   text-align: center;
-}
-
-.col-subtotal {
-  min-width: 90px;
 }
 
 .ie-side-divider {
@@ -342,10 +373,10 @@ body.erp-module {
   border-bottom: 4px double var(--navy-primary) !important;
 }
 
-/* ── Print Layout (Matches Executive Statement / Image 2 Standard) ────────── */
+/* ── Print Layout (Matches Executive Statement / Balance Sheet Standard) ───── */
 @media print {
   @page {
-    size: landscape;
+    size: auto;
     margin: 6mm 8mm;
   }
 
@@ -362,7 +393,7 @@ body.erp-module {
     background: #ffffff !important;
     color: #0f172a !important;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
-    font-size: 8.5pt !important;
+    font-size: 8pt !important;
     min-width: 0 !important;
     height: auto !important;
     overflow: visible !important;
@@ -370,7 +401,8 @@ body.erp-module {
 
   .ie-toolbar,
   #fileProtocolBanner,
-  .ie-header {
+  .ie-header,
+  .no-print {
     display: none !important;
   }
 
@@ -378,16 +410,19 @@ body.erp-module {
     overflow: visible !important;
     padding: 0 !important;
     margin: 0 !important;
+    display: block !important;
+    height: auto !important;
   }
 
   .ie-report-container {
     max-width: 100% !important;
     margin: 0 !important;
-    padding: 10px 14px !important;
+    padding: 0 !important;
     background: #ffffff !important;
-    border: 1px solid #cbd5e1 !important;
-    border-radius: 6px !important;
+    border: none !important;
+    border-radius: 0 !important;
     box-shadow: none !important;
+    display: block !important;
   }
 
   .ie-t-table-wrapper {
@@ -397,15 +432,23 @@ body.erp-module {
     border-radius: 4px !important;
     overflow: hidden !important;
     background: #ffffff !important;
+    box-sizing: border-box !important;
   }
 
   .ie-t-table {
     width: 100% !important;
+    max-width: 100% !important;
     border-collapse: collapse !important;
+    table-layout: fixed !important;
+    box-sizing: border-box !important;
   }
 
   thead {
     display: table-header-group !important;
+  }
+
+  tbody {
+    display: table-row-group !important;
   }
 
   /* Print Masthead in thead (repeats on every printed page) */
@@ -436,7 +479,7 @@ body.erp-module {
     margin-bottom: 6px !important;
   }
 
-  /* Centered Pill Badge matching Image 2 */
+  /* Centered Pill Badge matching Balance Sheet */
   .ie-title,
   .ie-print-title {
     font-size: 10.5pt !important;
@@ -450,40 +493,46 @@ body.erp-module {
     border-radius: 4px !important;
     border: 1px solid #bfdbfe !important;
     margin: 4px auto 8px auto !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   /* Single-Tier Column Header Row */
   .ie-col-header-row th {
     background: #f1f5f9 !important;
     color: #1e293b !important;
-    font-size: 8.5pt !important;
+    font-size: 8pt !important;
     font-weight: 800 !important;
     text-transform: uppercase !important;
     border: 1px solid #cbd5e1 !important;
     border-top: 2px solid #0a3880 !important;
     border-bottom: 1.5px solid #94a3b8 !important;
-    padding: 5px 6px !important;
+    padding: 4px 5px !important;
     line-height: 1.25 !important;
     vertical-align: middle !important;
     text-align: center !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
-  .ie-col-header-row th.ie-side-divider {
+  .ie-side-divider,
+  .ie-col-header-row th.ie-side-divider,
+  .ie-table-cell.ie-side-divider,
+  .ie-grand-total-cell.ie-side-divider {
     border-right: 3.5px solid #000000 !important;
   }
 
-  /* Ruled Cells - NO STRAY VERTICAL LINES */
+  /* Ruled Cells - Clean Corporate Borders */
   .ie-table-cell {
     border: 1px solid #e2e8f0 !important;
-    padding: 3.5px 7px !important;
-    font-size: 8.5pt !important;
-    line-height: 1.35 !important;
+    padding: 3px 5px !important;
+    font-size: 8pt !important;
+    line-height: 1.3 !important;
     background: #ffffff !important;
     color: #1e293b !important;
     vertical-align: top !important;
   }
 
-  /* Column border definitions */
   .ie-table-cell.ie-acc-row {
     border-right: 1px solid #e2e8f0 !important;
   }
@@ -492,13 +541,10 @@ body.erp-module {
     border-left: 1px solid #e2e8f0 !important;
   }
 
-  .ie-side-divider {
-    border-right: 3.5px solid #000000 !important;
-  }
-
   .ie-num {
-    font-size: 8.5pt !important;
-    font-family: "Courier New", Courier, monospace, sans-serif !important;
+    font-size: 8pt !important;
+    font-family: inherit !important;
+    font-variant-numeric: tabular-nums !important;
     font-weight: 600 !important;
     text-align: right !important;
     white-space: nowrap !important;
@@ -506,7 +552,7 @@ body.erp-module {
 
   .ie-acc-code {
     font-family: monospace !important;
-    font-size: 8pt !important;
+    font-size: 7.5pt !important;
     color: #64748b !important;
     margin-right: 4px !important;
   }
@@ -518,12 +564,14 @@ body.erp-module {
   .ie-group-header-row,
   td[colspan="2"] {
     background: #f8fafc !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   .ie-group-title {
     font-weight: 800 !important;
     color: #0a3880 !important;
-    font-size: 9pt !important;
+    font-size: 8.5pt !important;
     text-transform: uppercase !important;
     display: inline-block !important;
   }
@@ -542,11 +590,15 @@ body.erp-module {
     font-weight: 800 !important;
     color: #0d9488 !important;
     background: #f0fdfa !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   /* Grand Total */
   .ie-grand-total-row {
     background: #f1f5f9 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   .ie-grand-total-cell {
@@ -557,11 +609,9 @@ body.erp-module {
     font-size: 9.5pt !important;
     font-weight: 900 !important;
     color: #0a3880 !important;
-    padding: 6px 8px !important;
-  }
-
-  .ie-grand-total-cell.ie-side-divider {
-    border-right: 3.5px solid #000000 !important;
+    padding: 5px 6px !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   /* Signatory Attestation (Prints on Last Page) */
@@ -572,33 +622,49 @@ body.erp-module {
   .ie-print-sign-row {
     display: table-row !important;
     page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 
   .ie-sign-cell {
     border: none !important;
-    padding-top: 22px !important;
+    padding-top: 24px !important;
     padding-bottom: 8px !important;
     background: transparent !important;
   }
 
   .ie-sign-society {
-    font-size: 9pt !important;
-    font-weight: 800 !important;
-    margin-bottom: 35px !important;
-    color: #0f172a !important;
-  }
-
-  .ie-sign-officers {
-    display: flex !important;
-    justify-content: space-between !important;
-    width: 90% !important;
     font-size: 8.5pt !important;
     font-weight: 800 !important;
-    color: #1e293b !important;
+    text-align: right !important;
+    padding-right: 20px !important;
+    margin-bottom: 24px !important;
+    color: #0f172a !important;
+    text-transform: uppercase !important;
+  }
+
+  .ie-sign-boxes {
+    display: flex !important;
+    justify-content: space-around !important;
+    align-items: flex-end !important;
+    padding: 0 40px !important;
+    width: 100% !important;
+  }
+
+  .ie-sign-box {
+    width: 160px !important;
+    text-align: center !important;
+    border-top: 1.5px solid #0a3880 !important;
+    padding-top: 5px !important;
+    font-size: 8pt !important;
+    font-weight: 800 !important;
+    color: #0a3880 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
   }
 
   tr {
     page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 }
 

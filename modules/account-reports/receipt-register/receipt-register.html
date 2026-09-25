@@ -49,6 +49,14 @@
         </select>
       </div>
 
+      <!-- Member Filter Dropdown -->
+      <div class="reg-filter-item">
+        <label for="memberSelect"><i class="bi bi-person"></i> Member:</label>
+        <select id="memberSelect" class="reg-select" style="max-width:190px;" onchange="onMemberFilterChange()">
+          <option value="all">All Members / Payers</option>
+        </select>
+      </div>
+
       <!-- Account Code / Voucher No Toggle -->
       <div class="reg-filter-item">
         <input type="checkbox" id="chk-voucher-no" checked onchange="renderRegisterView()">
@@ -64,58 +72,53 @@
 
     <!-- Action Buttons -->
     <div style="display:flex; align-items:center; gap:8px;">
+      <!-- Statement Summary Dropdown (Pop-over) -->
+      <div class="summary-dropdown-wrap">
+        <button type="button" class="summary-dropdown-btn" id="btnSummaryToggle" onclick="toggleSummaryPopover(event)" title="Click to view Statement Summary">
+          <i class="bi bi-bar-chart-fill" style="color:var(--reg-primary, #0284c7); font-size:12px;"></i>
+          <span>Statement Summary</span>
+          <i class="bi bi-chevron-down" style="font-size:9.5px; color:#64748b; margin-left:2px;"></i>
+        </button>
+
+        <!-- Popover Card -->
+        <div class="summary-popover" id="summaryPopover">
+          <div class="summary-popover-head">
+            <div style="font-size:12px; font-weight:800; color:#0f172a; display:flex; align-items:center; gap:6px;">
+              <i class="bi bi-pie-chart-fill" style="color:var(--reg-primary, #0284c7);"></i> Statement Summary
+            </div>
+            <span style="font-size:10px; font-weight:700; color:#0369a1; background:#e0f2fe; padding:2px 8px; border-radius:10px;" id="popover-period">Overview</span>
+          </div>
+
+          <div class="summary-popover-grid">
+            <div class="pop-card">
+              <span class="pop-lbl"><i class="bi bi-receipt" style="color:#1d4ed8;"></i> Receipt Vouchers</span>
+              <span class="pop-val" id="kpiTotalVouchers" style="color:#1d4ed8;">0</span>
+            </div>
+            <div class="pop-card">
+              <span class="pop-lbl"><i class="bi bi-arrow-down-left-circle" style="color:#16a34a;"></i> Total Collections</span>
+              <span class="pop-val" id="kpiTotalAmount" style="color:#16a34a;">₹ 0.00</span>
+            </div>
+            <div class="pop-card">
+              <span class="pop-lbl"><i class="bi bi-bank2" style="color:#059669;"></i> Bank Inflow</span>
+              <span class="pop-val" id="kpiBankAmount" style="color:#059669;">₹ 0.00</span>
+            </div>
+            <div class="pop-card">
+              <span class="pop-lbl"><i class="bi bi-cash-stack" style="color:#d97706;"></i> Cash Received</span>
+              <span class="pop-val" id="kpiCashAmount" style="color:#d97706;">₹ 0.00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <button class="reg-btn reg-btn-primary" onclick="loadReceiptRegister()" title="Refresh records from server">
         <i class="bi bi-arrow-clockwise"></i> Refresh
       </button>
-      <button class="reg-btn" onclick="printRegister()" title="Print statutory receipt register">
+      <button class="reg-btn" onclick="openPrintModal()" title="Print register or receipt vouchers">
         <i class="bi bi-printer"></i> Print
       </button>
       <button class="reg-btn reg-btn-success" onclick="exportToExcel()" title="Export register to Excel .xlsx">
         <i class="bi bi-file-earmark-excel"></i> Export Excel
       </button>
-    </div>
-  </div>
-
-  <!-- ── Top KPI Stat Summary Cards ─────────────────────────────────────────── -->
-  <div class="reg-kpi-bar">
-    <div class="reg-kpi-card">
-      <div class="reg-kpi-icon" style="background:#eff6ff; color:#1d4ed8;">
-        <i class="bi bi-receipt"></i>
-      </div>
-      <div class="reg-kpi-info">
-        <div class="reg-kpi-label">Receipt Vouchers</div>
-        <div class="reg-kpi-value" id="kpiTotalVouchers">0</div>
-      </div>
-    </div>
-
-    <div class="reg-kpi-card">
-      <div class="reg-kpi-icon" style="background:#f0fdf4; color:#16a34a;">
-        <i class="bi bi-arrow-down-left-circle"></i>
-      </div>
-      <div class="reg-kpi-info">
-        <div class="reg-kpi-label">Total Collections</div>
-        <div class="reg-kpi-value" id="kpiTotalAmount">₹ 0.00</div>
-      </div>
-    </div>
-
-    <div class="reg-kpi-card">
-      <div class="reg-kpi-icon" style="background:#f0fdf4; color:#059669;">
-        <i class="bi bi-bank2"></i>
-      </div>
-      <div class="reg-kpi-info">
-        <div class="reg-kpi-label">Bank Inflow</div>
-        <div class="reg-kpi-value" id="kpiBankAmount">₹ 0.00</div>
-      </div>
-    </div>
-
-    <div class="reg-kpi-card">
-      <div class="reg-kpi-icon" style="background:#fffbeb; color:#d97706;">
-        <i class="bi bi-cash-stack"></i>
-      </div>
-      <div class="reg-kpi-info">
-        <div class="reg-kpi-label">Cash Received</div>
-        <div class="reg-kpi-value" id="kpiCashAmount">₹ 0.00</div>
-      </div>
     </div>
   </div>
 
@@ -174,6 +177,78 @@
 
     </div>
   </div>
+
+  <!-- ── Print Format Selection Modal ────────────────────────────────────── -->
+  <div id="printFormatModal" class="pf-modal-backdrop" style="display:none;" onclick="handleModalBackdropClick(event)">
+    <div class="pf-modal-card">
+      <div class="pf-modal-header">
+        <div class="pf-modal-title">
+          <i class="bi bi-printer-fill" style="color:var(--primary, #0D47A1);"></i> Select Report Print Format
+        </div>
+        <button type="button" class="pf-modal-close" onclick="closePrintModal()" title="Close">&times;</button>
+      </div>
+
+      <div class="pf-modal-body">
+        <div class="pf-modal-prompt">What kind of report print do you want?</div>
+
+        <div class="pf-options-grid">
+          <!-- Option 1: Current Receipt Register -->
+          <div class="pf-option-box active" id="optCardRegister" onclick="setPrintFormat('register')">
+            <div class="pf-option-radio">
+              <input type="radio" name="printFormatChoice" id="pfRadioRegister" value="register" checked>
+            </div>
+            <div class="pf-option-main">
+              <div class="pf-option-badge">Standard Report</div>
+              <div class="pf-option-heading">
+                <i class="bi bi-table"></i> Option 1: Receipt Register (Current Format)
+              </div>
+              <div class="pf-option-text">
+                Full chronological tabular register showing dates, voucher numbers, account head splits, debit &amp; credit amounts, and balancing totals.
+              </div>
+            </div>
+          </div>
+
+          <!-- Option 2: Receipt Voucher (Image 1 Format) -->
+          <div class="pf-option-box" id="optCardVoucher" onclick="setPrintFormat('voucher')">
+            <div class="pf-option-radio">
+              <input type="radio" name="printFormatChoice" id="pfRadioVoucher" value="voucher">
+            </div>
+            <div class="pf-option-main">
+              <div class="pf-option-badge pf-badge-voucher">2 Receipts Per Page</div>
+              <div class="pf-option-heading">
+                <i class="bi bi-receipt-cutoff"></i> Option 2: Receipt Voucher (Image 1 Format)
+              </div>
+              <div class="pf-option-text">
+                Official housing society receipt voucher with letterhead, member acknowledgment, itemized particulars, amount in words, instrument details, and Hon. Secretary/Treasurer signature. Exactly 2 receipts per page.
+              </div>
+              <div class="pf-member-alert" id="pfMemberAlertBox">
+                <i class="bi bi-info-circle-fill"></i>
+                <span id="pfMemberAlertText">When an individual member is selected, 2 identical copies will be printed on one page (Society Copy &amp; Member Copy).</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Target Member Selector -->
+        <div class="pf-member-row">
+          <label for="pfMemberSelect"><i class="bi bi-person-circle"></i> Member / Payer:</label>
+          <select id="pfMemberSelect" class="reg-select" style="flex:1;" onchange="onModalMemberChange(this.value)">
+            <option value="all">All Members / Payers</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="pf-modal-footer">
+        <button type="button" class="reg-btn" onclick="closePrintModal()">Cancel</button>
+        <button type="button" class="reg-btn reg-btn-primary" onclick="confirmAndPrint()">
+          <i class="bi bi-printer"></i> Print Selected Format
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Print-Only Container for Receipt Vouchers (Image 1 Layout) ───────── -->
+  <div id="voucherPrintArea" class="voucher-print-area"></div>
 
   <!-- xlsx-js-style for rich-styled Excel workbook generation -->
   <script src="../../../assets/js/xlsx-js-style.bundle.js"></script>

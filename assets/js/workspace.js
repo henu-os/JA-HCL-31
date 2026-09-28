@@ -17,6 +17,7 @@ const WorkspaceManager = (() => {
     { id: 'billing-utility', label: 'Billing Utilities', icon: 'bi-receipt-cutoff', hasSub: true },
     { id: 'statutory', label: 'Statutory', icon: 'bi-journal-bookmark-fill', hasSub: true },
     { id: 'admin', label: 'Admin', icon: 'bi-gear-fill', hasSub: true },
+    { id: 'settings', label: 'Settings', icon: 'bi-sliders', hasSub: true },
     { id: 'help', label: 'Help & Documentation', icon: 'bi-question-circle-fill', hasSub: false }
   ];
 
@@ -169,7 +170,18 @@ const WorkspaceManager = (() => {
     // ADMIN
     { id: 'user-management', label: 'User & Password Setup', category: 'admin', path: 'modules/admin/user-management/user-management.html' },
     { id: 'role-permissions', label: 'Role Access Permissions', category: 'admin', path: 'modules/admin/role-permissions/role-permissions.html' },
-    { id: 'audit-log', label: 'System Audit Logs', category: 'admin', path: 'modules/admin/audit-log/audit-log.html' }
+    { id: 'audit-log', label: 'System Audit Logs', category: 'admin', path: 'modules/admin/audit-log/audit-log.html' },
+
+    // SETTINGS
+    {
+      id: 'henu-db-universal-group',
+      label: 'HENU DB UNIVERSAL',
+      category: 'settings',
+      isGroup: true,
+      children: [
+        { id: 'henu-db-universal-merge', label: 'Universal Database Merge', path: 'modules/settings/henu-db-universal/henu-db-universal.html' }
+      ]
+    }
   ];
 
   let openCategories = { 'master': true };

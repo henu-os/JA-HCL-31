@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HENU DB UNIVERSAL — Import &amp; Merge Engine</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="../../../assets/css/global.css">
+  <link rel="stylesheet" href="../../../assets/css/components.css">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      background-color: #f8fafc;
+      padding: 18px;
+      margin: 0;
+      color: #1e293b;
+    }
+    .page-card {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      margin-bottom: 18px;
+      overflow: hidden;
+    }
+    .card-header {
+      background: linear-gradient(135deg, #1565C0 0%, #0d47a1 100%);
+      color: #ffffff;
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .card-header h2 {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      letter-spacing: 0.3px;
+    }
+    .card-body {
+      padding: 18px;
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+    .form-group label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #334155;
+    }
+    .form-control {
+      padding: 7px 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 12.5px;
+      background: #f8fafc;
+      transition: all 0.15s;
+    }
+    .form-control:focus {
+      border-color: #1565C0;
+      background: #ffffff;
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(21, 101, 192, 0.15);
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      font-size: 12px;
+      font-weight: 700;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-primary {
+      background: #1565C0;
+      color: #ffffff;
+    }
+    .btn-primary:hover {
+      background: #0d47a1;
+      transform: translateY(-1px);
+    }
+    .btn-secondary {
+      background: #64748b;
+      color: #ffffff;
+    }
+    .btn-secondary:hover {
+      background: #475569;
+    }
+    .btn-success {
+      background: #16a34a;
+      color: #ffffff;
+    }
+    .btn-success:hover {
+      background: #15803d;
+    }
+    .meta-box {
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 12px;
+      font-family: monospace;
+      font-size: 11.5px;
+      max-height: 220px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+    .stat-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .badge-success { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+    .badge-info { background: #e0f2fe; color: #0369a1; border: 1px solid #7dd3fc; }
+    .badge-warning { background: #fef9c3; color: #a16207; border: 1px solid #fde047; }
+    .badge-danger { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+    .report-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-top: 10px;
+    }
+    .report-table th, .report-table td {
+      border: 1px solid #cbd5e1;
+      padding: 8px 12px;
+      text-align: left;
+    }
+    .report-table th {
+      background: #f1f5f9;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .selection-panel {
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 10px;
+      background: #f8fafc;
+      margin-top: 8px;
+    }
+    .selection-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .selection-list {
+      max-height: 130px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── CARD 1: UNIVERSAL MERGE & IMPORT ENGINE ────────────── -->
+  <div class="page-card">
+    <div class="card-header">
+      <h2><i class="bi bi-database-fill-gear"></i> HENU DB UNIVERSAL — DATABASE IMPORT &amp; MERGE</h2>
+      <span class="stat-badge badge-info">FY-AWARE MERGE ENGINE</span>
+    </div>
+    <div class="card-body">
+      <div class="grid-2">
+        <div>
+          <div class="form-group">
+            <label><i class="bi bi-file-earmark-arrow-up"></i> Select Universal Export Package (.json)</label>
+            <input type="file" id="packageFileInput" class="form-control" accept=".json">
+          </div>
+          <div class="grid-3">
+            <div class="form-group">
+              <label>Import Mode</label>
+              <select id="importModeSelect" class="form-control">
+                <option value="SAFE_MERGE">SAFE_MERGE (Auto ID Remap &amp; Protect Existing)</option>
+                <option value="EMPTY_TARGET">EMPTY_TARGET (Direct Clean Target Import)</option>
+                <option value="VALIDATE_ONLY">VALIDATE_ONLY (Dry-Run / Preview Only)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Conflict Policy</label>
+              <select id="conflictPolicySelect" class="form-control">
+                <option value="SKIP_EXISTING">SKIP_EXISTING (Preserve target records)</option>
+                <option value="REJECT_CONFLICTS">REJECT_CONFLICTS (Rollback on any conflict)</option>
+                <option value="ADD_AS_NEW">ADD_AS_NEW (Add non-colliding new)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Financial Year Scope</label>
+              <select id="importFyScopeSelect" class="form-control" onchange="HenuDbUniversal.onImportFyScopeChange()">
+                <option value="ALL_FYS">All Financial Years</option>
+                <option value="CURRENT_FY">Current Financial Year</option>
+                <option value="SELECT_FYS">Select Financial Years</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Import FY Checklist -->
+          <div id="importFyContainer" class="selection-panel" style="display: none;">
+            <div class="selection-header">
+              <label style="font-size: 12px; font-weight: 700; color: #334155; margin: 0;">Package Financial Years to Import:</label>
+              <div style="display: flex; gap: 6px;">
+                <button type="button" class="btn btn-secondary" style="padding: 2px 8px; font-size: 11px;" onclick="HenuDbUniversal.toggleSelectAllImportFys(true)">Select All</button>
+                <button type="button" class="btn btn-secondary" style="padding: 2px 8px; font-size: 11px;" onclick="HenuDbUniversal.toggleSelectAllImportFys(false)">Clear</button>
+              </div>
+            </div>
+            <div id="importFyCheckboxList" class="selection-list">
+              <!-- Dynamically populated from loaded package -->
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 10px; margin-top: 14px;">
+            <button type="button" class="btn btn-secondary" onclick="HenuDbUniversal.previewPackage()">
+              <i class="bi bi-eye"></i> Validate &amp; Preview
+            </button>
+            <button type="button" class="btn btn-success" id="btnExecuteMerge" onclick="HenuDbUniversal.executeMerge()" disabled>
+              <i class="bi bi-check2-circle"></i> Confirm &amp; Execute Merge
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label style="font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px; display: block;">
+            <i class="bi bi-shield-check"></i> Package Metadata, Societies &amp; SHA256 Checksum
+          </label>
+          <div class="meta-box" id="metadataBox">No package loaded yet. Select a .json package file or run export.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── CARD 2: PREVIEW & AUDIT REPORT ────────────────────── -->
+  <div class="page-card" id="reportSection" style="display: none;">
+    <div class="card-header" style="background: #334155;">
+      <h2><i class="bi bi-clipboard-data"></i> Merge Preview &amp; Operation Audit Summary</h2>
+      <span id="reportStatusBadge" class="stat-badge badge-success">READY</span>
+    </div>
+    <div class="card-body">
+      <div id="reportSummaryCards" class="grid-3" style="margin-bottom: 16px;">
+        <!-- Filled dynamically -->
+      </div>
+      <div id="reportDetails"></div>
+    </div>
+  </div>
+
+  <!-- ── CARD 3: FULL DATABASE EXPORT UTILITY ──────────────── -->
+  <div class="page-card">
+    <div class="card-header" style="background: #0f172a;">
+      <h2><i class="bi bi-download"></i> Universal Database Export Generator</h2>
+      <span class="stat-badge badge-info">JSON Format v1.0.0</span>
+    </div>
+    <div class="card-body">
+      <p style="font-size: 12.5px; color: #64748b; margin-top: 0;">
+        Exports societies and financial years in structured versioned JSON format with SHA256 integrity checksums, foreign-key relationships, and sensitive credential scrubbing.
+      </p>
+      <div class="grid-2">
+        <div>
+          <div class="grid-2">
+            <div class="form-group">
+              <label><i class="bi bi-diagram-3"></i> Export Scope</label>
+              <select id="exportScopeSelect" class="form-control" onchange="HenuDbUniversal.onExportScopeChange()">
+                <option value="FULL">1. Full Database — All Societies</option>
+                <option value="CURRENT_SOCIETY">2. Current Society</option>
+                <option value="SELECT_SOCIETIES">3. Select Societies</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label><i class="bi bi-calendar3"></i> Financial Year Scope</label>
+              <select id="exportFyScopeSelect" class="form-control" onchange="HenuDbUniversal.onExportFyScopeChange()">
+                <option value="ALL_FYS">All Financial Years</option>
+                <option value="CURRENT_FY">Current Financial Year</option>
+                <option value="SELECT_FYS">Select Financial Years</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Select Societies Checklist -->
+          <div id="selectSocietiesContainer" class="selection-panel" style="display: none;">
+            <div class="selection-header">
+              <label style="font-size: 12px; font-weight: 700; color: #334155; margin: 0;">Select Societies to Export:</label>
+              <div style="display: flex; gap: 6px;">
+                <button type="button" class="btn btn-secondary" style="padding: 2px 8px; font-size: 11px;" onclick="HenuDbUniversal.toggleSelectAllSocieties(true)">Select All</button>
+                <button type="button" class="btn btn-secondary" style="padding: 2px 8px; font-size: 11px;" onclick="HenuDbUniversal.toggleSelectAllSocieties(false)">Clear</button>
+              </div>
+            </div>
+            <div id="societyCheckboxList" class="selection-list">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- Select Financial Years Checklist -->
+          <div id="selectFyContainer" class="selection-panel" style="display: none;">
+            <div class="selection-header">
+              <label style="font-size: 12px; font-weight: 700; color: #334155; margin: 0;">Select Financial Years to Export:</label>
+              <div style="display: flex; gap: 6px;">
+                <button type="button" class="btn btn-secondary" style="padding: 2px 8px; font-size: 11px;" onclick="HenuDbUniversal.toggleSelectAllFys(true)">Select All</button>
+                <button type="button" class="btn btn-secondary" style="padding: 2px 8px; font-size: 11px;" onclick="HenuDbUniversal.toggleSelectAllFys(false)">Clear</button>
+              </div>
+            </div>
+            <div id="fyCheckboxList" class="selection-list">
+              <!-- Dynamically populated from database -->
+            </div>
+          </div>
+
+          <div style="margin-top: 14px; display: flex; gap: 10px; align-items: center;">
+            <button type="button" class="btn btn-primary" onclick="HenuDbUniversal.generateExport()">
+              <i class="bi bi-file-earmark-arrow-down"></i> Generate &amp; Download Package
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label style="font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px; display: block;">
+            <i class="bi bi-info-circle"></i> Export Information &amp; Target Scope Summary
+          </label>
+          <div class="meta-box" id="exportSummaryBox">
+            Scope: Full Database — All Societies&#10;Financial Year: All Financial Years&#10;Includes: All societies, financial years, accounts, members, bills, and balanced vouchers.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../../../config.js"></script>
+  <script src="../../../assets/js/api.js"></script>
+  <script src="../../../assets/js/auth.js"></script>
+  <script src="henu-db-universal.js"></script>
+</body>
+</html>

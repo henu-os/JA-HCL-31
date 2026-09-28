@@ -1,0 +1,48 @@
+{
+  "name": "jeevika-erp-desktop",
+  "version": "2.0.0",
+  "description": "JEEVIKA ERP 2.0 - Secure Desktop Host",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron src/main/main.js",
+    "dev": "electron src/main/main.js --dev",
+    "test": "electron scripts/verify-electron.js",
+    "test:e2e": "node scripts/test-e2e-scenarios.js",
+    "dist": "electron-builder --win"
+  },
+  "author": "HENU OS PRIVATE LIMITED",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "electron": "^44.4.3",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "com.henuos.jeevikaerp",
+    "productName": "JEEVIKA ERP 2.0",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "win": {
+      "signExecutable": false,
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "deleteAppDataOnUninstall": false
+    }
+  }
+}

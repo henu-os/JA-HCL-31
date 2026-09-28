@@ -977,6 +977,7 @@
       if (grossEl) grossEl.textContent = grossStr;
 
       BM._activeIntConfig = intConfig;
+      BM._activeBtId = btId;
       document.getElementById('bm-interest-confirm-overlay').classList.add('active');
     },
 
@@ -1027,7 +1028,7 @@
       }
     },
 
-    closeInterestConfirm: function (confirmed) {
+    closeInterestConfirm: async function (confirmed) {
       document.getElementById('bm-interest-confirm-overlay').classList.remove('active');
       if (confirmed) {
         BM._interestRecalculated = true;
@@ -1038,34 +1039,120 @@
         const grossDays = parseInt(cfg.grossDate, 10) || 0;
         const dayBasis = parseInt(cfg.dayCountBasis, 10) || 365;
 
+        const socId = sessionStorage.getItem('activeSocietyId') || localStorage.getItem('activeSocietyId') || '1';
+        const fyId = (window.Auth && Auth.getFYId && Auth.getFYId()) ||
+                     sessionStorage.getItem('activeFYId') ||
+                     localStorage.getItem('activeFYId') ||
+                     (window.parent && window.parent.sessionStorage && window.parent.sessionStorage.getItem('activeFYId')) ||
+                     (window.parent && window.parent.localStorage && window.parent.localStorage.getItem('activeFYId')) ||
+                     '1';
+        const typeData = billTypes[currentBillType];
+        const currentTypeId = BM._activeBtId || (typeData ? (typeData.id || typeData.billTypeId || 0) : 0);
+
+        toast('Fetching Accumulated Principal from Member Account Head-Wise...', true);
+
+        // Fetch headwise ledger to resolve exact Accumulated Principal for each member
+        let memberAccMap = {};
+        try {
+          const ledgerUrl = `${bmApiBase()}/api/reports/member-headwise-ledger?societyId=${socId}&fyId=${fyId}&billTypeId=${currentTypeId}`;
+          const res = await fetch(ledgerUrl, { headers: getAuthHeaders() });
+          if (res.ok) {
+            const json = await res.json();
+            const ledgers = (json && json.memberLedgers) ? json.memberLedgers : [];
+            ledgers.forEach(function (l) {
+              const info = l.memberInfo || {};
+              const mId = info.memberId;
+              const mCode = (info.memberCode || '').trim().toLowerCase();
+              const mFlat = (info.flatNo || '').trim().toLowerCase();
+              const mWing = (info.wing || '').trim().toLowerCase();
+
+              const op = l.openingBalance || {};
+              const txs = l.transactions || [];
+              const opHeadMap = op.headWise || {};
+              const opInt = parseFloat(opHeadMap['Interest'] || opHeadMap['INTEREST'] || op.interest || 0);
+              let opPrinc = (parseFloat(op.totalOpening) || 0) - opInt;
+              if (opPrinc < 0) opPrinc = 0;
+
+              let curAccPrinc = opPrinc;
+              let curAccInt = opInt;
+
+              txs.forEach(function (t) {
+                const drAmt = parseFloat(t.totalDebit) || 0;
+                const crAmt = parseFloat(t.totalCredit) || 0;
+                const hAmts = t.headAmounts || {};
+                const intAmt = parseFloat(hAmts['Interest'] || hAmts['INTEREST'] || 0);
+                const princAmt = drAmt > 0 ? (drAmt - intAmt) : 0;
+
+                if (drAmt > 0) {
+                  curAccPrinc += princAmt;
+                  curAccInt += intAmt;
+                }
+
+                if (crAmt > 0) {
+                  let remCredit = crAmt;
+                  if (curAccInt > 0) {
+                    if (remCredit <= curAccInt) {
+                      curAccInt -= remCredit;
+                      remCredit = 0;
+                    } else {
+                      remCredit -= curAccInt;
+                      curAccInt = 0;
+                      curAccPrinc -= remCredit;
+                    }
+                  } else {
+                    curAccPrinc -= remCredit;
+                  }
+                }
+              });
+
+              // Final Accumulated Principal: round to integer
+              const finalAcc = Math.round(curAccPrinc);
+              if (mId) memberAccMap['id_' + mId] = finalAcc;
+              if (mCode) memberAccMap['code_' + mCode] = finalAcc;
+              if (mFlat) memberAccMap['flat_' + mFlat] = finalAcc;
+              if (mWing && mFlat) memberAccMap['wf_' + mWing + '_' + mFlat] = finalAcc;
+            });
+          }
+        } catch (e) {
+          console.warn('Headwise ledger fetch failed for Interest Calc, using fallback:', e);
+        }
+
         let count = 0;
+        let zeroCount = 0;
+
         members.forEach(m => {
-          const isGstEnabled = getIsGstEnabled();
-          const opPrin = parseFloat(m.Op_Prin) || 0;
-          const currPrin = Math.round(parseFloat(m.amounts['Principal']) || 0);
-          const cgstAmt = isGstEnabled ? (Math.round(parseFloat(m.amounts['CGST']) || 0)) : 0;
-          const sgstAmt = isGstEnabled ? (Math.round(parseFloat(m.amounts['SGST']) || 0)) : 0;
-          const gstAmt = cgstAmt + sgstAmt;
-
-          // Negative Op_Prin OR explicit 'Cr' tag means member paid in advance — skip interest
-          const isCredit = (opPrin < 0) || ((m.OpDrCr || '').toUpperCase() === 'CR');
-
-          let basePrin = 0;
-          if (!isCredit && opPrin > 0) {
-            basePrin = opPrin;
-          } else if (!isCredit && currPrin > 0) {
-            basePrin = currPrin;
+          let accPrinc = null;
+          if (m.id && memberAccMap['id_' + m.id] !== undefined) {
+            accPrinc = memberAccMap['id_' + m.id];
+          } else if (m.memNo && memberAccMap['code_' + String(m.memNo).trim().toLowerCase()] !== undefined) {
+            accPrinc = memberAccMap['code_' + String(m.memNo).trim().toLowerCase()];
+          } else if (m.wing && m.flatNo && memberAccMap['wf_' + String(m.wing).trim().toLowerCase() + '_' + String(m.flatNo).trim().toLowerCase()] !== undefined) {
+            accPrinc = memberAccMap['wf_' + String(m.wing).trim().toLowerCase() + '_' + String(m.flatNo).trim().toLowerCase()];
+          } else if (m.flatNo && memberAccMap['flat_' + String(m.flatNo).trim().toLowerCase()] !== undefined) {
+            accPrinc = memberAccMap['flat_' + String(m.flatNo).trim().toLowerCase()];
           }
 
-          if (basePrin <= 0) {
-            // Credit or zero balance → no interest
+          // Resolve overdue principal strictly from Accumulated Principal in ledger
+          let baseAmt = 0;
+          if (accPrinc !== null) {
+            // Strictly from Member Account | Head Wise / Member Register
+            baseAmt = accPrinc > 0 ? accPrinc : 0;
+          } else {
+            // Fallback only if ledger API was unreachable: use raw Op_Prin strictly if > 0 and not credit
+            const rawOp = parseFloat(m.Op_Prin) || 0;
+            const isCr = (rawOp < 0) || ((m.OpDrCr || '').toUpperCase() === 'CR');
+            baseAmt = (!isCr && rawOp > 0) ? rawOp : 0;
+          }
+
+          if (baseAmt <= 0) {
+            // Strict zero: Member has no overdue accumulated principal
+            if (!m.amounts) m.amounts = {};
             m.amounts['Interest'] = 0.00;
+            zeroCount++;
             return;
           }
 
-          // Count interest on SUM of [PRINCIPAL + GST]
-          const baseAmt = basePrin + gstAmt;
-
+          // Calculate interest strictly on Accumulated Principal based on Notes Master method
           let interest = 0;
           const annualRate = rateNum / 100;
 
@@ -1082,16 +1169,18 @@
             interest = (baseAmt * annualRate) / 12;
           }
 
+          if (!m.amounts) m.amounts = {};
           m.amounts['Interest'] = Math.round(interest);
           count++;
         });
 
         hasChanges = true;
+        BM.recalcTotalsDom();
         renderMatrix();
         let methodDesc = 'Monthly | Full Month Charge';
         if (mCode === 'M-DDME') methodDesc = 'Monthly | Due Date → Month-End Only';
         else if (mCode === 'D-DD' || mCode === 'DAILY_PRO_RATA') methodDesc = 'Day-Wise | Delayed Days Only';
-        toast(`Interest calculated for ${count} member(s) via ${methodDesc} @ ${rateNum}% p.a.`, true);
+        toast(`Interest calculated for ${count} member(s) via ${methodDesc} @ ${rateNum}% p.a. (${zeroCount} member(s) zeroed)`, true);
       }
     },
 

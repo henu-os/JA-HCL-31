@@ -7,7 +7,7 @@
   <script src="../../../config.js"></script>
   <link rel="stylesheet" href="../../../assets/css/global.css">
   <link rel="stylesheet" href="../../../assets/css/components.css">
-  <link rel="stylesheet" href="receipt-payment-report.css">
+  <link rel="stylesheet" href="receipt-payment-report.css?v=20260928_0140">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 </head>
 <body class="erp-module">
@@ -49,14 +49,20 @@
         </select>
       </div>
 
-      <div class="rp-filter-item">
-        <input type="checkbox" id="chk-voucher-no" checked onchange="renderRPView()">
-        <label for="chk-voucher-no">Voucher No. / Code</label>
+      <div class="rp-filter-item" style="display:flex; align-items:center; gap:6px;">
+        <label class="erp-toggle-switch">
+          <input type="checkbox" id="chk-voucher-no" checked onchange="renderRPView()">
+          <span class="erp-toggle-slider"></span>
+        </label>
+        <span style="font-size:11px; font-weight:600; color:#475569; cursor:pointer; user-select:none;" onclick="document.getElementById('chk-voucher-no').click()">Voucher No. / Code</span>
       </div>
 
-      <div class="rp-filter-item">
-        <input type="checkbox" id="chk-hide-zero" onchange="renderRPView()">
-        <label for="chk-hide-zero">Hide Zero Balances</label>
+      <div class="rp-filter-item" style="display:flex; align-items:center; gap:6px;">
+        <label class="erp-toggle-switch">
+          <input type="checkbox" id="chk-hide-zero" onchange="renderRPView()">
+          <span class="erp-toggle-slider"></span>
+        </label>
+        <span style="font-size:11px; font-weight:600; color:#475569; cursor:pointer; user-select:none;" onclick="document.getElementById('chk-hide-zero').click()">Hide Zero Balances</span>
       </div>
 
       <div class="rp-search-box">
@@ -65,7 +71,45 @@
       </div>
     </div>
 
-    <div class="d-flex gap-6">
+    <div class="d-flex gap-6 align-items-center">
+      <!-- Statement Summary Dropdown (Pop-over) -->
+      <div class="summary-dropdown-wrap">
+        <button type="button" class="summary-dropdown-btn" id="btnSummaryToggle" onclick="toggleSummaryPopover(event)" title="Click to view Statement Summary">
+          <i class="bi bi-bar-chart-fill" style="color:var(--rp-primary, #0D47A1); font-size:12px;"></i>
+          <span>Statement Summary</span>
+          <i class="bi bi-chevron-down" style="font-size:9.5px; color:#64748b; margin-left:2px;"></i>
+        </button>
+
+        <!-- Popover Card -->
+        <div class="summary-popover" id="summaryPopover">
+          <div class="summary-popover-head">
+            <div style="font-size:12px; font-weight:800; color:#0f172a; display:flex; align-items:center; gap:6px;">
+              <i class="bi bi-pie-chart-fill" style="color:var(--rp-primary, #0D47A1);"></i> Statement Summary
+            </div>
+            <span style="font-size:10px; font-weight:700; color:#0369a1; background:#e0f2fe; padding:2px 8px; border-radius:10px;" id="popover-period">Overview</span>
+          </div>
+
+          <div class="summary-popover-grid">
+            <div class="pop-card">
+              <span class="pop-lbl"><i class="bi bi-wallet2" style="color:#1d4ed8;"></i> Opening Cash &amp; Bank</span>
+              <span class="pop-val" id="kpi-opening" style="color:#1d4ed8;">₹0.00</span>
+            </div>
+            <div class="pop-card">
+              <span class="pop-lbl"><i class="bi bi-arrow-down-left-circle-fill" style="color:#15803d;"></i> Total Receipts</span>
+              <span class="pop-val" id="kpi-receipts" style="color:#15803d;">₹0.00</span>
+            </div>
+            <div class="pop-card">
+              <span class="pop-lbl"><i class="bi bi-arrow-up-right-circle-fill" style="color:#7c3aed;"></i> Total Payments</span>
+              <span class="pop-val" id="kpi-payments" style="color:#7c3aed;">₹0.00</span>
+            </div>
+            <div class="pop-card full-width">
+              <span class="pop-lbl"><i class="bi bi-bank" style="color:#0f766e;"></i> Closing Cash &amp; Bank</span>
+              <span class="pop-val" id="kpi-closing" style="color:#0f766e; font-size:14px;">₹0.00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <button class="rp-btn rp-btn-primary" onclick="loadRPData()">
         <i class="bi bi-arrow-clockwise"></i> Refresh
       </button>
@@ -91,41 +135,6 @@
         </div>
       </div>
 
-      <!-- KPI Summary Cards -->
-      <div class="rp-kpi-grid">
-        <div class="rp-kpi-card rp-kpi-blue">
-          <div class="rp-kpi-icon"><i class="bi bi-wallet2"></i></div>
-          <div class="rp-kpi-body">
-            <div class="rp-kpi-title">Opening Cash &amp; Bank</div>
-            <div class="rp-kpi-value" id="kpi-opening">₹0.00</div>
-          </div>
-        </div>
-
-        <div class="rp-kpi-card rp-kpi-green">
-          <div class="rp-kpi-icon"><i class="bi bi-arrow-down-left-circle-fill"></i></div>
-          <div class="rp-kpi-body">
-            <div class="rp-kpi-title">Total Receipts</div>
-            <div class="rp-kpi-value" id="kpi-receipts">₹0.00</div>
-          </div>
-        </div>
-
-        <div class="rp-kpi-card rp-kpi-purple">
-          <div class="rp-kpi-icon"><i class="bi bi-arrow-up-right-circle-fill"></i></div>
-          <div class="rp-kpi-body">
-            <div class="rp-kpi-title">Total Payments</div>
-            <div class="rp-kpi-value" id="kpi-payments">₹0.00</div>
-          </div>
-        </div>
-
-        <div class="rp-kpi-card rp-kpi-teal">
-          <div class="rp-kpi-icon"><i class="bi bi-bank"></i></div>
-          <div class="rp-kpi-body">
-            <div class="rp-kpi-title">Closing Cash &amp; Bank</div>
-            <div class="rp-kpi-value" id="kpi-closing">₹0.00</div>
-          </div>
-        </div>
-      </div>
-
       <!-- Double-Entry Reconciliation Banner -->
       <div class="rp-recon-banner balanced" id="recon-banner">
         <div class="d-flex align-items-center gap-8">
@@ -140,6 +149,16 @@
       <!-- Statutory T-Format Side-by-Side Statement -->
       <div class="rp-t-table-wrapper">
         <table class="rp-t-table" id="rpMainTable">
+          <colgroup>
+            <!-- Receipts Side (50%) -->
+            <col class="col-particulars" style="width: 28%;">
+            <col class="col-sub-amt" style="width: 10%;">
+            <col class="col-tot-amt" style="width: 12%;">
+            <!-- Payments Side (50%) -->
+            <col class="col-particulars" style="width: 28%;">
+            <col class="col-sub-amt" style="width: 10%;">
+            <col class="col-tot-amt" style="width: 12%;">
+          </colgroup>
           <thead>
             <!-- Super Header -->
             <tr>
@@ -200,9 +219,9 @@
       document.write('<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"><\/script>');
     }
   </script>
-  <script src="../../../assets/js/api.js"></script>
-  <script src="../../../assets/js/auth.js"></script>
-  <script src="../../../assets/js/utils.js"></script>
-  <script src="receipt-payment-report.js"></script>
+  <script src="../../../assets/js/api.js?v=20260928_0140"></script>
+  <script src="../../../assets/js/auth.js?v=20260928_0140"></script>
+  <script src="../../../assets/js/utils.js?v=20260928_0140"></script>
+  <script src="receipt-payment-report.js?v=20260928_0140"></script>
 </body>
 </html>

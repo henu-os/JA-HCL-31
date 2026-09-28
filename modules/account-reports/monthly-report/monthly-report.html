@@ -78,11 +78,12 @@
       </div>
 
       <!-- Zero Movement Toggle -->
-      <div class="filter-item" style="justify-content: flex-end;">
-        <label style="display:flex; align-items:center; gap:6px; font-size:11px; font-weight:700; color:#475569; margin-bottom:4px; cursor:pointer;">
+      <div class="filter-item" style="display:flex; align-items:center; gap:6px; justify-content: flex-end;">
+        <label class="erp-toggle-switch">
           <input type="checkbox" id="chkHideZero" checked onchange="filterTable()">
-          Hide Zero Movement
+          <span class="erp-toggle-slider"></span>
         </label>
+        <span style="font-size:11px; font-weight:700; color:#475569; cursor:pointer; user-select:none;" onclick="document.getElementById('chkHideZero').click()">Hide Zero Movement</span>
       </div>
 
       <!-- Record count -->
@@ -151,9 +152,9 @@
   </div>
 
   <!-- ── 6. SCRIPTS ───────────────────────────────────────────── -->
-  <script src="../../../assets/js/api.js"></script>
-  <script src="../../../assets/js/auth.js"></script>
-  <script src="../../../assets/js/utils.js"></script>
-  <script src="monthly-report.js"></script>
+  <script src="../../../assets/js/api.js?v=20260928_0140"></script>
+  <script src="../../../assets/js/auth.js?v=20260928_0140"></script>
+  <script src="../../../assets/js/utils.js?v=20260928_0140"></script>
+  <script src="monthly-report.js?v=20260928_0140"></script>
 </body>
 </html>

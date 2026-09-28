@@ -141,14 +141,15 @@
     }
 
     const curAsOnStr = toDDMMYYYY(data.asOnDate || data.asOnDateDisplay);
-    const curText = curAsOnStr ? `${curAsOnStr}<br>Amount(Rs.)` : 'Current Year<br>Amount(Rs.)';
+    const rupeeSym = '<span class="erp-currency-sym" style="font-size:9.5px;">₹</span>';
+    const curText = curAsOnStr ? `${curAsOnStr}<br>Amount (${rupeeSym})` : `Current Year<br>Amount (${rupeeSym})`;
 
     const prevAsOnStr = toDDMMYYYY(data.prevFY && (data.prevFY.asOnDate || data.prevFY.asOnDateDisplay || data.prevFY.fyEnd));
-    let prevText = prevAsOnStr ? `${prevAsOnStr}<br>Amount(Rs.)` : '';
+    let prevText = prevAsOnStr ? `${prevAsOnStr}<br>Amount (${rupeeSym})` : '';
     if (!prevText && data.prevFY && data.prevFY.fyLabel) {
-      prevText = `${data.prevFY.fyLabel}<br>Amount(Rs.)`;
+      prevText = `${data.prevFY.fyLabel}<br>Amount (${rupeeSym})`;
     }
-    if (!prevText) prevText = 'Prev Year<br>Amount(Rs.)';
+    if (!prevText) prevText = `Prev Year<br>Amount (${rupeeSym})`;
 
     // Screen headers
     const thPrevL = document.getElementById('th-prev-liab');
@@ -254,11 +255,70 @@
   };
 
   /**
-   * Builds an array of row objects for either Liabilities or Assets adhering to Pranav BS layout.
-   * Eliminates redundant "TOTAL <GROUP>" rows and correctly formats single vs multi-item groups.
+   * Reads Authorised Share Capital details configured in Configuration & Notes Master.
+   * Strictly a statutory memo disclosure: NEVER added into grand total or balance sheet math.
+   */
+  function getAuthorisedShareCapital() {
+    try {
+      const socId = (window.Auth && Auth.getSocietyId) ? Auth.getSocietyId() : (sessionStorage.getItem('activeSocietyId') || localStorage.getItem('activeSocietyId') || '1');
+      let cfg = null;
+      const raw = localStorage.getItem('jeevika_config_notes_' + socId) || localStorage.getItem('jeevika_config_notes_global');
+      if (raw) cfg = JSON.parse(raw);
+      if (!cfg) return null;
+      const desc = (cfg.shareName || '').trim();
+      const amtStr = (cfg.shareAmount || '').toString().trim();
+      const amt = parseFloat(amtStr.replace(/[^0-9.]/g, '')) || 0;
+      if (!desc && amt <= 0) return null;
+      return {
+        description: desc || 'Authorised Share Capital',
+        amount: amt
+      };
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /**
+   * Builds an array of row objects for either Liabilities or Assets adhering to statutory Form N layout.
+   * Eliminates redundant "TOTAL <GROUP>" rows, displays group totals with proper dividing lines,
+   * and prepends Authorised Share Capital on the Liabilities side.
    */
   function buildSideRows(groups, sideType, viewMode, hideZero, showMemberBreakup, memberItems = []) {
     const rows = [];
+
+    // 0. Authorised Share Capital (Statutory Showcase from Configuration & Notes Master)
+    // Strictly showcase only - excluded from any balance sheet calculation or total addition
+    if (sideType === 'liab') {
+      const authCap = getAuthorisedShareCapital();
+      if (authCap) {
+        if (viewMode === 'summary') {
+          rows.push({
+            type: 'group-summary',
+            groupName: 'AUTHORISED SHARE CAPITAL',
+            prevAmount: authCap.amount,
+            currentAmount: authCap.amount,
+            isGroupEnd: true,
+            isAuthCapital: true
+          });
+        } else {
+          rows.push({
+            type: 'auth-capital-header',
+            groupName: 'AUTHORISED SHARE CAPITAL',
+            isAuthCapital: true
+          });
+          rows.push({
+            type: 'auth-capital-detail',
+            shareName: authCap.description,
+            prevAmount: authCap.amount,
+            currentAmount: authCap.amount,
+            outerAmount: authCap.amount,
+            isLast: true,
+            isGroupEnd: true,
+            isAuthCapital: true
+          });
+        }
+      }
+    }
 
     // Separate Income & Expenditure to ensure it sits at the bottom of the section (Liabilities for Surplus, Assets for Deficit)
     let sortedGroups = [...groups];
@@ -294,7 +354,7 @@
       const groupTitle = (g.groupName || '').trim();
 
       if (viewMode === 'summary' && !g.grpSubtotal) {
-        // In summary mode: single summary line
+        // In summary mode: single summary line with group bottom divider
         const curAmt = (isMemberBreakupGroup && memberItems.length > 0)
           ? memberItems.reduce((sum, m) => sum + (parseFloat(m.dueAmount != null ? m.dueAmount : m.advanceAmount) || 0), 0)
           : g.totalCurrent;
@@ -305,7 +365,8 @@
           type: 'group-summary',
           groupName: groupTitle,
           prevAmount: prevAmt,
-          currentAmount: curAmt
+          currentAmount: curAmt,
+          isGroupEnd: true
         });
         return;
       }
@@ -317,10 +378,16 @@
         groupCode: g.groupCode || ''
       });
 
-      // 2. Member Dues / Advances: Render accounts first (if any), then bill types / detailed members
+      // 2. Member Dues / Advances: Render constituent accounts (excluding ASS-1025/LIA-1020), then bill types / detailed members
       if (isMemberBreakupGroup && (memberItems.length > 0 || filteredAccounts.length > 0)) {
-        // A. Render any constituent Ledger Accounts in this group that have opening/previous/current balance
-        filteredAccounts.forEach(acc => {
+        // A. Render any OTHER constituent Ledger Accounts in this group (e.g. user-created custom accounts)
+        const otherAccounts = filteredAccounts.filter(acc => {
+          const c = (acc.accCode || '').toUpperCase().trim();
+          const n = (acc.accName || '').toLowerCase().trim();
+          return c !== 'ASS-1025' && c !== 'LIA-1020' && n !== 'dues from members' && n !== 'dues from member' && n !== 'advance from members' && n !== 'advance from member';
+        });
+
+        otherAccounts.forEach(acc => {
           rows.push({
             type: 'account-multi',
             accCode: acc.accCode || '',
@@ -333,10 +400,11 @@
           });
         });
 
-        // If no member items exist, mark the last account as last
+        // If no member items exist, mark the last account as last & group-end
         if (memberItems.length === 0) {
-          if (filteredAccounts.length > 0) {
+          if (otherAccounts.length > 0) {
             rows[rows.length - 1].isLast = true;
+            rows[rows.length - 1].isGroupEnd = true;
             rows[rows.length - 1].outerAmount = g.totalCurrent;
           }
           return;
@@ -358,8 +426,6 @@
         });
 
         const totalItemsCount = memberItems.length;
-        const memberItemsTotal = memberItems.reduce((sum, m) => sum + (parseFloat(m.dueAmount != null ? m.dueAmount : m.advanceAmount) || 0), 0);
-        const memberItemsPrevTotal = memberItems.reduce((sum, m) => sum + (parseFloat(m.prevAmount) || 0), 0);
 
         function formatBillTypeName(bt) {
           if (!bt) return '';
@@ -368,7 +434,6 @@
 
         if (showMemberBreakup) {
           // Member Dues Breakup TICK IS ON:
-          // Show bill type section header and each individual member under it with previous year balance & current due
           let processedCount = 0;
           btKeys.forEach((bt) => {
             const items = groupsByBT[bt];
@@ -393,15 +458,15 @@
                 memName: m.memName,
                 prevAmount: itemPrevAmt,
                 dueAmount: itemAmt,
-                outerAmount: isLastOfAll ? memberItemsTotal : null,
-                isLast: isLastOfAll
+                outerAmount: isLastOfAll ? g.totalCurrent : null,
+                isLast: isLastOfAll,
+                isGroupEnd: isLastOfAll
               });
             });
           });
           return;
         } else {
           // Member Dues Breakup TICK IS OFF:
-          // Below the account, show the total of each bill type
           btKeys.forEach((bt, idx) => {
             const items = groupsByBT[bt] || [];
             const btTotal = items.reduce((sum, m) => sum + (parseFloat(m.dueAmount != null ? m.dueAmount : m.advanceAmount) || 0), 0);
@@ -414,8 +479,9 @@
               accName: formatBillTypeName(bt),
               prevAmount: btPrevTotal || 0,
               currentAmount: btTotal,
-              outerAmount: isLast ? memberItemsTotal : null,
-              isLast: isLast
+              outerAmount: isLast ? g.totalCurrent : null,
+              isLast: isLast,
+              isGroupEnd: isLast
             });
           });
           return;
@@ -425,7 +491,7 @@
       // 3. Regular Accounts in Group
       const accCount = filteredAccounts.length;
       if (accCount === 1) {
-        // Single-account group: direct outer column placement (Col D / Col H)
+        // Single-account group: direct outer column placement with group closing line
         const acc = filteredAccounts[0];
         rows.push({
           type: 'account-direct',
@@ -433,10 +499,11 @@
           accName: acc.accName || '',
           prevAmount: acc.prevAmount || g.totalPrev || 0,
           currentAmount: acc.currentAmount || g.totalCurrent || 0,
-          isSurplus: !!acc.isSurplusEntry
+          isSurplus: !!acc.isSurplusEntry,
+          isGroupEnd: true
         });
       } else if (accCount > 1) {
-        // Multi-account group: Inner amounts (Col C / Col G), subtotal on the last row in outer column (Col D / Col H)
+        // Multi-account group: Inner amounts, subtotal on last row in outer column with group closing line
         const hasAnyAccPrev = filteredAccounts.some(a => Math.abs(a.prevAmount) > 0.005);
         filteredAccounts.forEach((acc, idx) => {
           const isLast = (idx === accCount - 1);
@@ -448,6 +515,7 @@
             currentAmount: acc.currentAmount || 0,
             outerAmount: isLast ? g.totalCurrent : null,
             isLast: isLast,
+            isGroupEnd: isLast,
             isSurplus: !!acc.isSurplusEntry
           });
         });
@@ -458,7 +526,8 @@
           accCode: '',
           accName: groupTitle,
           prevAmount: g.totalPrev || 0,
-          currentAmount: g.totalCurrent || 0
+          currentAmount: g.totalCurrent || 0,
+          isGroupEnd: true
         });
       }
     });
@@ -477,20 +546,46 @@
 
     if (!rowObj) {
       return `
+        <td class="bs-table-cell bs-blank-cell col-prev bs-num" style="${prevStyle}">&nbsp;</td>
+        <td class="bs-table-cell bs-blank-cell bs-acc-row">&nbsp;</td>
+        <td class="bs-table-cell bs-blank-cell bs-num bs-inner-amt">&nbsp;</td>
+        <td class="bs-table-cell bs-blank-cell bs-num ${dividerClass}">&nbsp;</td>
+      `;
+    }
+
+    const groupEndClass = rowObj.isGroupEnd ? 'bs-group-end-cell' : '';
+    const amtLineClass = rowObj.isGroupEnd ? 'bs-group-amt-line' : '';
+
+    if (rowObj.type === 'auth-capital-header') {
+      return `
         <td class="bs-table-cell col-prev bs-num" style="${prevStyle}">&nbsp;</td>
-        <td class="bs-table-cell bs-acc-row">&nbsp;</td>
-        <td class="bs-table-cell bs-num bs-inner-amt">&nbsp;</td>
+        <td class="bs-table-cell bs-group-header-cell" colspan="2" style="font-weight:800;">
+          <span class="bs-group-title">${escHtml(rowObj.groupName)}</span>
+        </td>
         <td class="bs-table-cell bs-num ${dividerClass}">&nbsp;</td>
+      `;
+    }
+
+    if (rowObj.type === 'auth-capital-detail') {
+      const prevVal = (rowObj.prevAmount && rowObj.prevAmount > 0) ? formatINR(rowObj.prevAmount, true) : '&nbsp;';
+      const curVal = (rowObj.currentAmount && rowObj.currentAmount > 0) ? formatINR(rowObj.currentAmount, true) : '&nbsp;';
+      return `
+        <td class="bs-table-cell col-prev bs-num bs-group-end-cell" style="${prevStyle}">${prevVal}</td>
+        <td class="bs-table-cell bs-acc-row bs-group-end-cell" style="padding-left:14px; font-weight:600;">
+          ${escHtml(rowObj.shareName)}
+        </td>
+        <td class="bs-table-cell bs-num bs-inner-amt bs-group-amt-line">&nbsp;</td>
+        <td class="bs-table-cell bs-num bs-cell-subtotal-outer bs-group-amt-line ${dividerClass}">${curVal}</td>
       `;
     }
 
     if (rowObj.type === 'group-header') {
       return `
         <td class="bs-table-cell col-prev bs-num" style="${prevStyle}">&nbsp;</td>
-        <td class="bs-table-cell bs-group-header-cell" colspan="2" style="font-weight:800; background:#f8fafc;">
+        <td class="bs-table-cell bs-group-header-cell" colspan="2" style="font-weight:800;">
           <span class="bs-group-title">${escHtml(rowObj.groupName)}</span>
         </td>
-        <td class="bs-table-cell bs-num ${dividerClass}" style="background:#f8fafc;">&nbsp;</td>
+        <td class="bs-table-cell bs-num ${dividerClass}">&nbsp;</td>
       `;
     }
 
@@ -498,12 +593,12 @@
       const codeHtml = (showVoucherNo && rowObj.accCode) ? `<span class="bs-acc-code">[${escHtml(rowObj.accCode)}]</span>` : '';
       const surplusStyle = rowObj.isSurplus ? 'font-weight:700;' : '';
       return `
-        <td class="bs-table-cell col-prev bs-num text-muted" style="${prevStyle}">${formatINR(rowObj.prevAmount, true)}</td>
-        <td class="bs-table-cell bs-acc-row" style="${surplusStyle}">
+        <td class="bs-table-cell col-prev bs-num ${groupEndClass}" style="${prevStyle}">${formatINR(rowObj.prevAmount, true)}</td>
+        <td class="bs-table-cell bs-acc-row ${groupEndClass}" style="${surplusStyle}">
           ${codeHtml}${escHtml(rowObj.accName)}
         </td>
-        <td class="bs-table-cell bs-num bs-inner-amt">&nbsp;</td>
-        <td class="bs-table-cell bs-num bs-cell-subtotal-outer ${dividerClass}" style="${surplusStyle}">${formatINR(rowObj.currentAmount, true)}</td>
+        <td class="bs-table-cell bs-num bs-inner-amt ${amtLineClass}">&nbsp;</td>
+        <td class="bs-table-cell bs-num bs-cell-subtotal-outer ${amtLineClass} ${dividerClass}" style="${surplusStyle}">${formatINR(rowObj.currentAmount, true)}</td>
       `;
     }
 
@@ -515,23 +610,23 @@
         : '&nbsp;';
       const outerClass = rowObj.isLast ? 'bs-cell-subtotal-outer' : '';
       return `
-        <td class="bs-table-cell col-prev bs-num text-muted" style="${prevStyle}">${formatINR(rowObj.prevAmount, true)}</td>
-        <td class="bs-table-cell bs-acc-row" style="padding-left:16px; ${surplusStyle}">
+        <td class="bs-table-cell col-prev bs-num ${groupEndClass}" style="${prevStyle}">${formatINR(rowObj.prevAmount, true)}</td>
+        <td class="bs-table-cell bs-acc-row ${groupEndClass}" style="padding-left:14px; ${surplusStyle}">
           ${codeHtml}${escHtml(rowObj.accName)}
         </td>
-        <td class="bs-table-cell bs-num bs-inner-amt" style="${surplusStyle}">${formatINR(rowObj.currentAmount, true)}</td>
-        <td class="bs-table-cell bs-num ${outerClass} ${dividerClass}">${outerHtml}</td>
+        <td class="bs-table-cell bs-num bs-inner-amt ${amtLineClass}" style="${surplusStyle}">${formatINR(rowObj.currentAmount, true)}</td>
+        <td class="bs-table-cell bs-num ${outerClass} ${amtLineClass} ${dividerClass}">${outerHtml}</td>
       `;
     }
 
     if (rowObj.type === 'member-dues-section') {
       return `
-        <td class="bs-table-cell col-prev bs-num text-muted" style="${prevStyle}">${rowObj.prevAmount ? formatINR(rowObj.prevAmount, true) : '&nbsp;'}</td>
-        <td class="bs-table-cell bs-acc-row" style="padding-left:14px; font-weight:800; color:#0D47A1; font-size:10.5px; text-transform:uppercase; background:#f0f7ff; letter-spacing:0.3px;">
-          <i class="bi bi-bookmark-fill" style="font-size:9px; margin-right:5px; opacity:0.8;"></i>${escHtml(rowObj.billType)}
+        <td class="bs-table-cell col-prev bs-num" style="${prevStyle}">${rowObj.prevAmount ? formatINR(rowObj.prevAmount, true) : '&nbsp;'}</td>
+        <td class="bs-table-cell bs-acc-row bs-member-sec-cell" style="padding-left:14px; font-weight:700; text-transform:uppercase;">
+          ${escHtml(rowObj.billType)}
         </td>
-        <td class="bs-table-cell bs-num bs-inner-amt" style="background:#f0f7ff;">&nbsp;</td>
-        <td class="bs-table-cell bs-num ${dividerClass}" style="background:#f0f7ff;">&nbsp;</td>
+        <td class="bs-table-cell bs-num bs-inner-amt bs-member-sec-cell">&nbsp;</td>
+        <td class="bs-table-cell bs-num bs-member-sec-cell ${dividerClass}">&nbsp;</td>
       `;
     }
 
@@ -541,23 +636,22 @@
         : '&nbsp;';
       const outerClass = rowObj.isLast ? 'bs-cell-subtotal-outer' : '';
       return `
-        <td class="bs-table-cell col-prev bs-num text-muted" style="${prevStyle}">${formatINR(rowObj.prevAmount, true)}</td>
-        <td class="bs-table-cell bs-acc-row" style="padding-left:24px; font-size:10px; color:#1e293b;">
-          <span class="bs-flat-badge">${escHtml(rowObj.flatDisplay)}</span>
-          <span style="margin-left:4px;">${escHtml(rowObj.memName)}</span>
+        <td class="bs-table-cell col-prev bs-num ${groupEndClass}" style="${prevStyle}">${formatINR(rowObj.prevAmount, true)}</td>
+        <td class="bs-table-cell bs-acc-row ${groupEndClass}" style="padding-left:20px; font-size:10.5px;">
+          <span>${escHtml(rowObj.flatDisplay)} - ${escHtml(rowObj.memName)}</span>
         </td>
-        <td class="bs-table-cell bs-num bs-inner-amt" style="font-size:10px;">${formatINR(rowObj.dueAmount, true)}</td>
-        <td class="bs-table-cell bs-num ${outerClass} ${dividerClass}">${outerHtml}</td>
+        <td class="bs-table-cell bs-num bs-inner-amt ${amtLineClass}">${formatINR(rowObj.dueAmount, true)}</td>
+        <td class="bs-table-cell bs-num ${outerClass} ${amtLineClass} ${dividerClass}">${outerHtml}</td>
       `;
     }
 
     if (rowObj.type === 'group-summary') {
       return `
-        <td class="bs-table-cell col-prev bs-num" style="font-weight:700; ${prevStyle}">${formatINR(rowObj.prevAmount, true)}</td>
-        <td class="bs-table-cell" colspan="2" style="font-weight:800; color:var(--navy-primary);">
+        <td class="bs-table-cell col-prev bs-num ${groupEndClass}" style="font-weight:700; ${prevStyle}">${formatINR(rowObj.prevAmount, true)}</td>
+        <td class="bs-table-cell ${groupEndClass}" colspan="2" style="font-weight:800;">
           ${escHtml(rowObj.groupName)}
         </td>
-        <td class="bs-table-cell bs-num bs-cell-subtotal-outer ${dividerClass}" style="font-weight:800;">${formatINR(rowObj.currentAmount, true)}</td>
+        <td class="bs-table-cell bs-num bs-cell-subtotal-outer ${amtLineClass} ${dividerClass}" style="font-weight:800;">${formatINR(rowObj.currentAmount, true)}</td>
       `;
     }
 
@@ -619,13 +713,13 @@
     const asOnDateStr = toDDMMYYYY(currentBSReport.asOnDate || currentBSReport.asOnDateDisplay);
 
     const prevAsOnDate = (currentBSReport.prevFY && (currentBSReport.prevFY.asOnDate || currentBSReport.prevFY.asOnDateDisplay || currentBSReport.prevFY.fyEnd)) || '';
-    let prevDateHeader = prevAsOnDate ? `${toDDMMYYYY(prevAsOnDate)}\nAmount(Rs.)` : '';
+    let prevDateHeader = prevAsOnDate ? `${toDDMMYYYY(prevAsOnDate)}\nAmount (₹)` : '';
     if (!prevDateHeader && currentBSReport.prevFY && currentBSReport.prevFY.fyLabel) {
-      prevDateHeader = `${currentBSReport.prevFY.fyLabel}\nAmount(Rs.)`;
+      prevDateHeader = `${currentBSReport.prevFY.fyLabel}\nAmount (₹)`;
     }
-    if (!prevDateHeader) prevDateHeader = 'Prev Year\nAmount(Rs.)';
+    if (!prevDateHeader) prevDateHeader = 'Prev Year\nAmount (₹)';
 
-    const curDateHeader = asOnDateStr ? `${asOnDateStr}\nAmount(Rs.)` : 'Current Year\nAmount(Rs.)';
+    const curDateHeader = asOnDateStr ? `${asOnDateStr}\nAmount (₹)` : 'Current Year\nAmount (₹)';
 
     // Styling borders
     const thinBorder = { style: 'thin', color: { rgb: '000000' } };
@@ -697,7 +791,7 @@
       alignment: { horizontal: 'center', vertical: 'center' },
       border: getBorders(1, thinBorder, thinBorder)
     });
-    setCell(hRow, 2, 'Sub Total\nAmount(Rs.)', 's', {
+    setCell(hRow, 2, '', 's', {
       font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: '000000' } },
       alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
       border: getBorders(2, thinBorder, thinBorder)
@@ -719,7 +813,7 @@
       alignment: { horizontal: 'center', vertical: 'center' },
       border: getBorders(5, thinBorder, thinBorder)
     });
-    setCell(hRow, 6, 'Sub Total\nAmount(Rs.)', 's', {
+    setCell(hRow, 6, '', 's', {
       font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: '000000' } },
       alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
       border: getBorders(6, thinBorder, thinBorder)
@@ -730,6 +824,8 @@
       alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
       border: getBorders(7, thinBorder, thinBorder)
     });
+    merges.push({ s: { r: hRow, c: 1 }, e: { r: hRow, c: 2 } });
+    merges.push({ s: { r: hRow, c: 5 }, e: { r: hRow, c: 6 } });
 
     // Data Rows
     const showMemberBreakup = document.getElementById('chk-member-breakup')?.checked;
@@ -763,7 +859,39 @@
 
       // Populate Left (Liabilities) Columns 0..3
       if (l) {
-        if (l.type === 'group-header') {
+        const isEndL = !!(l.isGroupEnd || l.isLast);
+        const bBottomL = isEndL ? thinBorder : undefined;
+        const bBottomAmtL = isEndL ? mediumBorder : undefined;
+
+        if (l.type === 'auth-capital-header') {
+          setCell(curR, 1, l.groupName || 'AUTHORISED SHARE CAPITAL', 's', {
+            font: { name: 'Calibri', sz: 10.5, bold: true, color: { rgb: '000000' } },
+            alignment: { horizontal: 'left', vertical: 'center' },
+            border: getBorders(1)
+          });
+        } else if (l.type === 'auth-capital-detail') {
+          setCell(curR, 1, '  ' + (l.shareName || ''), 's', {
+            font: { name: 'Calibri', sz: 10, color: { rgb: '000000' } },
+            alignment: { horizontal: 'left', vertical: 'center' },
+            border: getBorders(1, undefined, thinBorder)
+          });
+          if (comparePrev && l.prevAmount) {
+            setCell(curR, 0, parseFloat(l.prevAmount) || 0, 'n', {
+              font: { name: 'Calibri', sz: 10, color: { rgb: '000000' } },
+              alignment: { horizontal: 'right', vertical: 'center' },
+              border: getBorders(0, undefined, thinBorder)
+            }, '#,##0.00');
+          } else {
+            setCell(curR, 0, '', 's', { border: getBorders(0, undefined, thinBorder) });
+          }
+          setCell(curR, 2, '', 's', { border: getBorders(2, undefined, mediumBorder) });
+          setCell(curR, 3, parseFloat(l.currentAmount) || 0, 'n', {
+            font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: '000000' } },
+            alignment: { horizontal: 'right', vertical: 'center' },
+            border: getBorders(3, undefined, mediumBorder)
+          }, '#,##0.00');
+          // STRICT RULE: Excluded from liabOuterCells so Grand Total formula does not add it
+        } else if (l.type === 'group-header') {
           liabGroupStartRow = curR + 2; // Next row in Excel (1-indexed)
           setCell(curR, 1, l.groupName || '', 's', {
             font: { name: 'Calibri', sz: 10.5, bold: true, color: { rgb: '000000' } },
@@ -775,20 +903,23 @@
           setCell(curR, 1, accLabel, 's', {
             font: { name: 'Calibri', sz: 10, color: { rgb: '000000' } },
             alignment: { horizontal: 'left', vertical: 'center' },
-            border: getBorders(1)
+            border: getBorders(1, undefined, bBottomL)
           });
           if (comparePrev && l.prevAmount) {
             setCell(curR, 0, parseFloat(l.prevAmount) || 0, 'n', {
               font: { name: 'Calibri', sz: 10, color: { rgb: '000000' } },
               alignment: { horizontal: 'right', vertical: 'center' },
-              border: getBorders(0)
+              border: getBorders(0, undefined, bBottomL)
             }, '#,##0.00');
+          } else {
+            setCell(curR, 0, '', 's', { border: getBorders(0, undefined, bBottomL) });
           }
+          setCell(curR, 2, '', 's', { border: getBorders(2, undefined, bBottomAmtL) });
           const curAmt = parseFloat(l.currentAmount) || 0;
           setCell(curR, 3, curAmt, 'n', {
             font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: '000000' } },
             alignment: { horizontal: 'right', vertical: 'center' },
-            border: getBorders(3, undefined, thinBorder)
+            border: getBorders(3, undefined, bBottomAmtL)
           }, '#,##0.00');
           liabOuterCells.push(`D${curR + 1}`);
         } else if (l.type === 'account-multi') {
@@ -796,20 +927,22 @@
           setCell(curR, 1, '  ' + accLabel, 's', {
             font: { name: 'Calibri', sz: 10, color: { rgb: '000000' } },
             alignment: { horizontal: 'left', vertical: 'center' },
-            border: getBorders(1)
+            border: getBorders(1, undefined, bBottomL)
           });
           if (comparePrev && l.prevAmount) {
             setCell(curR, 0, parseFloat(l.prevAmount) || 0, 'n', {
               font: { name: 'Calibri', sz: 10, color: { rgb: '000000' } },
               alignment: { horizontal: 'right', vertical: 'center' },
-              border: getBorders(0)
+              border: getBorders(0, undefined, bBottomL)
             }, '#,##0.00');
+          } else if (isEndL) {
+            setCell(curR, 0, '', 's', { border: getBorders(0, undefined, bBottomL) });
           }
           // Inner Amount in Col C
           setCell(curR, 2, parseFloat(l.currentAmount) || 0, 'n', {
             font: { name: 'Calibri', sz: 10, color: { rgb: '000000' } },
             alignment: { horizontal: 'right', vertical: 'center' },
-            border: getBorders(2)
+            border: getBorders(2, undefined, bBottomAmtL)
           }, '#,##0.00');
 
           if (l.isLast) {
@@ -817,13 +950,13 @@
             setCell(curR, 3, parseFloat(l.outerAmount) || 0, 'n', {
               font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: '000000' } },
               alignment: { horizontal: 'right', vertical: 'center' },
-              border: getBorders(3, undefined, thinBorder)
+              border: getBorders(3, undefined, bBottomAmtL)
             }, '#,##0.00', sumFormula);
             liabOuterCells.push(`D${curR + 1}`);
           }
         } else if (l.type === 'member-dues-section') {
           setCell(curR, 1, `  ${l.billType || ''}`, 's', {
-            font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: '0D47A1' } },
+            font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: '000000' } },
             alignment: { horizontal: 'left', vertical: 'center' },
             border: getBorders(1)
           });
@@ -839,20 +972,22 @@
           setCell(curR, 1, memLabel, 's', {
             font: { name: 'Calibri', sz: 9.5, color: { rgb: '000000' } },
             alignment: { horizontal: 'left', vertical: 'center' },
-            border: getBorders(1)
+            border: getBorders(1, undefined, bBottomL)
           });
           if (comparePrev && l.prevAmount) {
             setCell(curR, 0, parseFloat(l.prevAmount) || 0, 'n', {
               font: { name: 'Calibri', sz: 10, color: { rgb: '000000' } },
               alignment: { horizontal: 'right', vertical: 'center' },
-              border: getBorders(0)
+              border: getBorders(0, undefined, bBottomL)
             }, '#,##0.00');
+          } else if (isEndL) {
+            setCell(curR, 0, '', 's', { border: getBorders(0, undefined, bBottomL) });
           }
           // Inner advance amount in Col C
           setCell(curR, 2, parseFloat(l.dueAmount) || 0, 'n', {
             font: { name: 'Calibri', sz: 9.5, color: { rgb: '000000' } },
             alignment: { horizontal: 'right', vertical: 'center' },
-            border: getBorders(2)
+            border: getBorders(2, undefined, bBottomAmtL)
           }, '#,##0.00');
 
           if (l.isLast) {
@@ -860,7 +995,7 @@
             setCell(curR, 3, parseFloat(l.outerAmount) || 0, 'n', {
               font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: '000000' } },
               alignment: { horizontal: 'right', vertical: 'center' },
-              border: getBorders(3, undefined, thinBorder)
+              border: getBorders(3, undefined, bBottomAmtL)
             }, '#,##0.00', sumFormula);
             liabOuterCells.push(`D${curR + 1}`);
           }
@@ -868,26 +1003,35 @@
           setCell(curR, 1, l.groupName || '', 's', {
             font: { name: 'Calibri', sz: 10.5, bold: true, color: { rgb: '000000' } },
             alignment: { horizontal: 'left', vertical: 'center' },
-            border: getBorders(1)
+            border: getBorders(1, undefined, bBottomL)
           });
           if (comparePrev && l.prevAmount) {
             setCell(curR, 0, parseFloat(l.prevAmount) || 0, 'n', {
               font: { name: 'Calibri', sz: 10, color: { rgb: '000000' } },
               alignment: { horizontal: 'right', vertical: 'center' },
-              border: getBorders(0)
+              border: getBorders(0, undefined, bBottomL)
             }, '#,##0.00');
+          } else {
+            setCell(curR, 0, '', 's', { border: getBorders(0, undefined, bBottomL) });
           }
+          setCell(curR, 2, '', 's', { border: getBorders(2, undefined, bBottomAmtL) });
           setCell(curR, 3, parseFloat(l.currentAmount) || 0, 'n', {
             font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: '000000' } },
             alignment: { horizontal: 'right', vertical: 'center' },
-            border: getBorders(3, undefined, thinBorder)
+            border: getBorders(3, undefined, bBottomAmtL)
           }, '#,##0.00');
-          liabOuterCells.push(`D${curR + 1}`);
+          if (!l.isAuthCapital) {
+            liabOuterCells.push(`D${curR + 1}`);
+          }
         }
       }
 
       // Populate Right (Assets) Columns 4..7
       if (rData) {
+        const isEndR = !!(rData.isGroupEnd || rData.isLast);
+        const bBottomR = isEndR ? thinBorder : undefined;
+        const bBottomAmtR = isEndR ? mediumBorder : undefined;
+
         if (rData.type === 'group-header') {
           assetGroupStartRow = curR + 2; // Next row in Excel (1-indexed)
           setCell(curR, 5, rData.groupName || '', 's', {
@@ -900,20 +1044,23 @@
           setCell(curR, 5, accLabel, 's', {
             font: { name: 'Calibri', sz: 10, color: { rgb: '000000' } },
             alignment: { horizontal: 'left', vertical: 'center' },
-            border: getBorders(5)
+            border: getBorders(5, undefined, bBottomR)
           });
           if (comparePrev && rData.prevAmount) {
             setCell(curR, 4, parseFloat(rData.prevAmount) || 0, 'n', {
               font: { name: 'Calibri', sz: 10, color: { rgb: '000000' } },
               alignment: { horizontal: 'right', vertical: 'center' },
-              border: getBorders(4)
+              border: getBorders(4, undefined, bBottomR)
             }, '#,##0.00');
+          } else {
+            setCell(curR, 4, '', 's', { border: getBorders(4, undefined, bBottomR) });
           }
+          setCell(curR, 6, '', 's', { border: getBorders(6, undefined, bBottomAmtR) });
           const curAmt = parseFloat(rData.currentAmount) || 0;
           setCell(curR, 7, curAmt, 'n', {
             font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: '000000' } },
             alignment: { horizontal: 'right', vertical: 'center' },
-            border: getBorders(7, undefined, thinBorder)
+            border: getBorders(7, undefined, bBottomAmtR)
           }, '#,##0.00');
           assetOuterCells.push(`H${curR + 1}`);
         } else if (rData.type === 'account-multi') {
@@ -921,20 +1068,22 @@
           setCell(curR, 5, '  ' + accLabel, 's', {
             font: { name: 'Calibri', sz: 10, color: { rgb: '000000' } },
             alignment: { horizontal: 'left', vertical: 'center' },
-            border: getBorders(5)
+            border: getBorders(5, undefined, bBottomR)
           });
           if (comparePrev && rData.prevAmount) {
             setCell(curR, 4, parseFloat(rData.prevAmount) || 0, 'n', {
               font: { name: 'Calibri', sz: 10, color: { rgb: '000000' } },
               alignment: { horizontal: 'right', vertical: 'center' },
-              border: getBorders(4)
+              border: getBorders(4, undefined, bBottomR)
             }, '#,##0.00');
+          } else if (isEndR) {
+            setCell(curR, 4, '', 's', { border: getBorders(4, undefined, bBottomR) });
           }
           // Inner Amount in Col G
           setCell(curR, 6, parseFloat(rData.currentAmount) || 0, 'n', {
             font: { name: 'Calibri', sz: 10, color: { rgb: '000000' } },
             alignment: { horizontal: 'right', vertical: 'center' },
-            border: getBorders(6)
+            border: getBorders(6, undefined, bBottomAmtR)
           }, '#,##0.00');
 
           if (rData.isLast) {
@@ -942,13 +1091,13 @@
             setCell(curR, 7, parseFloat(rData.outerAmount) || 0, 'n', {
               font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: '000000' } },
               alignment: { horizontal: 'right', vertical: 'center' },
-              border: getBorders(7, undefined, thinBorder)
+              border: getBorders(7, undefined, bBottomAmtR)
             }, '#,##0.00', sumFormula);
             assetOuterCells.push(`H${curR + 1}`);
           }
         } else if (rData.type === 'member-dues-section') {
           setCell(curR, 5, `  ${rData.billType || ''}`, 's', {
-            font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: '0D47A1' } },
+            font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: '000000' } },
             alignment: { horizontal: 'left', vertical: 'center' },
             border: getBorders(5)
           });
@@ -964,20 +1113,22 @@
           setCell(curR, 5, memLabel, 's', {
             font: { name: 'Calibri', sz: 9.5, color: { rgb: '000000' } },
             alignment: { horizontal: 'left', vertical: 'center' },
-            border: getBorders(5)
+            border: getBorders(5, undefined, bBottomR)
           });
           if (comparePrev && rData.prevAmount) {
             setCell(curR, 4, parseFloat(rData.prevAmount) || 0, 'n', {
               font: { name: 'Calibri', sz: 10, color: { rgb: '000000' } },
               alignment: { horizontal: 'right', vertical: 'center' },
-              border: getBorders(4)
+              border: getBorders(4, undefined, bBottomR)
             }, '#,##0.00');
+          } else if (isEndR) {
+            setCell(curR, 4, '', 's', { border: getBorders(4, undefined, bBottomR) });
           }
           // Inner dues amount
           setCell(curR, 6, parseFloat(rData.dueAmount) || 0, 'n', {
             font: { name: 'Calibri', sz: 9.5, color: { rgb: '000000' } },
             alignment: { horizontal: 'right', vertical: 'center' },
-            border: getBorders(6)
+            border: getBorders(6, undefined, bBottomAmtR)
           }, '#,##0.00');
 
           if (rData.isLast) {
@@ -985,7 +1136,7 @@
             setCell(curR, 7, parseFloat(rData.outerAmount) || 0, 'n', {
               font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: '000000' } },
               alignment: { horizontal: 'right', vertical: 'center' },
-              border: getBorders(7, undefined, thinBorder)
+              border: getBorders(7, undefined, bBottomAmtR)
             }, '#,##0.00', sumFormula);
             assetOuterCells.push(`H${curR + 1}`);
           }
@@ -993,19 +1144,22 @@
           setCell(curR, 5, rData.groupName || '', 's', {
             font: { name: 'Calibri', sz: 10.5, bold: true, color: { rgb: '000000' } },
             alignment: { horizontal: 'left', vertical: 'center' },
-            border: getBorders(5)
+            border: getBorders(5, undefined, bBottomR)
           });
           if (comparePrev && rData.prevAmount) {
             setCell(curR, 4, parseFloat(rData.prevAmount) || 0, 'n', {
               font: { name: 'Calibri', sz: 10, color: { rgb: '000000' } },
               alignment: { horizontal: 'right', vertical: 'center' },
-              border: getBorders(4)
+              border: getBorders(4, undefined, bBottomR)
             }, '#,##0.00');
+          } else {
+            setCell(curR, 4, '', 's', { border: getBorders(4, undefined, bBottomR) });
           }
+          setCell(curR, 6, '', 's', { border: getBorders(6, undefined, bBottomAmtR) });
           setCell(curR, 7, parseFloat(rData.currentAmount) || 0, 'n', {
             font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: '000000' } },
             alignment: { horizontal: 'right', vertical: 'center' },
-            border: getBorders(7, undefined, thinBorder)
+            border: getBorders(7, undefined, bBottomAmtR)
           }, '#,##0.00');
           assetOuterCells.push(`H${curR + 1}`);
         }

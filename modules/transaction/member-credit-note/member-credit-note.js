@@ -732,7 +732,10 @@
 
   window.appendParticularTag = function (num) {
     var el = document.getElementById('frm-particular' + num);
-    if (el) el.value += (el.value ? ' ' : '') + 'Credit Note for ' + getFyLabel();
+    if (el) {
+      var val = (el.value ? el.value + ' ' : '') + 'Credit Note for ' + getFyLabel();
+      el.value = val.slice(0, 75);
+    }
   };
 
   // ── 4. SAVE & ACTIONS ─────────────────────────────────────────────

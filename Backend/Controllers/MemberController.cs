@@ -204,7 +204,7 @@ namespace JeevikaERP.Controllers
                     INSERT INTO jeevika_erp.SocMember
                         (SocietyId, MemCode, MemName, MemName2, MemName3, MemName4, MemName5, MemName6, MemMarName,
                          Building, Wing, FlatNo, Floor, UnitType, FlatType, UnitNo, AreaSqft, AreaType, AreaCategory, AreaUnit,
-                         ContactNo, Email, PANNo, TANNo, EntryDate, MemberType, Shares,
+                         ContactNo, ContactNo2, Email, Email2, PANNo, TANNo, EntryDate, MemberType, Shares,
                          NonOccApplicable, NonOccReason, TenantName, TenantContact,
                          ParkingSlot2W, ParkingSlot4W, VehicleNo2W, VehicleNo4W,
                          LienBankName, LienLoanNo, LienAmount, LienStatus,
@@ -215,7 +215,7 @@ namespace JeevikaERP.Controllers
                     VALUES
                         (@sid, @code, @name, @name2, @name3, @name4, @name5, @name6, @marname,
                          @bldg, @wing, @flat, @floor, @unitType, @flatType, @unit, @area, @areaType, @areaCat, @areaUnit,
-                         @contact, @email, @pan, @tan, @entryDate, @memType, @shares,
+                         @contact, @contact2, @email, @email2, @pan, @tan, @entryDate, @memType, @shares,
                          @nonOccApp, @nonOccReason, @tenantName, @tenantContact,
                          @park2w, @park4w, @veh2w, @veh4w,
                          @lienBank, @lienLoan, @lienAmt, @lienStatus,
@@ -274,7 +274,9 @@ namespace JeevikaERP.Controllers
                         AreaCategory     = @areaCat,
                         AreaUnit         = @areaUnit,
                         ContactNo        = @contact,
+                        ContactNo2       = @contact2,
                         Email            = @email,
+                        Email2           = @email2,
                         PANNo            = @pan,
                         TANNo            = @tan,
                         EntryDate        = @entryDate,
@@ -805,8 +807,10 @@ namespace JeevikaERP.Controllers
                 areaUnit         = S("AreaUnit"),
                 memMobile        = S("ContactNo"),
                 contactNo        = S("ContactNo"),
+                contactNo2       = S("ContactNo2"),
                 memEmail         = S("Email"),
                 email            = S("Email"),
+                email2           = S("Email2"),
                 panNo            = S("PANNo"),
                 tanNo            = S("TANNo"),
                 entryDate        = r["EntryDate"] == DBNull.Value ? null : r.GetDateTime(r.GetOrdinal("EntryDate")).ToString("yyyy-MM-dd"),
@@ -878,7 +882,9 @@ namespace JeevikaERP.Controllers
             cmd.Parameters.AddWithValue("@areaCat",       (object?)m.AreaCategory    ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@areaUnit",      string.IsNullOrWhiteSpace(m.AreaUnit) ? "Sq.Ft" : m.AreaUnit);
             cmd.Parameters.AddWithValue("@contact",       (object?)m.ContactNo       ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@contact2",      (object?)m.ContactNo2      ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@email",         (object?)m.Email           ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@email2",        (object?)m.Email2          ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@pan",           (object?)m.PANNo           ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@tan",           (object?)m.TANNo           ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@entryDate",     m.EntryDate.HasValue ? (object)m.EntryDate.Value : DBNull.Value);
@@ -1419,6 +1425,25 @@ namespace JeevikaERP.Controllers
                     }
                 }
 
+                // Load configured society bill types for validation and ID resolution
+                var billTypesById = new Dictionary<int, (int Id, string Name)>();
+                var billTypesByName = new Dictionary<string, (int Id, string Name)>(StringComparer.OrdinalIgnoreCase);
+
+                using (var btCmd = conn.CreateCommand())
+                {
+                    btCmd.CommandText = "SELECT BillTypeId, BillTypeName, BillTypeCode FROM jeevika_erp.SocBillType WHERE SocietyId = @sid AND IsActive = TRUE";
+                    btCmd.Parameters.AddWithValue("@sid", sid);
+                    using var btr = btCmd.ExecuteReader();
+                    while (btr.Read())
+                    {
+                        int bId = Convert.ToInt32(btr["BillTypeId"]);
+                        string bName = btr["BillTypeName"]?.ToString()?.Trim() ?? "";
+                        billTypesById[bId] = (bId, bName);
+                        if (!string.IsNullOrEmpty(bName) && !billTypesByName.ContainsKey(bName))
+                            billTypesByName[bName] = (bId, bName);
+                    }
+                }
+
                 int totalCount = req.Members.Count;
                 int insertedCount = 0;
                 int updatedCount = 0;
@@ -1461,9 +1486,12 @@ namespace JeevikaERP.Controllers
                         string panNo   = item.PANNo?.Trim() ?? "";
                         decimal areaSqft = item.AreaValue ?? 0;
                         string areaType = string.IsNullOrWhiteSpace(item.AreaType) ? "Carpet" : item.AreaType.Trim();
-                        string billType = string.IsNullOrWhiteSpace(item.BillType) ? "Maintenance" : item.BillType.Trim();
-                        decimal opPrin  = item.OpPrincipal ?? 0;
-                        decimal opInt   = item.OpInterest ?? 0;
+
+                        // Contact Details
+                        string contactNo  = (item.ContactNo ?? item.MobileNo1)?.Trim() ?? "";
+                        string contactNo2 = (item.ContactNo2 ?? item.MobileNo2)?.Trim() ?? "";
+                        string email      = (item.Email ?? item.EmailID1)?.Trim() ?? "";
+                        string email2     = (item.Email2 ?? item.EmailID2)?.Trim() ?? "";
 
                         DateTime? agreeDate = ParseDateSafe(item.AgreementDate);
                         DateTime? regDate   = ParseDateSafe(item.RegistrationDate);
@@ -1516,19 +1544,90 @@ namespace JeevikaERP.Controllers
 
                         seenCodesInBatch.Add(memCode);
 
-                        // INSERT NEW MEMBER
+                        // Resolve opening balances and validate Bill Types strictly
+                        decimal maintPrin = 0;
+                        decimal maintInt = 0;
+                        string defaultBillType = "Maintenance";
+
+                        var resolvedOpBals = new List<(int BtId, string BtName, decimal Prin, decimal Int)>();
+                        if (item.OpeningBalances != null && item.OpeningBalances.Count > 0)
+                        {
+                            foreach (var ob in item.OpeningBalances)
+                            {
+                                int btId = ob.BillTypeId;
+                                string btName = ob.BillTypeName?.Trim() ?? "";
+
+                                if (btId > 0 && billTypesById.ContainsKey(btId))
+                                {
+                                    btName = billTypesById[btId].Name;
+                                }
+                                else if (!string.IsNullOrEmpty(btName) && billTypesByName.ContainsKey(btName))
+                                {
+                                    btId = billTypesByName[btName].Id;
+                                    btName = billTypesByName[btName].Name;
+                                }
+                                else
+                                {
+                                    throw new Exception($"Row {rowNum} (Member '{memCode}'): Unknown or unconfigured Bill Type '{btName}' (ID: {btId}). Import stopped.");
+                                }
+
+                                resolvedOpBals.Add((btId, btName, ob.Principal, ob.Interest));
+
+                                if (btName.Equals("Maintenance", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    maintPrin = ob.Principal;
+                                    maintInt = ob.Interest;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            // Fallback to legacy single billType if provided
+                            if (!string.IsNullOrWhiteSpace(item.BillType))
+                            {
+                                string bName = item.BillType.Trim();
+                                if (billTypesByName.ContainsKey(bName))
+                                {
+                                    defaultBillType = billTypesByName[bName].Name;
+                                    int bId = billTypesByName[bName].Id;
+                                    decimal p = item.OpPrincipal ?? 0;
+                                    decimal intr = item.OpInterest ?? 0;
+                                    resolvedOpBals.Add((bId, defaultBillType, p, intr));
+                                    if (defaultBillType.Equals("Maintenance", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        maintPrin = p;
+                                        maintInt = intr;
+                                    }
+                                }
+                                else
+                                {
+                                    throw new Exception($"Row {rowNum} (Member '{memCode}'): Unknown Bill Type '{bName}'. Import stopped.");
+                                }
+                            }
+                            else
+                            {
+                                maintPrin = item.OpPrincipal ?? 0;
+                                maintInt = item.OpInterest ?? 0;
+                                int maintId = billTypesByName.ContainsKey("Maintenance") ? billTypesByName["Maintenance"].Id : 0;
+                                resolvedOpBals.Add((maintId, "Maintenance", maintPrin, maintInt));
+                            }
+                        }
+
+                        // INSERT NEW MEMBER (Includes Contact Details & KYC)
                         using var insCmd = conn.CreateCommand();
                         insCmd.Transaction = tx;
                         insCmd.CommandText = @"
                             INSERT INTO jeevika_erp.SocMember
                                 (SocietyId, MemCode, MemName, MemName2, MemName3, MemName4, MemName5, MemName6,
                                  Building, Wing, FlatNo, Floor, UnitType, FlatType, AreaSqft, AreaType, MemberType,
+                                 ContactNo, ContactNo2, Email, Email2,
                                  GSTIN, PANNo, DefaultBillType, AgreementDate, RegistrationDate, StampDate,
                                  AgreementRegNo, AgreementValue, StampValue, RegistrationFees,
                                  OpPrincipal, OpInterest, IsDeleted, CreatedAt)
                             VALUES
                                 (@sid, @code, @name, @name2, @name3, @name4, @name5, @name6,
                                  @bldg, @wing, @flat, @floor, @unitType, @flatType, @area, @areaType, @memType,
+                                 @contact, @contact2, @email, @email2,
                                  @gstin, @pan, @billType, @agreeDate, @regDate, @stampDate,
                                  @agreeRegNo, @agreeVal, @stampVal, @regFees,
                                  @opPrin, @opInt, FALSE, NOW())
@@ -1551,9 +1650,13 @@ namespace JeevikaERP.Controllers
                         insCmd.Parameters.AddWithValue("@area", areaSqft);
                         insCmd.Parameters.AddWithValue("@areaType", (object)areaType ?? DBNull.Value);
                         insCmd.Parameters.AddWithValue("@memType", memType);
+                        insCmd.Parameters.AddWithValue("@contact", (object)contactNo ?? DBNull.Value);
+                        insCmd.Parameters.AddWithValue("@contact2", (object)contactNo2 ?? DBNull.Value);
+                        insCmd.Parameters.AddWithValue("@email", (object)email ?? DBNull.Value);
+                        insCmd.Parameters.AddWithValue("@email2", (object)email2 ?? DBNull.Value);
                         insCmd.Parameters.AddWithValue("@gstin", (object)gstin ?? DBNull.Value);
                         insCmd.Parameters.AddWithValue("@pan", (object)panNo ?? DBNull.Value);
-                        insCmd.Parameters.AddWithValue("@billType", billType);
+                        insCmd.Parameters.AddWithValue("@billType", defaultBillType);
                         insCmd.Parameters.AddWithValue("@agreeDate", agreeDate.HasValue ? (object)agreeDate.Value : DBNull.Value);
                         insCmd.Parameters.AddWithValue("@regDate", regDate.HasValue ? (object)regDate.Value : DBNull.Value);
                         insCmd.Parameters.AddWithValue("@stampDate", stampDate.HasValue ? (object)stampDate.Value : DBNull.Value);
@@ -1561,26 +1664,31 @@ namespace JeevikaERP.Controllers
                         insCmd.Parameters.AddWithValue("@agreeVal", agreeVal);
                         insCmd.Parameters.AddWithValue("@stampVal", stampVal);
                         insCmd.Parameters.AddWithValue("@regFees", regFees);
-                        insCmd.Parameters.AddWithValue("@opPrin", opPrin);
-                        insCmd.Parameters.AddWithValue("@opInt", opInt);
+                        insCmd.Parameters.AddWithValue("@opPrin", maintPrin);
+                        insCmd.Parameters.AddWithValue("@opInt", maintInt);
 
                         int newMemId = Convert.ToInt32(insCmd.ExecuteScalar());
 
-                        // Save OpBalances table entry
-                        using var opCmd = conn.CreateCommand();
-                        opCmd.Transaction = tx;
-                        opCmd.CommandText = @"
-                            INSERT INTO jeevika_erp.SocMemberOpBalance (SocietyId, MemberId, BillType, OpPrincipal, OpInterest)
-                            VALUES (@sid, @mid, @btype, @prin, @int)
-                            ON CONFLICT (SocietyId, MemberId, BillType) DO UPDATE SET
-                                OpPrincipal = EXCLUDED.OpPrincipal,
-                                OpInterest  = EXCLUDED.OpInterest";
-                        opCmd.Parameters.AddWithValue("@sid", sid);
-                        opCmd.Parameters.AddWithValue("@mid", newMemId);
-                        opCmd.Parameters.AddWithValue("@btype", billType);
-                        opCmd.Parameters.AddWithValue("@prin", opPrin);
-                        opCmd.Parameters.AddWithValue("@int", opInt);
-                        opCmd.ExecuteNonQuery();
+                        // Save all resolved OpBalances entries with BillTypeId and BillType
+                        foreach (var ob in resolvedOpBals)
+                        {
+                            using var opCmd = conn.CreateCommand();
+                            opCmd.Transaction = tx;
+                            opCmd.CommandText = @"
+                                INSERT INTO jeevika_erp.SocMemberOpBalance (SocietyId, MemberId, BillType, BillTypeId, OpPrincipal, OpInterest)
+                                VALUES (@sid, @mid, @btype, @btid, @prin, @int)
+                                ON CONFLICT (SocietyId, MemberId, BillType) DO UPDATE SET
+                                    BillTypeId  = EXCLUDED.BillTypeId,
+                                    OpPrincipal = EXCLUDED.OpPrincipal,
+                                    OpInterest  = EXCLUDED.OpInterest";
+                            opCmd.Parameters.AddWithValue("@sid", sid);
+                            opCmd.Parameters.AddWithValue("@mid", newMemId);
+                            opCmd.Parameters.AddWithValue("@btype", ob.BtName);
+                            opCmd.Parameters.AddWithValue("@btid", ob.BtId > 0 ? (object)ob.BtId : DBNull.Value);
+                            opCmd.Parameters.AddWithValue("@prin", ob.Prin);
+                            opCmd.Parameters.AddWithValue("@int", ob.Int);
+                            opCmd.ExecuteNonQuery();
+                        }
 
                         existingByCode[memCode] = newMemId;
                         string wfKey = $"{wing}|{flatNo}".ToLowerInvariant();
@@ -1698,7 +1806,9 @@ namespace JeevikaERP.Controllers
         public string?   AreaCategory     { get; set; }
         public string?   AreaUnit         { get; set; } = "Sq.Ft";
         public string?   ContactNo        { get; set; }
+        public string?   ContactNo2       { get; set; }
         public string?   Email            { get; set; }
+        public string?   Email2           { get; set; }
         public string?   PANNo            { get; set; }
         public string?   TANNo            { get; set; }
         public DateTime? EntryDate        { get; set; }
@@ -1748,6 +1858,14 @@ namespace JeevikaERP.Controllers
         public List<BulkImportMemberItemDto> Members { get; set; } = new();
     }
 
+    public class BulkImportOpBalItemDto
+    {
+        public int BillTypeId { get; set; }
+        public string? BillTypeName { get; set; }
+        public decimal Principal { get; set; } = 0;
+        public decimal Interest { get; set; } = 0;
+    }
+
     public class BulkImportMemberItemDto
     {
         public string? MemCode { get; set; }
@@ -1768,10 +1886,26 @@ namespace JeevikaERP.Controllers
         public string? PANNo { get; set; }
         public decimal? AreaValue { get; set; }
         public string? AreaType { get; set; }
+
+        // Member Contact Details
+        public string? ContactNo { get; set; }
+        public string? ContactNo2 { get; set; }
+        public string? Email { get; set; }
+        public string? Email2 { get; set; }
+        public string? MobileNo1 { get => ContactNo; set => ContactNo = value; }
+        public string? MobileNo2 { get => ContactNo2; set => ContactNo2 = value; }
+        public string? EmailID1 { get => Email; set => Email = value; }
+        public string? EmailID2 { get => Email2; set => Email2 = value; }
+
+        // Dynamic Multi-Bill-Type Opening Balances
+        public List<BulkImportOpBalItemDto>? OpeningBalances { get; set; }
+
+        // Legacy / fallback single BillType fields
         public string? BillType { get; set; }
         public decimal? OpPrincipal { get; set; }
         public decimal? OpInterest { get; set; }
         public decimal? TotalBalance { get; set; }
+
         public string? AgreementDate { get; set; }
         public string? RegistrationDate { get; set; }
         public string? StampDate { get; set; }

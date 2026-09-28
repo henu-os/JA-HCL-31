@@ -45,9 +45,56 @@
   document.addEventListener('DOMContentLoaded', async () => {
     if (typeof Auth !== 'undefined' && !Auth.requireContext()) return;
     initDateBounds();
+    loadSocietyDetails();
     await loadAccountsList();
     await loadContraRegister();
   });
+
+  // Society details state for professional voucher printing
+  let societyDetails = {
+    societyName: '',
+    registrationNo: '',
+    address: '',
+    city: '',
+    pincode: '',
+    email: '',
+    phone: '',
+    panNo: ''
+  };
+
+  async function loadSocietyDetails() {
+    const socId = getActiveSocietyId();
+    try {
+      const res = await API.get(`/societies/${socId}`);
+      if (res && res.success && res.data) {
+        societyDetails = { ...societyDetails, ...res.data };
+      } else if (res && res.societyName) {
+        societyDetails = { ...societyDetails, ...res };
+      }
+    } catch (e) {
+      console.warn('Could not fetch full society details:', e);
+    }
+    if (!societyDetails.societyName || societyDetails.societyName === '—') {
+      societyDetails.societyName = (window.Auth && Auth.getSocietyName && Auth.getSocietyName() !== '—') 
+        ? Auth.getSocietyName() 
+        : (sessionStorage.getItem('activeSocietyName') || 'SHREE SAI USHA COMPLEX CO-OP. HOUSING SOCIETY LTD.');
+    }
+    if (!societyDetails.registrationNo) {
+      societyDetails.registrationNo = sessionStorage.getItem('activeSocietyRegNo') || 'BOM/WSG/TC/9121/2001-2005 DT. 17.08.2004';
+    }
+    if (!societyDetails.address) {
+      societyDetails.address = sessionStorage.getItem('activeSocietyAddress') || 'KHANDELWAL MARG, NEAR USHA NAGAR, BHANDUP(WEST)';
+    }
+    if (!societyDetails.city) societyDetails.city = 'MUMBAI';
+    if (!societyDetails.pincode) societyDetails.pincode = '400 078';
+    if (!societyDetails.email) societyDetails.email = 'shreesaiushachsl@gmail.com';
+    if (!societyDetails.phone) societyDetails.phone = '+91 9987962108';
+
+    const pName = document.getElementById('prtSocName');
+    if (pName) pName.textContent = societyDetails.societyName;
+    const pSub = document.getElementById('prtSocSub');
+    if (pSub) pSub.textContent = `Registration No: ${societyDetails.registrationNo} | ${societyDetails.city || 'Mumbai'}`;
+  }
 
   function initDateBounds() {
     let fyStart = sessionStorage.getItem('activeFYStart') || localStorage.getItem('activeFYStart') || '';
@@ -223,6 +270,11 @@
             voucherType: 'Contra',
             amount: c.amount,
             narration: c.narration,
+            particular1: c.particular1 || c.narration || '',
+            particular2: c.particular2 || '',
+            refNo: c.refNo || '',
+            chqNo: c.chqNo || '',
+            chqDate: c.chqDate || null,
             status: c.status,
             items: []
           }));
@@ -249,6 +301,36 @@
     filterTable();
   };
 
+  // Helper: Extract Line 1 and Line 2 narration/particulars
+  function getNarrationLines(v) {
+    let line1 = (v.particular1 || '').trim();
+    let line2 = (v.particular2 || '').trim();
+
+    if (!line1 && v.narration) {
+      const parts = v.narration.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+      line1 = parts[0] || '';
+      if (!line2 && parts.length > 1) {
+        line2 = parts.slice(1).join(' ');
+      }
+    } else if (line1 && !line2 && v.narration) {
+      const narr = v.narration.trim();
+      if (narr !== line1) {
+        line2 = narr;
+      }
+    } else if (line1 && line2 && v.narration) {
+      const narr = v.narration.trim();
+      if (narr !== line1 && narr !== line2) {
+        line2 += ` (${narr})`;
+      }
+    }
+
+    if (!line1 && !line2) {
+      line1 = 'Contra Voucher';
+    }
+
+    return { line1, line2 };
+  }
+
   window.filterTable = function () {
     const q = (document.getElementById('searchInput')?.value || '').toLowerCase().trim();
     const showCodes = document.getElementById('chk-voucher-no')?.checked ?? true;
@@ -258,10 +340,12 @@
       if (q) {
         const vNo = (v.voucherNo || '').toLowerCase();
         const narr = (v.narration || '').toLowerCase();
+        const p1 = (v.particular1 || '').toLowerCase();
+        const p2 = (v.particular2 || '').toLowerCase();
         const amt = String(v.amount || '');
         const ref = (v.refNo || '').toLowerCase();
         const chq = (v.chqNo || '').toLowerCase();
-        let matchText = vNo.includes(q) || narr.includes(q) || amt.includes(q) || ref.includes(q) || chq.includes(q);
+        let matchText = vNo.includes(q) || narr.includes(q) || p1.includes(q) || p2.includes(q) || amt.includes(q) || ref.includes(q) || chq.includes(q);
 
         if (!matchText && Array.isArray(v.items)) {
           matchText = v.items.some(it => {
@@ -364,15 +448,20 @@
 
       // Chips for Reference & Cheque
       let metaChips = '';
-      if (v.chqNo) {
+      if (v.chqNo && v.chqNo !== '-') {
         metaChips += `<span class="reg-chip reg-chip-chq"><i class="bi bi-card-text"></i> Chq: ${escHtml(v.chqNo)}${v.chqDate ? ' (' + formatDate(v.chqDate) + ')' : ''}</span>`;
       }
       if (v.refNo) {
         metaChips += `<span class="reg-chip"><i class="bi bi-hash"></i> Ref: ${escHtml(v.refNo)}</span>`;
       }
 
-      const narrBox = (v.narration || metaChips)
-        ? `<div class="reg-narr-box">${metaChips}${escHtml(v.narration || 'Contra Fund Transfer')}</div>`
+      const { line1, line2 } = getNarrationLines(v);
+      const narrBox = (line1 || line2 || metaChips)
+        ? `<div class="reg-narr-box">
+             ${metaChips ? `<div style="margin-bottom:2px;">${metaChips}</div>` : ''}
+             ${line1 ? `<div class="reg-narr-line1">${escHtml(line1)}</div>` : ''}
+             ${line2 ? `<div class="reg-narr-line2">${escHtml(line2)}</div>` : ''}
+           </div>`
         : '';
 
       const printUrl = `../contra-voucher-print/contra-voucher-print.html?id=${vId}&vno=${encodeURIComponent(vNo)}`;
@@ -382,7 +471,7 @@
         <tr class="reg-voucher-main">
           <td class="td-center" style="font-weight:700;">${vDateStr}</td>
           <td class="td-center">
-            <a href="${printUrl}" target="_blank" class="voucher-pill" title="Print Contra Voucher">
+            <a href="javascript:void(0)" onclick="viewVoucherDetails('${escHtml(vNo)}')" class="voucher-pill" title="Click to view details or print voucher #${escHtml(vNo)}">
               <i class="bi bi-file-earmark-text"></i> ${escHtml(vNo)}
             </a>
           </td>
@@ -460,14 +549,424 @@
     if (kpiCash) kpiCash.textContent = `₹ ${formatINR(cashOut)}`;
   }
 
-  // ── 5. PRINT STATEMENT ───────────────────────────────────────────────────
+  // ── Statement Summary Popover Toggle ───────────────────────────────────────
+  window.toggleSummaryPopover = function (event) {
+    if (event) event.stopPropagation();
+    const pop = document.getElementById('summaryPopover');
+    const btn = document.getElementById('btnSummaryToggle');
+    if (!pop) return;
+
+    const isShown = pop.classList.contains('show');
+    if (isShown) {
+      pop.classList.remove('show');
+      if (btn) btn.classList.remove('active');
+    } else {
+      pop.classList.add('show');
+      if (btn) btn.classList.add('active');
+    }
+  };
+
+  // Close summary popover when clicking anywhere outside
+  document.addEventListener('click', (e) => {
+    const pop = document.getElementById('summaryPopover');
+    const btn = document.getElementById('btnSummaryToggle');
+    if (pop && pop.classList.contains('show')) {
+      if (!pop.contains(e.target) && e.target !== btn && !btn?.contains(e.target)) {
+        pop.classList.remove('show');
+        if (btn) btn.classList.remove('active');
+      }
+    }
+  });
+
+  // ── 5. DIRECT PRINT ENGINES (CURRENT FORMAT & CONTINUOUS) ─────────────────
+
+  // Option 1: Print standard Contra Register (Current format visible on screen)
   window.printRegister = function () {
+    document.body.classList.remove('print-voucher-mode');
+    document.body.classList.add('print-register-mode');
+
+    loadSocietyDetails();
     updatePrintDates();
-    const socName = (window.Auth && Auth.getSocietyName) ? Auth.getSocietyName() : 'Contra_Register';
+
+    const socName = (societyDetails.societyName || 'Society').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const fromVal = document.getElementById('fromDate')?.value || '';
+    const toVal = document.getElementById('toDate')?.value || '';
     const origTitle = document.title;
-    document.title = `${socName}_Contra_Register`.replace(/\s+/g, '_');
+    document.title = `${socName}_Contra_Register_${fromVal}_${toVal}`;
+
     window.print();
-    setTimeout(() => { document.title = origTitle; }, 1000);
+
+    const resetTitle = () => {
+      document.title = origTitle;
+      document.body.classList.remove('print-register-mode');
+      window.removeEventListener('afterprint', resetTitle);
+    };
+    window.addEventListener('afterprint', resetTitle);
+    setTimeout(resetTitle, 2000);
+  };
+
+  // Option 2: Print Continuous (No duplicates; exactly 2 distinct contra vouchers per single A4 page)
+  window.printVouchersContinuous = async function (singleVoucherNo) {
+    await loadSocietyDetails();
+
+    let vouchersToPrint = [];
+    if (singleVoucherNo) {
+      const v = rawVouchers.find(x => String(x.voucherNo) === String(singleVoucherNo));
+      if (v) vouchersToPrint = [v];
+    } else {
+      vouchersToPrint = [...rawVouchers];
+      const q = (document.getElementById('searchInput')?.value || '').toLowerCase().trim();
+      const accFilter = document.getElementById('accountSelect')?.value || 'all';
+      if (q || (accFilter && accFilter !== 'all')) {
+        vouchersToPrint = rawVouchers.filter(v => {
+          if (q) {
+            const vNo = (v.voucherNo || '').toLowerCase();
+            const narr = (v.narration || '').toLowerCase();
+            const amt = String(v.amount || '');
+            if (!vNo.includes(q) && !narr.includes(q) && !amt.includes(q)) return false;
+          }
+          if (accFilter && accFilter !== 'all') {
+            const needle = accFilter.toLowerCase();
+            const cb = (v.cashBankCode || '' + v.cashBankName || '').toLowerCase();
+            if (!cb.includes(needle)) return false;
+          }
+          return true;
+        });
+      }
+    }
+
+    if (vouchersToPrint.length === 0) {
+      alert('No contra vouchers found to print.');
+      return;
+    }
+
+    const printArea = document.getElementById('voucherPrintArea');
+    if (!printArea) return;
+
+    let sheetsHtml = '';
+    for (let i = 0; i < vouchersToPrint.length; i += 2) {
+      const v1 = vouchersToPrint[i];
+      const v2 = (i + 1 < vouchersToPrint.length) ? vouchersToPrint[i + 1] : null;
+
+      sheetsHtml += `
+        <div class="voucher-sheet">
+          <!-- Top: Contra Voucher 1 -->
+          ${buildContraVoucherCardHtml(v1)}
+
+          <!-- Cut Line Divider -->
+          <div class="voucher-cut-line">
+            ✂ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+          </div>
+
+          <!-- Bottom: Contra Voucher 2 (or placeholder if odd total) -->
+          ${v2 ? buildContraVoucherCardHtml(v2) : '<div class="voucher-card-placeholder" style="height:130mm; visibility:hidden;"></div>'}
+        </div>
+      `;
+    }
+
+    printArea.innerHTML = sheetsHtml;
+
+    document.body.classList.remove('print-register-mode');
+    document.body.classList.add('print-voucher-mode');
+
+    const cleanSoc = (societyDetails.societyName || 'Society').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const origTitle = document.title;
+    document.title = `${cleanSoc}_Contra_Vouchers_Continuous`;
+
+    window.print();
+
+    const cleanup = () => {
+      document.title = origTitle;
+      document.body.classList.remove('print-voucher-mode');
+      printArea.innerHTML = '';
+      window.removeEventListener('afterprint', cleanup);
+    };
+    window.addEventListener('afterprint', cleanup);
+    setTimeout(cleanup, 2000);
+  };
+
+  // Helper: Print a single contra voucher
+  window.printSingleVoucher = function (voucherNo) {
+    printVouchersContinuous(voucherNo);
+  };
+
+  // Build Individual Contra Voucher Card (Faithful to Image 2 design, 130mm height)
+  function buildContraVoucherCardHtml(v) {
+    const sName = (societyDetails.societyName || 'SHREE SAI USHA COMPLEX CO-OP. HOUSING SOCIETY LTD.').trim();
+    const regNo = (societyDetails.registrationNo || 'BOM/WSG/TC/9121/2001-2005 DT. 17.08.2004').trim();
+    const addr = societyDetails.address || 'KHANDELWAL MARG, NEAR USHA NAGAR, BHANDUP(WEST)';
+    const city = societyDetails.city || 'MUMBAI';
+    const pin = societyDetails.pincode || '400 078';
+    const email = societyDetails.email || 'shreesaiushachsl@gmail.com';
+    const phone = societyDetails.phone || '+91 9987962108';
+
+    let fullAddr = addr;
+    if (city && !fullAddr.toUpperCase().includes(city.toUpperCase())) fullAddr += ', ' + city;
+    if (pin && !fullAddr.includes(pin)) fullAddr += ' - ' + pin;
+
+    const contactLine = `email Id: ${email} , Tel No.: ${phone}`;
+
+    const vNo = v.voucherNo || '—';
+    const vDateStr = formatDate(v.voucherDate);
+    const vAmt = parseFloat(v.amount) || 0;
+
+    const items = Array.isArray(v.items) && v.items.length > 0 ? v.items : [];
+    let fromItem = items.find(it => parseFloat(it.credit) > 0);
+    let toItem = items.find(it => parseFloat(it.debit) > 0);
+
+    if (!fromItem && !toItem) {
+      fromItem = { accountName: v.cashBankName || 'Cash in Hand (Source)', credit: vAmt };
+      toItem = { accountName: v.personName || 'Bank Account (Destination)', debit: vAmt };
+    }
+
+    const fromAccName = fromItem ? fromItem.accountName : (v.cashBankName || 'Cash/Bank (Source)');
+    const toAccName = toItem ? toItem.accountName : (v.personName || 'Bank/Cash (Destination)');
+    const crAmt = fromItem ? (parseFloat(fromItem.credit) || vAmt) : vAmt;
+    const drAmt = toItem ? (parseFloat(toItem.debit) || vAmt) : vAmt;
+
+    // Detect transfer type
+    let transType = 'Fund Transfer';
+    const fLower = fromAccName.toLowerCase();
+    const tLower = toAccName.toLowerCase();
+    if (fLower.includes('cash') && tLower.includes('bank')) {
+      transType = 'Cash Deposit into Bank';
+    } else if (fLower.includes('bank') && tLower.includes('cash')) {
+      transType = 'Cash Withdrawal from Bank';
+    } else if (fLower.includes('bank') && tLower.includes('bank')) {
+      transType = 'Inter-Bank Transfer';
+    }
+
+    // Instrument line
+    let instrLine = '';
+    if (v.chqNo && v.chqNo !== '-') {
+      const cDate = v.chqDate ? formatDate(v.chqDate) : vDateStr;
+      instrLine = `Cheque No. &nbsp;&nbsp;<strong>${escHtml(v.chqNo)}</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; dated &nbsp;&nbsp; <strong>${escHtml(cDate)}</strong>`;
+    } else if (v.refNo) {
+      instrLine = `Mode / Ref: &nbsp;&nbsp;<strong>${escHtml(v.refNo)}</strong>`;
+    } else {
+      instrLine = `Mode: &nbsp;&nbsp;<strong>Fund Transfer Entry</strong>`;
+    }
+
+    // Narration
+    const { line1, line2 } = getNarrationLines(v);
+    let narrText = line1 || v.narration || '';
+    if (line2 && line2 !== line1) narrText += (narrText ? ' ' : '') + line2;
+    if (!narrText) narrText = `TOWARDS ${transType.toUpperCase()}`;
+
+    const words = convertToIndianWords(vAmt);
+
+    return `
+      <div class="voucher-card">
+        <div class="vcard-header">
+          <div class="vcard-title">Contra Voucher</div>
+          <div class="vcard-soc-name">${escHtml(sName)}</div>
+          <div class="vcard-soc-reg">Registration No.: ${escHtml(regNo)}</div>
+          <div class="vcard-soc-addr">Address: ${escHtml(fullAddr)}.</div>
+          <div class="vcard-soc-contact">${escHtml(contactLine)}</div>
+        </div>
+
+        <div class="vcard-hr"></div>
+
+        <div class="vcard-meta-row">
+          <div class="vcard-meta-left">
+            Transfer Type : &nbsp;&nbsp;<strong>${escHtml(transType)}</strong>
+          </div>
+          <div class="vcard-meta-right">
+            Contra No. : &nbsp;&nbsp;<strong>${escHtml(vNo)}</strong>
+          </div>
+        </div>
+
+        <div class="vcard-meta-row" style="margin-top:1px;">
+          <div class="vcard-meta-left">
+            From (Source A/c) : &nbsp;&nbsp;<strong>${escHtml(fromAccName)}</strong>
+          </div>
+          <div class="vcard-meta-right">
+            Date : &nbsp;&nbsp;<strong>${escHtml(vDateStr)}</strong>
+          </div>
+        </div>
+
+        <div class="vcard-meta-row" style="margin-top:1px;">
+          <div class="vcard-meta-left">
+            To (Destination A/c) : &nbsp;&nbsp;<strong>${escHtml(toAccName)}</strong>
+          </div>
+          <div class="vcard-meta-right">
+            ${v.refNo ? `Ref: &nbsp;&nbsp;<strong>${escHtml(v.refNo)}</strong>` : ''}
+          </div>
+        </div>
+
+        <div class="vcard-hr"></div>
+
+        <div class="vcard-body-table-wrap">
+          <table class="vcard-table">
+            <thead>
+              <tr>
+                <th class="th-part">Transfer Particulars</th>
+                <th class="th-amt">Debit (₹)</th>
+                <th class="th-amt">Credit (₹)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="td-part">To ${escHtml(toAccName)} (Inflow)</td>
+                <td class="td-amt">${formatINR(drAmt)}</td>
+                <td class="td-amt">—</td>
+              </tr>
+              <tr>
+                <td class="td-part">By ${escHtml(fromAccName)} (Outflow)</td>
+                <td class="td-amt">—</td>
+                <td class="td-amt">${formatINR(crAmt)}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="vcard-total-row">
+            <div class="vcard-words">${escHtml(words)}</div>
+            <div class="vcard-total-box">
+              <span class="vcard-total-num">Total: ₹ ${formatINR(vAmt)}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="vcard-hr"></div>
+
+        <div class="vcard-footer-grid">
+          <div class="vcard-footer-left">
+            <div class="vcard-chq-text">${instrLine}</div>
+            <div class="vcard-narr-text">${escHtml(narrText)}</div>
+          </div>
+          <div class="vcard-footer-right">
+            <div class="vcard-receiver-box"></div>
+            <div class="vcard-receiver-lbl">Passed By / Cashier</div>
+          </div>
+        </div>
+
+        <div class="vcard-sign-row">
+          <span class="vcard-sign-col">Prepared By</span>
+          <span class="vcard-sign-col">Checked By</span>
+          <span class="vcard-sign-col">Hon. Secretary</span>
+          <span class="vcard-sign-col" style="text-align:right;">Treasurer</span>
+        </div>
+      </div>
+    `;
+  }
+
+  // Convert numbers to Indian Rupees words
+  function convertToIndianWords(amt) {
+    if (typeof window.amountInWords === 'function') {
+      try {
+        const res = window.amountInWords(amt);
+        if (res && res !== 'Rupees Zero Only') return res;
+      } catch (e) {}
+    }
+
+    const num = Math.round(parseFloat(amt) || 0);
+    if (num === 0) return 'Rupees Zero Only';
+
+    const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
+      'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+    const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+    function numToWords(n) {
+      if (n < 20) return ones[n];
+      if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 ? ' ' + ones[n % 10] : '');
+      return ones[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' ' + numToWords(n % 100) : '');
+    }
+
+    let words = '';
+    let n = num;
+    const crore = Math.floor(n / 10000000); n %= 10000000;
+    const lakh = Math.floor(n / 100000); n %= 100000;
+    const thousand = Math.floor(n / 1000); n %= 1000;
+    const rest = n;
+
+    if (crore) words += numToWords(crore) + ' Crore ';
+    if (lakh) words += numToWords(lakh) + ' Lakh ';
+    if (thousand) words += numToWords(thousand) + ' Thousand ';
+    if (rest) words += numToWords(rest);
+
+    return 'Rupees ' + words.trim() + ' Only';
+  }
+
+  // ── 6. VIEW CONTRA VOUCHER DETAILS MODAL ─────────────────────────────────
+  window.viewVoucherDetails = function (voucherNo) {
+    const v = rawVouchers.find(x => String(x.voucherNo) === String(voucherNo));
+    if (!v) return;
+
+    const vAmt = parseFloat(v.amount) || 0;
+    const items = Array.isArray(v.items) && v.items.length > 0 ? v.items : [];
+    let fromItem = items.find(it => parseFloat(it.credit) > 0);
+    let toItem = items.find(it => parseFloat(it.debit) > 0);
+    if (!fromItem && !toItem) {
+      fromItem = { accountCode: v.cashBankCode || 'ASS-1001', accountName: v.cashBankName || 'Cash in Hand', credit: vAmt, debit: 0 };
+      toItem = { accountCode: 'ASS-1002', accountName: v.personName || 'Bank Account', debit: vAmt, credit: 0 };
+    }
+
+    const { line1, line2 } = getNarrationLines(v);
+
+    const modalHtml = `
+      <div id="vDetailModalBackdrop" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;">
+        <div style="background:#ffffff;border-radius:8px;box-shadow:0 10px 25px rgba(0,0,0,0.2);width:90%;max-width:650px;overflow:hidden;border:1px solid #cbd5e1;">
+          <div style="background:#0D47A1;color:#fff;padding:12px 18px;display:flex;justify-content:space-between;align-items:center;">
+            <div style="font-size:13px;font-weight:700;">
+              <i class="bi bi-arrow-left-right"></i> Contra Voucher Details: #${escHtml(v.voucherNo)}
+            </div>
+            <button onclick="document.getElementById('vDetailModalBackdrop').remove()" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer;">&times;</button>
+          </div>
+          <div style="padding:16px;max-height:80vh;overflow:auto;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:11px;background:#f8fafc;padding:10px;border-radius:6px;border:1px solid #e2e8f0;margin-bottom:12px;">
+              <div><strong>Voucher Date:</strong> ${formatDate(v.voucherDate)}</div>
+              <div><strong>Transfer Amount:</strong> <span style="font-weight:800;color:#0D47A1;">₹ ${formatINR(v.amount)}</span></div>
+              <div><strong>Paid From (Cr):</strong> ${escHtml(fromItem ? fromItem.accountName : 'Source')}</div>
+              <div><strong>Deposited To (Dr):</strong> ${escHtml(toItem ? toItem.accountName : 'Destination')}</div>
+              ${v.chqNo ? `<div><strong>Cheque No:</strong> ${escHtml(v.chqNo)}</div>` : ''}
+              ${v.chqDate ? `<div><strong>Cheque Date:</strong> ${formatDate(v.chqDate)}</div>` : ''}
+              ${v.refNo ? `<div><strong>Reference:</strong> ${escHtml(v.refNo)}</div>` : ''}
+            </div>
+
+            <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:12px;" border="1" bordercolor="#e2e8f0">
+              <thead style="background:#f1f5f9;color:#334155;">
+                <tr>
+                  <th style="padding:6px;text-align:left;">Code</th>
+                  <th style="padding:6px;text-align:left;">Account Head</th>
+                  <th style="padding:6px;text-align:right;">Debit (₹)</th>
+                  <th style="padding:6px;text-align:right;">Credit (₹)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="padding:6px;font-family:monospace;font-weight:700;">${escHtml(toItem?.accountCode || '—')}</td>
+                  <td style="padding:6px;">${escHtml(toItem?.accountName || '—')}</td>
+                  <td style="padding:6px;text-align:right;font-family:monospace;color:#15803d;font-weight:700;">₹ ${formatINR(toItem?.debit || vAmt)}</td>
+                  <td style="padding:6px;text-align:right;font-family:monospace;">—</td>
+                </tr>
+                <tr>
+                  <td style="padding:6px;font-family:monospace;font-weight:700;">${escHtml(fromItem?.accountCode || '—')}</td>
+                  <td style="padding:6px;">${escHtml(fromItem?.accountName || '—')}</td>
+                  <td style="padding:6px;text-align:right;font-family:monospace;">—</td>
+                  <td style="padding:6px;text-align:right;font-family:monospace;color:#b91c1c;font-weight:700;">₹ ${formatINR(fromItem?.credit || vAmt)}</td>
+                </tr>
+              </tbody>
+            </table>
+
+            ${(line1 || line2) ? `
+              <div style="font-size:11px;background:#f8fafc;padding:8px 12px;border-left:3px solid #0D47A1;border-radius:4px;color:#475569;">
+                <strong>Narration:</strong><br>
+                ${line1 ? `<div>${escHtml(line1)}</div>` : ''}
+                ${line2 ? `<div style="margin-top:3px;color:#64748b;">${escHtml(line2)}</div>` : ''}
+              </div>
+            ` : ''}
+          </div>
+          <div style="background:#f8fafc;padding:10px 16px;display:flex;justify-content:flex-end;gap:8px;border-top:1px solid #e2e8f0;">
+            <button onclick="document.getElementById('vDetailModalBackdrop').remove()" class="reg-btn">Close</button>
+            <button onclick="document.getElementById('vDetailModalBackdrop').remove(); printSingleVoucher('${escHtml(v.voucherNo)}');" class="reg-btn reg-btn-primary"><i class="bi bi-printer"></i> Print Voucher</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const div = document.createElement('div');
+    div.innerHTML = modalHtml;
+    document.body.appendChild(div.firstElementChild);
   };
 
   // ── 6. EXCEL EXPORT ENGINE ───────────────────────────────────────────────

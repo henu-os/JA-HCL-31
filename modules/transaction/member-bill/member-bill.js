@@ -1059,7 +1059,8 @@
   window.appendParticularTag = function (lineNo) {
     var inp = document.getElementById('frm-particular' + lineNo);
     if (inp) {
-      inp.value += ' [Period: May 2025]';
+      var val = (inp.value ? inp.value + ' ' : '') + '[Period: ' + (sessionStorage.getItem('activePeriodLabel') || 'Bill Period') + ']';
+      inp.value = val.slice(0, 75);
       toast('Appended period tag to Particular ' + lineNo, true);
     }
   };

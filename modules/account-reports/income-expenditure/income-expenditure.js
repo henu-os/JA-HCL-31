@@ -152,14 +152,15 @@
       periodEl.textContent = `${curFromStr || ''} To ${curToStr || ''}`;
     }
 
-    const curDateText = curToStr ? `${curToStr}<br>Amount(Rs.)` : 'Current Year<br>Amount(Rs.)';
+    const rupeeSym = '<span class="erp-currency-sym" style="font-size:9.5px;">₹</span>';
+    const curDateText = curToStr ? `${curToStr}<br>Amount (${rupeeSym})` : `Current Year<br>Amount (${rupeeSym})`;
 
     const prevToDate = (data.prevPeriod && (data.prevPeriod.toDate || data.prevPeriod.toDisplay || data.prevPeriod.fyEnd)) || '';
-    let prevDateText = prevToDate ? `${toDDMMYYYY(prevToDate)}<br>Amount(Rs.)` : '';
+    let prevDateText = prevToDate ? `${toDDMMYYYY(prevToDate)}<br>Amount (${rupeeSym})` : '';
     if (!prevDateText && data.prevPeriod && data.prevPeriod.fyLabel) {
-      prevDateText = `${data.prevPeriod.fyLabel}<br>Amount(Rs.)`;
+      prevDateText = `${data.prevPeriod.fyLabel}<br>Amount (${rupeeSym})`;
     }
-    if (!prevDateText) prevDateText = 'Prev Year<br>Amount(Rs.)';
+    if (!prevDateText) prevDateText = `Prev Year<br>Amount (${rupeeSym})`;
 
     const thPrevE = document.getElementById('th-prev-exp');
     const thPrevI = document.getElementById('th-prev-inc');
@@ -530,13 +531,13 @@
     const statementTitle = curToStr ? `Income & Expenditure Account For The Year Ended ${curToStr}` : (periodDisplay ? `Income & Expenditure Account ${periodDisplay}` : 'Income & Expenditure Account');
 
     const prevToDate = (currentIEReport.prevPeriod && (currentIEReport.prevPeriod.toDate || currentIEReport.prevPeriod.toDisplay || currentIEReport.prevPeriod.fyEnd)) || '';
-    let prevDateHeader = prevToDate ? `${toDDMMYYYY(prevToDate)}\nAmount(Rs.)` : '';
+    let prevDateHeader = prevToDate ? `${toDDMMYYYY(prevToDate)}\nAmount (₹)` : '';
     if (!prevDateHeader && currentIEReport.prevPeriod && currentIEReport.prevPeriod.fyLabel) {
-      prevDateHeader = `${currentIEReport.prevPeriod.fyLabel}\nAmount(Rs.)`;
+      prevDateHeader = `${currentIEReport.prevPeriod.fyLabel}\nAmount (₹)`;
     }
-    if (!prevDateHeader) prevDateHeader = '31/03/2025\nAmount(Rs.)';
+    if (!prevDateHeader) prevDateHeader = '31/03/2025\nAmount (₹)';
 
-    const curDateHeader = curToStr ? `${curToStr}\nAmount(Rs.)` : '31/03/2026\nAmount(Rs.)';
+    const curDateHeader = curToStr ? `${curToStr}\nAmount (₹)` : '31/03/2026\nAmount (₹)';
 
     // Styling definitions matching Balance Sheet
     const thinBorder = { style: 'thin', color: { rgb: '000000' } };
@@ -608,7 +609,7 @@
       alignment: { horizontal: 'center', vertical: 'center' },
       border: getBorders(1, thinBorder, thinBorder)
     });
-    setCell(hRow, 2, 'Sub Total\nAmount(Rs.)', 's', {
+    setCell(hRow, 2, '', 's', {
       font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: '000000' } },
       alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
       border: getBorders(2, thinBorder, thinBorder)
@@ -630,7 +631,7 @@
       alignment: { horizontal: 'center', vertical: 'center' },
       border: getBorders(5, thinBorder, thinBorder)
     });
-    setCell(hRow, 6, 'Sub Total\nAmount(Rs.)', 's', {
+    setCell(hRow, 6, '', 's', {
       font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: '000000' } },
       alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
       border: getBorders(6, thinBorder, thinBorder)
@@ -641,6 +642,8 @@
       alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
       border: getBorders(7, thinBorder, thinBorder)
     });
+    merges.push({ s: { r: hRow, c: 1 }, e: { r: hRow, c: 2 } });
+    merges.push({ s: { r: hRow, c: 5 }, e: { r: hRow, c: 6 } });
 
     // Data Rows
     const hideZero = true;

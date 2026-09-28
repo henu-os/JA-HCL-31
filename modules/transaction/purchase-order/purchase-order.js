@@ -1474,7 +1474,10 @@
 
   window.appendParticularTag = function (num) {
     var el = document.getElementById('frm-particular' + num);
-    if (el) el.value += (el.value ? ' ' : '') + 'Purchase Order for ' + getFyLabel();
+    if (el) {
+      var val = (el.value ? el.value + ' ' : '') + 'Purchase Order for ' + getFyLabel();
+      el.value = val.slice(0, 75);
+    }
   };
 
   function todayISO() {

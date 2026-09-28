@@ -18,9 +18,56 @@
     if (typeof Auth !== 'undefined' && !Auth.requireContext()) return;
     initDates();
     syncSocietyInfo();
+    loadSocietyDetails();
     await loadAccountsList();
     await loadPaymentRegister();
   });
+
+  // Society details state for professional voucher printing (Image 2)
+  let societyDetails = {
+    societyName: '',
+    registrationNo: '',
+    address: '',
+    city: '',
+    pincode: '',
+    email: '',
+    phone: '',
+    panNo: ''
+  };
+
+  async function loadSocietyDetails() {
+    const socId = getActiveSocietyId();
+    try {
+      const res = await API.get(`/societies/${socId}`);
+      if (res && res.success && res.data) {
+        societyDetails = { ...societyDetails, ...res.data };
+      } else if (res && res.societyName) {
+        societyDetails = { ...societyDetails, ...res };
+      }
+    } catch (e) {
+      console.warn('Could not fetch full society details:', e);
+    }
+    if (!societyDetails.societyName || societyDetails.societyName === '—') {
+      societyDetails.societyName = (window.Auth && Auth.getSocietyName && Auth.getSocietyName() !== '—') 
+        ? Auth.getSocietyName() 
+        : (sessionStorage.getItem('activeSocietyName') || 'SHREE SAI USHA COMPLEX CO-OP. HOUSING SOCIETY LTD.');
+    }
+    if (!societyDetails.registrationNo) {
+      societyDetails.registrationNo = sessionStorage.getItem('activeSocietyRegNo') || 'BOM/WSG/TC/9121/2001-2005 DT. 17.08.2004';
+    }
+    if (!societyDetails.address) {
+      societyDetails.address = sessionStorage.getItem('activeSocietyAddress') || 'KHANDELWAL MARG, NEAR USHA NAGAR, BHANDUP(WEST)';
+    }
+    if (!societyDetails.city) societyDetails.city = 'MUMBAI';
+    if (!societyDetails.pincode) societyDetails.pincode = '400 078';
+    if (!societyDetails.email) societyDetails.email = 'shreesaiushachsl@gmail.com';
+    if (!societyDetails.phone) societyDetails.phone = '+91 9987962108';
+
+    const prtSoc = document.getElementById('prtSocName');
+    if (prtSoc) prtSoc.textContent = societyDetails.societyName;
+    const prtSub = document.getElementById('prtSocSub');
+    if (prtSub) prtSub.textContent = `Registration No: ${societyDetails.registrationNo} | ${societyDetails.city || 'Mumbai'}`;
+  }
 
   function initDates() {
     let fyLabel = (window.Auth && Auth.getFYLabel) ? Auth.getFYLabel() : (sessionStorage.getItem('activeFYLabel') || '2026-27');
@@ -373,12 +420,46 @@
 
   // ── 5. KPI & FOOTER BALANCING ────────────────────────────────────────────
   function updateKPIs(count, total, bank, cash) {
-    document.getElementById('kpiTotalVouchers').textContent = count.toLocaleString('en-IN');
-    document.getElementById('kpiTotalAmount').textContent = '₹ ' + formatINR(total);
-    document.getElementById('kpiBankAmount').textContent = '₹ ' + formatINR(bank);
-    document.getElementById('kpiCashAmount').textContent = '₹ ' + formatINR(cash);
-    document.getElementById('recordCountLabel').textContent = `${count} Vouchers Displayed`;
+    const elCount = document.getElementById('kpiTotalVouchers');
+    const elTotal = document.getElementById('kpiTotalAmount');
+    const elBank = document.getElementById('kpiBankAmount');
+    const elCash = document.getElementById('kpiCashAmount');
+    if (elCount) elCount.textContent = count.toLocaleString('en-IN');
+    if (elTotal) elTotal.textContent = '₹ ' + formatINR(total);
+    if (elBank) elBank.textContent = '₹ ' + formatINR(bank);
+    if (elCash) elCash.textContent = '₹ ' + formatINR(cash);
+    const recCount = document.getElementById('recordCountLabel');
+    if (recCount) recCount.textContent = `${count} Vouchers Displayed`;
   }
+
+  // ── Statement Summary Popover Toggle ───────────────────────────────────────
+  window.toggleSummaryPopover = function (event) {
+    if (event) event.stopPropagation();
+    const pop = document.getElementById('summaryPopover');
+    const btn = document.getElementById('btnSummaryToggle');
+    if (!pop) return;
+
+    const isShown = pop.classList.contains('show');
+    if (isShown) {
+      pop.classList.remove('show');
+      if (btn) btn.classList.remove('active');
+    } else {
+      pop.classList.add('show');
+      if (btn) btn.classList.add('active');
+    }
+  };
+
+  // Close summary popover when clicking anywhere outside
+  document.addEventListener('click', (e) => {
+    const pop = document.getElementById('summaryPopover');
+    const btn = document.getElementById('btnSummaryToggle');
+    if (pop && pop.classList.contains('show')) {
+      if (!pop.contains(e.target) && e.target !== btn && !btn?.contains(e.target)) {
+        pop.classList.remove('show');
+        if (btn) btn.classList.remove('active');
+      }
+    }
+  });
 
   function updateFooters(debit, credit) {
     const footDr = document.getElementById('footTotDebit');
@@ -506,11 +587,374 @@
     XLSX.writeFile(wb, `${cleanSoc}_Payment_Register_${fromDate}_to_${toDate}.xlsx`);
   };
 
-  // ── 8. PRINT REGISTER ───────────────────────────────────────────────────
+  // ── 8. THREE DIRECT PRINT ENGINES (CURRENT FORMAT, DUPLICATE, CONTINUOUS) ──
+
+  // Option 1: Print standard Payment Register (Current format visible on screen)
   window.printRegister = function () {
+    document.body.classList.remove('print-voucher-mode');
+    document.body.classList.add('print-register-mode');
+
+    loadSocietyDetails();
     updatePrintDates();
+
+    const socName = (societyDetails.societyName || 'Society').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const fromDate = document.getElementById('fromDate')?.value || '';
+    const toDate = document.getElementById('toDate')?.value || '';
+    const origTitle = document.title;
+    document.title = `${socName}_Payment_Register_${fromDate}_${toDate}`;
+
     window.print();
+
+    const resetTitle = () => {
+      document.title = origTitle;
+      document.body.classList.remove('print-register-mode');
+      window.removeEventListener('afterprint', resetTitle);
+    };
+    window.addEventListener('afterprint', resetTitle);
+    setTimeout(resetTitle, 2000);
   };
+
+  // Option 2: Print with Duplicate (2 copies on 1 page: Society Copy on top, Vendor/Office Copy on bottom)
+  window.printVouchersWithDuplicate = async function (singleVoucherNo) {
+    await loadSocietyDetails();
+
+    let vouchersToPrint = [];
+    if (singleVoucherNo) {
+      const v = rawVouchers.find(x => String(x.voucherNo) === String(singleVoucherNo));
+      if (v) vouchersToPrint = [v];
+    } else {
+      vouchersToPrint = [...filteredVouchers];
+    }
+
+    if (vouchersToPrint.length === 0) {
+      if (window.showToast) {
+        showToast('No payment vouchers found to print for the selected criteria.', 'warning');
+      } else {
+        alert('No payment vouchers found to print for the selected criteria.');
+      }
+      return;
+    }
+
+    const printArea = document.getElementById('voucherPrintArea');
+    if (!printArea) return;
+
+    let sheetsHtml = '';
+    vouchersToPrint.forEach(v => {
+      sheetsHtml += `
+        <div class="voucher-sheet">
+          <!-- Top: Society Copy -->
+          ${buildPaymentVoucherCardHtml(v, 'Society Copy')}
+
+          <!-- Cut Line Divider -->
+          <div class="voucher-cut-line">
+            ✂ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+          </div>
+
+          <!-- Bottom: Vendor / Office Copy -->
+          ${buildPaymentVoucherCardHtml(v, 'Vendor / Office Copy')}
+        </div>
+      `;
+    });
+
+    printArea.innerHTML = sheetsHtml;
+
+    document.body.classList.remove('print-register-mode');
+    document.body.classList.add('print-voucher-mode');
+
+    const cleanSoc = (societyDetails.societyName || 'Society').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const origTitle = document.title;
+    document.title = `${cleanSoc}_Payment_Vouchers_With_Duplicate`;
+
+    window.print();
+
+    const cleanup = () => {
+      document.title = origTitle;
+      document.body.classList.remove('print-voucher-mode');
+      printArea.innerHTML = '';
+      window.removeEventListener('afterprint', cleanup);
+    };
+    window.addEventListener('afterprint', cleanup);
+    setTimeout(cleanup, 2000);
+  };
+
+  // Option 3: Print Continuous (No duplicates; exactly 2 distinct payment vouchers per single A4 page)
+  window.printVouchersContinuous = async function () {
+    await loadSocietyDetails();
+
+    const vouchersToPrint = [...filteredVouchers];
+    if (vouchersToPrint.length === 0) {
+      if (window.showToast) {
+        showToast('No payment vouchers found to print for the selected criteria.', 'warning');
+      } else {
+        alert('No payment vouchers found to print for the selected criteria.');
+      }
+      return;
+    }
+
+    const printArea = document.getElementById('voucherPrintArea');
+    if (!printArea) return;
+
+    let sheetsHtml = '';
+    for (let i = 0; i < vouchersToPrint.length; i += 2) {
+      const v1 = vouchersToPrint[i];
+      const v2 = (i + 1 < vouchersToPrint.length) ? vouchersToPrint[i + 1] : null;
+
+      sheetsHtml += `
+        <div class="voucher-sheet">
+          <!-- Top: Payment Voucher 1 -->
+          ${buildPaymentVoucherCardHtml(v1, '')}
+
+          <!-- Cut Line Divider -->
+          <div class="voucher-cut-line">
+            ✂ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+          </div>
+
+          <!-- Bottom: Payment Voucher 2 (or blank placeholder if odd count) -->
+          ${v2 ? buildPaymentVoucherCardHtml(v2, '') : '<div class="voucher-card-placeholder" style="height:130mm; visibility:hidden;"></div>'}
+        </div>
+      `;
+    }
+
+    printArea.innerHTML = sheetsHtml;
+
+    document.body.classList.remove('print-register-mode');
+    document.body.classList.add('print-voucher-mode');
+
+    const cleanSoc = (societyDetails.societyName || 'Society').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const origTitle = document.title;
+    document.title = `${cleanSoc}_Payment_Vouchers_Continuous`;
+
+    window.print();
+
+    const cleanup = () => {
+      document.title = origTitle;
+      document.body.classList.remove('print-voucher-mode');
+      printArea.innerHTML = '';
+      window.removeEventListener('afterprint', cleanup);
+    };
+    window.addEventListener('afterprint', cleanup);
+    setTimeout(cleanup, 2000);
+  };
+
+  // Helper: Print a single voucher with duplicate
+  window.printSingleVoucher = function (voucherNo) {
+    printVouchersWithDuplicate(voucherNo);
+  };
+
+  // Build Individual Payment Voucher Card (100% Faithful to Image 2)
+  function buildPaymentVoucherCardHtml(v, copyType) {
+    const sName = (societyDetails.societyName || 'SHREE SAI USHA COMPLEX CO-OP. HOUSING SOCIETY LTD.').trim();
+    const regNo = (societyDetails.registrationNo || 'BOM/WSG/TC/9121/2001-2005 DT. 17.08.2004').trim();
+    const addr = societyDetails.address || 'KHANDELWAL MARG, NEAR USHA NAGAR, BHANDUP(WEST)';
+    const city = societyDetails.city || 'MUMBAI';
+    const pin = societyDetails.pincode || '400 078';
+    const email = societyDetails.email || 'shreesaiushachsl@gmail.com';
+    const phone = societyDetails.phone || '+91 9987962108';
+
+    let fullAddr = addr;
+    if (city && !fullAddr.toUpperCase().includes(city.toUpperCase())) fullAddr += ', ' + city;
+    if (pin && !fullAddr.includes(pin)) fullAddr += ' - ' + pin;
+
+    const contactLine = `email Id: ${email} , Tel No.: ${phone}`;
+
+    const vNo = v.voucherNo || '—';
+    const vDate = formatDateDisplay(v.voucherDate);
+    const payer = (v.personName || v.paidTo || 'Vendor / Payee').toUpperCase();
+
+    // PAN / GSTIN display next to Pay to
+    let panGstText = '';
+    if (v.panNo && v.panNo !== '-') {
+      panGstText = `(PAN NO: ${v.panNo})`;
+    } else if (v.gstNo && v.gstNo !== '-') {
+      panGstText = `(GSTIN: ${v.gstNo})`;
+    } else if (v.gstin && v.gstin !== '-') {
+      panGstText = `(GSTIN: ${v.gstin})`;
+    }
+
+    const paidBy = v.cashBankName || 'Cash / Bank Account';
+
+    // Extract table items:
+    // Debits = expenses / assets / taxes
+    // Deductions = non-bank credits (like TDS, Retention) shown as -₹
+    const items = (v.items && v.items.length > 0) ? v.items : synthesizeLines(v);
+
+    function isBankOrCashAccount(item) {
+      const c = (item.accountCode || '').toLowerCase();
+      const n = (item.accountName || '').toLowerCase();
+      return c.startsWith('20') || n.includes('bank') || n.includes('cash') || n.includes('petty');
+    }
+
+    const debitItems = items.filter(it => parseFloat(it.debit) > 0.005);
+    const deductionItems = items.filter(it => parseFloat(it.credit) > 0.005 && !isBankOrCashAccount(it));
+
+    let rowsToRender = [];
+    debitItems.forEach(it => {
+      rowsToRender.push({
+        particular: it.accountName || 'Particular',
+        amount: parseFloat(it.debit) || 0,
+        isDeduction: false
+      });
+    });
+
+    deductionItems.forEach(it => {
+      rowsToRender.push({
+        particular: it.accountName || 'Deduction / TDS',
+        amount: parseFloat(it.credit) || 0,
+        isDeduction: true
+      });
+    });
+
+    if (rowsToRender.length === 0) {
+      rowsToRender.push({
+        particular: v.particular1 || 'Payment / Expense',
+        amount: parseFloat(v.amount) || 0,
+        isDeduction: false
+      });
+    }
+
+    const itemRowsHtml = rowsToRender.map(r => `
+      <tr>
+        <td class="td-part">${escHtml(r.particular)}</td>
+        <td class="td-amt">${r.isDeduction ? '-' : ''}${formatINR(r.amount)}</td>
+      </tr>
+    `).join('');
+
+    const totalAmt = parseFloat(v.amount) || (debitItems.reduce((s, x) => s + (parseFloat(x.debit) || 0), 0) - deductionItems.reduce((s, x) => s + (parseFloat(x.credit) || 0), 0));
+    const words = convertToIndianWords(totalAmt);
+
+    // Instrument line (Cheque / Cash / Mode)
+    let instrLine = '';
+    if (v.chqNo && v.chqNo !== '-') {
+      const cDate = v.chqDate ? formatDateDisplay(v.chqDate) : vDate;
+      instrLine = `Cheque No. &nbsp;&nbsp;<strong>${escHtml(v.chqNo)}</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; dated &nbsp;&nbsp; <strong>${escHtml(cDate)}</strong>`;
+    } else {
+      const cb = (v.cashBankName || v.cashBankCode || '').toLowerCase();
+      if (cb.includes('cash') || (v.transType === 'Cash')) {
+        instrLine = `Payment Mode: &nbsp;&nbsp;<strong>Cash</strong>`;
+      } else {
+        instrLine = `Mode / Ref: &nbsp;&nbsp;<strong>${escHtml(v.refNo || v.cashBankName || 'Bank Transfer')}</strong>`;
+      }
+    }
+
+    // Narration line (TOWARDS ...)
+    const { line1, line2 } = getNarrationLines(v);
+    let narrText = line1 || v.narration || '';
+    if (line2 && line2 !== line1) narrText += (narrText ? ' ' : '') + line2;
+    if (!narrText) narrText = `AMOUNT PAID TOWARDS ${escHtml(rowsToRender[0]?.particular || 'EXPENSES')}`;
+
+    return `
+      <div class="voucher-card">
+        <div class="vcard-header">
+          <div class="vcard-title">Payment Voucher</div>
+          <div class="vcard-soc-name">${escHtml(sName)}</div>
+          <div class="vcard-soc-reg">Registration No.: ${escHtml(regNo)}</div>
+          <div class="vcard-soc-addr">Address: ${escHtml(fullAddr)}.</div>
+          <div class="vcard-soc-contact">${escHtml(contactLine)}</div>
+          ${copyType ? `<div class="vcard-copy-badge">${escHtml(copyType)}</div>` : ''}
+        </div>
+
+        <div class="vcard-hr"></div>
+
+        <div class="vcard-meta-row">
+          <div class="vcard-meta-left">
+            Pay to : &nbsp;&nbsp;<strong>${escHtml(payer)}</strong> ${panGstText ? `<span class="vcard-pan-tag">&nbsp;&nbsp;${escHtml(panGstText)}</span>` : ''}
+          </div>
+          <div class="vcard-meta-right">
+            Pymt No. : &nbsp;&nbsp;<strong>${escHtml(vNo)}</strong>
+          </div>
+        </div>
+
+        <div class="vcard-meta-row" style="margin-top:1px;">
+          <div class="vcard-meta-left">
+            Paid by : &nbsp;&nbsp;<strong>${escHtml(paidBy)}</strong>
+          </div>
+          <div class="vcard-meta-right">
+            Date : &nbsp;&nbsp;<strong>${escHtml(vDate)}</strong>
+          </div>
+        </div>
+
+        <div class="vcard-hr"></div>
+
+        <div class="vcard-body-table-wrap">
+          <table class="vcard-table">
+            <thead>
+              <tr>
+                <th class="th-part">Particular</th>
+                <th class="th-amt">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemRowsHtml}
+            </tbody>
+          </table>
+
+          <div class="vcard-total-row">
+            <div class="vcard-words">${escHtml(words)}</div>
+            <div class="vcard-total-box">
+              <span class="vcard-total-num">${formatINR(totalAmt)}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="vcard-hr"></div>
+
+        <div class="vcard-footer-grid">
+          <div class="vcard-footer-left">
+            <div class="vcard-chq-text">${instrLine}</div>
+            <div class="vcard-narr-text">${escHtml(narrText)}</div>
+          </div>
+          <div class="vcard-footer-right">
+            <div class="vcard-receiver-box"></div>
+            <div class="vcard-receiver-lbl">Receiver Signature</div>
+          </div>
+        </div>
+
+        <div class="vcard-sign-row">
+          <span class="vcard-sign-col">Chairman</span>
+          <span class="vcard-sign-col">Secretary</span>
+          <span class="vcard-sign-col">Treasurer</span>
+          <span class="vcard-sign-col" style="text-align:right;">Receiver Signature</span>
+        </div>
+      </div>
+    `;
+  }
+
+  // Convert numbers to Indian Rupees words
+  function convertToIndianWords(amt) {
+    if (typeof window.amountInWords === 'function') {
+      try {
+        const res = window.amountInWords(amt);
+        if (res && res !== 'Rupees Zero Only') return res;
+      } catch (e) {}
+    }
+
+    const num = Math.round(parseFloat(amt) || 0);
+    if (num === 0) return 'Rupees Zero Only';
+
+    const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
+      'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+    const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+    function numToWords(n) {
+      if (n < 20) return ones[n];
+      if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 ? ' ' + ones[n % 10] : '');
+      return ones[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' ' + numToWords(n % 100) : '');
+    }
+
+    let words = '';
+    let n = num;
+    const crore = Math.floor(n / 10000000); n %= 10000000;
+    const lakh = Math.floor(n / 100000); n %= 100000;
+    const thousand = Math.floor(n / 1000); n %= 1000;
+    const rest = n;
+
+    if (crore) words += numToWords(crore) + ' Crore ';
+    if (lakh) words += numToWords(lakh) + ' Lakh ';
+    if (thousand) words += numToWords(thousand) + ' Thousand ';
+    if (rest) words += numToWords(rest);
+
+    return 'Rupees ' + words.trim() + ' Only';
+  }
 
   // ── 9. VIEW VOUCHER DETAILS MODAL ───────────────────────────────────────
   window.viewVoucherDetails = function (voucherNo) {
@@ -572,8 +1016,9 @@
               `;
             })()}
           </div>
-          <div style="background:#f8fafc;padding:10px 16px;display:flex;justify-content:flex-end;border-top:1px solid #e2e8f0;">
+          <div style="background:#f8fafc;padding:10px 16px;display:flex;justify-content:flex-end;gap:8px;border-top:1px solid #e2e8f0;">
             <button onclick="document.getElementById('vDetailModalBackdrop').remove()" class="reg-btn">Close</button>
+            <button onclick="document.getElementById('vDetailModalBackdrop').remove(); printSingleVoucher('${escHtml(v.voucherNo)}');" class="reg-btn reg-btn-primary"><i class="bi bi-printer"></i> Print Voucher</button>
           </div>
         </div>
       </div>

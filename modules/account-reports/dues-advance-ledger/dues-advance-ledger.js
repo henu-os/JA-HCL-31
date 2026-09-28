@@ -477,17 +477,16 @@ function renderThead(isAll) {
   if (!thead) return;
   thead.innerHTML = `
     <tr>
-      <th style="width:40px; text-align:center;">#</th>
       <th style="width:90px; text-align:center;">Flat No</th>
       <th style="width:70px; text-align:center;">Wing</th>
       <th>Member Name</th>
       ${isAll ? '<th style="width:110px; text-align:center;">Bill Type</th>' : ''}
-      <th style="width:125px; text-align:right;">Opening Dues (DR)</th>
-      <th style="width:125px; text-align:right;">Opening Adv (CR)</th>
+      <th style="width:125px; text-align:right;">Opening Debit</th>
+      <th style="width:125px; text-align:right;">Opening Credit</th>
       <th style="width:130px; text-align:right;">Transaction Debit</th>
       <th style="width:130px; text-align:right;">Transaction Credit</th>
-      <th style="width:130px; text-align:right;">Closing Dues (DR)</th>
-      <th style="width:130px; text-align:right;">Closing Adv (CR)</th>
+      <th style="width:130px; text-align:right;">Closing Debit</th>
+      <th style="width:130px; text-align:right;">Closing Credit</th>
       <th style="width:95px; text-align:center;">Status</th>
     </tr>
   `;
@@ -496,7 +495,7 @@ function renderThead(isAll) {
 function renderTfoot(isAll) {
   const tfoot = document.querySelector('table.ledger-grid tfoot');
   if (!tfoot) return;
-  const colSpan = isAll ? 5 : 4;
+  const colSpan = isAll ? 4 : 3;
   tfoot.innerHTML = `
     <tr>
       <td colspan="${colSpan}" style="text-align:right;">Grand Total:</td>
@@ -520,7 +519,7 @@ function renderTable(list) {
   renderTfoot(isAll);
 
   if (!list || list.length === 0) {
-    const totalCols = isAll ? 12 : 11;
+    const totalCols = isAll ? 11 : 10;
     tbody.innerHTML = `<tr><td colspan="${totalCols}" style="text-align:center; padding:40px; color:#64748b;">No member records found for the selected criteria.</td></tr>`;
     updateKPIs([], 0, 0, 0, 0, 0, 0);
     return;
@@ -545,7 +544,6 @@ function renderTable(list) {
 
     return `
       <tr>
-        <td style="text-align:center; color:#64748b; font-weight:600;">${i + 1}</td>
         <td style="text-align:center; font-weight:800; color:#0f172a;">${escHtml(item.flatNo)}</td>
         <td style="text-align:center; font-weight:600;">${escHtml(item.wing)}</td>
         <td style="font-weight:700; color:#0D47A1;">${escHtml(item.memName)}</td>
@@ -635,8 +633,8 @@ function exportCsv() {
   const isAll = (selectedBT.toUpperCase() === 'ALL');
 
   const headers = isAll
-    ? ['#', 'Flat No', 'Wing', 'Member Name', 'Bill Type', 'Opening Dues (DR)', 'Opening Adv (CR)', 'Transaction Debit', 'Transaction Credit', 'Closing Dues (DR)', 'Closing Adv (CR)', 'Status']
-    : ['#', 'Flat No', 'Wing', 'Member Name', 'Opening Dues (DR)', 'Opening Adv (CR)', 'Transaction Debit', 'Transaction Credit', 'Closing Dues (DR)', 'Closing Adv (CR)', 'Status'];
+    ? ['Flat No', 'Wing', 'Member Name', 'Bill Type', 'Opening Debit', 'Opening Credit', 'Transaction Debit', 'Transaction Credit', 'Closing Debit', 'Closing Credit', 'Status']
+    : ['Flat No', 'Wing', 'Member Name', 'Opening Debit', 'Opening Credit', 'Transaction Debit', 'Transaction Credit', 'Closing Debit', 'Closing Credit', 'Status'];
 
   const csvRows = [headers.join(',')];
 
@@ -644,7 +642,6 @@ function exportCsv() {
     const status = r.closingDues > 0 ? 'Dues (Dr)' : (r.closingAdv > 0 ? 'Advance (Cr)' : 'Nil');
     const row = isAll
       ? [
-          i + 1,
           `"${r.flatNo}"`,
           `"${r.wing}"`,
           `"${r.memName.replace(/"/g, '""')}"`,
@@ -658,7 +655,6 @@ function exportCsv() {
           `"${status}"`
         ]
       : [
-          i + 1,
           `"${r.flatNo}"`,
           `"${r.wing}"`,
           `"${r.memName.replace(/"/g, '""')}"`,

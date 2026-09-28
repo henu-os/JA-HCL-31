@@ -30,6 +30,9 @@ namespace JeevikaERP.Controllers
 
         public class MemberInfoDto
         {
+            [JsonPropertyName("memberId")]
+            public int MemberId { get; set; }
+
             [JsonPropertyName("memberCode")]
             public string MemberCode { get; set; } = "";
 
@@ -969,6 +972,7 @@ namespace JeevikaERP.Controllers
                         {
                             MemberInfo = new MemberInfoDto
                             {
+                                MemberId = mem.MemberId,
                                 MemberCode = mem.Code,
                                 MemberName = mem.Name,
                                 Wing = mem.Wing,
@@ -1231,6 +1235,7 @@ namespace JeevikaERP.Controllers
                         {
                             MemberInfo = new MemberInfoDto
                             {
+                                MemberId = mem.MemberId,
                                 MemberCode = mem.Code,
                                 MemberName = mem.Name,
                                 Wing = mem.Wing,

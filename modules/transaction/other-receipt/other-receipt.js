@@ -811,7 +811,7 @@
     var isGstRow = function (r) {
       var c = (r.code || '').toUpperCase();
       var n = (r.name || '').toLowerCase();
-      return c === 'LIA-1021' || c === 'LIA-1022' || c === 'LIA-1032' || c === 'LIA-1033' || n.includes('input cgst') || n.includes('input sgst') || n.includes('output cgst') || n.includes('output sgst') || (n.includes('cgst') && !n.includes('tds')) || (n.includes('sgst') && !n.includes('tds'));
+      return c === 'LIA-1032' || c === 'LIA-1033' || c === 'LIA-1021' || c === 'LIA-1022' || (n.includes('cgst') && !n.includes('tds')) || (n.includes('sgst') && !n.includes('tds'));
     };
 
     var baseAmt = gridRows.filter(function (r) { return !isGstRow(r); }).reduce(function (s, r) { return s + (parseFloat(r.cr) || 0); }, 0);
@@ -832,32 +832,45 @@
     var cgstAmt = Math.round(baseAmt * (gstRate / 100) * 100) / 100;
     var sgstAmt = cgstAmt;
 
-    // Lookup Liability Accounts (Group: Liability / LI-15 OUTPUT GST)
+    // Lookup Liability Accounts: Always prefer LIA-1032 (CGST 9%) and LIA-1033 (SGST 9%)
     var cgstAcc = accounts.find(function (a) {
       var c = (a.accCode || '').toUpperCase();
       var n = (a.accName || '').toLowerCase();
-      var g = (a.groupName || '').toLowerCase();
       var isLiability = a.grpMainId == 2 || (a.mainGroup && a.mainGroup.toLowerCase() === 'liability');
-      return c === 'LIA-1021' || (isLiability && (g.includes('output gst') || g.includes('input gst')) && n.includes('cgst')) || (isLiability && (n.includes('output cgst') || n === 'input cgst'));
+      return isLiability && (c === 'LIA-1032' || n === 'cgst 9%' || n.includes('cgst 9'));
+    }) || accounts.find(function (a) {
+      var c = (a.accCode || '').toUpperCase();
+      var n = (a.accName || '').toLowerCase();
+      return (c === 'LIA-1032' || n === 'cgst 9%' || n.includes('cgst 9'));
+    }) || accounts.find(function (a) {
+      var n = (a.accName || '').toLowerCase();
+      return n.includes('cgst') && !n.includes('input') && !n.includes('output');
     });
+
     var sgstAcc = accounts.find(function (a) {
       var c = (a.accCode || '').toUpperCase();
       var n = (a.accName || '').toLowerCase();
-      var g = (a.groupName || '').toLowerCase();
       var isLiability = a.grpMainId == 2 || (a.mainGroup && a.mainGroup.toLowerCase() === 'liability');
-      return c === 'LIA-1022' || (isLiability && (g.includes('output gst') || g.includes('input gst')) && n.includes('sgst')) || (isLiability && (n.includes('output sgst') || n === 'input sgst'));
+      return isLiability && (c === 'LIA-1033' || n === 'sgst 9%' || n.includes('sgst 9'));
+    }) || accounts.find(function (a) {
+      var c = (a.accCode || '').toUpperCase();
+      var n = (a.accName || '').toLowerCase();
+      return (c === 'LIA-1033' || n === 'sgst 9%' || n.includes('sgst 9'));
+    }) || accounts.find(function (a) {
+      var n = (a.accName || '').toLowerCase();
+      return n.includes('sgst') && !n.includes('input') && !n.includes('output');
     });
 
-    var cgstCode = cgstAcc ? cgstAcc.accCode : 'LIA-1021';
-    var cgstName = cgstAcc ? cgstAcc.accName : 'Output CGST';
-    var sgstCode = sgstAcc ? sgstAcc.accCode : 'LIA-1022';
-    var sgstName = sgstAcc ? sgstAcc.accName : 'Output SGST';
+    var cgstCode = cgstAcc ? cgstAcc.accCode : 'LIA-1032';
+    var cgstName = cgstAcc ? cgstAcc.accName : 'CGST 9%';
+    var sgstCode = sgstAcc ? sgstAcc.accCode : 'LIA-1033';
+    var sgstName = sgstAcc ? sgstAcc.accName : 'SGST 9%';
 
-    // Find existing Output/Input CGST row or push new
+    // Find existing CGST row or push new
     var cgstIdx = gridRows.findIndex(function (r) {
       var c = (r.code || '').toUpperCase();
       var n = (r.name || '').toLowerCase();
-      return c === 'LIA-1021' || c === cgstCode.toUpperCase() || n.includes('output cgst') || n.includes('input cgst');
+      return c === 'LIA-1032' || c === 'LIA-1021' || c === cgstCode.toUpperCase() || (n.includes('cgst') && !n.includes('tds'));
     });
 
     if (cgstIdx >= 0) {
@@ -877,11 +890,11 @@
       });
     }
 
-    // Find existing Output/Input SGST row or push new
+    // Find existing SGST row or push new
     var sgstIdx = gridRows.findIndex(function (r) {
       var c = (r.code || '').toUpperCase();
       var n = (r.name || '').toLowerCase();
-      return c === 'LIA-1022' || c === sgstCode.toUpperCase() || n.includes('output sgst') || n.includes('input sgst');
+      return c === 'LIA-1033' || c === 'LIA-1022' || c === sgstCode.toUpperCase() || (n.includes('sgst') && !n.includes('tds'));
     });
 
     if (sgstIdx >= 0) {
@@ -1870,7 +1883,10 @@
 
   window.appendParticularTag = function (num) {
     var el = document.getElementById('frm-particular' + num);
-    if (el) el.value += (el.value ? ' ' : '') + 'Other Receipt for ' + getFyLabel();
+    if (el) {
+      var val = (el.value ? el.value + ' ' : '') + 'Other Receipt for ' + getFyLabel();
+      el.value = val.slice(0, 75);
+    }
   };
 
   window.closeModal = function (id) {

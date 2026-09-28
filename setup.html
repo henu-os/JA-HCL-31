@@ -898,10 +898,13 @@
 
     // ── API Base Resolver ─────────────────────────────────
     function getApiBase() {
-      if (typeof window !== 'undefined' && window.location && window.location.protocol && window.location.protocol.startsWith('http')) {
-        return window.location.origin + '/api';
+      if (window.APP_CONFIG && window.APP_CONFIG.API_BASE) {
+        return window.APP_CONFIG.API_BASE;
       }
-      return (window.APP_CONFIG && window.APP_CONFIG.API_BASE) || 'http://localhost:5002/api';
+      if (window.CONFIG && window.CONFIG.API_BASE) {
+        return window.CONFIG.API_BASE;
+      }
+      return 'http://localhost:5002/api';
     }
 
     // ── DYNAMIC RANGE POLICY & CREATE FINANCIAL YEAR MODAL ──

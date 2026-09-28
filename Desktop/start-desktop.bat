@@ -9,10 +9,10 @@ echo.
 
 cd /d "%~dp0"
 
-:: Check if node_modules exists in Desktop folder
-if not exist "node_modules\electron" (
+:: Check if electron binary exists in Desktop folder
+if not exist "node_modules\electron\dist\electron.exe" (
     echo [Setup] Installing Electron desktop dependencies...
-    npm install
+    call npm install
     if errorlevel 1 (
         echo [Error] Failed to install Electron dependencies.
         pause
@@ -32,5 +32,9 @@ if errorlevel 1 (
 echo.
 echo [2/2] Launching JEEVIKA ERP Desktop Host...
 cd /d "%~dp0"
-npm start
+call npm start
+if errorlevel 1 (
+    echo [Error] Desktop application exited with an error.
+    pause
+)
 

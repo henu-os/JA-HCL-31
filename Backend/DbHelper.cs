@@ -191,6 +191,16 @@ namespace JeevikaERP
                             Designation VARCHAR(100) NOT NULL, FromDate DATE, ToDate DATE,
                             IsActive BOOLEAN DEFAULT TRUE, CreatedAt TIMESTAMPTZ DEFAULT NOW()
                         );
+                        ALTER TABLE jeevika_erp.SocCommittee ADD COLUMN IF NOT EXISTS MemberName VARCHAR(255);
+                        ALTER TABLE jeevika_erp.SocCommittee ADD COLUMN IF NOT EXISTS FlatNo VARCHAR(100);
+                        ALTER TABLE jeevika_erp.SocCommittee ADD COLUMN IF NOT EXISTS UnitNo VARCHAR(100);
+                        ALTER TABLE jeevika_erp.SocCommittee ADD COLUMN IF NOT EXISTS ContactNo VARCHAR(50);
+                        ALTER TABLE jeevika_erp.SocCommittee ADD COLUMN IF NOT EXISTS Email VARCHAR(255);
+                        ALTER TABLE jeevika_erp.SocCommittee ADD COLUMN IF NOT EXISTS WorkingPeriod VARCHAR(150);
+                        ALTER TABLE jeevika_erp.SocCommittee ADD COLUMN IF NOT EXISTS Address TEXT;
+                        ALTER TABLE jeevika_erp.SocCommittee ADD COLUMN IF NOT EXISTS Remark TEXT;
+                        ALTER TABLE jeevika_erp.SocCommittee ADD COLUMN IF NOT EXISTS IsSignatory BOOLEAN DEFAULT FALSE;
+                        ALTER TABLE jeevika_erp.SocCommittee ADD COLUMN IF NOT EXISTS FYId INT;
                         CREATE TABLE IF NOT EXISTS jeevika_erp.SocTenant (
                             TenantId SERIAL PRIMARY KEY, SocietyId INT NOT NULL, MemberId INT NOT NULL,
                             TenantName VARCHAR(255), FamilyCount INT DEFAULT 1, FamilyNames TEXT, PrimaryMobile VARCHAR(50),

@@ -1,29 +1,24 @@
-# Build results
-**/[Bb]in/
-**/[Oo]bj/
-
-# Visual Studio / VS Code
-.vs/
-.vscode/
-*.user
-*.suo
-
-# OS generated files
-Thumbs.db
-ehthumbs.db
-Desktop.ini
-$RECYCLE.BIN/
-.DS_Store
-
-# Desktop and Node
 Desktop/dist/
 Desktop/node_modules/
 node_modules/
 dist/
-
-# SQLite test & temporary databases
+Backend/bin/
+Backend/obj/
 Database/test_*.db
 Database/fresh_target_*.db
 Database/*.db-journal
 Database/*.db-wal
 Database/*.db-shm
+
+# Environment & Secrets
+.env
+.env.*
+!.env.example
+!.env.local.example
+
+# Logs & temp
+*.log
+*.tmp
+.tempmediaStorage/
+.system_generated/
+

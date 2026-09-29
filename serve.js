@@ -43,6 +43,27 @@ function serveFile(res, filePath) {
 }
 
 const server = http.createServer((req, res) => {
+  // Proxy API requests to backend on port 5002
+  if (req.url.startsWith('/api')) {
+    const options = {
+      hostname: '127.0.0.1',
+      port: 5002,
+      path: req.url,
+      method: req.method,
+      headers: req.headers
+    };
+    const proxyReq = http.request(options, proxyRes => {
+      res.writeHead(proxyRes.statusCode, proxyRes.headers);
+      proxyRes.pipe(res, { end: true });
+    });
+    proxyReq.on('error', err => {
+      res.writeHead(502, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Backend unreachable at http://localhost:5002', details: err.message }));
+    });
+    req.pipe(proxyReq, { end: true });
+    return;
+  }
+
   // Strip query strings for file lookup
   let urlPath = req.url.split('?')[0];
 

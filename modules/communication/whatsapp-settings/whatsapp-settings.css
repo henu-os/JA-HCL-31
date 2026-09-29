@@ -1,0 +1,502 @@
+/* ═══════════════════════════════════════════════════════════
+   HENU ERP — WACRM WhatsApp Connection & Settings Stylesheet
+   ═══════════════════════════════════════════════════════════ */
+
+:root {
+  --wacrm-primary: #059669;
+  --wacrm-primary-hover: #047857;
+  --wacrm-bg-card: #ffffff;
+  --wacrm-border: #e2e8f0;
+  --wacrm-border-focus: #059669;
+  --wacrm-text-dark: #0f172a;
+  --wacrm-text-muted: #64748b;
+  --wacrm-text-sub: #475569;
+  --wacrm-success: #10b981;
+  --wacrm-warning: #f59e0b;
+  --wacrm-danger: #ef4444;
+}
+
+body.erp-module {
+  background: #f8fafc;
+  color: var(--wacrm-text-dark);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+.settings-page-wrapper {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 28px 48px;
+}
+
+/* ── Header ─────────────────────────────────────────────────── */
+.settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  gap: 16px;
+}
+
+.settings-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 4px 0;
+  letter-spacing: -0.02em;
+}
+
+.settings-subtitle {
+  font-size: 13.5px;
+  color: var(--wacrm-text-muted);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* ── WACRM Buttons ──────────────────────────────────────────── */
+.wacrm-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
+}
+
+.wacrm-btn-primary {
+  background: #059669;
+  color: #ffffff;
+  border-color: #059669;
+}
+.wacrm-btn-primary:hover {
+  background: #047857;
+  border-color: #047857;
+}
+
+.wacrm-btn-secondary {
+  background: #ffffff;
+  color: #334155;
+  border-color: #cbd5e1;
+}
+.wacrm-btn-secondary:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.wacrm-btn-wa {
+  background: #128c7e;
+  color: #ffffff;
+  border-color: #128c7e;
+  height: 38px;
+  align-self: flex-end;
+  white-space: nowrap;
+}
+.wacrm-btn-wa:hover {
+  background: #075e54;
+}
+
+/* ── Status Card ────────────────────────────────────────────── */
+.status-card {
+  background: #ffffff;
+  border: 1px solid var(--wacrm-border);
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.status-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.status-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+  padding: 3px 10px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.status-badge-pill.invalid {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  background: #10b981;
+  border-radius: 50%;
+}
+.status-badge-pill.invalid .status-dot {
+  background: #ef4444;
+}
+
+.provider-pill {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.status-card-desc {
+  font-size: 13px;
+  color: var(--wacrm-text-sub);
+  margin: 0 0 14px 0;
+  line-height: 1.45;
+}
+
+.registration-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.alert-icon {
+  color: #d97706;
+  font-size: 16px;
+  line-height: 1.2;
+}
+
+.alert-content {
+  flex: 1;
+}
+
+.alert-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #92400e;
+  margin-bottom: 2px;
+}
+
+.alert-text {
+  font-size: 12px;
+  color: #78350f;
+  line-height: 1.4;
+}
+
+/* ── Settings Grid ──────────────────────────────────────────── */
+.settings-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 24px;
+}
+
+@media (max-width: 900px) {
+  .settings-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.settings-col-main,
+.settings-col-side {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Cards ──────────────────────────────────────────────────── */
+.wacrm-card {
+  background: #ffffff;
+  border: 1px solid var(--wacrm-border);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  overflow: hidden;
+}
+
+.wacrm-card-header {
+  padding: 16px 20px 14px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.card-heading {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 3px 0;
+}
+
+.card-subheading {
+  font-size: 12.5px;
+  color: var(--wacrm-text-muted);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.wacrm-card-body {
+  padding: 18px 20px;
+}
+
+/* ── Forms & Inputs ─────────────────────────────────────────── */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 14px;
+}
+.form-field:last-child {
+  margin-bottom: 0;
+}
+
+.field-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.field-label .req {
+  color: #dc2626;
+}
+
+.field-label .optional-tag {
+  font-weight: 400;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.wacrm-input,
+.wacrm-input-readonly {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 12px;
+  font-size: 13px;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #0f172a;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.wacrm-input:focus {
+  border-color: #059669;
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.12);
+}
+
+.wacrm-input-readonly {
+  background: #f8fafc;
+  color: #475569;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+}
+
+.field-hint {
+  font-size: 11.5px;
+  color: #64748b;
+  line-height: 1.35;
+}
+
+.highlight-hint {
+  background: #f8fafc;
+  border-left: 2px solid #059669;
+  padding: 6px 8px;
+  border-radius: 0 4px 4px 0;
+  margin-top: 4px;
+  display: block;
+}
+
+/* ── Copy Input Group ───────────────────────────────────────── */
+.copy-input-group {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.copy-input-group input {
+  flex: 1;
+}
+
+.btn-copy {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-copy:hover {
+  background: #f1f5f9;
+  color: #059669;
+  border-color: #059669;
+}
+
+.webhook-subscribed-fields {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.sub-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.tags-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.field-tag {
+  background: #f1f5f9;
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+}
+
+/* ── Setup Steps ────────────────────────────────────────────── */
+.instruction-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.step-item {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.step-number {
+  width: 24px;
+  height: 24px;
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.step-details {
+  flex: 1;
+}
+
+.step-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 2px;
+}
+
+.step-text {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.step-text code {
+  background: #f1f5f9;
+  padding: 1px 4px;
+  border-radius: 4px;
+  font-size: 11px;
+  color: #0f172a;
+}
+
+.docs-link-box {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.docs-anchor {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #059669;
+  text-decoration: none;
+}
+.docs-anchor:hover {
+  text-decoration: underline;
+}
+
+/* ── Test Send Row ──────────────────────────────────────────── */
+.test-send-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+/* ── Tables ─────────────────────────────────────────────────── */
+.wacrm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  text-align: left;
+}
+
+.wacrm-table thead tr {
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.wacrm-table th {
+  padding: 10px 14px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.wacrm-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+}
+
+.table-empty-cell {
+  text-align: center;
+  padding: 28px;
+  color: #94a3b8;
+}

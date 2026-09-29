@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Message Templates — HENU ERP</title>
+  <link rel="icon" type="image/svg+xml" href="../../../favicon.svg">
+  <script src="../../../config.js"></script>
+  <script src="../../../assets/js/utils.js"></script>
+  <script src="../../../assets/js/api.js"></script>
+  <script src="../../../assets/js/auth.js"></script>
+  <link rel="stylesheet" href="../../../assets/css/global.css">
+  <link rel="stylesheet" href="../../../assets/css/components.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="whatsapp-templates.css">
+</head>
+<body class="erp-module templates-wacrm-body">
+
+  <!-- ── Top Header ───────────────────────────────────────────── -->
+  <div class="wacrm-header">
+    <div>
+      <h1 class="wacrm-title">Message templates</h1>
+      <p class="wacrm-subtitle">Create templates and submit them to Meta for approval. Use "Sync from Meta" to pull templates approved elsewhere.</p>
+    </div>
+    <div class="wacrm-header-actions">
+      <button type="button" class="wacrm-btn-secondary" id="btnSyncMeta">
+        <i class="bi bi-arrow-repeat"></i> Sync from Meta
+      </button>
+      <button type="button" class="wacrm-btn-primary" id="btnOpenNewTemplateModal">
+        <i class="bi bi-plus-lg"></i> New Template
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Content Container ────────────────────────────────────── -->
+  <div class="wacrm-content-container">
+
+    <!-- Search / Filter Strip -->
+    <div class="wacrm-toolbar">
+      <div class="search-input-wrap">
+        <i class="bi bi-search search-icon"></i>
+        <input type="text" class="wacrm-input" id="searchFilter" placeholder="Search templates by name, category, or body...">
+      </div>
+      <div class="filter-dropdown-wrap">
+        <select class="wacrm-select" id="categoryFilter">
+          <option value="">All Categories</option>
+          <option value="UTILITY">Utility</option>
+          <option value="MARKETING">Marketing</option>
+          <option value="AUTHENTICATION">Authentication</option>
+        </select>
+        <select class="wacrm-select" id="statusFilter">
+          <option value="">All Statuses</option>
+          <option value="APPROVED">Approved</option>
+          <option value="PENDING">Pending</option>
+          <option value="REJECTED">Rejected</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Templates 2-Column Grid (Matching WACRM) -->
+    <div class="wacrm-grid-scroll">
+      <div class="wacrm-cards-grid" id="templatesGrid">
+        <div class="wacrm-loading">
+          <i class="bi bi-arrow-repeat spin-icon"></i> Loading message templates...
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── NEW TEMPLATE MODAL ───────────────────────────────────── -->
+  <div class="wacrm-modal-overlay" id="newTemplateModal" style="display: none;">
+    <div class="wacrm-modal-box modal-lg">
+      <div class="wacrm-modal-header">
+        <div class="wacrm-modal-title">Create New WhatsApp Template</div>
+        <button type="button" class="wacrm-modal-close" id="btnCloseNewTmplModal">&times;</button>
+      </div>
+      <div class="wacrm-modal-body">
+        <form id="newTemplateForm">
+          <div class="form-row-2">
+            <div class="form-group">
+              <label class="form-label">Template Name (Lowercase &amp; underscores only) *</label>
+              <input type="text" class="wacrm-input font-monospace" id="newTmplName" placeholder="e.g. society_maintenance_bill_v1" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Category *</label>
+              <select class="wacrm-select w-100" id="newTmplCategory">
+                <option value="UTILITY" selected>Utility (Billing, Receipts, Alerts)</option>
+                <option value="MARKETING">Marketing (Notices, Announcements)</option>
+                <option value="AUTHENTICATION">Authentication (OTP, Verification)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row-2 mt-2">
+            <div class="form-group">
+              <label class="form-label">Language *</label>
+              <select class="wacrm-select w-100" id="newTmplLanguage">
+                <option value="en_US" selected>English (US) - en_US</option>
+                <option value="en_GB">English (UK) - en_GB</option>
+                <option value="hi">Hindi - hi</option>
+                <option value="mr">Marathi - mr</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Header (Optional)</label>
+              <input type="text" class="wacrm-input" id="newTmplHeader" placeholder="e.g. Official Maintenance Notice">
+            </div>
+          </div>
+
+          <div class="form-group mt-2">
+            <div class="d-flex justify-content-between align-items-center">
+              <label class="form-label">Body Text * (Use {{1}}, {{2}} for dynamic member variables)</label>
+              <span class="char-count text-muted small" id="bodyCharCount">0/1024</span>
+            </div>
+            <textarea class="wacrm-textarea" id="newTmplBody" rows="4" placeholder="Dear {{1}}, your maintenance bill of Rs. {{2}} for flat {{3}} is ready. Due date is {{4}}." required></textarea>
+          </div>
+
+          <div class="form-group mt-2">
+            <label class="form-label">Footer Text (Optional)</label>
+            <input type="text" class="wacrm-input" id="newTmplFooter" placeholder="e.g. HENU ERP Society Management">
+          </div>
+        </form>
+      </div>
+      <div class="wacrm-modal-footer">
+        <button type="button" class="wacrm-btn-secondary" id="btnCancelNewTmpl">Cancel</button>
+        <button type="button" class="wacrm-btn-primary" id="btnSubmitNewTemplate">
+          <i class="bi bi-cloud-arrow-up-fill me-1"></i> Submit &amp; Save Template
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TEMPLATE INSPECTOR & TEST DISPATCH MODAL ─────────────── -->
+  <div class="wacrm-modal-overlay" id="inspectorModal" style="display: none;">
+    <div class="wacrm-modal-box modal-lg">
+      <div class="wacrm-modal-header">
+        <div class="wacrm-modal-title" id="modalTitle">Template Details &amp; Test Dispatch</div>
+        <button type="button" class="wacrm-modal-close" id="btnCloseModal">&times;</button>
+      </div>
+      <div class="wacrm-modal-body">
+        <div class="modal-cols">
+          <!-- Left: Details & Dynamic Variables -->
+          <div class="modal-col-left">
+            <div class="meta-detail-row">
+              <span class="detail-label">Template:</span>
+              <span class="detail-val font-monospace" id="modalMetaName">—</span>
+            </div>
+            <div class="meta-detail-row">
+              <span class="detail-label">Category &amp; Language:</span>
+              <span class="detail-val" id="modalCatLang">—</span>
+            </div>
+            <div class="meta-detail-row">
+              <span class="detail-label">Status:</span>
+              <span class="detail-val" id="modalStatus">—</span>
+            </div>
+
+            <div class="variables-section mt-3">
+              <div class="section-title">Variable Placeholders Mapping</div>
+              <p class="section-desc">Test dynamic values for <code>{{1}}</code>, <code>{{2}}</code> in this template:</p>
+              <div id="variableInputsContainer">
+                <div class="no-vars-msg text-muted small">No variable placeholders in this template.</div>
+              </div>
+            </div>
+
+            <div class="test-dispatch-box mt-3">
+              <div class="section-title">Recipient Mobile Number</div>
+              <div class="mt-1">
+                <input type="text" class="wacrm-input font-monospace" id="testMobileInput" placeholder="Enter 10-digit mobile or with country code (e.g. 9352956727)" value="9352956727">
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Live WhatsApp Chat Bubble Preview -->
+          <div class="modal-col-right">
+            <div class="preview-title"><i class="bi bi-phone me-1"></i> WhatsApp Bubble Preview</div>
+            <div class="phone-mockup">
+              <div class="whatsapp-bubble" id="chatBubblePreview">
+                <div class="bubble-header" id="bubbleHeader" style="display: none;"></div>
+                <div class="bubble-body" id="bubbleBody">Hello from Meta WhatsApp!</div>
+                <div class="bubble-footer" id="bubbleFooter" style="display: none;"></div>
+                <div class="bubble-time">12:00 PM <span class="bubble-ticks">✓✓</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="wacrm-modal-footer">
+        <button type="button" class="wacrm-btn-secondary" id="btnCancelModal">Close</button>
+        <button type="button" class="wacrm-btn-primary" id="btnDispatchTest">
+          <i class="bi bi-send-fill me-1"></i> Send Test Template Message
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="../../../assets/js/signalr.min.js"></script>
+  <script src="whatsapp-templates.js"></script>
+</body>
+</html>

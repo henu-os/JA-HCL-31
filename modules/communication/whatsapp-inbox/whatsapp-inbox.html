@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inbox — HENU ERP</title>
+  <link rel="icon" type="image/svg+xml" href="../../../favicon.svg">
+  <script src="../../../config.js"></script>
+  <script src="../../../assets/js/utils.js"></script>
+  <script src="../../../assets/js/api.js"></script>
+  <script src="../../../assets/js/auth.js"></script>
+  <link rel="stylesheet" href="../../../assets/css/global.css">
+  <link rel="stylesheet" href="../../../assets/css/components.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="whatsapp-inbox.css">
+</head>
+<body class="erp-module inbox-wacrm-body">
+
+  <!-- ── Two-Pane Shared Inbox Workspace ──────────────────────── -->
+  <div class="inbox-workspace">
+    
+    <!-- LEFT PANE: CONVERSATION LIST (Image 5) -->
+    <aside class="conversations-sidebar">
+      <div class="sidebar-header">
+        <div class="search-box-wrap">
+          <i class="bi bi-search search-icon"></i>
+          <input type="text" class="wacrm-input search-input" id="convSearchInput" placeholder="Search conversations..." autocomplete="off">
+          <button class="btn-clear" id="btnClearSearch" style="display:none;"><i class="bi bi-x"></i></button>
+        </div>
+        
+        <div class="filter-dropdowns-row">
+          <select class="wacrm-filter-select" id="statusFilterSelect">
+            <option value="ALL">All</option>
+            <option value="UNREAD">Unread</option>
+            <option value="OPEN">Open</option>
+            <option value="PENDING">Pending</option>
+            <option value="CLOSED">Closed</option>
+          </select>
+          <span class="filter-tag-pill">Tags <i class="bi bi-chevron-down"></i></span>
+          <span class="filter-tag-pill">Company <i class="bi bi-chevron-down"></i></span>
+        </div>
+      </div>
+
+      <!-- Scrollable Conversation Cards -->
+      <div class="conversations-list" id="conversationsListContainer">
+        <div class="inbox-loading" id="convLoadingSpinner">
+          <i class="bi bi-arrow-repeat spin-icon"></i> Loading conversations...
+        </div>
+        <div class="inbox-empty-state" id="convEmptyState" style="display: none;">
+          <div class="empty-icon"><i class="bi bi-chat-left-dots"></i></div>
+          <div class="empty-title">No messages yet</div>
+          <p class="empty-desc">Send a template to start the conversation</p>
+        </div>
+      </div>
+    </aside>
+
+    <!-- RIGHT PANE: ACTIVE CHAT THREAD (Image 5) -->
+    <main class="chat-main" id="chatMainArea">
+      
+      <!-- EMPTY SELECTION PLACEHOLDER -->
+      <div class="chat-placeholder" id="chatPlaceholder">
+        <div class="placeholder-content">
+          <div class="placeholder-icon">
+            <i class="bi bi-chat-dots"></i>
+          </div>
+          <h3>No conversation selected</h3>
+          <p>Pick a member or contact from the left sidebar to start live WhatsApp messaging or send accounting statements.</p>
+        </div>
+      </div>
+
+      <!-- ACTIVE CHAT VIEW -->
+      <div class="chat-active-container" id="chatActiveContainer" style="display: none;">
+        
+        <!-- CHAT CONTACT HEADER -->
+        <div class="chat-header">
+          <div class="chat-contact-info">
+            <div class="contact-avatar" id="activeContactAvatar">S</div>
+            <div class="contact-details">
+              <div class="contact-name-row">
+                <span class="contact-name" id="activeContactName">sawariya</span>
+                <i class="bi bi-clock-history text-muted small ms-1" title="24-hour customer service window active"></i>
+              </div>
+              <div class="contact-sub-row">
+                <span class="contact-phone" id="activeContactPhone">+91 8094100513</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="chat-header-actions">
+            <button type="button" class="header-icon-btn" id="btnRefreshThread" title="Refresh Thread">
+              <i class="bi bi-arrow-clockwise"></i>
+            </button>
+            <select class="wacrm-select status-select" id="activeStatusSelect">
+              <option value="OPEN">Open</option>
+              <option value="PENDING">Pending</option>
+              <option value="CLOSED">Closed</option>
+            </select>
+            <button type="button" class="header-action-btn" id="btnOpenTemplateModal">
+              <i class="bi bi-layout-text-window-reverse me-1"></i> Templates
+            </button>
+            <button type="button" class="header-action-btn pdf" id="btnOpenAttachModal">
+              <i class="bi bi-file-earmark-pdf me-1"></i> Send PDF
+            </button>
+          </div>
+        </div>
+
+        <!-- MESSAGE THREAD AREA (With subtle doodle pattern) -->
+        <div class="chat-messages-container" id="chatMessagesContainer">
+          <div class="no-messages-thread-placeholder" id="emptyThreadNotice">
+            <div class="notice-title">No messages yet</div>
+            <div class="notice-sub">Send a template to start the conversation</div>
+          </div>
+        </div>
+
+        <!-- AI AUTO-REPLY BANNER -->
+        <div class="ai-banner">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-stars ai-star-icon"></i>
+            <span>AI assistant is replying automatically</span>
+          </div>
+          <button type="button" class="btn-takeover" id="btnTakeOver">
+            <i class="bi bi-hand-index-thumb"></i> Take over
+          </button>
+        </div>
+
+        <!-- COMPOSER BAR (Image 5) -->
+        <div class="chat-composer-wrap">
+          <div class="chat-composer">
+            <!-- Action Icons on left -->
+            <button type="button" class="composer-icon-btn" id="btnAttachDoc" title="Send PDF Statement">
+              <i class="bi bi-paperclip"></i>
+            </button>
+            <button type="button" class="composer-icon-btn" id="btnQuickTemplate" title="Insert Template">
+              <i class="bi bi-plus-lg"></i>
+            </button>
+            <button type="button" class="composer-icon-btn" id="btnQuickRepliesToggle" title="Quick replies">
+              <i class="bi bi-grid-3x3-gap"></i>
+            </button>
+            <button type="button" class="composer-icon-btn sparkles" id="btnAiDraft" title="Draft reply with AI">
+              <i class="bi bi-stars"></i>
+            </button>
+
+            <!-- Text Input -->
+            <div class="composer-input-wrapper">
+              <textarea id="composerTextInput" placeholder="Type a message... (Shift+Enter for new line)" rows="1"></textarea>
+            </div>
+
+            <!-- Send Button (Green circle with arrow) -->
+            <button type="button" class="btn-composer-send" id="btnSendMessage" title="Send message">
+              <i class="bi bi-send-fill"></i>
+            </button>
+          </div>
+
+          <!-- Bottom micro-caption -->
+          <div class="composer-caption">
+            Tap the <span class="text-success">✨</span> to draft a reply with AI — you can edit it before sending
+          </div>
+        </div>
+
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ── QUICK REPLIES FLOATING POPOVER ────────────────────────── -->
+  <div class="qr-popover" id="qrPopover" style="display: none;">
+    <div class="qr-popover-header">
+      <span class="fw-bold"><i class="bi bi-lightning-charge-fill text-success me-1"></i> Quick Replies</span>
+      <button type="button" class="btn-close-pop" id="btnCloseQrPop">&times;</button>
+    </div>
+    <div class="qr-popover-list" id="qrPopoverList">
+      <!-- Loaded dynamically -->
+    </div>
+  </div>
+
+  <!-- ── TEMPLATE PICKER MODAL ────────────────────────────────── -->
+  <div class="wacrm-modal-overlay" id="templatePickerModal" style="display: none;">
+    <div class="wacrm-modal-box modal-lg">
+      <div class="wacrm-modal-header">
+        <div class="wacrm-modal-title"><i class="bi bi-layout-text-window-reverse text-primary me-2"></i> Select WhatsApp Template</div>
+        <button type="button" class="wacrm-modal-close" id="btnCloseTemplateModal">&times;</button>
+      </div>
+      <div class="wacrm-modal-body">
+        <div class="template-modal-cols">
+          <div class="tmpl-list-pane">
+            <div class="section-title">Approved Meta Templates</div>
+            <div class="template-list-group" id="templateModalList"></div>
+          </div>
+          <div class="tmpl-preview-pane">
+            <div class="section-title">Message Preview</div>
+            <div class="template-preview-card">
+              <div class="preview-bubble" id="templatePreviewBubble">
+                Select a template on the left to preview message content.
+              </div>
+              <div class="variables-resolved-box mt-3" id="templateVariablesBox" style="display:none;">
+                <div class="section-title text-muted">Resolved Variables:</div>
+                <ul class="resolved-vars-list" id="resolvedVarsList"></ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="wacrm-modal-footer">
+        <button type="button" class="wacrm-btn-secondary" id="btnCancelTemplateModal">Cancel</button>
+        <button type="button" class="wacrm-btn-primary" id="btnConfirmSendTemplate" disabled>
+          <i class="bi bi-whatsapp me-1"></i> Send Template Message
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STATEMENT / PDF ATTACHMENT MODAL ──────────────────────── -->
+  <div class="wacrm-modal-overlay" id="attachmentModal" style="display: none;">
+    <div class="wacrm-modal-box modal-md">
+      <div class="wacrm-modal-header">
+        <div class="wacrm-modal-title"><i class="bi bi-file-earmark-pdf text-danger me-2"></i> Send Official PDF Statement</div>
+        <button type="button" class="wacrm-modal-close" id="btnCloseAttachModal">&times;</button>
+      </div>
+      <div class="wacrm-modal-body">
+        <p class="section-desc">Select an official accounting statement generated dynamically from the member ledger:</p>
+        <div class="document-type-options">
+          <label class="doc-option-card">
+            <input type="radio" name="docTypeRadio" value="BILL_FORMAT" checked>
+            <div class="doc-card-body">
+              <i class="bi bi-receipt text-primary doc-icon"></i>
+              <div>
+                <strong>Member Maintenance Bill</strong>
+                <p class="doc-desc">Current month maintenance assessment bill PDF</p>
+              </div>
+            </div>
+          </label>
+          <label class="doc-option-card">
+            <input type="radio" name="docTypeRadio" value="RECEIPT">
+            <div class="doc-card-body">
+              <i class="bi bi-file-earmark-check text-success doc-icon"></i>
+              <div>
+                <strong>Payment Receipt</strong>
+                <p class="doc-desc">Latest maintenance payment acknowledgement voucher</p>
+              </div>
+            </div>
+          </label>
+          <label class="doc-option-card">
+            <input type="radio" name="docTypeRadio" value="MEMBER_ACCOUNT">
+            <div class="doc-card-body">
+              <i class="bi bi-journal-text text-info doc-icon"></i>
+              <div>
+                <strong>Member Account Ledger</strong>
+                <p class="doc-desc">Financial year statement of account with debits &amp; credits</p>
+              </div>
+            </div>
+          </label>
+          <label class="doc-option-card">
+            <input type="radio" name="docTypeRadio" value="OUTSTANDING_REMINDER">
+            <div class="doc-card-body">
+              <i class="bi bi-exclamation-triangle text-warning doc-icon"></i>
+              <div>
+                <strong>Outstanding Dues Reminder</strong>
+                <p class="doc-desc">Official reminder notice with calculated principal &amp; interest</p>
+              </div>
+            </div>
+          </label>
+        </div>
+        <div class="mt-3">
+          <label class="form-label">Custom Caption / Accompanying Message</label>
+          <input type="text" class="wacrm-input" id="attachCaptionInput" placeholder="e.g. Please find attached your official maintenance statement for review.">
+        </div>
+      </div>
+      <div class="wacrm-modal-footer">
+        <button type="button" class="wacrm-btn-secondary" id="btnCancelAttachModal">Cancel</button>
+        <button type="button" class="wacrm-btn-primary" id="btnConfirmSendDoc" style="background:#dc2626;border-color:#dc2626;">
+          <i class="bi bi-send-fill me-1"></i> Generate &amp; Dispatch PDF
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="../../../assets/js/signalr.min.js"></script>
+  <script src="whatsapp-inbox.js"></script>
+</body>
+</html>

@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fund Reports &amp; Investments — JEEVIKA ERP</title>
+  <script src="../../../config.js"></script>
+  <link rel="stylesheet" href="../../../assets/css/global.css">
+  <link rel="stylesheet" href="../../../assets/css/components.css">
+  <link rel="stylesheet" href="fund-reports.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body class="erp-module">
+
+  <!-- ── Top Filter & Action Toolbar ────────────────────────────────────────── -->
+  <div class="fnd-toolbar">
+    <div class="fnd-filter-group">
+      <div class="fnd-filter-item">
+        <label for="fnd-fy"><i class="bi bi-calendar3"></i> FY:</label>
+        <select id="fnd-fy" class="fnd-select" onchange="loadFundData()">
+          <option value="2026-2027" selected>2026-2027</option>
+          <option value="2025-2026">2025-2026</option>
+          <option value="2024-2025">2024-2025</option>
+        </select>
+      </div>
+
+      <div class="fnd-filter-item">
+        <label for="fnd-select-fund"><i class="bi bi-piggy-bank"></i> Fund:</label>
+        <select id="fnd-select-fund" class="fnd-select" onchange="loadFundData()">
+          <option value="ALL" selected>All Society Funds</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="fnd-filter-group btn-no-print">
+      <button class="fnd-btn fnd-btn-primary" onclick="openAddTxnModal()">
+        <i class="bi bi-plus-circle"></i> Add Transaction
+      </button>
+      <button class="fnd-btn" onclick="openTransferModal()">
+        <i class="bi bi-arrow-left-right"></i> Inter-Fund Transfer
+      </button>
+      <button class="fnd-btn" onclick="openInvestmentModal()">
+        <i class="bi bi-safe"></i> Term Investment (FD)
+      </button>
+      <button class="fnd-btn" onclick="loadFundData()">
+        <i class="bi bi-arrow-clockwise"></i> Refresh
+      </button>
+      <button class="fnd-btn fnd-btn-success" onclick="exportFundExcel()">
+        <i class="bi bi-file-earmark-excel"></i> Export Excel
+      </button>
+      <button class="fnd-btn" onclick="window.print()">
+        <i class="bi bi-printer"></i> Print
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Tab Navigation ─────────────────────────────────────────────────────── -->
+  <div class="fnd-tabs-bar btn-no-print">
+    <button class="fnd-tab-btn active" onclick="switchFundTab('tab-funds-summary', this)">
+      <i class="bi bi-table"></i> Fund-wise Balances Statement
+    </button>
+    <button class="fnd-tab-btn" onclick="switchFundTab('tab-fund-ledger', this)">
+      <i class="bi bi-journal-text"></i> Fund Movement Ledger
+    </button>
+    <button class="fnd-tab-btn" onclick="switchFundTab('tab-investments', this)">
+      <i class="bi bi-bank2"></i> Fixed Deposits &amp; Investments <span class="badge-cnt" id="cnt-investments" style="background:#e2e8f0; font-size:10px; padding:1px 6px; border-radius:10px;">0</span>
+    </button>
+    <button class="fnd-tab-btn" onclick="switchFundTab('tab-form-n', this)">
+      <i class="bi bi-file-earmark-spreadsheet"></i> Form N / Statutory Balance Sheet Support
+    </button>
+  </div>
+
+  <!-- ── Scrollable Body Area ───────────────────────────────────────────────── -->
+  <div class="fnd-scroll-area">
+
+    <!-- ── Section A: Society & Statutory Header ────────────────────────────── -->
+    <div class="soc-header-card">
+      <div class="soc-info">
+        <h2 id="soc-name">HENU CO-OPERATIVE HOUSING SOCIETY LTD.</h2>
+        <div class="soc-meta" id="soc-address">Plot 12, Sector 19, Seawoods, Navi Mumbai, Maharashtra - 400706</div>
+        <div class="soc-tax-badges">
+          <span class="tax-badge"><i class="bi bi-building"></i> PAN: <strong id="soc-pan">AAACH1234F</strong></span>
+          <span class="tax-badge"><i class="bi bi-file-earmark-text"></i> TAN: <strong id="soc-tan">MUMH01234F</strong></span>
+          <span class="tax-badge"><i class="bi bi-calendar-event"></i> Period: <strong id="lbl-fnd-period">FY 2026-2027</strong></span>
+        </div>
+      </div>
+      <div class="report-badge-legal">
+        <div><i class="bi bi-shield-lock-fill"></i> STATUTORY FUND ACCOUNTING</div>
+        <div style="font-size: 9.5px; color: #78350f; font-weight: normal; margin-top: 2px;">
+          Maharashtra Co-operative Societies Act 1960 &amp; MCS Rules 1961
+        </div>
+      </div>
+    </div>
+
+    <!-- ── KPI Summary Cards ────────────────────────────────────────────────── -->
+    <div class="fnd-kpi-grid">
+      <div class="kpi-card">
+        <span class="kpi-label">Total Funds</span>
+        <span class="kpi-val" id="kpi-fnd-count">0</span>
+      </div>
+      <div class="kpi-card kpi-opening">
+        <span class="kpi-label">Opening Balance</span>
+        <span class="kpi-val" id="kpi-fnd-opening">₹ 0.00</span>
+      </div>
+      <div class="kpi-card kpi-contrib">
+        <span class="kpi-label">Contributions / Receipts</span>
+        <span class="kpi-val" id="kpi-fnd-contrib">₹ 0.00</span>
+      </div>
+      <div class="kpi-card kpi-utilization">
+        <span class="kpi-label">Utilization / Expenses</span>
+        <span class="kpi-val" id="kpi-fnd-util">₹ 0.00</span>
+      </div>
+      <div class="kpi-card kpi-invest">
+        <span class="kpi-label">Bank Term Deposits</span>
+        <span class="kpi-val" id="kpi-fnd-invest">₹ 0.00</span>
+      </div>
+      <div class="kpi-card kpi-closing">
+        <span class="kpi-label">Total Closing Balance</span>
+        <span class="kpi-val" id="kpi-fnd-closing">₹ 0.00</span>
+      </div>
+    </div>
+
+    <!-- ── TAB 1: Fund-wise Statement ───────────────────────────────────────── -->
+    <div id="tab-funds-summary" class="fnd-tab-content">
+      <div class="fnd-table-card">
+        <div class="fnd-card-header">
+          <h3><i class="bi bi-pie-chart-fill"></i> Fund-wise Balances &amp; Movements Statement</h3>
+          <span style="font-size:11px; color:#64748b;">Statutory Reserve &amp; Sinking Fund Accounts</span>
+        </div>
+        <div class="table-responsive">
+          <table class="fnd-table">
+            <thead>
+              <tr>
+                <th class="text-center" style="width: 40px;">Sr</th>
+                <th>Fund Name</th>
+                <th>Code</th>
+                <th>Category / Type</th>
+                <th class="text-right">Opening Balance (₹)</th>
+                <th class="text-right">Additions / Receipts (₹)</th>
+                <th class="text-right">Utilization / Deductions (₹)</th>
+                <th class="text-right">Closing Fund Balance (₹)</th>
+                <th class="text-center">Status</th>
+              </tr>
+            </thead>
+            <tbody id="tbl-funds-body">
+              <tr><td colspan="9" class="text-center" style="padding: 24px;">Loading funds statement...</td></tr>
+            </tbody>
+            <tfoot>
+              <tr class="total-row" id="tbl-funds-footer">
+                <td colspan="4" class="text-right">Total Statutory Funds:</td>
+                <td class="text-right" id="tot-fnd-opening">₹ 0.00</td>
+                <td class="text-right" id="tot-fnd-add" style="color:#16a34a;">₹ 0.00</td>
+                <td class="text-right" id="tot-fnd-ded" style="color:#dc2626;">₹ 0.00</td>
+                <td class="text-right" id="tot-fnd-closing" style="color:#0D47A1; font-weight:700;">₹ 0.00</td>
+                <td class="text-center">-</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB 2: Fund Ledger ───────────────────────────────────────────────── -->
+    <div id="tab-fund-ledger" class="fnd-tab-content" style="display:none;">
+      <div class="fnd-table-card">
+        <div class="fnd-card-header">
+          <h3><i class="bi bi-journal-text"></i> Fund Audit &amp; Movement Ledger</h3>
+          <span style="font-size:11px; color:#64748b;">Chronological audit trail of all fund transactions</span>
+        </div>
+        <div class="table-responsive">
+          <table class="fnd-table">
+            <thead>
+              <tr>
+                <th class="text-center" style="width: 40px;">Sr</th>
+                <th>Txn Date</th>
+                <th>Fund Name</th>
+                <th>Transaction Type</th>
+                <th>Description / Purpose</th>
+                <th>Member / Vendor / Source</th>
+                <th>Voucher Ref</th>
+                <th class="text-right">Amount (₹)</th>
+                <th class="text-center">Approval Status</th>
+              </tr>
+            </thead>
+            <tbody id="tbl-ledger-body">
+              <tr><td colspan="9" class="text-center" style="padding: 24px;">Loading fund ledger entries...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB 3: Investments & Term Deposits ───────────────────────────────── -->
+    <div id="tab-investments" class="fnd-tab-content" style="display:none;">
+      <div class="fnd-table-card">
+        <div class="fnd-card-header">
+          <h3><i class="bi bi-safe-fill"></i> Statutory Fixed Deposits &amp; Cooperative Investments</h3>
+          <button class="fnd-btn fnd-btn-primary btn-no-print" onclick="openInvestmentModal()">
+            <i class="bi bi-plus-circle"></i> Add Fixed Deposit
+          </button>
+        </div>
+        <div class="table-responsive">
+          <table class="fnd-table">
+            <thead>
+              <tr>
+                <th>Bank Name</th>
+                <th>Fund Tagged</th>
+                <th>FD / Investment No</th>
+                <th class="text-right">Principal Amount (₹)</th>
+                <th>Deposit Date</th>
+                <th>Maturity Date</th>
+                <th class="text-center">Interest Rate</th>
+                <th class="text-right">Expected Interest (₹)</th>
+                <th class="text-right">Maturity Value (₹)</th>
+                <th class="text-center">Status</th>
+              </tr>
+            </thead>
+            <tbody id="tbl-investments-body">
+              <tr><td colspan="10" class="text-center" style="padding: 20px;">Loading investments...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB 4: Form N / Statutory Support ────────────────────────────────── -->
+    <div id="tab-form-n" class="fnd-tab-content" style="display:none;">
+      <div class="fnd-table-card">
+        <div class="fnd-card-header">
+          <h3><i class="bi bi-file-earmark-spreadsheet"></i> Maharashtra MCS Rules — Form N / Balance Sheet Working View</h3>
+          <span style="font-size:11px; color:#64748b;">Statutory Schedule Alignment</span>
+        </div>
+        <div class="table-responsive">
+          <table class="fnd-table">
+            <thead>
+              <tr>
+                <th style="width: 50%;">Funds &amp; Liabilities (Form N)</th>
+                <th class="text-right" style="width: 50%;">Current Year Amount (₹)</th>
+              </tr>
+            </thead>
+            <tbody id="tbl-form-n-body">
+              <tr><td colspan="2" class="text-center" style="padding: 20px;">Generating statutory summary...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── MODAL 1: Add Fund Transaction ──────────────────────────────────────── -->
+  <div class="modal-overlay" id="modal-fund-txn">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3><i class="bi bi-plus-circle text-primary"></i> Record Fund Transaction</h3>
+        <button class="modal-close-btn" onclick="closeModal('modal-fund-txn')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-group full-width">
+            <label>Target Fund</label>
+            <select id="txn-fund-id" class="fnd-select"></select>
+          </div>
+          <div class="form-group">
+            <label>Transaction Type</label>
+            <select id="txn-type" class="fnd-select">
+              <option value="Contribution">Member Contribution</option>
+              <option value="Receipt">Special Fund Receipt</option>
+              <option value="Interest Earned">Interest Earned on FD</option>
+              <option value="Utilization">Fund Utilization (Civil/Works)</option>
+              <option value="Expense">Statutory Reserve Expense</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Amount (₹)</label>
+            <input type="number" id="txn-amount" class="fnd-input" step="0.01" placeholder="e.g. 25000">
+          </div>
+          <div class="form-group full-width">
+            <label>Description / Purpose</label>
+            <input type="text" id="txn-desc" class="fnd-input" placeholder="e.g. Quarterly Sinking fund collection from bills">
+          </div>
+          <div class="form-group">
+            <label>Party / Vendor / Member</label>
+            <input type="text" id="txn-party" class="fnd-input" placeholder="e.g. Society Members">
+          </div>
+          <div class="form-group">
+            <label>Voucher Ref</label>
+            <input type="text" id="txn-vref" class="fnd-input" value="JV-2026-FND">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="fnd-btn" onclick="closeModal('modal-fund-txn')">Cancel</button>
+        <button class="fnd-btn fnd-btn-primary" onclick="submitFundTxn()">Save Transaction</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MODAL 2: Inter-Fund Transfer ───────────────────────────────────────── -->
+  <div class="modal-overlay" id="modal-transfer">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3><i class="bi bi-arrow-left-right text-primary"></i> Statutory Inter-Fund Transfer</h3>
+        <button class="modal-close-btn" onclick="closeModal('modal-transfer')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Source Fund (Transfer Out)</label>
+            <select id="trf-src" class="fnd-select"></select>
+          </div>
+          <div class="form-group">
+            <label>Destination Fund (Transfer In)</label>
+            <select id="trf-dest" class="fnd-select"></select>
+          </div>
+          <div class="form-group full-width">
+            <label>Transfer Amount (₹)</label>
+            <input type="number" id="trf-amount" class="fnd-input" step="0.01" placeholder="e.g. 50000">
+          </div>
+          <div class="form-group full-width">
+            <label>Statutory Resolution / Reason</label>
+            <input type="text" id="trf-reason" class="fnd-input" placeholder="e.g. AGM Resolution dated 15-Aug-2026: Transfer to Major Repairs">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="fnd-btn" onclick="closeModal('modal-transfer')">Cancel</button>
+        <button class="fnd-btn fnd-btn-primary" onclick="submitTransfer()">Execute Transfer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MODAL 3: Term Investment (FD) ──────────────────────────────────────── -->
+  <div class="modal-overlay" id="modal-investment">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3><i class="bi bi-safe text-primary"></i> Record Term Deposit / FD Investment</h3>
+        <button class="modal-close-btn" onclick="closeModal('modal-investment')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Allocated Fund</label>
+            <select id="inv-fund-id" class="fnd-select"></select>
+          </div>
+          <div class="form-group">
+            <label>Bank Name</label>
+            <input type="text" id="inv-bank" class="fnd-input" value="State Bank of India">
+          </div>
+          <div class="form-group">
+            <label>Deposit / FD Receipt No</label>
+            <input type="text" id="inv-no" class="fnd-input" placeholder="e.g. FD-98342109">
+          </div>
+          <div class="form-group">
+            <label>Principal Amount (₹)</label>
+            <input type="number" id="inv-principal" class="fnd-input" step="0.01" value="200000">
+          </div>
+          <div class="form-group">
+            <label>Start Date</label>
+            <input type="date" id="inv-start" class="fnd-input">
+          </div>
+          <div class="form-group">
+            <label>Maturity Date</label>
+            <input type="date" id="inv-mat-date" class="fnd-input">
+          </div>
+          <div class="form-group">
+            <label>Interest Rate (% p.a.)</label>
+            <input type="number" id="inv-rate" class="fnd-input" step="0.1" value="6.75">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="fnd-btn" onclick="closeModal('modal-investment')">Cancel</button>
+        <button class="fnd-btn fnd-btn-success" onclick="submitInvestment()">Save Investment</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="fund-reports.js"></script>
+</body>
+</html>

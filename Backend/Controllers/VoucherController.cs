@@ -66,7 +66,10 @@ namespace JeevikaERP.Controllers
             [FromQuery] string? type = null,
             [FromQuery] string? fromDate = null,
             [FromQuery] string? toDate = null,
-            [FromQuery] string? cashBankCode = null)
+            [FromQuery] string? cashBankCode = null,
+            [FromQuery] string? voucherNo = null,
+            [FromQuery] string? search = null,
+            [FromQuery] string? accountCode = null)
         {
             if (societyId <= 0) societyId = 1;
 
@@ -85,15 +88,15 @@ namespace JeevikaERP.Controllers
 
                 if (!string.IsNullOrWhiteSpace(type))
                 {
-                    if (type.Equals("Payment", StringComparison.OrdinalIgnoreCase))
+                    if (type.Equals("Payment", StringComparison.OrdinalIgnoreCase) || type.Equals("PV", StringComparison.OrdinalIgnoreCase))
                     {
-                        sql += " AND VoucherType IN ('Payment', 'PV')";
+                        sql += " AND VoucherType IN ('Payment', 'PV', 'CashPayment', 'BankPayment')";
                     }
-                    else if (type.Equals("OtherReceipt", StringComparison.OrdinalIgnoreCase))
+                    else if (type.Equals("OtherReceipt", StringComparison.OrdinalIgnoreCase) || type.Equals("Receipt", StringComparison.OrdinalIgnoreCase) || type.Equals("ORV", StringComparison.OrdinalIgnoreCase) || type.Equals("RV", StringComparison.OrdinalIgnoreCase) || type.Equals("MemberReceipt", StringComparison.OrdinalIgnoreCase))
                     {
-                        sql += " AND VoucherType IN ('OtherReceipt', 'ORV')";
+                        sql += " AND VoucherType IN ('OtherReceipt', 'Receipt', 'ORV', 'RV', 'MemberReceipt')";
                     }
-                    else if (type.Equals("Contra", StringComparison.OrdinalIgnoreCase))
+                    else if (type.Equals("Contra", StringComparison.OrdinalIgnoreCase) || type.Equals("CV", StringComparison.OrdinalIgnoreCase))
                     {
                         sql += " AND VoucherType IN ('Contra', 'CV')";
                     }
@@ -118,6 +121,47 @@ namespace JeevikaERP.Controllers
                 {
                     sql += " AND VoucherDate <= @toDate";
                     cmd.Parameters.AddWithValue("@toDate", dtTo.Date);
+                }
+
+                if (!string.IsNullOrWhiteSpace(voucherNo))
+                {
+                    sql += " AND (VoucherNo ILIKE @vno OR RefNo ILIKE @vno)";
+                    cmd.Parameters.AddWithValue("@vno", "%" + voucherNo.Trim() + "%");
+                }
+
+                if (!string.IsNullOrWhiteSpace(accountCode) && !accountCode.Equals("all", StringComparison.OrdinalIgnoreCase))
+                {
+                    sql += @" AND (
+                        CashBankCode = @accCode 
+                        OR EXISTS (
+                            SELECT 1 FROM jeevika_erp.SocVoucherDetail d 
+                            WHERE d.VoucherId = jeevika_erp.SocVoucherHeader.VoucherId 
+                              AND (d.AccountCode = @accCode OR d.AccountName ILIKE @accCodeLike)
+                        )
+                    )";
+                    cmd.Parameters.AddWithValue("@accCode", accountCode.Trim());
+                    cmd.Parameters.AddWithValue("@accCodeLike", "%" + accountCode.Trim() + "%");
+                }
+
+                if (!string.IsNullOrWhiteSpace(search))
+                {
+                    sql += @" AND (
+                        VoucherNo ILIKE @srch 
+                        OR RefNo ILIKE @srch 
+                        OR PersonName ILIKE @srch 
+                        OR Narration ILIKE @srch 
+                        OR Particular1 ILIKE @srch 
+                        OR Particular2 ILIKE @srch 
+                        OR CashBankName ILIKE @srch
+                        OR BankName ILIKE @srch
+                        OR ChqNo ILIKE @srch
+                        OR EXISTS (
+                            SELECT 1 FROM jeevika_erp.SocVoucherDetail d 
+                            WHERE d.VoucherId = jeevika_erp.SocVoucherHeader.VoucherId 
+                              AND (d.AccountCode ILIKE @srch OR d.AccountName ILIKE @srch OR d.Narration ILIKE @srch)
+                        )
+                    )";
+                    cmd.Parameters.AddWithValue("@srch", "%" + search.Trim() + "%");
                 }
 
                 if (!string.IsNullOrWhiteSpace(cashBankCode) && !cashBankCode.Equals("all", StringComparison.OrdinalIgnoreCase))
@@ -284,6 +328,70 @@ namespace JeevikaERP.Controllers
                     WHERE VoucherId = @id
                     ORDER BY SrNo";
                 cmdD.Parameters.AddWithValue("@id", id);
+
+                var items = new List<object>();
+                using var rD = cmdD.ExecuteReader();
+                while (rD.Read())
+                {
+                    items.Add(new
+                    {
+                        detailId    = Convert.ToInt32(rD["DetailId"]),
+                        voucherId   = Convert.ToInt32(rD["VoucherId"]),
+                        srNo        = Convert.ToInt32(rD["SrNo"]),
+                        accountId   = rD["AccountId"] == DBNull.Value ? (int?)null : Convert.ToInt32(rD["AccountId"]),
+                        accountCode = rD["AccountCode"]?.ToString() ?? "",
+                        accountName = rD["AccountName"]?.ToString() ?? "",
+                        debit       = Convert.ToDecimal(rD["Debit"]),
+                        credit      = Convert.ToDecimal(rD["Credit"]),
+                        narration   = rD["Narration"]?.ToString() ?? ""
+                    });
+                }
+
+                return Ok(new { success = true, data = header, items });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        // ── GET /api/vouchers/find?societyId=X&voucherNo=Y ──────
+        [HttpGet("find")]
+        public IActionResult FindByVoucherNo([FromQuery] int societyId, [FromQuery] string voucherNo)
+        {
+            if (societyId <= 0 || string.IsNullOrWhiteSpace(voucherNo))
+                return BadRequest(new { success = false, message = "societyId and voucherNo are required." });
+
+            try
+            {
+                using var conn = DbHelper.GetConn();
+
+                // 1. Fetch Header
+                using var cmdH = conn.CreateCommand();
+                cmdH.CommandText = @"
+                    SELECT * FROM jeevika_erp.SocVoucherHeader
+                    WHERE SocietyId = @sid AND (VoucherNo ILIKE @vno OR RefNo ILIKE @vno) AND IsDeleted = FALSE 
+                    ORDER BY VoucherId DESC LIMIT 1";
+                cmdH.Parameters.AddWithValue("@sid", societyId);
+                cmdH.Parameters.AddWithValue("@vno", voucherNo.Trim());
+
+                using var rH = cmdH.ExecuteReader();
+                if (!rH.Read())
+                    return NotFound(new { success = false, message = $"Voucher '{voucherNo}' not found." });
+
+                var header = MapVoucherHeader(rH);
+                int vid = (int)((dynamic)header).voucherId;
+                rH.Close();
+
+                // 2. Fetch Line Items
+                using var cmdD = conn.CreateCommand();
+                cmdD.CommandText = @"
+                    SELECT DetailId, VoucherId, SrNo, AccountId, AccountCode, AccountName,
+                           Debit, Credit, Narration
+                    FROM jeevika_erp.SocVoucherDetail
+                    WHERE VoucherId = @id
+                    ORDER BY SrNo";
+                cmdD.Parameters.AddWithValue("@id", vid);
 
                 var items = new List<object>();
                 using var rD = cmdD.ExecuteReader();

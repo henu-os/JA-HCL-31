@@ -42,12 +42,14 @@
       </div>
 
       <!-- Account Code / Voucher No Toggle -->
-      <div class="reg-filter-item" style="display:flex; align-items:center; gap:6px;">
-        <label class="erp-toggle-switch">
-          <input type="checkbox" id="chk-voucher-no" checked onchange="renderRegisterView()">
-          <span class="erp-toggle-slider"></span>
+      <div class="reg-filter-item">
+        <label class="reg-toggle-wrap" for="chk-voucher-no" title="Toggle display of Voucher No. / Account Head Codes">
+          <span class="reg-switch">
+            <input type="checkbox" id="chk-voucher-no" checked onchange="renderRegisterView()">
+            <span class="reg-slider"></span>
+          </span>
+          <span>Voucher No. / Code</span>
         </label>
-        <span style="font-size:11px; font-weight:600; color:#475569; cursor:pointer; user-select:none;" onclick="document.getElementById('chk-voucher-no').click()" title="Toggle display of Account Head Codes">Voucher No. / Code</span>
       </div>
 
       <!-- Live Search Box -->

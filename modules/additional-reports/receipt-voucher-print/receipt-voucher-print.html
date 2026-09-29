@@ -8,49 +8,157 @@
   <link rel="stylesheet" href="../../../assets/css/global.css">
   <link rel="stylesheet" href="../../../assets/css/components.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="receipt-voucher-print.css">
 </head>
 <body class="erp-module">
-  <div class="erp-module-header">
-    <div>
-      <div class="erp-module-title">Receipt Voucher Print</div>
-      
+
+  <!-- ── Top Filter & Action Toolbar ───────────────────────────────────────── -->
+  <div class="vp-toolbar no-print">
+    <div class="vp-filter-group">
+      <!-- Date Range -->
+      <div class="vp-filter-item">
+        <label for="fromDate"><i class="bi bi-calendar3"></i> From:</label>
+        <input type="date" id="fromDate" class="vp-input" style="width:125px;" onchange="loadReceiptVouchers()">
+      </div>
+      <div class="vp-filter-item">
+        <label for="toDate">To:</label>
+        <input type="date" id="toDate" class="vp-input" style="width:125px;" onchange="loadReceiptVouchers()">
+      </div>
+
+      <!-- FY Date Presets -->
+      <div class="vp-preset-btn-group">
+        <button type="button" class="vp-preset-btn active" id="btnPresetFull" onclick="onPresetClick('full', this)">Full FY</button>
+        <button type="button" class="vp-preset-btn" id="btnPresetThisMonth" onclick="onPresetClick('this-month', this)">This Month</button>
+        <button type="button" class="vp-preset-btn" id="btnPresetLastMonth" onclick="onPresetClick('last-month', this)">Last Month</button>
+        <button type="button" class="vp-preset-btn" id="btnPresetAll" onclick="onPresetClick('all', this)">All</button>
+      </div>
+
+      <!-- Account Filter Dropdown -->
+      <div class="vp-filter-item">
+        <label for="accountSelect"><i class="bi bi-bank"></i> Bank/Cash:</label>
+        <select id="accountSelect" class="vp-select" style="max-width:210px;" onchange="loadReceiptVouchers()">
+          <option value="all">All Cash &amp; Bank Accounts</option>
+        </select>
+      </div>
+
+      <!-- Voucher No Filter -->
+      <div class="vp-filter-item">
+        <label for="vouchNoFilter"><i class="bi bi-hash"></i> Voucher No:</label>
+        <input type="text" id="vouchNoFilter" class="vp-input" style="width:110px;" placeholder="RV/..." onkeyup="onVoucherNoFilterKey(event)">
+      </div>
+
+      <!-- Live Search Box -->
+      <div class="vp-search-box">
+        <i class="bi bi-search"></i>
+        <input type="text" id="searchInput" placeholder="Search payer, head, ref..." onkeyup="filterTable()">
+      </div>
     </div>
-    <button class="erp-btn erp-btn-primary" onclick="refreshData()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+
+    <!-- Action Buttons -->
+    <div style="display:flex; align-items:center; gap:8px;">
+      <button class="vp-btn vp-btn-primary" onclick="loadReceiptVouchers()" title="Refresh records from server">
+        <i class="bi bi-arrow-clockwise"></i> Refresh
+      </button>
+      <button class="vp-btn" onclick="resetFilters()" title="Reset all filters">
+        <i class="bi bi-x-circle"></i> Reset
+      </button>
+      <button class="vp-btn vp-btn-outline" onclick="previewSelectedVouchers()" id="btnPreviewSelected" title="Preview checked vouchers">
+        <i class="bi bi-eye"></i> Preview (<span id="selCountPreview">0</span>)
+      </button>
+      <button class="vp-btn vp-btn-primary" onclick="printSelectedVouchers()" id="btnPrintSelected" title="Print checked vouchers in batch">
+        <i class="bi bi-printer-fill"></i> Print Selected
+      </button>
+      <button class="vp-btn vp-btn-success" onclick="exportGridToExcel()" title="Export list to Excel .xlsx">
+        <i class="bi bi-file-earmark-excel"></i> Export Excel
+      </button>
+    </div>
   </div>
 
-  <div class="erp-search-bar">
-    <input type="text" id="searchInput" class="erp-input erp-search-input" placeholder="🔍 Search Receipt Voucher Print..." onkeyup="filterTable()">
-    <div class="erp-record-count" id="recordCount">Total: 0</div>
-  </div>
+  <!-- ── Scrollable Body Area ───────────────────────────────────────────────── -->
+  <div class="vp-scroll-wrapper no-print">
+    <div class="vp-card">
 
-  <div class="erp-module-body" style="padding:0;">
-    <div class="erp-table-container" style="height:100%;border:none;">
-      <table class="erp-table striped" id="mainTable">
+      <!-- Summary KPI Bar -->
+      <div class="vp-summary-bar">
+        <div class="vp-kpi-chips">
+          <div class="vp-chip">
+            <i class="bi bi-receipt" style="color:#0284c7;"></i>
+            <span>Vouchers:</span>
+            <span class="vp-chip-val" id="kpiTotalVouchers">0</span>
+          </div>
+          <div class="vp-chip">
+            <i class="bi bi-arrow-down-left-circle-fill" style="color:#16a34a;"></i>
+            <span>Total Collections:</span>
+            <span class="vp-chip-val" id="kpiTotalAmount" style="color:#16a34a;">₹ 0.00</span>
+          </div>
+          <div class="vp-chip">
+            <i class="bi bi-bank2" style="color:#059669;"></i>
+            <span>Bank:</span>
+            <span class="vp-chip-val" id="kpiBankAmount">₹ 0.00</span>
+          </div>
+          <div class="vp-chip">
+            <i class="bi bi-cash-stack" style="color:#d97706;"></i>
+            <span>Cash:</span>
+            <span class="vp-chip-val" id="kpiCashAmount">₹ 0.00</span>
+          </div>
+        </div>
+        <div style="font-size:11px; font-weight:700; color:#475569;">
+          <span id="selectedCountLabel">0 vouchers selected for printing</span>
+        </div>
+      </div>
+
+      <!-- Results Grid Table -->
+      <table class="vp-table" id="receiptTable">
         <thead>
           <tr>
+            <th style="width:36px;" class="td-center">
+              <input type="checkbox" id="chkSelectAll" onchange="toggleSelectAll(this.checked)" title="Select/Deselect All">
+            </th>
             <th style="width:40px;" class="td-center">#</th>
-            <th>Particulars / Description</th>
-            <th style="width:140px;" class="td-center">Voucher / Ref No</th>
-            <th style="width:120px;" class="td-center">Date</th>
-            <th style="width:120px;" class="td-right">Amount (₹)</th>
-            <th style="width:100px;" class="td-center">Status</th>
+            <th style="width:130px;" class="td-center">Voucher No.</th>
+            <th style="width:95px;" class="td-center">Date</th>
+            <th>Received From / Payer</th>
+            <th>Cash / Bank Account</th>
+            <th style="width:130px;">Reference / Cheque</th>
+            <th class="td-amt" style="width:120px;">Amount (₹)</th>
+            <th>Narration</th>
+            <th style="width:145px;" class="td-center">Action</th>
           </tr>
         </thead>
-        <tbody id="mainTableBody">
+        <tbody id="receiptTableBody">
           <tr>
-            <td colspan="6" class="text-center text-muted" style="padding:40px;">
-              <i class="bi bi-folder-check" style="font-size:24px;display:block;margin-bottom:8px;color:#94a3b8;"></i>
-              Receipt Voucher Print module initialized. Live records will be displayed here.
+            <td colspan="10" class="td-center text-muted" style="padding:40px;">
+              <i class="bi bi-arrow-repeat spin" style="font-size:20px;display:block;margin-bottom:8px;"></i>
+              Loading Receipt Vouchers...
             </td>
           </tr>
         </tbody>
+        <tfoot>
+          <tr style="background:#f8fafc; font-weight:800; border-top:2px solid var(--vp-border-clr);">
+            <td colspan="7" class="td-right" style="text-transform:uppercase; padding-right:12px;">Total Filtered Collections:</td>
+            <td class="td-amt" id="footTotAmount" style="color:#16a34a; font-size:12px;">₹ 0.00</td>
+            <td colspan="2"></td>
+          </tr>
+        </tfoot>
       </table>
+
     </div>
   </div>
 
+  <!-- ── Print-Only Target Zone (Activated during window.print()) ─────────── -->
+  <div id="voucherPrintArea" class="voucher-print-zone"></div>
+
+  <!-- xlsx-js-style for Excel Export -->
+  <script src="../../../assets/js/xlsx-js-style.bundle.js"></script>
+  <script>
+    if (typeof XLSX === 'undefined' || !XLSX.writeFile) {
+      document.write('<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"><\/script>');
+    }
+  </script>
   <script src="../../../assets/js/api.js"></script>
   <script src="../../../assets/js/auth.js"></script>
   <script src="../../../assets/js/utils.js"></script>
+  <script src="../voucher-print-common.js"></script>
   <script src="receipt-voucher-print.js"></script>
 </body>
 </html>

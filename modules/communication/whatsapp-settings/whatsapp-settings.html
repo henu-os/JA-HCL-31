@@ -1,53 +1,284 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WhatsApp API Integration Settings — JEEVIKA ERP</title>
+  <title>WhatsApp Connection — HENU ERP</title>
+  <link rel="icon" type="image/svg+xml" href="../../../favicon.svg">
   <script src="../../../config.js"></script>
+  <script src="../../../assets/js/utils.js"></script>
+  <script src="../../../assets/js/api.js"></script>
+  <script src="../../../assets/js/auth.js"></script>
   <link rel="stylesheet" href="../../../assets/css/global.css">
   <link rel="stylesheet" href="../../../assets/css/components.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="whatsapp-settings.css">
 </head>
+
 <body class="erp-module">
-  <div class="erp-module-header">
-    <div>
-      <div class="erp-module-title">WhatsApp API Integration Settings</div>
-      
+
+  <div class="settings-page-wrapper">
+
+    <!-- ── Page Header ─────────────────────────────────────────── -->
+    <div class="settings-header">
+      <div class="header-left">
+        <h1 class="settings-title">WhatsApp connection</h1>
+        <p class="settings-subtitle">Connect your Meta WhatsApp Business API. Credentials, webhook, and setup steps all live here.</p>
+      </div>
+      <div class="header-actions">
+        <button type="button" class="wacrm-btn wacrm-btn-secondary" onclick="testWhatsAppConnection()" id="btnTestConn">
+          <i class="bi bi-shield-check"></i> Test Connection
+        </button>
+        <button type="button" class="wacrm-btn wacrm-btn-primary" onclick="saveWhatsAppConfig()" id="btnSave">
+          <i class="bi bi-check2"></i> Save Configuration
+        </button>
+      </div>
     </div>
-    <button class="erp-btn erp-btn-primary" onclick="refreshData()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
-  </div>
 
-  <div class="erp-search-bar">
-    <input type="text" id="searchInput" class="erp-input erp-search-input" placeholder="🔍 Search..." onkeyup="filterTable()">
-    <div class="erp-record-count" id="recordCount">Total: 0</div>
-  </div>
+    <!-- ── Status Banners ──────────────────────────────────────── -->
+    <div class="status-card" id="credentialsStatusCard">
+      <div class="status-card-header">
+        <div class="status-badge-pill" id="tokenStatusPill">
+          <span class="status-dot"></span>
+          <span id="tokenStatusText">Credentials valid</span>
+        </div>
+        <span class="provider-pill">Meta WhatsApp Cloud API v21.0</span>
+      </div>
+      <p class="status-card-desc">Your access token authenticates with Meta. See Registration status below for whether webhooks are actually wired.</p>
 
-  <div class="erp-module-body" style="padding:0;">
-    <div class="erp-table-container" style="height:100%;border:none;">
-      <table class="erp-table striped" id="mainTable">
-        <thead>
-          <tr>
-            <th style="width:40px;" class="td-center">#</th>
-            <th>Particulars / Description</th>
-            <th style="width:120px;" class="td-center">Reference</th>
-            <th style="width:120px;" class="td-center">Status</th>
-          </tr>
-        </thead>
-        <tbody id="mainTableBody">
-          <tr>
-            <td colspan="4" class="text-center text-muted" style="padding:30px;">
-              Module initialized. Live data will be loaded here.
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="registration-alert">
+        <div class="alert-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+        <div class="alert-content">
+          <div class="alert-title">Not registered — Meta will not deliver events</div>
+          <div class="alert-text">This number was saved before registration tracking existed, or registration was skipped. Enter the 2-step PIN below and click Save Configuration to subscribe it.</div>
+        </div>
+      </div>
     </div>
+
+    <!-- ── Two Column Configuration Layout ───────────────────── -->
+    <div class="settings-grid">
+
+      <!-- Left Column: Form Settings -->
+      <div class="settings-col-main">
+
+        <!-- Card: API Credentials -->
+        <div class="wacrm-card">
+          <div class="wacrm-card-header">
+            <h2 class="card-heading">API Credentials</h2>
+            <p class="card-subheading">Enter your Meta WhatsApp Business API credentials.</p>
+          </div>
+          <div class="wacrm-card-body">
+            <form id="waConfigForm" onsubmit="event.preventDefault(); saveWhatsAppConfig();">
+              
+              <div class="form-row">
+                <div class="form-field">
+                  <label class="field-label" for="phoneNumberId">Phone number ID <span class="req">*</span></label>
+                  <input type="text" id="phoneNumberId" class="wacrm-input" placeholder="e.g. 1185567017980748" required>
+                  <span class="field-hint">The unique Meta Phone Number ID allocated in your WhatsApp App dashboard.</span>
+                </div>
+                <div class="form-field">
+                  <label class="field-label" for="wabaId">WhatsApp Business Account ID (WABA ID)</label>
+                  <input type="text" id="wabaId" class="wacrm-input" placeholder="e.g. 2434664030354024">
+                  <span class="field-hint">Your 16-digit Meta WhatsApp Business Account (WABA) identifier.</span>
+                </div>
+              </div>
+
+              <div class="form-field">
+                <label class="field-label" for="accessToken">Access Token</label>
+                <input type="password" id="accessToken" class="wacrm-input" placeholder="Token is hidden for security. Re-enter it to update configuration.">
+                <span class="field-hint">Token is hidden for security. Re-enter it to update configuration. Use a Permanent System User token for 24/7 reliability.</span>
+              </div>
+
+              <div class="form-field">
+                <label class="field-label" for="webhookVerifyToken">Webhook verify token</label>
+                <input type="text" id="webhookVerifyToken" class="wacrm-input" value="HENUOS2025">
+                <span class="field-hint">A custom string you create. Must match the token you set in Meta webhook settings.</span>
+              </div>
+
+              <div class="form-field">
+                <label class="field-label" for="twoStepPin">2-step verification PIN <span class="optional-tag">(Optional)</span></label>
+                <input type="password" id="twoStepPin" class="wacrm-input" placeholder="6-digit PIN (leave blank for Meta test numbers)" maxlength="6">
+                <span class="field-hint highlight-hint">
+                  Needed only to wire inbound messages for a production number. Set it in Meta Business Manager &rarr; WhatsApp Accounts &rarr; Phone Numbers &rarr; Two-step verification, then paste it here so wacrm can subscribe the number &mdash; otherwise Meta routes inbound events to whichever app last claimed it (the symptom that hits second numbers under a shared WABA). Meta test numbers have no PIN and are pre-registered &mdash; leave this blank for them. Leaving it blank also keeps an existing registration untouched.
+                </span>
+              </div>
+
+              <div class="form-row" style="margin-top:16px;">
+                <div class="form-field">
+                  <label class="field-label" for="defaultLanguage">Default Template Language</label>
+                  <select id="defaultLanguage" class="wacrm-input">
+                    <option value="en_US">English (US) - en_US</option>
+                    <option value="en_GB">English (UK) - en_GB</option>
+                    <option value="hi">Hindi - hi</option>
+                    <option value="mr">Marathi - mr</option>
+                  </select>
+                </div>
+                <div class="form-field">
+                  <label class="field-label" for="dailyLimit">Daily Message Quota</label>
+                  <input type="number" id="dailyLimit" class="wacrm-input" value="1000">
+                </div>
+              </div>
+
+            </form>
+          </div>
+        </div>
+
+        <!-- Card: Test Verification Send -->
+        <div class="wacrm-card">
+          <div class="wacrm-card-header">
+            <h2 class="card-heading">Test Message Verification</h2>
+            <p class="card-subheading">Dispatch a real-time live WhatsApp notification to verify outbound connectivity.</p>
+          </div>
+          <div class="wacrm-card-body">
+            <div class="test-send-row">
+              <div class="form-field" style="flex:1;">
+                <label class="field-label" for="testMobileNumber">Mobile Number (with or without +91)</label>
+                <input type="tel" id="testMobileNumber" class="wacrm-input" placeholder="e.g. 9352956727">
+              </div>
+              <button type="button" class="wacrm-btn wacrm-btn-wa" onclick="sendTestWhatsApp()" id="btnTestSend">
+                <i class="bi bi-whatsapp"></i> Send Test Message
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right Column: Webhook & Setup Instructions -->
+      <div class="settings-col-side">
+
+        <!-- Card: Webhook Configuration -->
+        <div class="wacrm-card">
+          <div class="wacrm-card-header">
+            <h2 class="card-heading">Webhook Configuration</h2>
+            <p class="card-subheading">Use this URL as your webhook callback in the Meta App Dashboard.</p>
+          </div>
+          <div class="wacrm-card-body">
+            <div class="webhook-box">
+              <label class="field-label">Callback URL</label>
+              <div class="copy-input-group">
+                <input type="text" id="webhookUrl" class="wacrm-input-readonly" readonly value="https://ward-addressed-orders-undertaken.trycloudflare.com/api/communication/webhook/whatsapp">
+                <button type="button" class="btn-copy" onclick="copyToClipboard('webhookUrl', this)" title="Copy URL">
+                  <i class="bi bi-copy"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="webhook-box" style="margin-top:14px;">
+              <label class="field-label">Verify Token</label>
+              <div class="copy-input-group">
+                <input type="text" id="webhookVerifyTokenDisplay" class="wacrm-input-readonly" readonly value="HENUOS2025">
+                <button type="button" class="btn-copy" onclick="copyToClipboard('webhookVerifyTokenDisplay', this)" title="Copy Verify Token">
+                  <i class="bi bi-copy"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="webhook-subscribed-fields">
+              <span class="sub-label">Subscribed webhook events:</span>
+              <div class="tags-row">
+                <span class="field-tag">messages</span>
+                <span class="field-tag">message_template_status_update</span>
+                <span class="field-tag">phone_number_quality_update</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card: Setup Instructions -->
+        <div class="wacrm-card">
+          <div class="wacrm-card-header">
+            <h2 class="card-heading">Setup Instructions</h2>
+            <p class="card-subheading">Follow these steps to connect your WhatsApp Business API.</p>
+          </div>
+          <div class="wacrm-card-body">
+            <div class="instruction-steps">
+              <div class="step-item">
+                <div class="step-number">1</div>
+                <div class="step-details">
+                  <div class="step-title">Create a Meta App</div>
+                  <div class="step-text">Go to Meta for Developers dashboard, create a Business app and select WhatsApp.</div>
+                </div>
+              </div>
+
+              <div class="step-item">
+                <div class="step-number">2</div>
+                <div class="step-details">
+                  <div class="step-title">Add WhatsApp Product</div>
+                  <div class="step-text">Set up the WhatsApp Cloud API product in your app and get your test or production phone number.</div>
+                </div>
+              </div>
+
+              <div class="step-item">
+                <div class="step-number">3</div>
+                <div class="step-details">
+                  <div class="step-title">Get API Credentials</div>
+                  <div class="step-text">Generate a Permanent System User Token with <code>whatsapp_business_messaging</code> and <code>whatsapp_business_management</code> permissions.</div>
+                </div>
+              </div>
+
+              <div class="step-item">
+                <div class="step-number">4</div>
+                <div class="step-details">
+                  <div class="step-title">Configure Webhooks</div>
+                  <div class="step-text">Paste the Callback URL and Verify Token above into Meta Webhook configuration, then verify and subscribe to <code>messages</code>.</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="docs-link-box">
+              <a href="https://developers.facebook.com/docs/whatsapp/cloud-api/get-started" target="_blank" rel="noopener noreferrer" class="docs-anchor">
+                <i class="bi bi-box-arrow-up-right"></i> Meta WhatsApp API Documentation
+              </a>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ── Dispatch & Webhook Delivery Logs ───────────────────── -->
+    <div class="wacrm-card" style="margin-top:24px;">
+      <div class="wacrm-card-header" style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <h2 class="card-heading"><i class="bi bi-clock-history"></i> WhatsApp Dispatch &amp; Webhook Delivery Logs</h2>
+          <p class="card-subheading">Real-time log of sent notifications, member replies, and Meta delivery statuses.</p>
+        </div>
+        <button type="button" class="wacrm-btn wacrm-btn-secondary" onclick="loadWhatsAppHistory()" style="padding:6px 12px;font-size:12px;">
+          <i class="bi bi-arrow-clockwise"></i> Refresh History
+        </button>
+      </div>
+      <div class="wacrm-card-body" style="padding:0;">
+        <div style="overflow-x:auto;">
+          <table class="wacrm-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Dispatched At</th>
+                <th>Recipient Mobile</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Meta WAMID / Diagnostic</th>
+                <th style="text-align:center;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="waHistoryBody">
+              <tr>
+                <td colspan="7" class="table-empty-cell">
+                  <i class="bi bi-hourglass-split"></i> Loading WhatsApp activity logs...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
   </div>
 
-  <script src="../../../assets/js/api.js"></script>
-  <script src="../../../assets/js/auth.js"></script>
-  <script src="../../../assets/js/utils.js"></script>
   <script src="whatsapp-settings.js"></script>
 </body>
+
 </html>

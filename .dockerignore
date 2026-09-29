@@ -1,0 +1,28 @@
+# Git & IDE
+.git
+.gitignore
+.vscode
+.idea
+*.suo
+*.user
+
+# Build outputs & caches
+**/bin/
+**/obj/
+**/dist/
+**/build/
+node_modules/
+
+# Environment files
+.env
+.env.*
+!.env.example
+!.env.local.example
+
+# Logs & temporary files
+*.log
+*.tmp
+test-results/
+coverage/
+.tempmediaStorage/
+.system_generated/

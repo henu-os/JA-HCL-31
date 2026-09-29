@@ -20,6 +20,13 @@ if not exist "node_modules\electron\dist\electron.exe" (
     )
 )
 
+echo [0/2] Cleaning up any existing backend processes...
+taskkill /f /im JeevikaERP.exe >nul 2>&1
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":5002 "') do (
+    taskkill /f /pid %%a >nul 2>&1
+)
+
+echo.
 echo [1/2] Building .NET Backend...
 cd /d "%~dp0..\Backend"
 dotnet build -c Debug

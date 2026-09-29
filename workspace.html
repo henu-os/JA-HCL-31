@@ -4,7 +4,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>JEEVIKA ERP — Society Accounting System</title>
+  <title>HENU ERP — Society Accounting System</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <link rel="stylesheet" href="assets/css/global.css">
   <link rel="stylesheet" href="assets/css/components.css">
@@ -606,13 +607,13 @@
     <!-- ── TOP NAVIGATION BAR ─────────────────────────────────── -->
     <header class="erp-header">
       <div class="erp-brand">
-        <div class="erp-brand-logo">J</div>
-        <span>JEEVIKA ERP</span>
+        <img src="favicon.svg" alt="HENU ERP" style="width: 24px; height: 24px; object-fit: contain;">
+        <span>HENU ERP</span>
       </div>
 
       <div class="erp-soc-header-badge" onclick="toggleSocietyPicker()" style="cursor:pointer;" title="Click to switch Active Society">
         <i class="bi bi-building"></i>
-        <span id="topSocietyName">JEEVIKA SOCIETY</span>
+        <span id="topSocietyName">HENU SOCIETY</span>
         <i class="bi bi-chevron-down" style="font-size: 10px; margin-left: 2px;"></i>
       </div>
 
@@ -644,9 +645,9 @@
         <div class="erp-sidebar-profile">
           <div class="erp-soc-sub"><i class="bi bi-building"></i> <span id="sideSocSub">Society Master</span></div>
           <div class="erp-profile-box">
-            <div class="erp-profile-icon">J</div>
+            <img src="favicon.svg" alt="HENU ERP" style="width: 28px; height: 28px; object-fit: contain;">
             <div>
-              <div class="erp-profile-title" id="sideProfileSocName">jeevika</div>
+              <div class="erp-profile-title" id="sideProfileSocName">henu</div>
               <div class="erp-profile-sub">accounting</div>
             </div>
           </div>
@@ -672,8 +673,8 @@
 
         <!-- CENTER WELCOME CANVAS (MATCHING SCREENSHOT) -->
         <div id="modulePlaceholder">
-          <div class="welcome-logo">J</div>
-          <div class="welcome-title">JEEVIKA ERP</div>
+          <img class="welcome-logo-img" src="favicon.svg" alt="HENU ERP" style="width: 72px; height: 72px; object-fit: contain; margin-bottom: 12px;">
+          <div class="welcome-title">HENU ERP</div>
           <div class="welcome-sub">Select a module from the menu or sidebar to get started.</div>
           <div class="welcome-badge">
             Quick Access: Use <span class="welcome-kbd">Alt+R</span> for Receipt, <span class="welcome-kbd">Alt+M</span>
@@ -732,11 +733,11 @@
     </div>
   </div>
 
-  <script src="config.js?v=20260827_99"></script>
-  <script src="assets/js/api.js?v=20260827_99"></script>
-  <script src="assets/js/auth.js?v=20260827_99"></script>
-  <script src="assets/js/workspace.js?v=20260827_99"></script>
-  <script src="assets/js/workspace-bridge.js?v=20260827_99"></script>
+  <script src="config.js?v=20260928_v3"></script>
+  <script src="assets/js/api.js?v=20260928_v3"></script>
+  <script src="assets/js/auth.js?v=20260928_v3"></script>
+  <script src="assets/js/workspace.js?v=20260928_v3"></script>
+  <script src="assets/js/workspace-bridge.js?v=20260928_v3"></script>
   <script>
     function updateHeaderAndFooterContext() {
       let socName = (window.Auth && typeof Auth.getSocietyName === 'function') ? Auth.getSocietyName() : null;

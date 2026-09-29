@@ -124,37 +124,125 @@ const WorkspaceManager = (() => {
     { id: 'ar-receipt-register', label: 'Receipt Register', category: 'account-report', path: 'modules/account-reports/receipt-register/receipt-register.html' },
     { id: 'ar-payment-register', label: 'Payment Register', category: 'account-report', path: 'modules/account-reports/payment-register/payment-register.html' },
     { id: 'ar-contra-register', label: 'Contra Register', category: 'account-report', path: 'modules/account-reports/contra-register/contra-register.html' },
+    { id: 'ar-journal-register', label: 'Journal Register', category: 'account-report', path: 'modules/account-reports/journal-register/journal-register.html' },
     { id: 'ar-monthly-report', label: 'Monthly Report', category: 'account-report', path: 'modules/account-reports/monthly-report/monthly-report.html' },
 
     // ADDITIONAL REPORTS
-    { id: 'adr-receipt-voucher-print', label: 'Receipt Voucher Print', category: 'additional-report', path: 'modules/additional-reports/receipt-voucher-print/receipt-voucher-print.html' },
-    { id: 'adr-payment-voucher-print', label: 'Payment Voucher Print', category: 'additional-report', path: 'modules/additional-reports/payment-voucher-print/payment-voucher-print.html' },
-    { id: 'adr-contra-voucher-print', label: 'Contra Voucher Print', category: 'additional-report', path: 'modules/additional-reports/contra-voucher-print/contra-voucher-print.html' },
-    { id: 'adr-journal-voucher-print', label: 'Journal Voucher Print', category: 'additional-report', path: 'modules/additional-reports/journal-voucher-print/journal-voucher-print.html' },
+    { id: 'adr-tds-report', label: 'TDS Report', category: 'additional-report', path: 'modules/additional-reports/tds-report/tds-report.html' },
+    { id: 'adr-gst-report', label: 'GST Report', category: 'additional-report', path: 'modules/additional-reports/gst-report/gst-report.html' },
+    { id: 'adr-fund-reports', label: 'Fund Reports', category: 'additional-report', path: 'modules/additional-reports/fund-reports/fund-reports.html' },
     { id: 'adr-multi-report', label: 'Multi Report', category: 'additional-report', path: 'modules/additional-reports/multi-report/multi-report.html' },
 
     // UTILITIES
-    { id: 'ut-quick-note', label: 'Quick Note', category: 'utility', path: 'modules/utilities/quick-note/quick-note.html' },
     { id: 'ut-transfer', label: 'Transfer', category: 'utility', path: 'modules/utilities/transfer/transfer.html' },
-    { id: 'ut-last-year-bf', label: 'Last Year B/F', category: 'utility', path: 'modules/utilities/last-year-bf/last-year-bf.html' },
+    { id: 'ut-renumber', label: 'Renumber', category: 'utility', path: 'modules/utilities/renumber/renumber.html' },
+    { id: 'ut-last-year-bf', label: 'Last Year B/f', category: 'utility', path: 'modules/utilities/last-year-bf/last-year-bf.html' },
     { id: 'ut-import-master-data', label: 'Import Master Data', category: 'utility', path: 'modules/utilities/import-master-data/import-master-data.html' },
     { id: 'ut-export-member-master', label: 'Export Member Master', category: 'utility', path: 'modules/utilities/export-member-master/export-member-master.html' },
     { id: 'ut-default-group-setting', label: 'Default Group Setting', category: 'utility', path: 'modules/utilities/default-group-setting/default-group-setting.html' },
     { id: 'ut-rebuild', label: 'Rebuild', category: 'utility', path: 'modules/utilities/rebuild/rebuild.html' },
-    { id: 'ut-bulk-sms', label: 'Bulk SMS & Notification', category: 'utility', path: 'modules/utilities/bulk-sms/bulk-sms.html' },
-    { id: 'ut-data-backup', label: 'Data Backup & Restore', category: 'utility', path: 'modules/utilities/data-backup/data-backup.html' },
     { id: 'ut-check-difference', label: 'Check Difference', category: 'utility', path: 'modules/utilities/check-difference/check-difference.html' },
-    { id: 'ut-new-year-cf', label: 'New Year C/F', category: 'utility', path: 'modules/utilities/new-year-cf/new-year-cf.html' },
-    { id: 'ut-new-voucher-type', label: 'New Voucher Type', category: 'utility', path: 'modules/utilities/new-voucher-type/new-voucher-type.html' },
+    { id: 'ut-new-year-cf', label: 'New Year C/f', category: 'utility', path: 'modules/utilities/new-year-cf/new-year-cf.html' },
+    { id: 'ut-new-tran-type', label: 'New Tran Type', category: 'utility', path: 'modules/utilities/new-voucher-type/new-voucher-type.html' },
     { id: 'ut-select-year', label: 'Select Year', category: 'utility', path: 'modules/utilities/select-year/select-year.html' },
     { id: 'ut-calculator', label: 'Calculator', category: 'utility', path: 'modules/utilities/calculator/calculator.html' },
-    { id: 'ut-gst-calculator', label: 'GST Calculator', category: 'utility', path: 'modules/utilities/gst-calculator/gst-calculator.html' },
+    { id: 'ut-gst-calculator', label: 'GST Calculate', category: 'utility', path: 'modules/utilities/gst-calculator/gst-calculator.html' },
     { id: 'ut-year-extension', label: 'Year Extension', category: 'utility', path: 'modules/utilities/year-extension/year-extension.html' },
-    { id: 'ut-read-number', label: 'Read Number', category: 'utility', path: 'modules/utilities/read-number/read-number.html' },
 
     // COMMUNICATION
-    { id: 'email-settings', label: 'Email SMTP Configuration', category: 'communication', path: 'modules/communication/email-settings/email-settings.html' },
-    { id: 'whatsapp-member', label: 'Send WhatsApp Bills', category: 'communication', path: 'modules/communication/whatsapp-member/whatsapp-member.html' },
+    {
+      id: 'mail-to-member-group',
+      label: 'Mail to Member',
+      category: 'communication',
+      isGroup: true,
+      children: [
+        { id: 'mail-member-bill', label: 'Bill Format', path: 'modules/communication/mail-to-member/mail-to-member.html?sub=BILL_FORMAT' },
+        { id: 'mail-member-receipt', label: 'Receipt', path: 'modules/communication/mail-to-member/mail-to-member.html?sub=RECEIPT' },
+        { id: 'mail-member-account', label: 'Member Account', path: 'modules/communication/mail-to-member/mail-to-member.html?sub=MEMBER_ACCOUNT' },
+        { id: 'mail-member-register', label: 'Member Register', path: 'modules/communication/mail-to-member/mail-to-member.html?sub=MEMBER_REGISTER' },
+        { id: 'mail-member-reminder', label: 'Outstanding Reminder', path: 'modules/communication/mail-to-member/mail-to-member.html?sub=OUTSTANDING_REMINDER' },
+        { id: 'mail-member-letter', label: 'Outstanding Letter', path: 'modules/communication/mail-to-member/mail-to-member.html?sub=OUTSTANDING_LETTER' },
+        { id: 'mail-member-msg', label: 'Message', path: 'modules/communication/mail-to-member/mail-to-member.html?sub=MESSAGE' },
+        { id: 'mail-member-bal-conf', label: 'Balance Confirmation Letter', path: 'modules/communication/mail-to-member/mail-to-member.html?sub=BALANCE_CONFIRMATION' },
+        { id: 'mail-member-msg-pdf', label: 'Message with PDF', path: 'modules/communication/mail-to-member/mail-to-member.html?sub=MESSAGE_WITH_PDF' }
+      ]
+    },
+    {
+      id: 'mail-to-committee-group',
+      label: 'Mail to Committee',
+      category: 'communication',
+      isGroup: true,
+      children: [
+        { id: 'mail-comm-inc-exp', label: 'Income & Expenditure', path: 'modules/communication/mail-to-committee/mail-to-committee.html?rep=INCOME_EXPENDITURE' },
+        { id: 'mail-comm-bal-sheet', label: 'Balance Sheet', path: 'modules/communication/mail-to-committee/mail-to-committee.html?rep=BALANCE_SHEET' },
+        { id: 'mail-comm-trial-bal', label: 'Trial Balance', path: 'modules/communication/mail-to-committee/mail-to-committee.html?rep=TRIAL_BALANCE' },
+        { id: 'mail-comm-cash-bank', label: 'Cash / Bank Book', path: 'modules/communication/mail-to-committee/mail-to-committee.html?rep=CASH_BANK_BOOK' },
+        { id: 'mail-comm-ledger-code', label: 'Account Ledger (Code Wise)', path: 'modules/communication/mail-to-committee/mail-to-committee.html?rep=LEDGER_CODE_WISE' },
+        { id: 'mail-comm-ledger-group', label: 'Account Ledger (Group Wise)', path: 'modules/communication/mail-to-committee/mail-to-committee.html?rep=LEDGER_GROUP_WISE' },
+        { id: 'mail-comm-rp-group', label: 'Receipt & Payment - Groupwise', path: 'modules/communication/mail-to-committee/mail-to-committee.html?rep=RECEIPT_PAYMENT_GROUP' },
+        { id: 'mail-comm-rp-acc', label: 'Receipt & Payment - Accountwise', path: 'modules/communication/mail-to-committee/mail-to-committee.html?rep=RECEIPT_PAYMENT_ACCOUNT' },
+        { id: 'mail-comm-schedule', label: 'Schedule', path: 'modules/communication/mail-to-committee/mail-to-committee.html?rep=SCHEDULE' },
+        { id: 'mail-comm-monthly-rep', label: 'Monthly Report', path: 'modules/communication/mail-to-committee/mail-to-committee.html?rep=MONTHLY_REPORT' },
+        { id: 'mail-comm-rec-reg', label: 'Receipt Register', path: 'modules/communication/mail-to-committee/mail-to-committee.html?rep=RECEIPT_REGISTER' },
+        { id: 'mail-comm-pay-reg', label: 'Payment Register', path: 'modules/communication/mail-to-committee/mail-to-committee.html?rep=PAYMENT_REGISTER' },
+        { id: 'mail-comm-contra-reg', label: 'Contra Register', path: 'modules/communication/mail-to-committee/mail-to-committee.html?rep=CONTRA_REGISTER' },
+        { id: 'mail-comm-jrnl-reg', label: 'Journal Register', path: 'modules/communication/mail-to-committee/mail-to-committee.html?rep=JOURNAL_REGISTER' }
+      ]
+    },
+    { id: 'email-id-setting', label: 'Email ID Setting', category: 'communication', path: 'modules/communication/email-settings/email-settings.html' },
+    {
+      id: 'whatsapp-crm-group',
+      label: 'WhatsApp',
+      category: 'communication',
+      isGroup: true,
+      children: [
+        { id: 'whatsapp-inbox', label: 'WhatsApp Inbox', path: 'modules/communication/whatsapp-inbox/whatsapp-inbox.html' },
+        { id: 'whatsapp-templates', label: 'Templates', path: 'modules/communication/whatsapp-templates/whatsapp-templates.html' },
+        { id: 'whatsapp-quick-replies', label: 'Quick Replies', path: 'modules/communication/whatsapp-quick-replies/whatsapp-quick-replies.html' },
+        { id: 'whatsapp-logs', label: 'WhatsApp Logs', path: 'modules/communication/whatsapp-logs/whatsapp-logs.html' }
+      ]
+    },
+    {
+      id: 'whatsapp-to-member-group',
+      label: 'WhatsApp to Member',
+      category: 'communication',
+      isGroup: true,
+      children: [
+        { id: 'wa-member-bill', label: 'Bill Format', path: 'modules/communication/whatsapp-member/whatsapp-member.html?sub=BILL_FORMAT' },
+        { id: 'wa-member-receipt', label: 'Receipt', path: 'modules/communication/whatsapp-member/whatsapp-member.html?sub=RECEIPT' },
+        { id: 'wa-member-account', label: 'Member Account', path: 'modules/communication/whatsapp-member/whatsapp-member.html?sub=MEMBER_ACCOUNT' },
+        { id: 'wa-member-register', label: 'Member Register', path: 'modules/communication/whatsapp-member/whatsapp-member.html?sub=MEMBER_REGISTER' },
+        { id: 'wa-member-reminder', label: 'Outstanding Reminder', path: 'modules/communication/whatsapp-member/whatsapp-member.html?sub=OUTSTANDING_REMINDER' },
+        { id: 'wa-member-msg', label: 'Message', path: 'modules/communication/whatsapp-member/whatsapp-member.html?sub=MESSAGE' },
+        { id: 'wa-member-bal-conf', label: 'Balance Confirmation Letter', path: 'modules/communication/whatsapp-member/whatsapp-member.html?sub=BALANCE_CONFIRMATION' },
+        { id: 'wa-member-msg-pdf', label: 'Message with PDF', path: 'modules/communication/whatsapp-member/whatsapp-member.html?sub=MESSAGE_WITH_PDF' }
+      ]
+    },
+    {
+      id: 'whatsapp-to-committee-group',
+      label: 'WhatsApp to Committee',
+      category: 'communication',
+      isGroup: true,
+      children: [
+        { id: 'wa-comm-inc-exp', label: 'Income & Expenditure', path: 'modules/communication/whatsapp-committee/whatsapp-committee.html?rep=INCOME_EXPENDITURE' },
+        { id: 'wa-comm-bal-sheet', label: 'Balance Sheet', path: 'modules/communication/whatsapp-committee/whatsapp-committee.html?rep=BALANCE_SHEET' },
+        { id: 'wa-comm-trial-bal', label: 'Trial Balance', path: 'modules/communication/whatsapp-committee/whatsapp-committee.html?rep=TRIAL_BALANCE' },
+        { id: 'wa-comm-cash-bank', label: 'Cash / Bank Book', path: 'modules/communication/whatsapp-committee/whatsapp-committee.html?rep=CASH_BANK_BOOK' },
+        { id: 'wa-comm-ledger-code', label: 'Account Ledger (Code Wise)', path: 'modules/communication/whatsapp-committee/whatsapp-committee.html?rep=LEDGER_CODE_WISE' },
+        { id: 'wa-comm-ledger-group', label: 'Account Ledger (Group Wise)', path: 'modules/communication/whatsapp-committee/whatsapp-committee.html?rep=LEDGER_GROUP_WISE' },
+        { id: 'wa-comm-rp-group', label: 'Receipt & Payment - Groupwise', path: 'modules/communication/whatsapp-committee/whatsapp-committee.html?rep=RECEIPT_PAYMENT_GROUP' },
+        { id: 'wa-comm-rp-acc', label: 'Receipt & Payment - Accountwise', path: 'modules/communication/whatsapp-committee/whatsapp-committee.html?rep=RECEIPT_PAYMENT_ACCOUNT' },
+        { id: 'wa-comm-schedule', label: 'Schedule', path: 'modules/communication/whatsapp-committee/whatsapp-committee.html?rep=SCHEDULE' },
+        { id: 'wa-comm-monthly-rep', label: 'Monthly Report', path: 'modules/communication/whatsapp-committee/whatsapp-committee.html?rep=MONTHLY_REPORT' },
+        { id: 'wa-comm-rec-reg', label: 'Receipt Register', path: 'modules/communication/whatsapp-committee/whatsapp-committee.html?rep=RECEIPT_REGISTER' },
+        { id: 'wa-comm-pay-reg', label: 'Payment Register', path: 'modules/communication/whatsapp-committee/whatsapp-committee.html?rep=PAYMENT_REGISTER' },
+        { id: 'wa-comm-contra-reg', label: 'Contra Register', path: 'modules/communication/whatsapp-committee/whatsapp-committee.html?rep=CONTRA_REGISTER' },
+        { id: 'wa-comm-jrnl-reg', label: 'Journal Register', path: 'modules/communication/whatsapp-committee/whatsapp-committee.html?rep=JOURNAL_REGISTER' }
+      ]
+    },
+    { id: 'whatsapp-setting', label: 'WhatsApp Setting', category: 'communication', path: 'modules/communication/whatsapp-settings/whatsapp-settings.html' },
+    { id: 'whatsapp-api-control', label: 'WhatsApp API Delivery Dashboard', category: 'communication', path: 'modules/communication/whatsapp-api-control/whatsapp-api-control.html' },
+    { id: 'committee-master-comm', label: 'Committee Master', category: 'communication', path: 'modules/master/committee-master/committee-master.html' },
 
     // BILLING UTILITY
     { id: 'bill-master', label: 'Bill Schedule Master', category: 'billing-utility', path: 'modules/billing-utilities/bill-master/bill-master.html' },

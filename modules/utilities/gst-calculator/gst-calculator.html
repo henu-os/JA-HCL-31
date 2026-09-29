@@ -3,51 +3,134 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GST Rate & Amount Calculator — JEEVIKA ERP</title>
+  <title>GST Calculate — JEEVIKA ERP</title>
   <script src="../../../config.js"></script>
+  <script src="../../../assets/js/utils.js"></script>
   <link rel="stylesheet" href="../../../assets/css/global.css">
   <link rel="stylesheet" href="../../../assets/css/components.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="gst-calculator.css">
 </head>
 <body class="erp-module">
-  <div class="erp-module-header">
+
+  <!-- ── Top Module Bar ───────────────────────────────────────── -->
+  <div class="module-top-bar">
     <div>
-      <div class="erp-module-title">GST Rate & Amount Calculator</div>
-      
+      <div class="module-title">
+        <i class="bi bi-percent"></i> GST (Goods &amp; Services Tax) Calculator
+      </div>
+      <div class="module-subtitle">
+        <i class="bi bi-receipt text-primary"></i> Compute Intrastate (CGST + SGST) and Interstate (IGST) tax breakdowns with forward and reverse calculations
+      </div>
     </div>
-    <button class="erp-btn erp-btn-primary" onclick="refreshData()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
-  </div>
-
-  <div class="erp-search-bar">
-    <input type="text" id="searchInput" class="erp-input erp-search-input" placeholder="🔍 Search..." onkeyup="filterTable()">
-    <div class="erp-record-count" id="recordCount">Total: 0</div>
-  </div>
-
-  <div class="erp-module-body" style="padding:0;">
-    <div class="erp-table-container" style="height:100%;border:none;">
-      <table class="erp-table striped" id="mainTable">
-        <thead>
-          <tr>
-            <th style="width:40px;" class="td-center">#</th>
-            <th>Particulars / Description</th>
-            <th style="width:120px;" class="td-center">Reference</th>
-            <th style="width:120px;" class="td-center">Status</th>
-          </tr>
-        </thead>
-        <tbody id="mainTableBody">
-          <tr>
-            <td colspan="4" class="text-center text-muted" style="padding:30px;">
-              Module initialized. Live data will be loaded here.
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <div class="top-actions">
+      <button type="button" class="btn-top" onclick="resetGSTCalculator()">
+        <i class="bi bi-arrow-counterclockwise"></i> Reset
+      </button>
+      <button type="button" class="btn-top" onclick="copyGSTSummary()">
+        <i class="bi bi-clipboard"></i> Copy Breakdown
+      </button>
     </div>
   </div>
 
-  <script src="../../../assets/js/api.js"></script>
-  <script src="../../../assets/js/auth.js"></script>
-  <script src="../../../assets/js/utils.js"></script>
+  <!-- ── Summary Stats Ribbon ─────────────────────────────────── -->
+  <div class="summary-strip">
+    <div class="summary-stats">
+      <div class="stat-item">
+        <span>Taxable Amount:</span> <span id="metricTaxable" class="stat-val-highlight">₹10,000.00</span>
+      </div>
+      <div class="stat-item">
+        <span>Total Tax Amount:</span> <span id="metricTax" class="stat-val-highlight">₹1,800.00</span>
+      </div>
+      <div class="stat-item">
+        <span>Gross Invoice Total:</span> <span id="metricGross" class="stat-val-total">₹11,800.00</span>
+      </div>
+    </div>
+    <div class="summary-count">
+      Mode: <strong>Intrastate (CGST 9% + SGST 9%)</strong>
+    </div>
+  </div>
+
+  <!-- ── Main Content Area ─────────────────────────────────────── -->
+  <div class="module-content">
+    <!-- Input Form Card -->
+    <div class="gst-form-card">
+      <div class="gst-form-title">Tax Computation Parameters</div>
+
+      <div class="form-group">
+        <label class="form-label" for="calcMode">Calculation Type</label>
+        <select id="calcMode" class="form-select" onchange="calculateGST()">
+          <option value="FORWARD">Forward (Taxable Amount + GST = Total)</option>
+          <option value="REVERSE">Reverse (Inclusive Total - GST = Taxable)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="amountInput" id="amountLabel">Taxable Base Amount (₹) *</label>
+        <input type="number" id="amountInput" class="form-input" value="10000" step="0.01" min="0" oninput="calculateGST()">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Standard GST Rate Slabs</label>
+        <div class="rate-pills">
+          <div class="rate-pill" onclick="selectRate(0, this)">0%</div>
+          <div class="rate-pill" onclick="selectRate(5, this)">5%</div>
+          <div class="rate-pill" onclick="selectRate(12, this)">12%</div>
+          <div class="rate-pill active" onclick="selectRate(18, this)">18%</div>
+          <div class="rate-pill" onclick="selectRate(28, this)">28%</div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="customRateInput">Or Custom GST Rate (%)</label>
+        <input type="number" id="customRateInput" class="form-input" value="18" step="0.1" min="0" max="100" oninput="onCustomRateInput()">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="supplyType">Supply Category</label>
+        <select id="supplyType" class="form-select" onchange="calculateGST()">
+          <option value="INTRA">Intrastate (Within State: CGST + SGST)</option>
+          <option value="INTER">Interstate (Outside State: IGST)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Breakdown Result Card -->
+    <div class="gst-result-card">
+      <div class="gst-form-title">Detailed Tax Breakdown &amp; Invoice Preview</div>
+
+      <div class="breakdown-row">
+        <span>Base Taxable Value:</span>
+        <span class="breakdown-val" id="resTaxable">₹10,000.00</span>
+      </div>
+
+      <div class="breakdown-row" id="rowCGST">
+        <span>Central GST (CGST @ <span id="lblCgstRate">9.0%</span>):</span>
+        <span class="breakdown-val" id="resCGST">₹900.00</span>
+      </div>
+
+      <div class="breakdown-row" id="rowSGST">
+        <span>State GST (SGST @ <span id="lblSgstRate">9.0%</span>):</span>
+        <span class="breakdown-val" id="resSGST">₹900.00</span>
+      </div>
+
+      <div class="breakdown-row" id="rowIGST" style="display:none;">
+        <span>Integrated GST (IGST @ <span id="lblIgstRate">18.0%</span>):</span>
+        <span class="breakdown-val" id="resIGST">₹1,800.00</span>
+      </div>
+
+      <div class="breakdown-row highlight">
+        <span>Total GST Amount:</span>
+        <span class="breakdown-val" id="resTotalTax">₹1,800.00</span>
+      </div>
+
+      <div class="breakdown-row highlight" style="background: #eff6ff; padding: 12px 8px; border-radius: 4px; border: 1px solid #bfdbfe;">
+        <span>Gross Total (Invoice Amount):</span>
+        <span class="breakdown-val" style="color: var(--success); font-size: 16px;" id="resGrossTotal">₹11,800.00</span>
+      </div>
+    </div>
+  </div>
+
   <script src="gst-calculator.js"></script>
 </body>
 </html>

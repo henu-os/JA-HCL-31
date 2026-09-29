@@ -96,6 +96,11 @@ function amGetActiveSocietyId() {
   return id ? parseInt(id, 10) : 0;
 }
 
+function amGetActiveFYId() {
+  const id = (window.Auth && Auth.getFYId) ? Auth.getFYId() : (sessionStorage.getItem('activeFYId') || localStorage.getItem('activeFYId'));
+  return id ? parseInt(id, 10) : 0;
+}
+
 // ── Load Groups for Selection ──────────────────────────────
 async function amLoadGroups() {
   try {
@@ -121,7 +126,10 @@ async function amLoadList() {
 
   try {
     const socId = amGetActiveSocietyId();
-    const url = socId > 0 ? `${amApiBase()}/api/accounts?societyId=${socId}` : `${amApiBase()}/api/accounts`;
+    const fyId  = amGetActiveFYId();
+    const url = socId > 0 
+      ? `${amApiBase()}/api/accounts?societyId=${socId}${fyId > 0 ? `&fyId=${fyId}` : ''}` 
+      : `${amApiBase()}/api/accounts`;
     const res  = await fetch(url, { headers: getAuthHeaders() });
     const json = await res.json();
 
@@ -597,7 +605,8 @@ async function amSave() {
     PrBal: isIncomeOrExp ? (parseFloat(val('am-prbal')) || 0) : 0,
     PrDrCr: isIncomeOrExp ? (val('am-prdrcr') || 'Dr') : 'Dr',
     DepAnnual: parseFloat(val('am-dep-annual')) || 0,
-    DepHalf: parseFloat(val('am-dep-half')) || 0
+    DepHalf: parseFloat(val('am-dep-half')) || 0,
+    FYId: amGetActiveFYId()
   };
 
   const url    = id ? `${amApiBase()}/api/accounts/${id}` : `${amApiBase()}/api/accounts`;

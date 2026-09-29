@@ -408,11 +408,11 @@
 
           <div class="summary-popover-grid">
             <div class="pop-card">
-              <span class="pop-lbl">Opening Dues (Dr)</span>
+              <span class="pop-lbl">Opening Debit</span>
               <span class="pop-val debit" id="kpiOpeningDues">₹0.00</span>
             </div>
             <div class="pop-card">
-              <span class="pop-lbl">Opening Adv (Cr)</span>
+              <span class="pop-lbl">Opening Credit</span>
               <span class="pop-val credit" id="kpiOpeningAdvance">₹0.00</span>
             </div>
             <div class="pop-card">
@@ -424,11 +424,11 @@
               <span class="pop-val credit" id="kpiReceived">₹0.00</span>
             </div>
             <div class="pop-card">
-              <span class="pop-lbl">Net Closing Dues</span>
+              <span class="pop-lbl">Net Closing Debit</span>
               <span class="pop-val debit" id="kpiClosingDues">₹0.00</span>
             </div>
             <div class="pop-card">
-              <span class="pop-lbl">Net Closing Adv</span>
+              <span class="pop-lbl">Net Closing Credit</span>
               <span class="pop-val credit" id="kpiClosingAdvance">₹0.00</span>
             </div>
           </div>
@@ -442,22 +442,21 @@
     <table class="ledger-grid" id="mainTable">
       <thead>
         <tr>
-          <th style="width:40px; text-align:center;">#</th>
           <th style="width:90px; text-align:center;">Flat No</th>
           <th style="width:70px; text-align:center;">Wing</th>
           <th>Member Name</th>
-          <th style="width:125px; text-align:right;">Opening Dues (DR)</th>
-          <th style="width:125px; text-align:right;">Opening Adv (CR)</th>
+          <th style="width:125px; text-align:right;">Opening Debit</th>
+          <th style="width:125px; text-align:right;">Opening Credit</th>
           <th style="width:130px; text-align:right;">Transaction Debit</th>
           <th style="width:130px; text-align:right;">Transaction Credit</th>
-          <th style="width:130px; text-align:right;">Closing Dues (DR)</th>
-          <th style="width:130px; text-align:right;">Closing Adv (CR)</th>
+          <th style="width:130px; text-align:right;">Closing Debit</th>
+          <th style="width:130px; text-align:right;">Closing Credit</th>
           <th style="width:95px; text-align:center;">Status</th>
         </tr>
       </thead>
       <tbody id="mainTableBody">
         <tr>
-          <td colspan="11" style="text-align:center; padding:50px; color:#64748b;">
+          <td colspan="10" style="text-align:center; padding:50px; color:#64748b;">
             <i class="bi bi-hourglass-split" style="font-size:24px; color:var(--primary); display:block; margin-bottom:8px;"></i>
             Loading Dues/Advance Ledger records...
           </td>
@@ -465,7 +464,7 @@
       </tbody>
       <tfoot>
         <tr>
-          <td colspan="4" style="text-align:right;">Grand Total:</td>
+          <td colspan="3" style="text-align:right;">Grand Total:</td>
           <td class="td-num val-debit" id="ftOpeningDues">0.00</td>
           <td class="td-num val-credit" id="ftOpeningAdv">0.00</td>
           <td class="td-num val-debit" id="ftDebit">0.00</td>

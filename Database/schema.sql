@@ -651,6 +651,99 @@ CREATE TABLE IF NOT EXISTS jeevika_erp.AuditLog (
     CreatedAt   TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 31. Communication Runtime Configurations (Email SMTP & WhatsApp Meta Cloud API)
+CREATE TABLE IF NOT EXISTS jeevika_erp.communication_configurations (
+    id                     SERIAL PRIMARY KEY,
+    society_id             INT NOT NULL REFERENCES jeevika_erp.SocietyInfo(SocietyId) ON DELETE CASCADE,
+    channel                VARCHAR(20) NOT NULL, -- EMAIL or WHATSAPP
+    provider_type          VARCHAR(50) DEFAULT 'SMTP',
+    smtp_host              VARCHAR(255),
+    smtp_port              INT DEFAULT 587,
+    smtp_secure            VARCHAR(20) DEFAULT 'STARTTLS',
+    smtp_username          VARCHAR(255),
+    smtp_password_encrypted TEXT,
+    from_email             VARCHAR(255),
+    from_name              VARCHAR(255),
+    reply_to               VARCHAR(255),
+    waba_id                VARCHAR(100),
+    phone_number_id        VARCHAR(100),
+    access_token_encrypted TEXT,
+    app_secret_encrypted   TEXT,
+    app_id                 VARCHAR(100),
+    graph_api_version      VARCHAR(20) DEFAULT 'v21.0',
+    webhook_verify_token   VARCHAR(255) DEFAULT 'HENUOS2025',
+    webhook_url            VARCHAR(500),
+    default_language       VARCHAR(20) DEFAULT 'en_US',
+    default_namespace      VARCHAR(100),
+    daily_limit            INT DEFAULT 1000,
+    rate_limit             INT DEFAULT 30,
+    is_active              BOOLEAN DEFAULT TRUE,
+    created_at             TIMESTAMPTZ DEFAULT NOW(),
+    updated_at             TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(society_id, channel)
+);
+
+-- 32. Communication Message Templates
+CREATE TABLE IF NOT EXISTS jeevika_erp.communication_templates (
+    id               SERIAL PRIMARY KEY,
+    society_id       INT NOT NULL REFERENCES jeevika_erp.SocietyInfo(SocietyId) ON DELETE CASCADE,
+    channel          VARCHAR(20) NOT NULL,
+    template_type    VARCHAR(50) NOT NULL,
+    template_name    VARCHAR(100) NOT NULL,
+    subject_template TEXT,
+    body_template    TEXT NOT NULL,
+    language_code    VARCHAR(10) DEFAULT 'en',
+    meta_template_id VARCHAR(100),
+    is_active        BOOLEAN DEFAULT TRUE,
+    created_at       TIMESTAMPTZ DEFAULT NOW(),
+    updated_at       TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(society_id, channel, template_type)
+);
+
+-- 33. Communication Outbox Queue
+CREATE TABLE IF NOT EXISTS jeevika_erp.communication_outbox (
+    id                  SERIAL PRIMARY KEY,
+    society_id          INT NOT NULL REFERENCES jeevika_erp.SocietyInfo(SocietyId) ON DELETE CASCADE,
+    financial_year_id   INT REFERENCES jeevika_erp.FinancialYear(FYId),
+    channel             VARCHAR(20) NOT NULL,
+    recipient_type      VARCHAR(20) DEFAULT 'MEMBER',
+    recipient_id        INT,
+    recipient_name      VARCHAR(255),
+    recipient_address   VARCHAR(255) NOT NULL,
+    subject             VARCHAR(500),
+    message_body        TEXT NOT NULL,
+    attachment_name     VARCHAR(255),
+    attachment_path     TEXT,
+    communication_type  VARCHAR(50) DEFAULT 'GENERAL',
+    status              VARCHAR(20) DEFAULT 'QUEUED',
+    attempt_count       INT DEFAULT 0,
+    provider_message_id VARCHAR(255),
+    last_error          TEXT,
+    scheduled_at        TIMESTAMPTZ DEFAULT NOW(),
+    sent_at             TIMESTAMPTZ,
+    failed_at           TIMESTAMPTZ,
+    created_at          TIMESTAMPTZ DEFAULT NOW(),
+    updated_at          TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 34. Communication History & Delivery Audit Logs
+CREATE TABLE IF NOT EXISTS jeevika_erp.communication_logs (
+    id                  SERIAL PRIMARY KEY,
+    outbox_id           INT REFERENCES jeevika_erp.communication_outbox(id) ON DELETE SET NULL,
+    society_id          INT NOT NULL REFERENCES jeevika_erp.SocietyInfo(SocietyId) ON DELETE CASCADE,
+    channel             VARCHAR(20) NOT NULL,
+    recipient           VARCHAR(255) NOT NULL,
+    communication_type  VARCHAR(50) DEFAULT 'GENERAL',
+    provider            VARCHAR(50),
+    provider_message_id VARCHAR(255),
+    status              VARCHAR(20) NOT NULL,
+    response_code       VARCHAR(50),
+    error_message       TEXT,
+    attempt_count       INT DEFAULT 1,
+    is_test             BOOLEAN DEFAULT FALSE,
+    created_at          TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- ──────────────────────────────────────────────────────────
 -- INDEXES (Performance)
 -- ──────────────────────────────────────────────────────────
@@ -669,6 +762,10 @@ CREATE INDEX IF NOT EXISTS idx_bill_society_fy      ON jeevika_erp.SocMemberBill
 CREATE INDEX IF NOT EXISTS idx_bill_member          ON jeevika_erp.SocMemberBill(MemberId);
 CREATE INDEX IF NOT EXISTS idx_audit_society        ON jeevika_erp.AuditLog(SocietyId);
 CREATE INDEX IF NOT EXISTS idx_audit_user           ON jeevika_erp.AuditLog(UserId);
+CREATE INDEX IF NOT EXISTS idx_comm_cfg_society     ON jeevika_erp.communication_configurations(society_id, channel);
+CREATE INDEX IF NOT EXISTS idx_comm_outbox_status   ON jeevika_erp.communication_outbox(society_id, status);
+CREATE INDEX IF NOT EXISTS idx_comm_logs_society    ON jeevika_erp.communication_logs(society_id, channel);
+CREATE INDEX IF NOT EXISTS idx_comm_logs_outbox     ON jeevika_erp.communication_logs(outbox_id);
 
 -- ──────────────────────────────────────────────────────────
 -- SCHEMA COMPLETE

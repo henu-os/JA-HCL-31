@@ -3,51 +3,108 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Financial Calculator Utility — JEEVIKA ERP</title>
+  <title>Calculator — JEEVIKA ERP</title>
   <script src="../../../config.js"></script>
+  <script src="../../../assets/js/utils.js"></script>
   <link rel="stylesheet" href="../../../assets/css/global.css">
   <link rel="stylesheet" href="../../../assets/css/components.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="calculator.css">
 </head>
 <body class="erp-module">
-  <div class="erp-module-header">
+
+  <!-- ── Top Module Bar ───────────────────────────────────────── -->
+  <div class="module-top-bar">
     <div>
-      <div class="erp-module-title">Financial Calculator Utility</div>
-      
+      <div class="module-title">
+        <i class="bi bi-calculator"></i> Accounting Financial Calculator
+      </div>
+      <div class="module-subtitle">
+        <i class="bi bi-shield-check text-success"></i> Safe client-side decimal arithmetic evaluator with memory functions and audit paper tape
+      </div>
     </div>
-    <button class="erp-btn erp-btn-primary" onclick="refreshData()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
-  </div>
-
-  <div class="erp-search-bar">
-    <input type="text" id="searchInput" class="erp-input erp-search-input" placeholder="🔍 Search..." onkeyup="filterTable()">
-    <div class="erp-record-count" id="recordCount">Total: 0</div>
-  </div>
-
-  <div class="erp-module-body" style="padding:0;">
-    <div class="erp-table-container" style="height:100%;border:none;">
-      <table class="erp-table striped" id="mainTable">
-        <thead>
-          <tr>
-            <th style="width:40px;" class="td-center">#</th>
-            <th>Particulars / Description</th>
-            <th style="width:120px;" class="td-center">Reference</th>
-            <th style="width:120px;" class="td-center">Status</th>
-          </tr>
-        </thead>
-        <tbody id="mainTableBody">
-          <tr>
-            <td colspan="4" class="text-center text-muted" style="padding:30px;">
-              Module initialized. Live data will be loaded here.
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <div class="top-actions">
+      <button type="button" class="btn-top" onclick="copyCalculatorResult()">
+        <i class="bi bi-clipboard"></i> Copy Result
+      </button>
+      <button type="button" class="btn-top" onclick="clearCalculatorTape()">
+        <i class="bi bi-trash"></i> Clear Tape
+      </button>
     </div>
   </div>
 
-  <script src="../../../assets/js/api.js"></script>
-  <script src="../../../assets/js/auth.js"></script>
-  <script src="../../../assets/js/utils.js"></script>
+  <!-- ── Summary Stats Ribbon ─────────────────────────────────── -->
+  <div class="summary-strip">
+    <div class="summary-stats">
+      <div class="stat-item">
+        <span>Memory Register:</span> <span id="metricMemory" class="stat-val-highlight">0</span>
+      </div>
+      <div class="stat-item">
+        <span>Tape History Count:</span> <span id="metricTapeCount" class="stat-val-highlight">0</span>
+      </div>
+    </div>
+    <div class="summary-count">
+      Keyboard Shortcut: <strong>Alt + C</strong>
+    </div>
+  </div>
+
+  <!-- ── Main Content Area ─────────────────────────────────────── -->
+  <div class="module-content">
+    <!-- Calculator Card -->
+    <div class="calc-card">
+      <div class="calc-screen">
+        <div class="calc-prev-expr" id="calcHistory">&nbsp;</div>
+        <div class="calc-display" id="calcDisplay">0</div>
+      </div>
+
+      <!-- Memory Keys -->
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 10px 12px 0 12px;">
+        <button type="button" class="calc-btn mem" onclick="handleCalcMem('MC')">MC</button>
+        <button type="button" class="calc-btn mem" onclick="handleCalcMem('MR')">MR</button>
+        <button type="button" class="calc-btn mem" onclick="handleCalcMem('M+')">M+</button>
+        <button type="button" class="calc-btn mem" onclick="handleCalcMem('M-')">M-</button>
+      </div>
+
+      <!-- Main Keypad -->
+      <div class="calc-keypad">
+        <button type="button" class="calc-btn action" onclick="handleCalcInput('AC')">AC</button>
+        <button type="button" class="calc-btn action" onclick="handleCalcInput('BACK')"><i class="bi bi-backspace"></i></button>
+        <button type="button" class="calc-btn op" onclick="handleCalcInput('%')">%</button>
+        <button type="button" class="calc-btn op" onclick="handleCalcInput('/')">÷</button>
+
+        <button type="button" class="calc-btn" onclick="handleCalcInput('7')">7</button>
+        <button type="button" class="calc-btn" onclick="handleCalcInput('8')">8</button>
+        <button type="button" class="calc-btn" onclick="handleCalcInput('9')">9</button>
+        <button type="button" class="calc-btn op" onclick="handleCalcInput('*')">×</button>
+
+        <button type="button" class="calc-btn" onclick="handleCalcInput('4')">4</button>
+        <button type="button" class="calc-btn" onclick="handleCalcInput('5')">5</button>
+        <button type="button" class="calc-btn" onclick="handleCalcInput('6')">6</button>
+        <button type="button" class="calc-btn op" onclick="handleCalcInput('-')">−</button>
+
+        <button type="button" class="calc-btn" onclick="handleCalcInput('1')">1</button>
+        <button type="button" class="calc-btn" onclick="handleCalcInput('2')">2</button>
+        <button type="button" class="calc-btn" onclick="handleCalcInput('3')">3</button>
+        <button type="button" class="calc-btn op" onclick="handleCalcInput('+')">+</button>
+
+        <button type="button" class="calc-btn" onclick="handleCalcInput('0')">0</button>
+        <button type="button" class="calc-btn" onclick="handleCalcInput('00')">00</button>
+        <button type="button" class="calc-btn" onclick="handleCalcInput('.')">.</button>
+        <button type="button" class="calc-btn equal" onclick="handleCalcInput('=')">=</button>
+      </div>
+    </div>
+
+    <!-- Paper Tape History Card -->
+    <div class="tape-card">
+      <div class="tape-header">
+        <span><i class="bi bi-journal-text"></i> Audit Paper Tape</span>
+      </div>
+      <div class="tape-body" id="calcTape">
+        <div class="empty-state" style="padding: 20px;">No calculations yet. Perform operations to record tape history.</div>
+      </div>
+    </div>
+  </div>
+
   <script src="calculator.js"></script>
 </body>
 </html>

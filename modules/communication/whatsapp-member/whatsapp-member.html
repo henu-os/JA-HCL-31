@@ -3,51 +3,221 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Send WhatsApp Bills & Notices to Members — JEEVIKA ERP</title>
+  <title>WhatsApp to Member — HENU ERP</title>
   <script src="../../../config.js"></script>
-  <link rel="stylesheet" href="../../../assets/css/global.css">
-  <link rel="stylesheet" href="../../../assets/css/components.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-</head>
-<body class="erp-module">
-  <div class="erp-module-header">
-    <div>
-      <div class="erp-module-title">Send WhatsApp Bills & Notices to Members</div>
-      
-    </div>
-    <button class="erp-btn erp-btn-primary" onclick="refreshData()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
-  </div>
-
-  <div class="erp-search-bar">
-    <input type="text" id="searchInput" class="erp-input erp-search-input" placeholder="🔍 Search..." onkeyup="filterTable()">
-    <div class="erp-record-count" id="recordCount">Total: 0</div>
-  </div>
-
-  <div class="erp-module-body" style="padding:0;">
-    <div class="erp-table-container" style="height:100%;border:none;">
-      <table class="erp-table striped" id="mainTable">
-        <thead>
-          <tr>
-            <th style="width:40px;" class="td-center">#</th>
-            <th>Particulars / Description</th>
-            <th style="width:120px;" class="td-center">Reference</th>
-            <th style="width:120px;" class="td-center">Status</th>
-          </tr>
-        </thead>
-        <tbody id="mainTableBody">
-          <tr>
-            <td colspan="4" class="text-center text-muted" style="padding:30px;">
-              Module initialized. Live data will be loaded here.
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
   <script src="../../../assets/js/api.js"></script>
   <script src="../../../assets/js/auth.js"></script>
   <script src="../../../assets/js/utils.js"></script>
+  <link rel="stylesheet" href="../../../assets/vendor/bootstrap-icons/bootstrap-icons.css">
+  <link rel="stylesheet" href="whatsapp-member.css">
+</head>
+<body class="erp-module">
+
+  <!-- Top Action Header -->
+  <header class="module-top-bar">
+    <div class="module-title">
+      <i class="bi bi-whatsapp" style="color: #25D366;"></i>
+      <span>Communication ➔ WhatsApp to Member (Meta Cloud API)</span>
+    </div>
+    <div class="top-actions">
+      <button class="btn-top" id="btnRefreshMembers" title="Reload Member Directory">
+        <i class="bi bi-arrow-clockwise"></i> Refresh List
+      </button>
+      <button class="btn-top btn-top-primary" id="btnPreviewWhatsApp">
+        <i class="bi bi-eye"></i> Preview Message
+      </button>
+      <button class="btn-top btn-top-whatsapp" id="btnQueueWhatsApp">
+        <i class="bi bi-whatsapp"></i> Dispatch WhatsApp (<span id="countSelectedTop">0</span>)
+      </button>
+    </div>
+  </header>
+
+  <!-- 8 Subfeature Navigation Tabs -->
+  <nav class="subfeature-tabs" id="subfeatureTabs">
+    <button class="sub-tab active" data-feature="BILL_FORMAT">
+      <i class="bi bi-receipt"></i> Bill Format
+    </button>
+    <button class="sub-tab" data-feature="RECEIPT">
+      <i class="bi bi-cash-stack"></i> Receipt
+    </button>
+    <button class="sub-tab" data-feature="MEMBER_ACCOUNT">
+      <i class="bi bi-file-earmark-spreadsheet"></i> Member Account
+    </button>
+    <button class="sub-tab" data-feature="MEMBER_REGISTER">
+      <i class="bi bi-journal-text"></i> Member Register
+    </button>
+    <button class="sub-tab" data-feature="OUTSTANDING_REMINDER">
+      <i class="bi bi-exclamation-triangle"></i> Outstanding Reminder
+    </button>
+    <button class="sub-tab" data-feature="MESSAGE">
+      <i class="bi bi-chat-dots-fill"></i> Message
+    </button>
+    <button class="sub-tab" data-feature="BALANCE_CONFIRMATION">
+      <i class="bi bi-shield-check"></i> Balance Confirmation Letter
+    </button>
+    <button class="sub-tab" data-feature="MESSAGE_WITH_PDF">
+      <i class="bi bi-paperclip"></i> Message with PDF
+    </button>
+  </nav>
+
+  <!-- Filter & Period Configuration Strip -->
+  <div class="filter-strip">
+    <div class="filter-group">
+      <label class="filter-label">Wing / Block:</label>
+      <select class="filter-select" id="filterWing">
+        <option value="">-- All Wings --</option>
+      </select>
+    </div>
+
+    <div class="filter-group" id="groupBillMonth">
+      <label class="filter-label">Bill / Period Month:</label>
+      <input type="month" class="filter-input" id="inputMonth" value="2026-09">
+    </div>
+
+    <div class="filter-group" id="groupDateRange" style="display: none;">
+      <label class="filter-label">From Date:</label>
+      <input type="date" class="filter-input" id="fromDate" value="2026-04-01">
+      <label class="filter-label">To Date:</label>
+      <input type="date" class="filter-input" id="toDate" value="2027-03-31">
+    </div>
+
+    <div class="filter-group">
+      <label class="filter-label">Mobile Status:</label>
+      <select class="filter-select" id="filterStatus">
+        <option value="ALL">All Members</option>
+        <option value="VALID_MOBILE" selected>Only with Valid Mobile</option>
+        <option value="MISSING_MOBILE">Only Missing Mobile</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label class="filter-label">Search:</label>
+      <input type="text" class="filter-input" id="searchMember" placeholder="Name or Flat...">
+    </div>
+  </div>
+
+  <!-- Summary Counters Strip -->
+  <div class="summary-strip">
+    <div class="summary-stats">
+      <span>Total Members: <strong class="badge-stat badge-total" id="statTotal">0</strong></span>
+      <span>Selected: <strong class="badge-stat badge-valid" id="statSelected">0</strong></span>
+      <span>Valid Mobile: <strong class="badge-stat badge-valid" id="statValid">0</strong></span>
+      <span>Missing/Invalid: <strong class="badge-stat badge-missing" id="statMissing">0</strong></span>
+    </div>
+    <div style="font-size: 11px; color: var(--text-muted);">
+      <i class="bi bi-shield-check"></i> Standardized E.164 phone normalization (+91 for India)
+    </div>
+  </div>
+
+  <!-- Main View Split -->
+  <main class="module-content">
+    
+    <!-- Left: Member Selection Table -->
+    <section class="recipients-pane">
+      <div class="table-container">
+        <table class="erp-table">
+          <thead>
+            <tr>
+              <th style="width: 36px; text-align: center;">
+                <input type="checkbox" id="selectAllCheckbox">
+              </th>
+              <th>Flat</th>
+              <th>Member Code</th>
+              <th>Member Name</th>
+              <th>Mobile Number</th>
+              <th style="text-align: right;">Outstanding (₹)</th>
+              <th style="text-align: center;">Mobile Status</th>
+            </tr>
+          </thead>
+          <tbody id="memberTableBody">
+            <tr>
+              <td colspan="7" style="text-align: center; padding: 24px; color: var(--text-muted);">
+                <i class="bi bi-hourglass-split"></i> Loading member records...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Right: Template & Parameters -->
+    <aside class="template-pane">
+      
+      <div class="template-card">
+        <div class="template-title">
+          <i class="bi bi-whatsapp"></i> WhatsApp Message Template
+        </div>
+
+        <div class="form-group">
+          <label class="form-label"><i class="bi bi-layout-text-window-reverse text-primary"></i> Select Message Template:</label>
+          <select class="form-select" id="templateSelect" style="width: 100%; padding: 8px 10px; font-size: 12.5px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff;">
+            <option value="">-- Standard / Default Report Message --</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">WhatsApp Template / Message Body:</label>
+          <textarea class="form-textarea" id="whatsappBody" rows="6"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Placeholders (Click to Insert):</label>
+          <div class="variable-tags">
+            <span class="var-tag" data-var="{{member_name}}">{{member_name}}</span>
+            <span class="var-tag" data-var="{{flat_no}}">{{flat_no}}</span>
+            <span class="var-tag" data-var="{{society_name}}">{{society_name}}</span>
+            <span class="var-tag" data-var="{{bill_no}}">{{bill_no}}</span>
+            <span class="var-tag" data-var="{{bill_amount}}">{{bill_amount}}</span>
+            <span class="var-tag" data-var="{{outstanding_amount}}">{{outstanding_amount}}</span>
+            <span class="var-tag" data-var="{{due_date}}">{{due_date}}</span>
+            <span class="var-tag" data-var="{{receipt_no}}">{{receipt_no}}</span>
+          </div>
+        </div>
+
+        <div class="form-group" id="attachmentGroup">
+          <label class="form-label">Media Document Parameter:</label>
+          <div class="attach-badge" id="attachmentBadge">
+            <i class="bi bi-file-earmark-pdf-fill text-danger"></i>
+            <span id="attachmentLabel">Maintenance Bill PDF</span>
+          </div>
+        </div>
+
+        <div class="form-group" id="customFileGroup" style="display: none;">
+          <label class="form-label">Custom Document Attachment:</label>
+          <input type="file" id="customFileInput" accept="application/pdf" class="form-input">
+        </div>
+      </div>
+
+    </aside>
+
+  </main>
+
+  <!-- Preview Modal -->
+  <div class="modal-overlay" id="previewModal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <span id="previewModalTitle"><i class="bi bi-whatsapp"></i> WhatsApp Preview</span>
+        <button style="background:none; border:none; color:white; font-size:18px; cursor:pointer;" id="btnClosePreview">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="margin-bottom: 8px;">
+          <strong>Recipient:</strong> <span id="previewRecipient" style="color: var(--primary); font-family: monospace;">-</span>
+        </div>
+        <div style="margin-bottom: 8px;">
+          <strong>Document:</strong> <span id="previewAttachment" class="attach-badge">-</span>
+        </div>
+        <div><strong>Rendered WhatsApp Bubble:</strong></div>
+        <div class="whatsapp-bubble" id="previewContent"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-top" id="btnDismissPreview">Close</button>
+        <button class="btn-top btn-top-whatsapp" id="btnConfirmQueue">
+          <i class="bi bi-whatsapp"></i> Confirm &amp; Queue WhatsApp (<span id="previewCount">0</span>)
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script src="whatsapp-member.js"></script>
 </body>
 </html>

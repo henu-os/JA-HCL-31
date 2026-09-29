@@ -1,0 +1,476 @@
+/* ═════════════════════════════════════════════════════════════════════
+   JEEVIKA ERP v2 — TDS REPORT & COMPLIANCE STYLING
+   ═════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --primary-color: #0D47A1;
+  --primary-hover: #0a3880;
+  --primary-light: #eff6ff;
+  --border-color: #cbd5e1;
+  --bg-page: #f8fafc;
+  --text-dark: #1e293b;
+  --text-muted: #64748b;
+  --success: #16a34a;
+  --danger: #dc2626;
+  --warning: #d97706;
+  --info: #0284c7;
+}
+
+body.erp-module {
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-page);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  color: var(--text-dark);
+  overflow: hidden;
+}
+
+/* ── Top Bar & Toolbar ────────────────────────────────────────────── */
+.tds-toolbar {
+  background: #ffffff;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+}
+
+.tds-filter-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tds-filter-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.tds-input, .tds-select {
+  height: 28px;
+  padding: 2px 8px;
+  font-size: 11px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: #ffffff;
+  color: var(--text-dark);
+  outline: none;
+}
+
+.tds-input:focus, .tds-select:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(13, 71, 161, 0.15);
+}
+
+.tds-btn {
+  height: 28px;
+  padding: 0 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid var(--border-color);
+  background: #ffffff;
+  color: var(--text-dark);
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s ease;
+}
+
+.tds-btn:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.tds-btn-primary {
+  background: var(--primary-color);
+  color: #ffffff;
+  border-color: var(--primary-color);
+}
+.tds-btn-primary:hover {
+  background: var(--primary-hover);
+  color: #ffffff;
+}
+
+.tds-btn-success {
+  background: var(--success);
+  color: #ffffff;
+  border-color: var(--success);
+}
+.tds-btn-success:hover {
+  background: #15803d;
+  color: #ffffff;
+}
+
+.tds-btn-detect {
+  background: #7c3aed;
+  color: #ffffff;
+  border-color: #7c3aed;
+}
+.tds-btn-detect:hover {
+  background: #6d28d9;
+  color: #ffffff;
+}
+
+/* ── Tab Navigation ───────────────────────────────────────────────── */
+.tds-tabs-bar {
+  background: #ffffff;
+  border-bottom: 1px solid var(--border-color);
+  padding: 0 16px;
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.tds-tab-btn {
+  padding: 8px 14px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #64748b;
+  border: none;
+  background: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s;
+}
+
+.tds-tab-btn:hover {
+  color: var(--primary-color);
+}
+
+.tds-tab-btn.active {
+  color: var(--primary-color);
+  border-bottom-color: var(--primary-color);
+  background: #f8fafc;
+}
+
+.tds-tab-btn .badge-cnt {
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 10px;
+}
+.tds-tab-btn.active .badge-cnt {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+/* ── Content & Scroll Area ────────────────────────────────────────── */
+.tds-scroll-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ── Statutory Header Card ────────────────────────────────────────── */
+.soc-header-card {
+  background: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+}
+
+.soc-info h2 {
+  margin: 0 0 4px 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.soc-meta {
+  font-size: 11px;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.soc-tax-badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.tax-badge {
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+}
+
+.report-badge-legal {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: right;
+}
+
+/* ── KPI Summary Cards ────────────────────────────────────────────── */
+.tds-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+  gap: 10px;
+}
+
+.kpi-card {
+  background: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 10px 12px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.kpi-card .kpi-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.kpi-card .kpi-val {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.kpi-card.kpi-deducted .kpi-val { color: var(--primary-color); }
+.kpi-card.kpi-deposited .kpi-val { color: var(--success); }
+.kpi-card.kpi-outstanding .kpi-val { color: var(--danger); }
+.kpi-card.kpi-interest .kpi-val { color: var(--warning); }
+
+/* ── Data Tables ──────────────────────────────────────────────────── */
+.tds-table-card {
+  background: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+}
+
+.tds-card-header {
+  padding: 10px 14px;
+  background: #f8fafc;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tds-card-header h3 {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.tds-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.tds-table th {
+  background: #f1f5f9;
+  color: #475569;
+  font-weight: 700;
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-color);
+  border-right: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.tds-table td {
+  padding: 7px 10px;
+  border-bottom: 1px solid #f1f5f9;
+  border-right: 1px solid #f8fafc;
+  color: #1e293b;
+}
+
+.tds-table tr:hover td {
+  background: #f8fafc;
+}
+
+.tds-table tr.total-row td {
+  background: #f8fafc;
+  font-weight: 700;
+  border-top: 2px solid var(--border-color);
+  border-bottom: 2px solid var(--border-color);
+  color: #0f172a;
+}
+
+.text-right { text-align: right; }
+.text-center { text-align: center; }
+
+.status-tag {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+}
+.status-confirmed { background: #dcfce7; color: #15803d; }
+.status-suggested { background: #fef9c3; color: #854d0e; }
+.status-deposited { background: #dbeafe; color: #1e40af; }
+.status-outstanding { background: #fee2e2; color: #b91c1c; }
+.status-available { background: #e0e7ff; color: #3730a3; }
+.status-matched { background: #dcfce7; color: #15803d; }
+
+/* ── Modal Overlay & Container ────────────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+.modal-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal-container {
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+  width: 95%;
+  max-width: 600px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-header {
+  padding: 12px 16px;
+  background: #f8fafc;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.modal-close-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: #64748b;
+}
+
+.modal-body {
+  padding: 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.form-group.full-width {
+  grid-column: span 2;
+}
+
+.form-group label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.modal-footer {
+  padding: 10px 16px;
+  background: #f8fafc;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* ── Print Styling ────────────────────────────────────────────────── */
+@media print {
+  .tds-toolbar, .tds-tabs-bar, .modal-overlay, .btn-no-print {
+    display: none !important;
+  }
+  body.erp-module, .tds-scroll-area {
+    overflow: visible !important;
+    height: auto !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+  .tds-table-card, .soc-header-card {
+    border: 1px solid #000 !important;
+    box-shadow: none !important;
+  }
+  .tds-table th, .tds-table td {
+    border-color: #999 !important;
+  }
+}

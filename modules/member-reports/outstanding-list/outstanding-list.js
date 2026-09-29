@@ -37,16 +37,30 @@ function setupFinancialYearDates() {
   _fyStartDate = `${startYear}-04-01`;
   _fyEndDate = `${endYear}-03-31`;
 
-  const fromEl = document.getElementById('fromDate');
   const toEl = document.getElementById('toDate');
-  if (fromEl && !fromEl.value) fromEl.value = _fyStartDate;
   if (toEl && !toEl.value) toEl.value = _fyEndDate;
 }
 
+function getDisplayBillTypeName(selectedType, fallbackRecords = []) {
+  if (!selectedType || selectedType.toUpperCase() !== 'ALL') {
+    return selectedType || '—';
+  }
+  const masterTypes = availableBillTypes.filter(bt => bt && bt.toUpperCase() !== 'ALL');
+  if (masterTypes.length > 0) {
+    return masterTypes.join(' & ');
+  }
+  if (Array.isArray(fallbackRecords) && fallbackRecords.length > 0) {
+    const fromRecords = [...new Set(fallbackRecords.map(r => (r.billType || r.BillType || '').trim()).filter(Boolean))];
+    if (fromRecords.length > 0) {
+      return fromRecords.join(' & ');
+    }
+  }
+  return 'All Bill Types';
+}
+
 window.applyDatePreset = function (preset) {
-  const fromEl = document.getElementById('fromDate');
   const toEl = document.getElementById('toDate');
-  if (!fromEl || !toEl) return;
+  if (!toEl) return;
 
   if (!_fyStartDate) setupFinancialYearDates();
   const fyStart = new Date(_fyStartDate);
@@ -60,30 +74,21 @@ window.applyDatePreset = function (preset) {
     return `${y}-${m}-${day}`;
   };
 
-  if (preset === 'full') {
-    fromEl.value = _fyStartDate;
-    toEl.value = _fyEndDate;
+  if (preset === 'today') {
+    toEl.value = fmt(now);
   } else if (preset === 'this-month') {
-    const start = new Date(now.getFullYear(), now.getMonth(), 1);
     const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    fromEl.value = fmt(start);
     toEl.value = fmt(end);
   } else if (preset === 'last-month') {
-    const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const end = new Date(now.getFullYear(), now.getMonth(), 0);
-    fromEl.value = fmt(start);
     toEl.value = fmt(end);
   } else if (preset === 'q1') {
-    fromEl.value = `${fyStart.getFullYear()}-04-01`;
     toEl.value = `${fyStart.getFullYear()}-06-30`;
   } else if (preset === 'q2') {
-    fromEl.value = `${fyStart.getFullYear()}-07-01`;
     toEl.value = `${fyStart.getFullYear()}-09-30`;
   } else if (preset === 'q3') {
-    fromEl.value = `${fyStart.getFullYear()}-10-01`;
     toEl.value = `${fyStart.getFullYear()}-12-31`;
-  } else if (preset === 'q4') {
-    fromEl.value = `${fyEnd.getFullYear()}-01-01`;
+  } else if (preset === 'q4' || preset === 'full') {
     toEl.value = `${fyEnd.getFullYear()}-03-31`;
   }
 
@@ -164,22 +169,13 @@ async function loadOutstandingData() {
   const billType = document.getElementById('billTypeSelect')?.value || defaultBt;
   const isAll = (billType.toUpperCase() === 'ALL');
   const pBtEl = document.getElementById('printBillType');
-  if (pBtEl) pBtEl.textContent = billType;
+  if (pBtEl) pBtEl.textContent = getDisplayBillTypeName(billType);
 
-  const fromDate = document.getElementById('fromDate')?.value || '';
   const toDate   = document.getElementById('toDate')?.value || '';
 
   const pPeriodEl = document.getElementById('printDatePeriod');
   if (pPeriodEl) {
-    if (fromDate && toDate) {
-      pPeriodEl.textContent = `${formatDisplayDate(fromDate)} to ${formatDisplayDate(toDate)}`;
-    } else if (fromDate) {
-      pPeriodEl.textContent = `From ${formatDisplayDate(fromDate)}`;
-    } else if (toDate) {
-      pPeriodEl.textContent = `Up to ${formatDisplayDate(toDate)}`;
-    } else {
-      pPeriodEl.textContent = 'All Records';
-    }
+    pPeriodEl.textContent = toDate ? formatDisplayDate(toDate) : 'Current / All Records';
   }
 
   showLoading(`Loading Outstanding Dues for ${billType}...`);
@@ -203,6 +199,10 @@ async function loadOutstandingData() {
     const allCreditNotes = Array.isArray(cnRes.data) ? cnRes.data : (Array.isArray(cnRes) ? cnRes : []);
     const allDebitNotes = Array.isArray(dnRes.data) ? dnRes.data : (Array.isArray(dnRes) ? dnRes : []);
     const allReversals = Array.isArray(revRes.data) ? revRes.data : (Array.isArray(revRes) ? revRes : []);
+
+    if (isAll && pBtEl) {
+      pBtEl.textContent = getDisplayBillTypeName(billType, [...allBills, ...allReceipts]);
+    }
 
     const bills = isAll ? allBills : allBills.filter(b => (b.billType || b.BillType || '').toLowerCase().trim() === billType.toLowerCase().trim());
     const receipts = isAll ? allReceipts : allReceipts.filter(r => (r.billType || r.BillType || '').toLowerCase().trim() === billType.toLowerCase().trim());
@@ -241,10 +241,9 @@ async function loadOutstandingData() {
       }
     }
 
-    // Maps partitioned by date
+    // Maps partitioned by toDate
     const billPrinMap = {};
     const billIntrMap = {};
-    const priorBillMap = {};
 
     bills.forEach(b => {
       const mId = b.memberId || b.MemberId;
@@ -269,9 +268,7 @@ async function loadOutstandingData() {
         });
       }
 
-      if (fromDate && d && d < fromDate) {
-        priorBillMap[mId] = (priorBillMap[mId] || 0) + amt;
-      } else if ((!fromDate || !d || d >= fromDate) && (!toDate || !d || d <= toDate)) {
+      if (!toDate || !d || d <= toDate) {
         billPrinMap[mId] = (billPrinMap[mId] || 0) + bPrin;
         billIntrMap[mId] = (billIntrMap[mId] || 0) + bIntr;
       }
@@ -281,24 +278,19 @@ async function loadOutstandingData() {
       const mId = dn.memberId || dn.MemberId;
       const amt = parseFloat(dn.amount || dn.Amount || dn.totalAmount || 0);
       const d = extractTxDate(dn);
-      if (fromDate && d && d < fromDate) {
-        priorBillMap[mId] = (priorBillMap[mId] || 0) + amt;
-      } else if ((!fromDate || !d || d >= fromDate) && (!toDate || !d || d <= toDate)) {
+      if (!toDate || !d || d <= toDate) {
         billPrinMap[mId] = (billPrinMap[mId] || 0) + amt;
       }
     });
 
-    // Received maps
+    // Received maps up to toDate
     const recMap = {};
-    const priorRecMap = {};
 
     receipts.forEach(r => {
       const mId = r.memberId || r.MemberId;
       const amt = parseFloat(r.amount || r.Amount || r.totalAmount || 0);
       const d = extractTxDate(r);
-      if (fromDate && d && d < fromDate) {
-        priorRecMap[mId] = (priorRecMap[mId] || 0) + amt;
-      } else if ((!fromDate || !d || d >= fromDate) && (!toDate || !d || d <= toDate)) {
+      if (!toDate || !d || d <= toDate) {
         recMap[mId] = (recMap[mId] || 0) + amt;
       }
     });
@@ -307,9 +299,7 @@ async function loadOutstandingData() {
       const mId = cn.memberId || cn.MemberId;
       const amt = parseFloat(cn.amount || cn.Amount || cn.totalAmount || 0);
       const d = extractTxDate(cn);
-      if (fromDate && d && d < fromDate) {
-        priorRecMap[mId] = (priorRecMap[mId] || 0) + amt;
-      } else if ((!fromDate || !d || d >= fromDate) && (!toDate || !d || d <= toDate)) {
+      if (!toDate || !d || d <= toDate) {
         recMap[mId] = (recMap[mId] || 0) + amt;
       }
     });
@@ -323,9 +313,7 @@ async function loadOutstandingData() {
       const amt = parseFloat(rv.amount || rv.Amount || 0);
       const d = extractTxDate(rv);
       if (mId) {
-        if (fromDate && d && d < fromDate) {
-          priorRecMap[mId] = (priorRecMap[mId] || 0) - amt;
-        } else if ((!fromDate || !d || d >= fromDate) && (!toDate || !d || d <= toDate)) {
+        if (!toDate || !d || d <= toDate) {
           recMap[mId] = (recMap[mId] || 0) - amt;
         }
       }
@@ -360,9 +348,7 @@ async function loadOutstandingData() {
       }
 
       const baseOpTotal = (op.prin || 0) + (op.intr || 0);
-      const priorDr = priorBillMap[mId] || 0;
-      const priorCr = priorRecMap[mId] || 0;
-      const effectiveOpNet = baseOpTotal + priorDr - priorCr;
+      const effectiveOpNet = baseOpTotal;
 
       let opDues = 0;
       let opAdv = 0;
@@ -663,9 +649,8 @@ function exportCsv() {
 
   const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
-  const fromDate = document.getElementById('fromDate')?.value || '';
-  const toDate   = document.getElementById('toDate')?.value || '';
-  const dateSuffix = (fromDate && toDate) ? `_${fromDate}_to_${toDate}` : `_${new Date().toISOString().slice(0, 10)}`;
+  const toDate = document.getElementById('toDate')?.value || '';
+  const dateSuffix = toDate ? `_AsOn_${toDate}` : `_${new Date().toISOString().slice(0, 10)}`;
   const link = document.createElement('a');
   link.setAttribute('href', url);
   link.setAttribute('download', `Outstanding_Dues_${selectedBT}${dateSuffix}.csv`);
@@ -674,3 +659,17 @@ function exportCsv() {
   document.body.removeChild(link);
   showToast(`Outstanding Dues (${selectedBT}) exported to CSV.`, 'success');
 }
+
+// Ensure print header always reflects the dynamic bill type and As On date before print dialog opens
+window.addEventListener('beforeprint', () => {
+  const billType = document.getElementById('billTypeSelect')?.value || 'ALL';
+  const pBtEl = document.getElementById('printBillType');
+  if (pBtEl) {
+    pBtEl.textContent = getDisplayBillTypeName(billType, outstandingData || []);
+  }
+  const toDate = document.getElementById('toDate')?.value || '';
+  const pPeriodEl = document.getElementById('printDatePeriod');
+  if (pPeriodEl) {
+    pPeriodEl.textContent = toDate ? formatDisplayDate(toDate) : 'Current (All Records)';
+  }
+});

@@ -9,3 +9,16 @@ Database/fresh_target_*.db
 Database/*.db-journal
 Database/*.db-wal
 Database/*.db-shm
+
+# Environment & Secrets
+.env
+.env.*
+!.env.example
+!.env.local.example
+
+# Logs & temp
+*.log
+*.tmp
+.tempmediaStorage/
+.system_generated/
+

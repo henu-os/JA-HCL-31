@@ -70,13 +70,25 @@
       <!-- T-Format Side-by-Side Statement -->
       <div class="bs-t-table-wrapper">
         <table class="bs-t-table" id="bsMainTable">
+          <colgroup>
+            <!-- Liabilities Side (50%) -->
+            <col class="col-prev col-prev-liab" style="width: 10%;">
+            <col class="col-particulars col-liab" style="width: 21%;">
+            <col class="col-subtotal col-sub-liab" style="width: 8.5%;">
+            <col class="col-cur col-cur-liab" style="width: 10.5%;">
+            <!-- Assets Side (50%) -->
+            <col class="col-prev col-prev-asset" style="width: 10%;">
+            <col class="col-particulars col-asset" style="width: 21%;">
+            <col class="col-subtotal col-sub-asset" style="width: 8.5%;">
+            <col class="col-cur col-cur-asset" style="width: 10.5%;">
+          </colgroup>
           <thead>
             <!-- Repeated Header for Print (All Pages) -->
             <tr class="bs-print-masthead-row">
               <th colspan="8" class="bs-print-masthead-cell">
                 <div class="bs-print-soc-name" id="print-disp-soc-name">CO-OPERATIVE HOUSING SOCIETY LTD.</div>
                 <div class="bs-print-soc-sub" id="print-disp-soc-sub">Registration No. : —</div>
-                <div class="bs-print-title" id="print-disp-title">Balance Sheet As On —</div>
+                <div class="bs-title bs-print-title" id="print-disp-title">Balance Sheet As On —</div>
               </th>
             </tr>
             <!-- Clean Single-Tier Column Headers -->

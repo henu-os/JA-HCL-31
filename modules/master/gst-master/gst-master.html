@@ -17,7 +17,7 @@
     body {
       font-family: 'Segoe UI', Arial, sans-serif;
       font-size: 12px;
-      background: #FFFFFF;
+      background: #F4F6F9;
       height: 100vh;
       overflow: hidden;
       display: flex;
@@ -30,38 +30,35 @@
       flex-direction: column;
       height: 100vh;
       overflow: hidden;
-      background: #FFFFFF;
+      background: #F4F6F9;
     }
 
     /* MODULE HEADER */
     .gst-header {
       background: #FFFFFF;
-      padding: 10px 18px 8px;
+      padding: 8px 18px 6px;
       flex-shrink: 0;
+      border-bottom: 1px solid #E0E0E0;
     }
 
     .gst-header h2 {
-      font-size: 16px;
-      font-weight: 700;
-      color: #1a1a2e;
+      font-size: 15px;
+      font-weight: 800;
+      color: #1A237E;
       letter-spacing: 0.3px;
-      margin: 0 0 2px 0;
+      margin: 0;
       text-transform: uppercase;
-    }
-
-    .gst-header .subtitle {
-      font-size: 11px;
-      color: #666;
     }
 
     /* FULL BLUE TOP TOOLBAR */
     .gst-toolbar {
       background: #1565C0;
-      padding: 6px 14px;
+      padding: 6px 16px;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
       flex-shrink: 0;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
 
     .gst-btn-toolbar {
@@ -72,7 +69,7 @@
       font-size: 11px;
       font-weight: 700;
       color: #FFFFFF;
-      background: rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.15);
       border: 1px solid rgba(255, 255, 255, 0.3);
       border-radius: 3px;
       cursor: pointer;
@@ -109,39 +106,65 @@
       display: flex;
       flex-direction: column;
       overflow-y: auto;
+      background: #F4F6F9;
+      padding: 14px 18px 24px;
+      gap: 14px;
+    }
+
+    /* SECTION A: CONFIGURATION CARD (Original Controls) */
+    .gst-config-card {
       background: #FFFFFF;
-      padding: 24px 28px;
+      border: 1px solid #DCE4EC;
+      border-radius: 6px;
+      padding: 14px 18px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+    }
+
+    .gst-section-title {
+      font-size: 12px;
+      font-weight: 800;
+      color: #0D47A1;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .gst-section-title i {
+      font-size: 14px;
+      color: #1565C0;
     }
 
     .gst-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 48px;
-      max-width: 960px;
+      gap: 32px;
     }
 
     .gst-field-group {
       display: flex;
       flex-direction: column;
-      gap: 6px;
-      margin-bottom: 16px;
+      gap: 5px;
+      margin-bottom: 12px;
     }
 
     .gst-field-group label.field-lbl {
       font-weight: 700;
-      color: #555;
-      font-size: 10.5px;
+      color: #455A64;
+      font-size: 10px;
       text-transform: uppercase;
       letter-spacing: 0.4px;
     }
 
     .gst-input {
-      height: 30px;
-      border: 1px solid #ccc;
+      height: 28px;
+      border: 1px solid #CFD8DC;
       background: #FFFFFF;
-      color: #333;
-      font-size: 12px;
-      padding: 0 10px;
+      color: #263238;
+      font-size: 11.5px;
+      padding: 0 8px;
       border-radius: 4px;
       outline: none;
       box-sizing: border-box;
@@ -153,24 +176,25 @@
       box-shadow: 0 0 0 2px rgba(21, 101, 192, 0.15);
     }
 
-    .gst-input:disabled {
-      background: #F5F5F5;
-      color: #666;
-      border-color: #E0E0E0;
+    .gst-input:disabled,
+    .gst-input[readonly] {
+      background: #ECEFF1;
+      color: #455A64;
+      border-color: #CFD8DC;
     }
 
     .gst-check-row {
       display: flex;
       align-items: center;
       gap: 8px;
-      margin-top: 6px;
-      margin-bottom: 16px;
+      margin-top: 4px;
+      margin-bottom: 12px;
     }
 
     .gst-check-row label {
       font-weight: 700;
-      color: #444;
-      font-size: 11px;
+      color: #37474F;
+      font-size: 10.5px;
       text-transform: uppercase;
       letter-spacing: 0.3px;
       cursor: pointer;
@@ -178,35 +202,368 @@
     }
 
     .gst-check-row input[type="checkbox"] {
-      width: 16px;
-      height: 16px;
+      width: 15px;
+      height: 15px;
       cursor: pointer;
       accent-color: #1565C0;
     }
 
-    /* POLICY CALLOUT BANNER */
-    .gst-policy-banner {
-      margin-top: 24px;
-      padding: 14px 18px;
+    /* SECTION B: 4 POLICY & SETTINGS CARDS (Image 2 Top Row) */
+    .gst-cards-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .gst-card {
+      background: #FFFFFF;
+      border: 1px solid #DCE4EC;
+      border-radius: 6px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .gst-card-header {
+      font-size: 11px;
+      font-weight: 800;
+      color: #1565C0;
+      letter-spacing: 0.4px;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 20px;
+    }
+
+    .gst-card-header.purple {
+      color: #4A148C;
+    }
+
+    /* Pill Badges */
+    .gst-pill-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 3px;
+      white-space: nowrap;
+      text-align: center;
+    }
+
+    .gst-pill-badge.nongst {
       background: #E3F2FD;
-      border-left: 4px solid #1565C0;
-      border-radius: 0 6px 6px 0;
+      color: #1565C0;
+      border: 1px solid #90CAF9;
+    }
+
+    .gst-pill-badge.exempt {
+      background: #E8F5E9;
+      color: #2E7D32;
+      border: 1px solid #A5D6A7;
+    }
+
+    .gst-pill-badge.applicable {
+      background: #FFF3E0;
+      color: #E65100;
+      border: 1px solid #FFCC80;
+    }
+
+    .gst-pill-badge.both {
+      background: #F3E5F5;
+      color: #6A1B9A;
+      border: 1px solid #CE93D8;
+    }
+
+    .gst-item-row {
       display: flex;
       align-items: flex-start;
-      gap: 12px;
-      max-width: 960px;
+      gap: 8px;
+      margin-bottom: 9px;
+      font-size: 11px;
+      line-height: 1.35;
+      color: #37474F;
+    }
+
+    .gst-item-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .yes-text {
+      color: #2E7D32;
+      font-weight: 800;
+    }
+
+    .no-text {
+      color: #C62828;
+      font-weight: 800;
+    }
+
+    /* Important Note Yellow Box */
+    .important-note-box {
+      background: #FFFDE7;
+      border: 1px solid #FFE082;
+      border-radius: 4px;
+      padding: 8px 10px;
+      margin-top: 10px;
+      font-size: 10.5px;
+      line-height: 1.4;
+      color: #5D4037;
+    }
+
+    .important-note-box strong {
+      display: block;
+      color: #E65100;
+      font-size: 10.5px;
+      font-weight: 800;
+      margin-bottom: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    /* Card 3: Config Table */
+    .config-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
+
+    .config-table td {
+      padding: 3px 0;
+      vertical-align: middle;
+    }
+
+    .config-table td.label-col {
+      color: #455A64;
+      font-weight: 600;
+      width: 58%;
+    }
+
+    .config-table td.val-col {
+      width: 42%;
+      text-align: right;
+    }
+
+    .card3-input,
+    .card3-select {
+      width: 100%;
+      max-width: 110px;
+      height: 24px;
+      border: 1px solid #CFD8DC;
+      border-radius: 3px;
+      padding: 2px 6px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #263238;
+      background: #FFFFFF;
+      outline: none;
+      box-sizing: border-box;
+      text-align: right;
+    }
+
+    .card3-input:focus,
+    .card3-select:focus {
+      border-color: #1565C0;
+      box-shadow: 0 0 0 2px rgba(21, 101, 192, 0.12);
+    }
+
+    /* Card 4: Bill Display Structure */
+    .bill-struct-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      font-size: 11px;
+      color: #37474F;
+    }
+
+    .bill-struct-list li {
+      margin-bottom: 6px;
+      line-height: 1.35;
+    }
+
+    .bill-struct-list li strong {
+      color: #263238;
+      font-size: 10.5px;
+    }
+
+    .bill-struct-sublist {
+      margin-top: 6px;
+      padding-top: 6px;
+      border-top: 1px dashed #CFD8DC;
+      font-size: 10.5px;
+      color: #455A64;
+      line-height: 1.45;
+    }
+
+    /* SECTION C: 2 SIMULATION EXAMPLE CARDS (Image 2 Bottom Row) */
+    .gst-examples-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .example-card {
+      background: #FFFFFF;
+      border: 1px solid #CFD8DC;
+      border-radius: 6px;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .example-header {
+      padding: 7px 14px;
+      color: #FFFFFF;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .example-card.ex-exempt .example-header {
+      background: #2E7D32;
+    }
+
+    .example-card.ex-taxable .example-header {
+      background: #E65100;
+    }
+
+    .example-body {
+      padding: 12px 14px;
+      display: flex;
+      gap: 14px;
+      flex: 1;
+    }
+
+    .example-table-wrap {
+      flex: 1.15;
+    }
+
+    .example-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
+
+    .example-table th {
+      background: #F5F7FA;
+      color: #37474F;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-bottom: 1px solid #CFD8DC;
+      text-align: left;
+      font-size: 10.5px;
+    }
+
+    .example-table th.th-right {
+      text-align: right;
+    }
+
+    .example-table td {
+      padding: 4px 8px;
+      border-bottom: 1px solid #ECEFF1;
+      color: #37474F;
+    }
+
+    .example-table td.td-right {
+      text-align: right;
+      font-weight: 600;
+    }
+
+    .example-table tr.total-row td {
+      border-top: 1px solid #B0BEC5;
+      border-bottom: none;
+      font-weight: 800;
+      color: #263238;
+      background: #FAFAFA;
+    }
+
+    .example-result-box {
+      flex: 0.95;
+      border-radius: 4px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      font-size: 11px;
+    }
+
+    .example-card.ex-exempt .example-result-box {
+      background: #E8F5E9;
+      border: 1px solid #A5D6A7;
+      color: #1B5E20;
+    }
+
+    .example-card.ex-taxable .example-result-box {
+      background: #FFF3E0;
+      border: 1px solid #FFCC80;
+      color: #BF360C;
+    }
+
+    .result-total-title {
+      font-size: 12px;
+      font-weight: 800;
+      margin-bottom: 2px;
+    }
+
+    .result-badge-text {
+      font-size: 11px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .result-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 4px;
+      font-size: 11px;
+    }
+
+    .result-table td {
+      padding: 2px 0;
+    }
+
+    .result-table td.right {
+      text-align: right;
+      font-weight: 700;
+    }
+
+    /* POLICY CALLOUT BANNER */
+    .gst-policy-banner {
+      padding: 10px 16px;
+      background: #E3F2FD;
+      border-left: 4px solid #1565C0;
+      border-radius: 0 4px 4px 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
 
     .gst-policy-banner i {
       color: #1565C0;
-      font-size: 18px;
-      margin-top: 1px;
+      font-size: 16px;
+      flex-shrink: 0;
     }
 
     .gst-policy-banner .txt {
-      font-size: 11.5px;
+      font-size: 11px;
       color: #1C3D5A;
-      line-height: 1.5;
+      line-height: 1.45;
+    }
+
+    @media (max-width: 1100px) {
+      .gst-cards-row {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .gst-examples-row {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
@@ -218,101 +575,394 @@
     <!-- MODULE HEADER -->
     <div class="gst-header">
       <h2>GST MASTER CONFIGURATION</h2>
-      
     </div>
 
     <!-- FULL BLUE TOOLBAR -->
     <div class="gst-toolbar">
       <button class="gst-btn-toolbar" onclick="GST.saveSettings()"><i class="bi bi-save"></i> SAVE SETTINGS</button>
-      <button class="gst-btn-toolbar" onclick="GST.resetSettings()"><i class="bi bi-arrow-counterclockwise"></i>
-        RESET</button>
-      <button class="gst-btn-toolbar btn-danger" onclick="GST.exit()"><i class="bi bi-box-arrow-right"></i> EXIT
-        (ESC)</button>
+      <button class="gst-btn-toolbar" onclick="GST.resetSettings()"><i class="bi bi-arrow-counterclockwise"></i> RESET</button>
+      <button class="gst-btn-toolbar btn-danger" onclick="GST.exit()"><i class="bi bi-box-arrow-right"></i> EXIT (ESC)</button>
     </div>
 
     <!-- WORKSPACE CONTENT -->
     <div class="gst-workspace">
 
-      <div class="gst-grid" id="gst-fields-grid">
+      <!-- SECTION A: CORE ACCOUNT & REVENUE CONFIGURATION (Image 1 Controls) -->
+      <div class="gst-config-card">
+        <div class="gst-section-title">
+          <i class="bi bi-sliders"></i>
+          <span>Account Heads & Rate Parameters</span>
+        </div>
 
-        <!-- LEFT COLUMN -->
-        <div>
-          <!-- CGST Account Code -->
-          <div class="gst-field-group">
-            <label class="field-lbl">CGST ACCOUNT CODE</label>
-            <div style="display:flex; align-items:center; gap:12px;">
-              <input type="text" id="gst-cgst-code" class="gst-input"
-                style="width:100px; text-align:center; font-weight:700;" value="LIA-1032" readonly disabled>
-              <span id="gst-cgst-lbl" style="font-weight:700; color:#1565C0; font-size:12px;">CGST - 9%</span>
+        <div class="gst-grid" id="gst-fields-grid">
+
+          <!-- LEFT COLUMN: CGST & LIMIT -->
+          <div>
+            <!-- CGST Account Code -->
+            <div class="gst-field-group">
+              <label class="field-lbl">CGST ACCOUNT CODE</label>
+              <div style="display:flex; align-items:center; gap:10px;">
+                <input type="text" id="gst-cgst-code" class="gst-input"
+                  style="width:90px; text-align:center; font-weight:700;" value="LIA-1032" readonly disabled>
+                <span id="gst-cgst-lbl" style="font-weight:700; color:#1565C0; font-size:12px;">CGST - 9%</span>
+              </div>
+            </div>
+
+            <!-- Interest on Dues Apply For GST -->
+            <div class="gst-check-row">
+              <input type="checkbox" id="gst-interest-apply" checked onchange="GST.onFieldChange()">
+              <label for="gst-interest-apply">INTEREST ON DUES APPLY FOR GST</label>
+            </div>
+
+            <!-- Rate of CGST -->
+            <div class="gst-field-group">
+              <label class="field-lbl">RATE OF CGST (%)</label>
+              <input type="number" step="0.01" id="gst-cgst-rate" class="gst-input" style="width:140px;" value="9"
+                oninput="GST.syncRates('cgst', this.value)">
+            </div>
+
+            <!-- Rounded Upto (CGST) -->
+            <div class="gst-field-group">
+              <label class="field-lbl">ROUNDED UPTO</label>
+              <input type="number" id="gst-cgst-round" class="gst-input" style="width:140px;" value="0">
+            </div>
+
+            <!-- Limit of GST Exempt -->
+            <div class="gst-field-group">
+              <label class="field-lbl">LIMIT OF GST EXEMPT (₹)</label>
+              <input type="number" id="gst-exempt-limit" class="gst-input" style="width:140px;" value="7500"
+                oninput="GST.syncExemptLimit(this.value)">
             </div>
           </div>
 
-          <!-- Interest on Dues Apply For GST -->
-          <div class="gst-check-row">
-            <input type="checkbox" id="gst-interest-apply" checked>
-            <label for="gst-interest-apply">INTEREST ON DUES APPLY FOR GST</label>
-          </div>
+          <!-- RIGHT COLUMN: SGST & POLICY -->
+          <div>
+            <!-- SGST Account Code -->
+            <div class="gst-field-group">
+              <label class="field-lbl">SGST ACCOUNT CODE</label>
+              <div style="display:flex; align-items:center; gap:10px;">
+                <input type="text" id="gst-sgst-code" class="gst-input"
+                  style="width:90px; text-align:center; font-weight:700;" value="LIA-1033" readonly disabled>
+                <span id="gst-sgst-lbl" style="font-weight:700; color:#1565C0; font-size:12px;">SGST - 9%</span>
+              </div>
+            </div>
 
-          <!-- Rate of CGST -->
-          <div class="gst-field-group" style="margin-top:10px;">
-            <label class="field-lbl">RATE OF CGST (%)</label>
-            <input type="number" step="0.01" id="gst-cgst-rate" class="gst-input" style="width:150px;" value="9"
-              onchange="GST.syncRates('cgst', this.value)">
-          </div>
+            <!-- Interest on Dues Apply GST Exempt Amount Limit -->
+            <div class="gst-check-row">
+              <input type="checkbox" id="gst-interest-exempt" onchange="GST.onFieldChange()">
+              <label for="gst-interest-exempt">INTEREST ON DUES APPLY GST EXEMPT AMOUNT LIMIT</label>
+            </div>
 
-          <!-- Rounded Upto -->
-          <div class="gst-field-group">
-            <label class="field-lbl">ROUNDED UPTO</label>
-            <input type="number" id="gst-cgst-round" class="gst-input" style="width:150px;" value="0">
-          </div>
+            <!-- Rate of SGST -->
+            <div class="gst-field-group">
+              <label class="field-lbl">RATE OF SGST (%)</label>
+              <input type="number" step="0.01" id="gst-sgst-rate" class="gst-input" style="width:140px;" value="9"
+                oninput="GST.syncRates('sgst', this.value)">
+            </div>
 
-          <!-- Limit of GST Exempt -->
-          <div class="gst-field-group">
-            <label class="field-lbl">LIMIT OF GST EXEMPT (₹)</label>
-            <input type="number" id="gst-exempt-limit" class="gst-input" style="width:150px;" value="7500">
-          </div>
-        </div>
-
-        <!-- RIGHT COLUMN -->
-        <div>
-          <!-- SGST Account Code -->
-          <div class="gst-field-group">
-            <label class="field-lbl">SGST ACCOUNT CODE</label>
-            <div style="display:flex; align-items:center; gap:12px;">
-              <input type="text" id="gst-sgst-code" class="gst-input"
-                style="width:100px; text-align:center; font-weight:700;" value="LIA-1033" readonly disabled>
-              <span id="gst-sgst-lbl" style="font-weight:700; color:#1565C0; font-size:12px;">SGST - 9%</span>
+            <!-- Rounded Upto (SGST) -->
+            <div class="gst-field-group">
+              <label class="field-lbl">ROUNDED UPTO</label>
+              <input type="number" id="gst-sgst-round" class="gst-input" style="width:140px;" value="0">
             </div>
           </div>
 
-          <!-- Interest on Dues Apply GST Exempt Amount Limit -->
-          <div class="gst-check-row">
-            <input type="checkbox" id="gst-interest-exempt">
-            <label for="gst-interest-exempt">INTEREST ON DUES APPLY GST EXEMPT AMOUNT LIMIT</label>
+        </div>
+      </div>
+
+      <!-- SECTION B: 4 POLICY & SETTINGS CARDS (Image 2 Top Row) -->
+      <div class="gst-cards-row">
+
+        <!-- CARD 1: GST CATEGORY -->
+        <div class="gst-card">
+          <div class="gst-card-header">
+            <span>GST CATEGORY</span>
           </div>
 
-          <!-- Rate of SGST -->
-          <div class="gst-field-group" style="margin-top:10px;">
-            <label class="field-lbl">RATE OF SGST (%)</label>
-            <input type="number" step="0.01" id="gst-sgst-rate" class="gst-input" style="width:150px;" value="9"
-              onchange="GST.syncRates('sgst', this.value)">
+          <div class="gst-item-row">
+            <span class="gst-pill-badge nongst" style="width:75px;">Non-GST</span>
+            <span>Charges not subject to GST (e.g. Property Tax, Water Charges etc.)</span>
           </div>
 
-          <!-- Rounded Upto (SGST) -->
-          <div class="gst-field-group">
-            <label class="field-lbl">ROUNDED UPTO</label>
-            <input type="number" id="gst-sgst-round" class="gst-input" style="width:150px;" value="0">
+          <div class="gst-item-row">
+            <span class="gst-pill-badge exempt" style="width:75px;">Exempt</span>
+            <span>Qualifying maintenance / subscription / contribution. Exempt if total ≤ <strong class="dyn-thresh-label">₹ 7,500</strong> subject to applicable conditions.</span>
+          </div>
+
+          <div class="gst-item-row">
+            <span class="gst-pill-badge applicable" style="width:75px;">GST Applicable</span>
+            <span>Independently taxable items (e.g. Parking Charges, Other Services etc.)</span>
+          </div>
+
+          <div class="gst-item-row">
+            <span class="gst-pill-badge both" style="width:75px;">Both</span>
+            <span>Qualifying items eligible for exemption ≤ <strong class="dyn-thresh-label">₹ 7,500</strong>; entire amount taxable if threshold exceeded.</span>
           </div>
         </div>
 
-      </div><!-- /gst-grid -->
+        <!-- CARD 2: INCLUDE IN ₹7,500 THRESHOLD? -->
+        <div class="gst-card">
+          <div class="gst-card-header">
+            <span>INCLUDE IN <span class="dyn-thresh-label">₹ 7,500</span> THRESHOLD?</span>
+          </div>
 
-      <!-- POLICY CALLOUT BANNER -->
+          <div class="gst-item-row">
+            <span class="yes-text" style="width:38px;">Yes →</span>
+            <span>This amount will be included in the monthly qualifying maintenance total for <strong class="dyn-thresh-label">₹ 7,500</strong> threshold.</span>
+          </div>
+
+          <div class="gst-item-row">
+            <span class="no-text" style="width:38px;">No →</span>
+            <span>This amount will NOT be included in the <strong class="dyn-thresh-label">₹ 7,500</strong> threshold calculation.</span>
+          </div>
+
+          <div class="important-note-box">
+            <strong>IMPORTANT NOTE</strong>
+            <span id="dyn-important-note">If total of all "Yes" heads > ₹ 7,500, then entire qualifying amount (all "Yes" heads) will be taxable @ 18% (CGST 9% + SGST 9%). Not only the amount above ₹ 7,500.</span>
+          </div>
+        </div>
+
+        <!-- CARD 3: SOCIETY GST SETTINGS (CONFIGURABLE) -->
+        <div class="gst-card">
+          <div class="gst-card-header purple">
+            <span>SOCIETY GST SETTINGS</span>
+            <span style="font-size:9.5px; font-weight:normal; opacity:0.85;">(CONFIGURABLE)</span>
+          </div>
+
+          <table class="config-table">
+            <tbody>
+              <tr>
+                <td class="label-col">GST Registration</td>
+                <td class="val-col">
+                  <select id="card3-gst-registration" class="card3-select" onchange="GST.syncRegistration(this.value)">
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
+                  </select>
+                </td>
+              </tr>
+              <tr>
+                <td class="label-col">Annual Aggregate Turnover</td>
+                <td class="val-col">
+                  <input type="text" id="card3-turnover" class="card3-input" value="₹ 25,00,000" onchange="GST.formatTurnover(this)">
+                </td>
+              </tr>
+              <tr>
+                <td class="label-col">Monthly Threshold Limit</td>
+                <td class="val-col">
+                  <input type="text" id="card3-monthly-threshold" class="card3-input" value="₹ 7,500" onchange="GST.syncThresholdFromCard(this.value)">
+                </td>
+              </tr>
+              <tr>
+                <td class="label-col">Default GST Rate</td>
+                <td class="val-col">
+                  <select id="card3-default-rate" class="card3-select" onchange="GST.syncDefaultRate(this.value)">
+                    <option value="18%">18%</option>
+                    <option value="12%">12%</option>
+                    <option value="5%">5%</option>
+                    <option value="28%">28%</option>
+                    <option value="0%">0%</option>
+                  </select>
+                </td>
+              </tr>
+              <tr>
+                <td class="label-col">CGST Rate</td>
+                <td class="val-col">
+                  <select id="card3-cgst-rate" class="card3-select" onchange="GST.syncRates('cgst', this.value.replace('%',''))">
+                    <option value="9%">9%</option>
+                    <option value="6%">6%</option>
+                    <option value="2.5%">2.5%</option>
+                    <option value="14%">14%</option>
+                    <option value="0%">0%</option>
+                  </select>
+                </td>
+              </tr>
+              <tr>
+                <td class="label-col">SGST Rate</td>
+                <td class="val-col">
+                  <select id="card3-sgst-rate" class="card3-select" onchange="GST.syncRates('sgst', this.value.replace('%',''))">
+                    <option value="9%">9%</option>
+                    <option value="6%">6%</option>
+                    <option value="2.5%">2.5%</option>
+                    <option value="14%">14%</option>
+                    <option value="0%">0%</option>
+                  </select>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- CARD 4: BILL DISPLAY STRUCTURE -->
+        <div class="gst-card">
+          <div class="gst-card-header">
+            <span>BILL DISPLAY STRUCTURE</span>
+          </div>
+
+          <ul class="bill-struct-list">
+            <li>
+              <strong>1. NON-GST APPLICABLE ACCOUNT</strong><br>
+              <span style="font-size:10px; color:#607D8B;">(e.g. Property Tax, Water Charges, Electricity)</span>
+            </li>
+            <li>
+              <strong>2. EXEMPT-GST ACCOUNT</strong><br>
+              <span style="font-size:10px; color:#607D8B;">(e.g. Service Charges, Sinking Fund, Repair & Maintenance, Social Welfare)</span>
+            </li>
+            <li>
+              <strong>3. GST APPLICABLE ACCOUNT</strong><br>
+              <span style="font-size:10px; color:#607D8B;">(e.g. Parking Charges, Other Taxable Charges)</span>
+            </li>
+          </ul>
+
+          <div class="bill-struct-sublist">
+            <strong style="color:#1565C0;">Then show in Bill Summary:</strong><br>
+            • Taxable Value<br>
+            • CGST @ <span class="dyn-cgst-pct">9%</span><br>
+            • SGST @ <span class="dyn-sgst-pct">9%</span><br>
+            • Total GST @ <span class="dyn-total-gst-pct">18%</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- SECTION C: 2 LIVE SIMULATION EXAMPLE CARDS (Image 2 Bottom Row) -->
+      <div class="gst-examples-row">
+
+        <!-- EXAMPLE 1: QUALIFYING TOTAL <= THRESHOLD (EXEMPT) -->
+        <div class="example-card ex-exempt">
+          <div class="example-header">
+            <span>EXAMPLE 1 — QUALIFYING TOTAL <span class="dyn-thresh-label">₹ 7,500</span> OR LESS (EXEMPT)</span>
+            <span style="font-size:9.5px; opacity:0.9;">TAX EXEMPT SIMULATION</span>
+          </div>
+
+          <div class="example-body">
+            <div class="example-table-wrap">
+              <table class="example-table">
+                <thead>
+                  <tr>
+                    <th>Particulars (Include in <span class="dyn-thresh-label">₹ 7,500</span> = Yes)</th>
+                    <th class="th-right" style="width:85px;">Amount (₹)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Service Charges</td>
+                    <td class="td-right">900</td>
+                  </tr>
+                  <tr>
+                    <td>Repair & Maintenance Fund</td>
+                    <td class="td-right">2,000</td>
+                  </tr>
+                  <tr>
+                    <td>Sinking Fund</td>
+                    <td class="td-right">500</td>
+                  </tr>
+                  <tr>
+                    <td>Other Qualifying Contribution</td>
+                    <td class="td-right">1,000</td>
+                  </tr>
+                  <tr class="total-row">
+                    <td>Total (Yes Heads)</td>
+                    <td class="td-right" id="ex1-total-display">4,400</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="example-result-box">
+              <div class="result-total-title" id="ex1-result-header">Total = ₹ 4,400 (≤ ₹ 7,500)</div>
+              <div class="result-badge-text">Result: Exempt</div>
+              <div style="font-weight:600; font-size:10.5px; margin-bottom:8px;">No GST on qualifying amount</div>
+
+              <div style="border-top:1px dashed #A5D6A7; padding-top:6px; font-size:10.5px; line-height:1.4;">
+                If Parking Charges (No) = ₹ 100<br>
+                <strong>GST @ <span class="dyn-total-gst-pct">18%</span> = <span id="ex1-parking-tax">₹ 18</span></strong>
+                <span style="font-size:10px; color:#2E7D32;">(CGST <span id="ex1-parking-cgst">9</span> + SGST <span id="ex1-parking-sgst">9</span>)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- EXAMPLE 2: QUALIFYING TOTAL > THRESHOLD (TAXABLE) -->
+        <div class="example-card ex-taxable">
+          <div class="example-header">
+            <span>EXAMPLE 2 — QUALIFYING TOTAL MORE THAN <span class="dyn-thresh-label">₹ 7,500</span> (TAXABLE)</span>
+            <span style="font-size:9.5px; opacity:0.9;">TAXABLE SIMULATION</span>
+          </div>
+
+          <div class="example-body">
+            <div class="example-table-wrap">
+              <table class="example-table">
+                <thead>
+                  <tr>
+                    <th>Particulars (Include in <span class="dyn-thresh-label">₹ 7,500</span> = Yes)</th>
+                    <th class="th-right" style="width:85px;">Amount (₹)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Service Charges</td>
+                    <td class="td-right">5,000</td>
+                  </tr>
+                  <tr>
+                    <td>Repair & Maintenance Fund</td>
+                    <td class="td-right">1,500</td>
+                  </tr>
+                  <tr>
+                    <td>Sinking Fund</td>
+                    <td class="td-right">1,000</td>
+                  </tr>
+                  <tr>
+                    <td>Other Qualifying Contribution</td>
+                    <td class="td-right">1,000</td>
+                  </tr>
+                  <tr class="total-row">
+                    <td>Total (Yes Heads)</td>
+                    <td class="td-right" id="ex2-total-display" style="color:#C62828;">8,500</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="example-result-box">
+              <div class="result-total-title" id="ex2-result-header">Total = ₹ 8,500 (> ₹ 7,500)</div>
+              <div class="result-badge-text">Result: Taxable on entire amount</div>
+
+              <table class="result-table">
+                <tbody>
+                  <tr>
+                    <td>Taxable Value</td>
+                    <td class="right" id="ex2-taxable-val">₹ 8,500</td>
+                  </tr>
+                  <tr>
+                    <td>CGST @ <span class="dyn-cgst-pct">9%</span></td>
+                    <td class="right" id="ex2-cgst-val">₹ 765</td>
+                  </tr>
+                  <tr>
+                    <td>SGST @ <span class="dyn-sgst-pct">9%</span></td>
+                    <td class="right" id="ex2-sgst-val">₹ 765</td>
+                  </tr>
+                  <tr style="border-top:1px dashed #FFCC80; font-weight:800;">
+                    <td>Total GST @ <span class="dyn-total-gst-pct">18%</span></td>
+                    <td class="right" id="ex2-total-gst-val" style="color:#D84315;">₹ 1,530</td>
+                  </tr>
+                  <tr style="border-top:1px solid #FFB74D; font-size:12px; font-weight:800;">
+                    <td style="color:#BF360C;">Total Bill Value</td>
+                    <td class="right" id="ex2-bill-val" style="color:#C62828; font-size:12.5px;">₹ 10,030</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- POLICY CALLOUT BANNER (Original) -->
       <div class="gst-policy-banner">
         <i class="bi bi-info-circle-fill"></i>
         <div class="txt">
           <strong style="color:#1565C0;">GST MASTER POLICY:</strong> When GST is <strong>ENABLED</strong>, exactly 33 heads are maintained in Bill Type Master with rows 31, 32, and 33 fixed for Interest, CGST, and SGST. If the gross taxable dues are below the
-          <strong>GST Exempt Limit (₹7,500)</strong>, member maintenance remains tax-exempt under Society Bye-Laws.
+          <strong>GST Exempt Limit (<span class="dyn-thresh-label">₹ 7,500</span>)</strong>, member maintenance remains tax-exempt under Society Bye-Laws.
         </div>
       </div>
 
@@ -357,17 +1007,149 @@
         return 'http://localhost:5002';
       }
 
+      function formatINR(val) {
+        var n = parseFloat(val) || 0;
+        return n.toLocaleString('en-IN', { maximumFractionDigits: 2 });
+      }
+
       var currentGstSettings = {
         societyId: 1,
-        gstApplicable: false,
+        gstApplicable: true,
         gstNumber: '',
         cgstCode: 'LIA-1032',
         sgstCode: 'LIA-1033',
         cgstPct: 9,
         sgstPct: 9,
         intDuesGST: 'No',
-        exemptLimit: 7500
+        exemptLimit: 7500,
+        annualTurnover: '₹ 25,00,000'
       };
+
+      // Base sample particulars for calculations
+      var ex1Amounts = [900, 2000, 500, 1000];
+      var ex2Amounts = [5000, 1500, 1000, 1000];
+
+      // Central Dynamic Recalculation Engine — NOTHING IS HARDCODED
+      function recalculate() {
+        var cgstRate = parseFloat(document.getElementById('gst-cgst-rate').value) || 0;
+        var sgstRate = parseFloat(document.getElementById('gst-sgst-rate').value) || 0;
+        var totalRate = cgstRate + sgstRate;
+        var thresh = parseFloat(document.getElementById('gst-exempt-limit').value) || 0;
+
+        // 1. Update all dynamic threshold labels
+        var threshStr = '₹ ' + formatINR(thresh);
+        document.querySelectorAll('.dyn-thresh-label').forEach(function (el) {
+          el.textContent = threshStr;
+        });
+
+        // 2. Update rate pills and labels
+        document.querySelectorAll('.dyn-cgst-pct').forEach(function (el) {
+          el.textContent = cgstRate + '%';
+        });
+        document.querySelectorAll('.dyn-sgst-pct').forEach(function (el) {
+          el.textContent = sgstRate + '%';
+        });
+        document.querySelectorAll('.dyn-total-gst-pct').forEach(function (el) {
+          el.textContent = totalRate + '%';
+        });
+
+        // 3. Card 2 Important Note
+        var noteEl = document.getElementById('dyn-important-note');
+        if (noteEl) {
+          noteEl.textContent = 'If total of all "Yes" heads > ' + threshStr + ', then entire qualifying amount (all "Yes" heads) will be taxable @ ' + totalRate + '% (CGST ' + cgstRate + '% + SGST ' + sgstRate + '%). Not only the amount above ' + threshStr + '.';
+        }
+
+        // 4. Card 3: Sync Values
+        var card3Threshold = document.getElementById('card3-monthly-threshold');
+        if (card3Threshold && document.activeElement !== card3Threshold) {
+          card3Threshold.value = threshStr;
+        }
+
+        var card3DefRate = document.getElementById('card3-default-rate');
+        if (card3DefRate) {
+          var matched = false;
+          for (var i = 0; i < card3DefRate.options.length; i++) {
+            if (parseFloat(card3DefRate.options[i].value) === totalRate) {
+              card3DefRate.selectedIndex = i;
+              matched = true;
+              break;
+            }
+          }
+          if (!matched) {
+            var opt = new Option(totalRate + '%', totalRate + '%', true, true);
+            card3DefRate.add(opt);
+          }
+        }
+
+        var card3Cgst = document.getElementById('card3-cgst-rate');
+        if (card3Cgst) {
+          var cMatch = false;
+          for (var j = 0; j < card3Cgst.options.length; j++) {
+            if (parseFloat(card3Cgst.options[j].value) === cgstRate) {
+              card3Cgst.selectedIndex = j;
+              cMatch = true;
+              break;
+            }
+          }
+          if (!cMatch) {
+            card3Cgst.add(new Option(cgstRate + '%', cgstRate + '%', true, true));
+          }
+        }
+
+        var card3Sgst = document.getElementById('card3-sgst-rate');
+        if (card3Sgst) {
+          var sMatch = false;
+          for (var k = 0; k < card3Sgst.options.length; k++) {
+            if (parseFloat(card3Sgst.options[k].value) === sgstRate) {
+              card3Sgst.selectedIndex = k;
+              sMatch = true;
+              break;
+            }
+          }
+          if (!sMatch) {
+            card3Sgst.add(new Option(sgstRate + '%', sgstRate + '%', true, true));
+          }
+        }
+
+        // 5. Example 1 Recalculations
+        var ex1Total = ex1Amounts.reduce(function (a, b) { return a + b; }, 0);
+        document.getElementById('ex1-total-display').textContent = formatINR(ex1Total);
+        var ex1Header = document.getElementById('ex1-result-header');
+        if (ex1Total <= thresh) {
+          ex1Header.textContent = 'Total = ₹ ' + formatINR(ex1Total) + ' (≤ ' + threshStr + ')';
+        } else {
+          ex1Header.textContent = 'Total = ₹ ' + formatINR(ex1Total) + ' (> ' + threshStr + ')';
+        }
+
+        var parkingAmt = 100;
+        var parkingTax = (parkingAmt * totalRate) / 100;
+        var parkingCgst = (parkingAmt * cgstRate) / 100;
+        var parkingSgst = (parkingAmt * sgstRate) / 100;
+        document.getElementById('ex1-parking-tax').textContent = '₹ ' + formatINR(parkingTax);
+        document.getElementById('ex1-parking-cgst').textContent = formatINR(parkingCgst);
+        document.getElementById('ex1-parking-sgst').textContent = formatINR(parkingSgst);
+
+        // 6. Example 2 Recalculations (Live Math based on active rates)
+        var ex2Total = ex2Amounts.reduce(function (a, b) { return a + b; }, 0);
+        document.getElementById('ex2-total-display').textContent = formatINR(ex2Total);
+        var ex2Header = document.getElementById('ex2-result-header');
+        if (ex2Total > thresh) {
+          ex2Header.textContent = 'Total = ₹ ' + formatINR(ex2Total) + ' (> ' + threshStr + ')';
+        } else {
+          ex2Header.textContent = 'Total = ₹ ' + formatINR(ex2Total) + ' (≤ ' + threshStr + ')';
+        }
+
+        var ex2CgstVal = (ex2Total * cgstRate) / 100;
+        var ex2SgstVal = (ex2Total * sgstRate) / 100;
+        var ex2TotalGst = (ex2Total * totalRate) / 100;
+        var ex2TotalBill = ex2Total + ex2TotalGst;
+
+        document.getElementById('ex2-taxable-val').textContent = '₹ ' + formatINR(ex2Total);
+        document.getElementById('ex2-cgst-val').textContent = '₹ ' + formatINR(ex2CgstVal);
+        document.getElementById('ex2-sgst-val').textContent = '₹ ' + formatINR(ex2SgstVal);
+        document.getElementById('ex2-total-gst-val').textContent = '₹ ' + formatINR(ex2TotalGst);
+        document.getElementById('ex2-bill-val').textContent = '₹ ' + formatINR(ex2TotalBill);
+      }
 
       async function loadSettings() {
         var sid = getActiveSocietyId();
@@ -391,7 +1173,15 @@
               document.getElementById('gst-cgst-rate').value = currentGstSettings.cgstPct !== undefined ? currentGstSettings.cgstPct : 9;
               document.getElementById('gst-sgst-rate').value = currentGstSettings.sgstPct !== undefined ? currentGstSettings.sgstPct : 9;
 
-              document.getElementById('gst-exempt-limit').value = currentGstSettings.exemptLimit || 7500;
+              var exempt = currentGstSettings.exemptLimit || 7500;
+              document.getElementById('gst-exempt-limit').value = exempt;
+
+              var regSelect = document.getElementById('card3-gst-registration');
+              if (regSelect) regSelect.value = currentGstSettings.gstApplicable ? 'Yes' : 'No';
+
+              var turnover = localStorage.getItem('gst_annual_turnover_' + sid) || '₹ 25,00,000';
+              var turnEl = document.getElementById('card3-turnover');
+              if (turnEl) turnEl.value = turnover;
 
               sessionStorage.setItem('activeSocietyGSTApplicable', currentGstSettings.gstApplicable ? 'Y' : 'N');
               localStorage.setItem('activeSocietyGSTApplicable', currentGstSettings.gstApplicable ? 'Y' : 'N');
@@ -400,9 +1190,66 @@
         } catch (e) {
           console.warn('Could not fetch GST settings from DB:', e);
         }
+        recalculate();
       }
 
       window.GST = {
+        recalculate: recalculate,
+
+        onFieldChange: function () {
+          recalculate();
+        },
+
+        syncRates: function (type, val) {
+          var parsed = parseFloat(val) || 0;
+          if (type === 'cgst') {
+            document.getElementById('gst-sgst-rate').value = parsed;
+            document.getElementById('gst-cgst-rate').value = parsed;
+            document.getElementById('gst-cgst-lbl').textContent = 'CGST - ' + parsed + '%';
+            document.getElementById('gst-sgst-lbl').textContent = 'SGST - ' + parsed + '%';
+          } else {
+            document.getElementById('gst-cgst-rate').value = parsed;
+            document.getElementById('gst-sgst-rate').value = parsed;
+            document.getElementById('gst-cgst-lbl').textContent = 'CGST - ' + parsed + '%';
+            document.getElementById('gst-sgst-lbl').textContent = 'SGST - ' + parsed + '%';
+          }
+          recalculate();
+        },
+
+        syncDefaultRate: function (val) {
+          var total = parseFloat(val) || 0;
+          var half = total / 2;
+          document.getElementById('gst-cgst-rate').value = half;
+          document.getElementById('gst-sgst-rate').value = half;
+          document.getElementById('gst-cgst-lbl').textContent = 'CGST - ' + half + '%';
+          document.getElementById('gst-sgst-lbl').textContent = 'SGST - ' + half + '%';
+          recalculate();
+        },
+
+        syncExemptLimit: function (val) {
+          recalculate();
+        },
+
+        syncThresholdFromCard: function (val) {
+          var clean = parseFloat(String(val).replace(/[^0-9.]/g, '')) || 7500;
+          document.getElementById('gst-exempt-limit').value = clean;
+          recalculate();
+        },
+
+        syncRegistration: function (val) {
+          currentGstSettings.gstApplicable = (val === 'Yes');
+          sessionStorage.setItem('activeSocietyGSTApplicable', currentGstSettings.gstApplicable ? 'Y' : 'N');
+          localStorage.setItem('activeSocietyGSTApplicable', currentGstSettings.gstApplicable ? 'Y' : 'N');
+        },
+
+        formatTurnover: function (inputEl) {
+          var clean = parseFloat(inputEl.value.replace(/[^0-9.]/g, '')) || 2500000;
+          var formatted = '₹ ' + formatINR(clean);
+          inputEl.value = formatted;
+          var sid = getActiveSocietyId();
+          localStorage.setItem('gst_annual_turnover_' + sid, formatted);
+        },
+
         saveSettings: async function () {
           var sid = getActiveSocietyId();
           var cgstRate = parseFloat(document.getElementById('gst-cgst-rate').value) || 0;
@@ -416,9 +1263,12 @@
             intDues = intExempt ? 'Before GST' : 'Yes';
           }
 
+          var regVal = document.getElementById('card3-gst-registration');
+          var isReg = regVal ? (regVal.value === 'Yes') : currentGstSettings.gstApplicable;
+
           var payload = {
             societyId: sid,
-            gstApplicable: currentGstSettings.gstApplicable,
+            gstApplicable: isReg,
             gstNumber: currentGstSettings.gstNumber || '',
             cgstCode: document.getElementById('gst-cgst-code').value || 'LIA-1032',
             sgstCode: document.getElementById('gst-sgst-code').value || 'LIA-1033',
@@ -437,6 +1287,8 @@
             var json = await res.json();
 
             if (res.ok && json.success) {
+              sessionStorage.setItem('activeSocietyGSTApplicable', isReg ? 'Y' : 'N');
+              localStorage.setItem('activeSocietyGSTApplicable', isReg ? 'Y' : 'N');
               toast('GST Master settings saved to database successfully.', true);
             } else {
               toast((json && json.message) || 'Error saving settings.', false);
@@ -449,19 +1301,6 @@
         resetSettings: function () {
           loadSettings();
           toast('Settings reset to last saved state from database.', true);
-        },
-
-        syncRates: function (type, val) {
-          var parsed = parseFloat(val) || 0;
-          if (type === 'cgst') {
-            document.getElementById('gst-sgst-rate').value = parsed;
-            document.getElementById('gst-cgst-lbl').textContent = 'CGST - ' + parsed + '%';
-            document.getElementById('gst-sgst-lbl').textContent = 'SGST - ' + parsed + '%';
-          } else {
-            document.getElementById('gst-cgst-rate').value = parsed;
-            document.getElementById('gst-cgst-lbl').textContent = 'CGST - ' + parsed + '%';
-            document.getElementById('gst-sgst-lbl').textContent = 'SGST - ' + parsed + '%';
-          }
         },
 
         exit: function () {
@@ -480,18 +1319,8 @@
         if (e.key === 'Escape') GST.exit();
       });
 
-      // Init context & config
-      (function init() {
-        if (window.Auth) {
-          try {
-            var sn = Auth.getSocietyName ? Auth.getSocietyName() : null;
-            var fy = Auth.getFYLabel ? Auth.getFYLabel() : null;
-            if (sn) document.getElementById('gstSocName').textContent = sn;
-            if (fy) document.getElementById('gstFyLabel').textContent = fy;
-          } catch (e) { }
-        }
-        loadSettings();
-      })();
+      // Init on load
+      loadSettings();
 
     })();
   </script>

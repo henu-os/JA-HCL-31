@@ -1,53 +1,200 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SMTP Email Server Configuration — JEEVIKA ERP</title>
+  <title>Email ID Setting &amp; SMTP Configuration — HENU ERP</title>
+  <link rel="icon" type="image/svg+xml" href="../../../favicon.svg">
   <script src="../../../config.js"></script>
+  <script src="../../../assets/js/utils.js"></script>
+  <script src="../../../assets/js/api.js"></script>
+  <script src="../../../assets/js/auth.js"></script>
   <link rel="stylesheet" href="../../../assets/css/global.css">
   <link rel="stylesheet" href="../../../assets/css/components.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="email-settings.css">
 </head>
+
 <body class="erp-module">
-  <div class="erp-module-header">
+
+  <!-- ── Top Module Header ───────────────────────────────────── -->
+  <div class="module-top-bar">
     <div>
-      <div class="erp-module-title">SMTP Email Server Configuration</div>
-      
+      <div class="module-title">
+        <i class="bi bi-envelope-gear-fill"></i> Email ID Setting &amp; Real-Time SMTP Configuration
+      </div>
+      <div class="module-subtitle">
+        Configure society outgoing email delivery parameters for bills, receipts, ledgers, and committee reports
+      </div>
     </div>
-    <button class="erp-btn erp-btn-primary" onclick="refreshData()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
-  </div>
-
-  <div class="erp-search-bar">
-    <input type="text" id="searchInput" class="erp-input erp-search-input" placeholder="🔍 Search..." onkeyup="filterTable()">
-    <div class="erp-record-count" id="recordCount">Total: 0</div>
-  </div>
-
-  <div class="erp-module-body" style="padding:0;">
-    <div class="erp-table-container" style="height:100%;border:none;">
-      <table class="erp-table striped" id="mainTable">
-        <thead>
-          <tr>
-            <th style="width:40px;" class="td-center">#</th>
-            <th>Particulars / Description</th>
-            <th style="width:120px;" class="td-center">Reference</th>
-            <th style="width:120px;" class="td-center">Status</th>
-          </tr>
-        </thead>
-        <tbody id="mainTableBody">
-          <tr>
-            <td colspan="4" class="text-center text-muted" style="padding:30px;">
-              Module initialized. Live data will be loaded here.
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <div class="top-actions">
+      <button type="button" class="btn-top" onclick="testSmtpConnection()" id="btnTestConn">
+        <i class="bi bi-plug-fill"></i> Test Connection
+      </button>
+      <button type="button" class="btn-top btn-top-danger" onclick="deleteEmailConfig()" id="btnReset" style="border-color:#fca5a5;color:#dc2626;background:#fef2f2;">
+        <i class="bi bi-trash-fill"></i> Reset Settings
+      </button>
+      <button type="button" class="btn-top btn-top-primary" onclick="saveEmailConfig()" id="btnSave">
+        <i class="bi bi-save2-fill"></i> Save Configuration
+      </button>
     </div>
   </div>
 
-  <script src="../../../assets/js/api.js"></script>
-  <script src="../../../assets/js/auth.js"></script>
-  <script src="../../../assets/js/utils.js"></script>
+  <!-- ── Status Ribbon ───────────────────────────────────────── -->
+  <div class="summary-strip">
+    <div class="summary-stats">
+      <div class="stat-item">
+        <span>Delivery Channel:</span> <span class="stat-val-highlight">SMTP Standard</span>
+      </div>
+      <div class="stat-item">
+        <span>Active Sender:</span> <span id="metricFromEmail" class="stat-val-highlight">—</span>
+      </div>
+      <div class="stat-item">
+        <span>Target Society:</span> <span id="metricSocLabel" class="stat-val-highlight">Society #1</span>
+      </div>
+    </div>
+    <div>
+      Status: <span id="metricStatus" class="status-badge inactive">NOT CONFIGURED</span>
+    </div>
+  </div>
+
+  <!-- ── Main Content Container ──────────────────────────────── -->
+  <div class="module-content" style="display:flex;flex-direction:column;gap:18px;padding:16px;">
+    
+    <!-- ── Configuration Form Card ───────────────────────────── -->
+    <div class="config-card">
+      <div class="card-header">
+        <span><i class="bi bi-sliders"></i> SMTP Outgoing Server Parameters</span>
+        <span style="font-size:11px;color:var(--text-muted);">Real-Time Configuration Engine</span>
+      </div>
+      <div class="card-body">
+
+        <div class="info-banner">
+          <i class="bi bi-shield-check" style="font-size: 18px;"></i>
+          <div>
+            Credentials are encrypted securely on the server with AES-256. Passwords remain masked and are never exposed to renderer code.
+          </div>
+        </div>
+
+        <form id="emailConfigForm" onsubmit="event.preventDefault(); saveEmailConfig();">
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label" for="providerType">Email Provider Type</label>
+              <select id="providerType" class="form-select">
+                <option value="SMTP">Standard SMTP Server (Gmail / Outlook / Custom)</option>
+                <option value="AWS_SES">Amazon SES (SMTP Relay)</option>
+                <option value="SENDGRID">SendGrid SMTP</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="smtpSecure">Security Protocol</label>
+              <select id="smtpSecure" class="form-select">
+                <option value="STARTTLS">STARTTLS (Recommended for Port 587)</option>
+                <option value="SSL">SSL / TLS (Port 465)</option>
+                <option value="NONE">None / Plaintext (Port 25)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="smtpHost">SMTP Server Host *</label>
+              <input type="text" id="smtpHost" class="form-input" placeholder="e.g. smtp.gmail.com" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="smtpPort">SMTP Port *</label>
+              <input type="number" id="smtpPort" class="form-input" placeholder="587" value="587" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="smtpUsername">SMTP Username / Account</label>
+              <input type="text" id="smtpUsername" class="form-input" placeholder="e.g. henuospvtltd@gmail.com">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="smtpPassword">SMTP Password / App Password</label>
+              <input type="password" id="smtpPassword" class="form-input" placeholder="Leave blank to keep existing password">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="fromEmail">From Email Address *</label>
+              <input type="email" id="fromEmail" class="form-input" placeholder="e.g. henuospvtltd@gmail.com" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="fromName">Sender Display Name *</label>
+              <input type="text" id="fromName" class="form-input" placeholder="e.g. HENU OS PRIVATE LIMITED" required>
+            </div>
+
+            <div class="form-group full-width">
+              <label class="form-label" for="replyTo">Reply-To Address (Optional)</label>
+              <input type="email" id="replyTo" class="form-input" placeholder="e.g. info@henu.in">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="dailyLimit">Daily Message Quota</label>
+              <input type="number" id="dailyLimit" class="form-input" value="1000">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="rateLimit">Rate Limit (Mails / min)</label>
+              <input type="number" id="rateLimit" class="form-input" value="30">
+            </div>
+          </div>
+
+          <!-- ── Test Email Send Strip ───────────────────────── -->
+          <div class="test-section">
+            <div class="form-group" style="flex:1;">
+              <label class="form-label" for="testEmailRecipient">Send Real Verification Test Email</label>
+              <input type="email" id="testEmailRecipient" class="form-input" placeholder="Enter recipient email address (e.g. sidd@henuos.in)">
+            </div>
+            <button type="button" class="btn-top btn-top-success" onclick="sendTestEmail()" id="btnTestSend" style="height:32px;margin-top:20px;">
+              <i class="bi bi-send-fill"></i> Send Test Mail
+            </button>
+          </div>
+        </form>
+
+      </div>
+    </div>
+
+    <!-- ── Live Email Delivery & Activity History Table ──────── -->
+    <div class="config-card">
+      <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+        <span><i class="bi bi-clock-history"></i> Email Dispatch &amp; Verification Activity History</span>
+        <button type="button" class="btn-top" onclick="loadEmailHistory()" style="height:26px;font-size:11px;padding:2px 8px;">
+          <i class="bi bi-arrow-clockwise"></i> Refresh History
+        </button>
+      </div>
+      <div class="card-body" style="padding:0;">
+        <div style="overflow-x:auto;max-height:280px;">
+          <table style="width:100%;border-collapse:collapse;font-size:12px;text-align:left;">
+            <thead>
+              <tr style="background:#f1f5f9;border-bottom:1px solid #cbd5e1;color:#475569;font-weight:700;">
+                <th style="padding:8px 12px;">#</th>
+                <th style="padding:8px 12px;">Dispatched At</th>
+                <th style="padding:8px 12px;">Recipient</th>
+                <th style="padding:8px 12px;">Type</th>
+                <th style="padding:8px 12px;">Status</th>
+                <th style="padding:8px 12px;">Response / Diagnostic Log</th>
+                <th style="padding:8px 12px;text-align:center;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="emailHistoryBody">
+              <tr>
+                <td colspan="7" style="padding:20px;text-align:center;color:#94a3b8;">
+                  <i class="bi bi-hourglass-split"></i> Loading email activity logs...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
   <script src="email-settings.js"></script>
 </body>
+
 </html>

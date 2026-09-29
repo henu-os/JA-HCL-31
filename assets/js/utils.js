@@ -1166,6 +1166,10 @@ var _masterAccountsList = [
   { accountId: 3023, accCode: 'ASS-1023', accName: 'Mobile Phone', accBSName: 'Mobile Phone', mainGroup: 'Asset', groupName: 'Fixed Assets', grpMainId: 1 },
   { accountId: 3024, accCode: 'ASS-1024', accName: 'Epson Printer', accBSName: 'Epson Printer', mainGroup: 'Asset', groupName: 'Fixed Assets', grpMainId: 1 },
   { accountId: 3025, accCode: 'ASS-1025', accName: 'Dues From Members', accBSName: 'Dues From Members', mainGroup: 'Asset', groupName: 'Dues from Members', grpMainId: 1 },
+  { accountId: 3026, accCode: 'ASS-1026', accName: 'TDS Receivable', accBSName: 'TDS Receivable', mainGroup: 'Asset', groupName: 'Advance & Deposit', grpMainId: 1 },
+  { accountId: 3027, accCode: 'ASS-1027', accName: 'Input CGST', accBSName: 'Input CGST', mainGroup: 'Asset', groupName: 'INPUT GST', grpMainId: 1 },
+  { accountId: 3028, accCode: 'ASS-1028', accName: 'Input SGST', accBSName: 'Input SGST', mainGroup: 'Asset', groupName: 'INPUT GST', grpMainId: 1 },
+  { accountId: 3029, accCode: 'ASS-1029', accName: 'Input IGST', accBSName: 'Input IGST', mainGroup: 'Asset', groupName: 'INPUT GST', grpMainId: 1 },
   { accountId: 3999, accCode: 'ASS-1999', accName: 'INCOME & EXPENDITURE A/C', accBSName: 'INCOME & EXPENDITURE A/C', mainGroup: 'Asset', groupName: 'Income & Expenditure', grpMainId: 1 },
 
   // Liabilities
@@ -1189,6 +1193,9 @@ var _masterAccountsList = [
   { accountId: 4018, accCode: 'LIA-1018', accName: 'Prov. Accounting Software AMC Exp.', accBSName: 'Prov. Accounting Software AMC Exp.', mainGroup: 'Liability', groupName: 'Current Liabilities & Provisions', grpMainId: 2 },
   { accountId: 4019, accCode: 'LIA-1019', accName: 'Prov. Income Tax', accBSName: 'Prov. Income Tax', mainGroup: 'Liability', groupName: 'Current Liabilities & Provisions', grpMainId: 2 },
   { accountId: 4020, accCode: 'LIA-1020', accName: 'Dues From Members', accBSName: 'Dues From Members', mainGroup: 'Liability', groupName: 'Dues from Members', grpMainId: 2 },
+  { accountId: 4021, accCode: 'LIA-1021', accName: 'Output CGST', accBSName: 'Output CGST', mainGroup: 'Liability', groupName: 'OUTPUT GST', grpMainId: 2 },
+  { accountId: 4022, accCode: 'LIA-1022', accName: 'Output SGST', accBSName: 'Output SGST', mainGroup: 'Liability', groupName: 'OUTPUT GST', grpMainId: 2 },
+  { accountId: 4023, accCode: 'LIA-1023', accName: 'Output IGST', accBSName: 'Output IGST', mainGroup: 'Liability', groupName: 'OUTPUT GST', grpMainId: 2 },
   { accountId: 4032, accCode: 'LIA-1032', accName: 'CGST 9%', accBSName: 'CGST 9%', mainGroup: 'Liability', groupName: 'Current Liabilities & Provisions', grpMainId: 2 },
   { accountId: 4033, accCode: 'LIA-1033', accName: 'SGST 9%', accBSName: 'SGST 9%', mainGroup: 'Liability', groupName: 'Current Liabilities & Provisions', grpMainId: 2 },
   { accountId: 4999, accCode: 'LIA-1999', accName: 'INCOME & EXPENDITURE A/C', accBSName: 'INCOME & EXPENDITURE A/C', mainGroup: 'Liability', groupName: 'Income & Expenditure', grpMainId: 2 }

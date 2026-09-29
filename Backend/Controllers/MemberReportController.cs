@@ -160,6 +160,37 @@ namespace JeevikaERP.Controllers
             try
             {
                 using var conn = DbHelper.GetConn();
+                var data = GetMemberHeadwiseLedgerData(conn, societyId, fyId, billTypeId, fromMemberCode, toMemberCode, individualMemberCode, fromDate, toDate);
+                return Ok(new
+                {
+                    success = true,
+                    societyName = data.societyName,
+                    billTypeName = data.billTypeName,
+                    fyLabel = data.fyLabel,
+                    startDate = data.startDate.ToString("yyyy-MM-dd"),
+                    endDate = data.endDate.ToString("yyyy-MM-dd"),
+                    dynamicColumns = data.globalColumns,
+                    memberLedgers = data.memberLedgers
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        public static (List<MemberLedgerDto> memberLedgers, List<DynamicColumnDto> globalColumns, string societyName, string billTypeName, string fyLabel, DateTime startDate, DateTime endDate)
+        GetMemberHeadwiseLedgerData(
+            Npgsql.NpgsqlConnection conn,
+            int societyId,
+            int fyId,
+            int? billTypeId = null,
+            string? fromMemberCode = null,
+            string? toMemberCode = null,
+            string? individualMemberCode = null,
+            DateTime? fromDate = null,
+            DateTime? toDate = null)
+        {
 
                 // Dynamic resolution if societyId not provided
                 if (societyId <= 0)
@@ -462,7 +493,7 @@ namespace JeevikaERP.Controllers
                                     SELECT OpPrincipal, OpInterest 
                                     FROM jeevika_erp.SocMemberOpBalance 
                                     WHERE SocietyId = @sid 
-                                      AND (MemberId = @mid OR MemberId IN (SELECT MemberId FROM jeevika_erp.SocMember WHERE SocietyId = @sid AND (MemCode = @mcode OR FlatNo = @mflat)))
+                                      AND MemberId = @mid
                                       AND (LOWER(TRIM(BillType)) = LOWER(TRIM(@btype)) OR LOWER(TRIM(BillType)) = LOWER(TRIM(@bname)))
                                     LIMIT 1";
                                 cmdOp.Parameters.AddWithValue("@sid", societyId);
@@ -499,7 +530,7 @@ namespace JeevikaERP.Controllers
                                 SELECT COALESCE(SUM(b.TotalAmount), 0) - COALESCE(SUM(b.PaidAmount), 0)
                                 FROM jeevika_erp.SocMemberBill b
                                 WHERE b.SocietyId = @sid
-                                  AND (b.MemberId = @mid OR b.MemberId IN (SELECT MemberId FROM jeevika_erp.SocMember WHERE SocietyId = @sid AND (MemCode = @mcode OR FlatNo = @mflat OR CONCAT(Wing, '-', FlatNo) = @mcode)))
+                                  AND b.MemberId = @mid
                                   AND b.IsDeleted = FALSE 
                                   AND b.BillDate < @sdate";
 
@@ -548,7 +579,7 @@ namespace JeevikaERP.Controllers
                                 SELECT b.BillId, b.BillNo, b.BillDate, b.Period, b.TotalAmount, b.PaidAmount, b.BillTypeId, b.BillType
                                 FROM jeevika_erp.SocMemberBill b
                                 WHERE b.SocietyId = @sid
-                                  AND (b.MemberId = @mid OR b.MemberId IN (SELECT MemberId FROM jeevika_erp.SocMember WHERE SocietyId = @sid AND (MemCode = @mcode OR FlatNo = @mflat OR CONCAT(Wing, '-', FlatNo) = @mcode OR MemCode = @mflat)))
+                                  AND b.MemberId = @mid
                                   AND b.IsDeleted = FALSE 
                                   AND (b.FYId = @fyid OR (b.BillDate >= @sdate AND b.BillDate <= @edate))";
 
@@ -968,22 +999,7 @@ namespace JeevikaERP.Controllers
                     }
                 }
 
-                return Ok(new
-                {
-                    success = true,
-                    societyName,
-                    billTypeName,
-                    fyLabel,
-                    startDate = startDate.ToString("yyyy-MM-dd"),
-                    endDate = endDate.ToString("yyyy-MM-dd"),
-                    dynamicColumns = globalColumns,
-                    memberLedgers
-                });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { success = false, message = ex.Message });
-            }
+            return (memberLedgers, globalColumns, societyName, billTypeName, fyLabel, startDate, endDate);
         }
 
         // ── GET /api/reports/member-drcr-register ─────────────────────────────
@@ -1193,7 +1209,7 @@ namespace JeevikaERP.Controllers
                                     SELECT OpPrincipal, OpInterest 
                                     FROM jeevika_erp.SocMemberOpBalance 
                                     WHERE SocietyId = @sid 
-                                      AND (MemberId = @mid OR MemberId IN (SELECT MemberId FROM jeevika_erp.SocMember WHERE SocietyId = @sid AND (MemCode = @mcode OR FlatNo = @mflat)))
+                                      AND MemberId = @mid
                                       AND (LOWER(TRIM(BillType)) = LOWER(TRIM(@btype)) OR LOWER(TRIM(BillType)) = LOWER(TRIM(@bname)))
                                     LIMIT 1";
                                 cmdOp.Parameters.AddWithValue("@sid", societyId);
@@ -1241,7 +1257,7 @@ namespace JeevikaERP.Controllers
                                 SELECT COALESCE(SUM(b.TotalAmount), 0) - COALESCE(SUM(b.PaidAmount), 0)
                                 FROM jeevika_erp.SocMemberBill b
                                 WHERE b.SocietyId = @sid 
-                                  AND (b.MemberId = @mid OR b.MemberId IN (SELECT MemberId FROM jeevika_erp.SocMember WHERE SocietyId = @sid AND (MemCode = @mcode OR FlatNo = @mflat OR CONCAT(Wing, '-', FlatNo) = @mcode)))
+                                  AND b.MemberId = @mid
                                   AND b.IsDeleted = FALSE 
                                   AND b.BillDate < @sdate";
 
@@ -1291,7 +1307,7 @@ namespace JeevikaERP.Controllers
                                 SELECT b.BillId, b.BillNo, b.BillDate, b.Period, b.TotalAmount, b.PaidAmount, b.BillTypeId, b.BillType
                                 FROM jeevika_erp.SocMemberBill b
                                 WHERE b.SocietyId = @sid 
-                                  AND (b.MemberId = @mid OR b.MemberId IN (SELECT MemberId FROM jeevika_erp.SocMember WHERE SocietyId = @sid AND (MemCode = @mcode OR FlatNo = @mflat OR CONCAT(Wing, '-', FlatNo) = @mcode OR MemCode = @mflat)))
+                                  AND b.MemberId = @mid
                                   AND b.IsDeleted = FALSE 
                                   AND (b.FYId = @fyid OR (b.BillDate >= @sdate AND b.BillDate <= @edate))";
 

@@ -101,4 +101,3 @@ window.getApiBaseUrl = function () {
     session: createSafeStorage(nativeSession, _memSession)
   };
 })();
-

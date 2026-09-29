@@ -1,0 +1,777 @@
+/* ═════════════════════════════════════════════════════════════════════
+   JEEVIKA ERP v2 — JOURNAL REGISTER CSS
+   Statutory Journal Voucher Register with modern ERP UX
+   ═════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --primary: #0D47A1;
+  --primary-hover: #0a3880;
+  --primary-light: #eff6ff;
+  --border-clr: #cbd5e1;
+  --navy: #0f172a;
+  --bg-page: #f8fafc;
+  --text-dark: #1e293b;
+  --text-muted: #64748b;
+  --danger: #dc2626;
+  --success: #16a34a;
+}
+
+body.erp-module {
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-page);
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  color: var(--text-dark);
+  overflow: hidden;
+}
+
+/* ── Top Toolbar ─────────────────────────────────────────────────── */
+.reg-toolbar {
+  background: #ffffff;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border-clr);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+}
+
+.reg-filter-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.reg-filter-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.reg-filter-item label {
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Toggle Switch Design for Voucher No. / Code */
+.reg-toggle-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  user-select: none;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.reg-switch {
+  position: relative;
+  display: inline-block;
+  width: 34px;
+  height: 18px;
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.reg-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.reg-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #cbd5e1;
+  transition: .2s ease;
+  border-radius: 18px;
+  border: 1px solid #94a3b8;
+}
+
+.reg-slider:before {
+  position: absolute;
+  content: "";
+  height: 12px;
+  width: 12px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  transition: .2s ease;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.reg-switch input:checked + .reg-slider {
+  background-color: var(--primary, #0D47A1);
+  border-color: #0a3880;
+}
+
+.reg-switch input:checked + .reg-slider:before {
+  transform: translateX(16px);
+}
+
+.reg-input, .reg-select {
+  height: 28px;
+  padding: 2px 8px;
+  font-size: 11px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  background: #ffffff;
+  color: #1e293b;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.reg-input:focus, .reg-select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(13, 71, 161, 0.15);
+}
+
+.reg-search-box {
+  position: relative;
+  width: 220px;
+}
+
+.reg-search-box input {
+  width: 100%;
+  padding-left: 26px;
+  height: 28px;
+  border-radius: 4px;
+  border: 1px solid #cbd5e1;
+  font-size: 11px;
+  box-sizing: border-box;
+}
+
+.reg-search-box i {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  font-size: 11px;
+  pointer-events: none;
+}
+
+.reg-btn {
+  height: 28px;
+  padding: 0 12px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 4px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.reg-btn:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.reg-btn-primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #ffffff;
+}
+
+.reg-btn-primary:hover {
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
+}
+
+.reg-btn-success {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: #ffffff;
+}
+
+.reg-btn-success:hover {
+  background: #15803d;
+  border-color: #15803d;
+}
+
+/* ── Statement Summary Popover ─────────────────────────────────────────── */
+.summary-dropdown-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.summary-dropdown-btn {
+  background: #ffffff;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+  padding: 5px 12px;
+  font-size: 11.5px;
+  font-weight: 700;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+}
+
+.summary-dropdown-btn:hover {
+  background: #eff6ff;
+  border-color: #0284c7;
+}
+
+.summary-dropdown-btn.active {
+  background: #e0f2fe;
+  border-color: #0284c7;
+  color: #0369a1;
+}
+
+.summary-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: auto;
+  width: 330px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.1);
+  padding: 12px;
+  z-index: 1000;
+  display: none;
+}
+
+.summary-popover.show {
+  display: block;
+  animation: popIn 0.15s ease-out;
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.summary-popover-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 8px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.summary-popover-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.pop-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.pop-card.full-width {
+  grid-column: 1 / -1;
+}
+
+.pop-lbl {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pop-val {
+  font-size: 14px;
+  font-weight: 800;
+  margin-top: 3px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.reg-kpi-bar {
+  display: none;
+}
+
+/* ── Scrollable Body Area ───────────────────────────────────────── */
+.reg-scroll-wrapper {
+  flex: 1;
+  overflow: auto;
+  padding: 14px 20px 30px;
+}
+
+.reg-card-container {
+  background: #ffffff;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  overflow: hidden;
+}
+
+/* ── Statutory Print Header (Hidden on Screen) ──────────────────── */
+.reg-print-header {
+  display: none;
+  padding: 16px 20px 10px;
+  border-bottom: 2px solid #0f172a;
+  text-align: center;
+}
+
+.reg-print-soc-name {
+  font-size: 16px;
+  font-weight: 800;
+  color: #000;
+  text-transform: uppercase;
+}
+
+.reg-print-soc-sub {
+  font-size: 10px;
+  color: #333;
+  margin-top: 2px;
+}
+
+.reg-print-title {
+  font-size: 13px;
+  font-weight: 700;
+  margin-top: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ── Register Table ─────────────────────────────────────────────── */
+.reg-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.reg-table thead th {
+  background: #f1f5f9;
+  color: #334155;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  padding: 8px 10px;
+  border-bottom: 2px solid #cbd5e1;
+  border-top: 1px solid #e2e8f0;
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.reg-table tbody tr {
+  border-bottom: 1px solid #e2e8f0;
+  transition: background 0.1s ease;
+}
+
+.reg-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.reg-table td {
+  padding: 7px 10px;
+  vertical-align: top;
+  color: #1e293b;
+}
+
+/* Row separator */
+.reg-voucher-main {
+  background: #ffffff;
+}
+
+.reg-voucher-main td {
+  border-top: 1px solid #cbd5e1;
+}
+
+/* Clickable Voucher Pill */
+.voucher-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+  font-weight: 700;
+  border-radius: 4px;
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.voucher-pill:hover {
+  background: #dbeafe;
+  border-color: #93c5fd;
+  transform: translateY(-0.5px);
+}
+
+/* Account Code Pill */
+.acc-code-pill {
+  display: inline-block;
+  font-size: 9.5px;
+  font-family: ui-monospace, monospace;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  margin-right: 5px;
+  letter-spacing: 0.2px;
+}
+
+.acc-dr-label {
+  color: #dc2626;
+  font-weight: 800;
+  font-size: 10px;
+  margin-right: 4px;
+}
+
+.acc-cr-label {
+  color: #16a34a;
+  font-weight: 800;
+  font-size: 10px;
+  margin-right: 4px;
+}
+
+/* Narration Card / Box */
+.reg-narr-box {
+  padding: 4px 8px;
+  background: #f8fafc;
+  border-left: 3px solid #94a3b8;
+  border-radius: 0 4px 4px 0;
+  font-size: 10.5px;
+  color: #475569;
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
+.reg-narr-line1 {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.reg-narr-line2 {
+  font-size: 9.5px;
+  color: #64748b;
+  margin-top: 1px;
+}
+
+/* Amount Columns - Auto Adjusting & Right Aligned */
+.td-amt {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  width: max-content;
+  min-width: 110px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.td-center {
+  text-align: center;
+}
+
+/* Balanced / Diff Bars */
+.reg-balanced-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 14px;
+  background: #f0fdf4;
+  border-top: 1px solid #bbf7d0;
+  color: #15803d;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.reg-discrepancy-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 14px;
+  background: #fef2f2;
+  border-top: 1px solid #fecaca;
+  color: #b91c1c;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* ── Grand Total Footer ─────────────────────────────────────────── */
+.reg-table tfoot tr {
+  background: #f8fafc;
+  border-top: 2px solid #0f172a;
+  border-bottom: 2px solid #0f172a;
+  font-weight: 800;
+}
+
+.reg-table tfoot td {
+  padding: 10px 10px;
+  color: #0f172a;
+  font-size: 12px;
+}
+
+.foot-tot-label {
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ── Print Styles (Statutory Document - Supports Both Portrait & Landscape) ── */
+@media print {
+  @page {
+    size: auto;
+    margin: 6mm 8mm;
+  }
+
+  body.print-landscape {
+    @page {
+      size: landscape;
+      margin: 6mm 8mm;
+    }
+  }
+
+  body.print-portrait {
+    @page {
+      size: portrait;
+      margin: 6mm 8mm;
+    }
+  }
+
+  *,
+  *::before,
+  *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    box-sizing: border-box !important;
+  }
+
+  html,
+  body.erp-module {
+    height: auto !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    font-size: 8.5pt !important;
+  }
+
+  .reg-toolbar,
+  .reg-kpi-bar,
+  .summary-popover,
+  .summary-dropdown-wrap,
+  .no-print {
+    display: none !important;
+  }
+
+  .reg-scroll-wrapper {
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    display: block !important;
+    height: auto !important;
+  }
+
+  .reg-card-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+  }
+
+  .reg-print-header {
+    display: block !important;
+    text-align: center !important;
+    margin-bottom: 8px !important;
+    padding-bottom: 6px !important;
+  }
+
+  .reg-print-soc-name {
+    font-size: 13pt !important;
+    font-weight: 800 !important;
+    color: #0f172a !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.3px !important;
+  }
+
+  .reg-print-soc-sub {
+    font-size: 8pt !important;
+    color: #64748b !important;
+    margin-top: 1px !important;
+  }
+
+  .reg-print-title {
+    font-size: 9.5pt !important;
+    font-weight: 800 !important;
+    color: #0284c7 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.4px !important;
+    display: inline-block !important;
+    background: #f0f9ff !important;
+    padding: 2px 14px !important;
+    border-radius: 4px !important;
+    border: 1px solid #bae6fd !important;
+    margin-top: 4px !important;
+  }
+
+  .reg-table {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-collapse: collapse !important;
+    table-layout: auto !important;
+  }
+
+  .reg-table thead {
+    display: table-header-group !important;
+  }
+
+  .reg-table tbody {
+    display: table-row-group !important;
+  }
+
+  .reg-table thead th {
+    background: #f1f5f9 !important;
+    color: #1e293b !important;
+    font-size: 8pt !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+    border-top: 2px solid #0284c7 !important;
+    border-bottom: 1.5px solid #0284c7 !important;
+    border-left: none !important;
+    border-right: none !important;
+    padding: 4px 6px !important;
+    position: static !important;
+  }
+
+  .reg-table td {
+    padding: 4px 6px !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    color: #1e293b !important;
+    font-size: 8.5pt !important;
+  }
+
+  .reg-voucher-main td {
+    border-top: 1.5px solid #cbd5e1 !important;
+  }
+
+  /* Keep full color styling for badges, pills, and callout boxes */
+  .voucher-pill {
+    background: #eff6ff !important;
+    border: 1px solid #bfdbfe !important;
+    color: #1d4ed8 !important;
+    font-weight: 700 !important;
+    padding: 1px 5px !important;
+    border-radius: 3px !important;
+    text-decoration: none !important;
+    display: inline-block !important;
+  }
+
+  .acc-code-pill {
+    display: inline-block !important;
+    font-size: 8pt !important;
+    font-weight: 700 !important;
+    padding: 1px 4px !important;
+    border-radius: 3px !important;
+    margin-right: 4px !important;
+  }
+
+  .acc-dr-label {
+    color: #dc2626 !important;
+    font-weight: 800 !important;
+  }
+
+  .acc-cr-label {
+    color: #16a34a !important;
+    font-weight: 800 !important;
+  }
+
+  .reg-chip {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 3px !important;
+    font-size: 7.5pt !important;
+    padding: 1px 5px !important;
+    border-radius: 3px !important;
+    background: #e2e8f0 !important;
+    color: #334155 !important;
+    margin-right: 4px !important;
+    font-weight: 600 !important;
+  }
+
+  .reg-narr-box {
+    margin-top: 3px !important;
+    padding: 3px 6px !important;
+    background: #f8fafc !important;
+    border-left: 3px solid #64748b !important;
+    border-radius: 0 4px 4px 0 !important;
+    font-size: 8pt !important;
+    color: #475569 !important;
+    line-height: 1.3 !important;
+  }
+
+  .reg-narr-line1 {
+    color: #1e293b !important;
+    font-weight: 600 !important;
+  }
+
+  .reg-narr-line2 {
+    color: #64748b !important;
+    font-size: 7.5pt !important;
+  }
+
+  .reg-table tfoot tr {
+    background: #f8fafc !important;
+    border-top: 2px solid #0f172a !important;
+    border-bottom: 2px solid #0f172a !important;
+    font-weight: 800 !important;
+  }
+
+  .reg-balanced-bar {
+    background: #f0fdf4 !important;
+    border-top: 1px solid #bbf7d0 !important;
+    color: #166534 !important;
+    font-weight: 700 !important;
+    display: flex !important;
+  }
+
+  .reg-discrepancy-bar {
+    background: #fef2f2 !important;
+    border-top: 1px solid #fecaca !important;
+    color: #b91c1c !important;
+    font-weight: 700 !important;
+  }
+}

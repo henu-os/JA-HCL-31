@@ -223,6 +223,11 @@
             voucherType: 'Contra',
             amount: c.amount,
             narration: c.narration,
+            particular1: c.particular1 || c.narration || '',
+            particular2: c.particular2 || '',
+            refNo: c.refNo || '',
+            chqNo: c.chqNo || '',
+            chqDate: c.chqDate || null,
             status: c.status,
             items: []
           }));
@@ -249,6 +254,36 @@
     filterTable();
   };
 
+  // Helper: Extract Line 1 and Line 2 narration/particulars
+  function getNarrationLines(v) {
+    let line1 = (v.particular1 || '').trim();
+    let line2 = (v.particular2 || '').trim();
+
+    if (!line1 && v.narration) {
+      const parts = v.narration.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+      line1 = parts[0] || '';
+      if (!line2 && parts.length > 1) {
+        line2 = parts.slice(1).join(' ');
+      }
+    } else if (line1 && !line2 && v.narration) {
+      const narr = v.narration.trim();
+      if (narr !== line1) {
+        line2 = narr;
+      }
+    } else if (line1 && line2 && v.narration) {
+      const narr = v.narration.trim();
+      if (narr !== line1 && narr !== line2) {
+        line2 += ` (${narr})`;
+      }
+    }
+
+    if (!line1 && !line2) {
+      line1 = 'Contra Voucher';
+    }
+
+    return { line1, line2 };
+  }
+
   window.filterTable = function () {
     const q = (document.getElementById('searchInput')?.value || '').toLowerCase().trim();
     const showCodes = document.getElementById('chk-voucher-no')?.checked ?? true;
@@ -258,10 +293,12 @@
       if (q) {
         const vNo = (v.voucherNo || '').toLowerCase();
         const narr = (v.narration || '').toLowerCase();
+        const p1 = (v.particular1 || '').toLowerCase();
+        const p2 = (v.particular2 || '').toLowerCase();
         const amt = String(v.amount || '');
         const ref = (v.refNo || '').toLowerCase();
         const chq = (v.chqNo || '').toLowerCase();
-        let matchText = vNo.includes(q) || narr.includes(q) || amt.includes(q) || ref.includes(q) || chq.includes(q);
+        let matchText = vNo.includes(q) || narr.includes(q) || p1.includes(q) || p2.includes(q) || amt.includes(q) || ref.includes(q) || chq.includes(q);
 
         if (!matchText && Array.isArray(v.items)) {
           matchText = v.items.some(it => {
@@ -364,15 +401,20 @@
 
       // Chips for Reference & Cheque
       let metaChips = '';
-      if (v.chqNo) {
+      if (v.chqNo && v.chqNo !== '-') {
         metaChips += `<span class="reg-chip reg-chip-chq"><i class="bi bi-card-text"></i> Chq: ${escHtml(v.chqNo)}${v.chqDate ? ' (' + formatDate(v.chqDate) + ')' : ''}</span>`;
       }
       if (v.refNo) {
         metaChips += `<span class="reg-chip"><i class="bi bi-hash"></i> Ref: ${escHtml(v.refNo)}</span>`;
       }
 
-      const narrBox = (v.narration || metaChips)
-        ? `<div class="reg-narr-box">${metaChips}${escHtml(v.narration || 'Contra Fund Transfer')}</div>`
+      const { line1, line2 } = getNarrationLines(v);
+      const narrBox = (line1 || line2 || metaChips)
+        ? `<div class="reg-narr-box">
+             ${metaChips ? `<div style="margin-bottom:2px;">${metaChips}</div>` : ''}
+             ${line1 ? `<div class="reg-narr-line1">${escHtml(line1)}</div>` : ''}
+             ${line2 ? `<div class="reg-narr-line2">${escHtml(line2)}</div>` : ''}
+           </div>`
         : '';
 
       const printUrl = `../contra-voucher-print/contra-voucher-print.html?id=${vId}&vno=${encodeURIComponent(vNo)}`;
@@ -460,10 +502,39 @@
     if (kpiCash) kpiCash.textContent = `₹ ${formatINR(cashOut)}`;
   }
 
+  // ── Statement Summary Popover Toggle ───────────────────────────────────────
+  window.toggleSummaryPopover = function (event) {
+    if (event) event.stopPropagation();
+    const pop = document.getElementById('summaryPopover');
+    const btn = document.getElementById('btnSummaryToggle');
+    if (!pop) return;
+
+    const isShown = pop.classList.contains('show');
+    if (isShown) {
+      pop.classList.remove('show');
+      if (btn) btn.classList.remove('active');
+    } else {
+      pop.classList.add('show');
+      if (btn) btn.classList.add('active');
+    }
+  };
+
+  // Close summary popover when clicking anywhere outside
+  document.addEventListener('click', (e) => {
+    const pop = document.getElementById('summaryPopover');
+    const btn = document.getElementById('btnSummaryToggle');
+    if (pop && pop.classList.contains('show')) {
+      if (!pop.contains(e.target) && e.target !== btn && !btn?.contains(e.target)) {
+        pop.classList.remove('show');
+        if (btn) btn.classList.remove('active');
+      }
+    }
+  });
+
   // ── 5. PRINT STATEMENT ───────────────────────────────────────────────────
   window.printRegister = function () {
     updatePrintDates();
-    const socName = (window.Auth && Auth.getSocietyName) ? Auth.getSocietyName() : 'Contra_Register';
+    const socName = (window.Auth && Auth.getSocietyName) ? Auth.getSocietyName() : (sessionStorage.getItem('activeSocietyName') || 'Contra_Register');
     const origTitle = document.title;
     document.title = `${socName}_Contra_Register`.replace(/\s+/g, '_');
     window.print();

@@ -3,51 +3,214 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Send Email to Managing Committee — JEEVIKA ERP</title>
+  <title>Mail to Committee — HENU ERP</title>
   <script src="../../../config.js"></script>
-  <link rel="stylesheet" href="../../../assets/css/global.css">
-  <link rel="stylesheet" href="../../../assets/css/components.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-</head>
-<body class="erp-module">
-  <div class="erp-module-header">
-    <div>
-      <div class="erp-module-title">Send Email to Managing Committee</div>
-      
-    </div>
-    <button class="erp-btn erp-btn-primary" onclick="refreshData()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
-  </div>
-
-  <div class="erp-search-bar">
-    <input type="text" id="searchInput" class="erp-input erp-search-input" placeholder="🔍 Search..." onkeyup="filterTable()">
-    <div class="erp-record-count" id="recordCount">Total: 0</div>
-  </div>
-
-  <div class="erp-module-body" style="padding:0;">
-    <div class="erp-table-container" style="height:100%;border:none;">
-      <table class="erp-table striped" id="mainTable">
-        <thead>
-          <tr>
-            <th style="width:40px;" class="td-center">#</th>
-            <th>Particulars / Description</th>
-            <th style="width:120px;" class="td-center">Reference</th>
-            <th style="width:120px;" class="td-center">Status</th>
-          </tr>
-        </thead>
-        <tbody id="mainTableBody">
-          <tr>
-            <td colspan="4" class="text-center text-muted" style="padding:30px;">
-              Module initialized. Live data will be loaded here.
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
   <script src="../../../assets/js/api.js"></script>
   <script src="../../../assets/js/auth.js"></script>
   <script src="../../../assets/js/utils.js"></script>
+  <link rel="stylesheet" href="../../../assets/vendor/bootstrap-icons/bootstrap-icons.css">
+  <link rel="stylesheet" href="mail-to-committee.css">
+</head>
+<body class="erp-module">
+
+  <!-- Top Header Bar -->
+  <header class="module-top-bar">
+    <div class="module-title">
+      <i class="bi bi-briefcase-fill text-primary"></i>
+      <span>Communication ➔ Mail to Committee (Accounting Financial Reports)</span>
+    </div>
+    <div class="top-actions">
+      <button class="btn-top" id="btnRefreshCommittee" title="Reload Committee Directory">
+        <i class="bi bi-arrow-clockwise"></i> Refresh List
+      </button>
+      <button class="btn-top btn-top-primary" id="btnPreviewReportMail">
+        <i class="bi bi-eye"></i> Preview Email
+      </button>
+      <button class="btn-top btn-top-success" id="btnQueueReportMail">
+        <i class="bi bi-send-check"></i> Queue Report Dispatch (<span id="countSelectedTop">0</span>)
+      </button>
+    </div>
+  </header>
+
+  <!-- 14 Committee Reports Tab Bar -->
+  <nav class="report-tabs" id="reportTabs">
+    <button class="rep-tab active" data-report="INCOME_EXPENDITURE">
+      <i class="bi bi-graph-up"></i> Income & Expenditure
+    </button>
+    <button class="rep-tab" data-report="BALANCE_SHEET">
+      <i class="bi bi-calculator"></i> Balance Sheet
+    </button>
+    <button class="rep-tab" data-report="TRIAL_BALANCE">
+      <i class="bi bi-bar-chart"></i> Trial Balance
+    </button>
+    <button class="rep-tab" data-report="CASH_BANK_BOOK">
+      <i class="bi bi-book"></i> Cash / Bank Book
+    </button>
+    <button class="rep-tab" data-report="LEDGER_CODE_WISE">
+      <i class="bi bi-journal-code"></i> Ledger (Code Wise)
+    </button>
+    <button class="rep-tab" data-report="LEDGER_GROUP_WISE">
+      <i class="bi bi-collection"></i> Ledger (Group Wise)
+    </button>
+    <button class="rep-tab" data-report="RECEIPT_PAYMENT_GROUP">
+      <i class="bi bi-arrow-left-right"></i> R&P (Groupwise)
+    </button>
+    <button class="rep-tab" data-report="RECEIPT_PAYMENT_ACCOUNT">
+      <i class="bi bi-receipt"></i> R&P (Accountwise)
+    </button>
+    <button class="rep-tab" data-report="SCHEDULE">
+      <i class="bi bi-calendar3"></i> Schedule
+    </button>
+    <button class="rep-tab" data-report="MONTHLY_REPORT">
+      <i class="bi bi-calendar-check"></i> Monthly Report
+    </button>
+    <button class="rep-tab" data-report="RECEIPT_REGISTER">
+      <i class="bi bi-card-checklist"></i> Receipt Register
+    </button>
+    <button class="rep-tab" data-report="PAYMENT_REGISTER">
+      <i class="bi bi-credit-card"></i> Payment Register
+    </button>
+    <button class="rep-tab" data-report="CONTRA_REGISTER">
+      <i class="bi bi-shuffle"></i> Contra Register
+    </button>
+    <button class="rep-tab" data-report="JOURNAL_REGISTER">
+      <i class="bi bi-journal-text"></i> Journal Register
+    </button>
+  </nav>
+
+  <!-- Filter & Period Configuration Strip -->
+  <div class="filter-strip">
+    <div class="filter-group">
+      <label class="filter-label">Filter Designation:</label>
+      <select class="filter-select" id="filterDesignation">
+        <option value="">-- All Designations --</option>
+        <option value="President">President</option>
+        <option value="Secretary">Secretary</option>
+        <option value="Treasurer">Treasurer</option>
+        <option value="Committee Member">Committee Member</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label class="filter-label">From Date:</label>
+      <input type="date" class="filter-input" id="repFromDate" value="2026-04-01">
+    </div>
+
+    <div class="filter-group">
+      <label class="filter-label">To Date:</label>
+      <input type="date" class="filter-input" id="repToDate" value="2027-03-31">
+    </div>
+
+    <div class="filter-group">
+      <label class="filter-label">Search:</label>
+      <input type="text" class="filter-input" id="searchCommittee" placeholder="Name or Designation...">
+    </div>
+  </div>
+
+  <!-- Summary Counters Strip -->
+  <div class="summary-strip">
+    <div class="summary-stats">
+      <span>Total Committee: <strong class="badge-stat badge-total" id="statTotal">0</strong></span>
+      <span>Selected: <strong class="badge-stat badge-valid" id="statSelected">0</strong></span>
+      <span>Valid Email: <strong class="badge-stat badge-valid" id="statValid">0</strong></span>
+      <span>Missing Email: <strong class="badge-stat badge-missing" id="statMissing">0</strong></span>
+    </div>
+    <div style="font-size: 11px; color: var(--text-muted);">
+      <i class="bi bi-shield-check"></i> Official accounting statements generated directly from Society General Ledger
+    </div>
+  </div>
+
+  <!-- Main View Split -->
+  <main class="module-content">
+    
+    <!-- Left: Committee Recipients Table -->
+    <section class="recipients-pane">
+      <div class="table-container">
+        <table class="erp-table">
+          <thead>
+            <tr>
+              <th style="width: 36px; text-align: center;">
+                <input type="checkbox" id="selectAllCheckbox">
+              </th>
+              <th>Member Name</th>
+              <th>Designation</th>
+              <th>Email Address</th>
+              <th>Contact No</th>
+              <th>Term Period</th>
+              <th style="text-align: center;">Email Status</th>
+            </tr>
+          </thead>
+          <tbody id="committeeTableBody">
+            <tr>
+              <td colspan="7" style="text-align: center; padding: 24px; color: var(--text-muted);">
+                <i class="bi bi-hourglass-split"></i> Loading committee records...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Right: Report Message Template -->
+    <aside class="template-pane">
+      
+      <div class="template-card">
+        <div class="template-title">
+          <i class="bi bi-envelope-paper"></i> Committee Dispatch Details
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Subject Line:</label>
+          <input type="text" class="form-input" id="committeeSubject" value="[Society] Financial Statement: Income & Expenditure">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Email Message / Memo:</label>
+          <textarea class="form-textarea" id="committeeBody"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Generated Financial PDF Report:</label>
+          <div class="attach-badge">
+            <i class="bi bi-file-earmark-pdf-fill text-danger"></i>
+            <span id="attachedReportTitle">Income & Expenditure Statement PDF</span>
+          </div>
+        </div>
+      </div>
+
+    </aside>
+
+  </main>
+
+  <!-- Preview Modal -->
+  <div class="modal-overlay" id="previewModal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <span id="previewModalTitle"><i class="bi bi-envelope-open"></i> Sample Committee Email Preview</span>
+        <button style="background:none; border:none; color:white; font-size:18px; cursor:pointer;" id="btnClosePreview">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="margin-bottom: 8px;">
+          <strong>To:</strong> <span id="previewRecipient" style="color: var(--primary); font-family: monospace;">-</span>
+        </div>
+        <div style="margin-bottom: 8px;">
+          <strong>Subject:</strong> <span id="previewSubject" style="font-weight: 700;">-</span>
+        </div>
+        <div style="margin-bottom: 8px;">
+          <strong>Attachment:</strong> <span id="previewAttachment" class="attach-badge">-</span>
+        </div>
+        <div><strong>Message Content:</strong></div>
+        <div class="preview-box" id="previewContent"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-top" id="btnDismissPreview">Close</button>
+        <button class="btn-top btn-top-success" id="btnConfirmQueue">
+          <i class="bi bi-send-check"></i> Confirm & Queue (<span id="previewCount">0</span>)
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script src="mail-to-committee.js"></script>
 </body>
 </html>

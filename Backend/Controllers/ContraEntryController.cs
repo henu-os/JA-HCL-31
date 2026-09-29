@@ -27,7 +27,8 @@ namespace JeevikaERP.Controllers
 
                 cmd.CommandText = @"
                     SELECT VoucherId, SocietyId, FYId, VoucherNo, VoucherDate, Amount,
-                           PersonName, PersonType, RefNo, Narration, Status, CreatedAt
+                           PersonName, PersonType, RefNo, Narration, Particular1, Particular2,
+                           ChqNo, ChqDate, Status, CreatedAt
                     FROM jeevika_erp.SocVoucherHeader
                     WHERE SocietyId = @sid AND FYId = @fyid AND VoucherType = 'Contra' AND IsDeleted = FALSE
                     ORDER BY VoucherDate DESC, VoucherId DESC";
@@ -47,6 +48,11 @@ namespace JeevikaERP.Controllers
                         personName = r["PersonName"].ToString() ?? "Bank Transfer",
                         amount     = Convert.ToDecimal(r["Amount"]),
                         narration  = r["Narration"].ToString() ?? "",
+                        particular1= r["Particular1"]?.ToString() ?? "",
+                        particular2= r["Particular2"]?.ToString() ?? "",
+                        refNo      = r["RefNo"]?.ToString() ?? "",
+                        chqNo      = r["ChqNo"]?.ToString() ?? "",
+                        chqDate    = r["ChqDate"] == DBNull.Value ? null : ((DateTime)r["ChqDate"]).ToString("yyyy-MM-dd"),
                         status     = r["Status"].ToString() ?? "Posted"
                     });
                 }
@@ -82,26 +88,36 @@ namespace JeevikaERP.Controllers
                 string vNo = $"CE-{(count + 1):D4}";
 
                 // 2. Create Header
+                var p1 = !string.IsNullOrWhiteSpace(model.Particular1) ? model.Particular1 : (!string.IsNullOrWhiteSpace(model.Particulars) ? model.Particulars : (!string.IsNullOrWhiteSpace(model.Narration) ? model.Narration : "Contra Voucher"));
+                var p2 = model.Particular2 ?? "";
+                var narration = !string.IsNullOrWhiteSpace(p1) ? p1 : "Contra Voucher Entry";
+
                 using var vCmd = conn.CreateCommand();
                 vCmd.Transaction = tx;
                 vCmd.CommandText = @"
                     INSERT INTO jeevika_erp.SocVoucherHeader
                         (SocietyId, FYId, VoucherNo, VoucherType, VoucherDate, Amount,
-                         PersonName, PersonType, RefNo, Narration, Status, IsDeleted, CreatedBy, CreatedAt, UpdatedAt)
+                         PersonName, PersonType, RefNo, Narration, Particular1, Particular2,
+                         ChqNo, ChqDate, Status, IsDeleted, CreatedBy, CreatedAt, UpdatedAt)
                     VALUES
                         (@sid, @fyid, @vno, 'Contra', @vdate, @amt,
-                         @person, 'Bank/Cash', @ref, @narr, 'Posted', FALSE, @user, NOW(), NOW())
+                         @person, 'Bank/Cash', @ref, @narr, @p1, @p2,
+                         @chqNo, @chqDate, 'Posted', FALSE, @user, NOW(), NOW())
                     RETURNING VoucherId";
 
-                vCmd.Parameters.AddWithValue("@sid",    model.SocietyId);
-                vCmd.Parameters.AddWithValue("@fyid",   model.FYId);
-                vCmd.Parameters.AddWithValue("@vno",    vNo);
-                vCmd.Parameters.AddWithValue("@vdate",  model.ContraDate);
-                vCmd.Parameters.AddWithValue("@amt",    model.Amount);
-                vCmd.Parameters.AddWithValue("@person", (object?)model.PersonName ?? "Bank/Cash Transfer");
-                vCmd.Parameters.AddWithValue("@ref",    (object?)model.ReferenceNo ?? "");
-                vCmd.Parameters.AddWithValue("@narr",   (object?)model.Particulars ?? "Contra Voucher Entry");
-                vCmd.Parameters.AddWithValue("@user",   User.Identity?.Name        ?? "ADMIN");
+                vCmd.Parameters.AddWithValue("@sid",     model.SocietyId);
+                vCmd.Parameters.AddWithValue("@fyid",    model.FYId);
+                vCmd.Parameters.AddWithValue("@vno",     vNo);
+                vCmd.Parameters.AddWithValue("@vdate",   model.ContraDate);
+                vCmd.Parameters.AddWithValue("@amt",     model.Amount);
+                vCmd.Parameters.AddWithValue("@person",  (object?)model.PersonName ?? "Bank/Cash Transfer");
+                vCmd.Parameters.AddWithValue("@ref",     (object?)model.ReferenceNo ?? "");
+                vCmd.Parameters.AddWithValue("@narr",    narration);
+                vCmd.Parameters.AddWithValue("@p1",      (object?)p1 ?? DBNull.Value);
+                vCmd.Parameters.AddWithValue("@p2",      (object?)p2 ?? DBNull.Value);
+                vCmd.Parameters.AddWithValue("@chqNo",   (object?)model.ChqNo ?? "");
+                vCmd.Parameters.AddWithValue("@chqDate", (object?)model.ChqDate ?? DBNull.Value);
+                vCmd.Parameters.AddWithValue("@user",    User.Identity?.Name ?? "ADMIN");
 
                 var voucherId = Convert.ToInt32(vCmd.ExecuteScalar());
 
@@ -241,5 +257,8 @@ namespace JeevikaERP.Controllers
         public string?   ChqNo         { get; set; }
         public DateTime? ChqDate       { get; set; }
         public string?   Particulars   { get; set; }
+        public string?   Particular1   { get; set; }
+        public string?   Particular2   { get; set; }
+        public string?   Narration     { get; set; }
     }
 }

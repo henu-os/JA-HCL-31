@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TDS Report &amp; Compliance — JEEVIKA ERP</title>
+  <script src="../../../config.js"></script>
+  <link rel="stylesheet" href="../../../assets/css/global.css">
+  <link rel="stylesheet" href="../../../assets/css/components.css">
+  <link rel="stylesheet" href="tds-report.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body class="erp-module">
+
+  <!-- ── Top Filter & Action Toolbar ────────────────────────────────────────── -->
+  <div class="tds-toolbar">
+    <div class="tds-filter-group">
+      <div class="tds-filter-item">
+        <label for="tds-fy"><i class="bi bi-calendar3"></i> FY:</label>
+        <select id="tds-fy" class="tds-select" onchange="loadTdsData()">
+          <option value="2026-2027" selected>2026-2027</option>
+          <option value="2025-2026">2025-2026</option>
+          <option value="2024-2025">2024-2025</option>
+        </select>
+      </div>
+
+      <div class="tds-filter-item">
+        <label for="tds-quarter"><i class="bi bi-pie-chart"></i> Quarter:</label>
+        <select id="tds-quarter" class="tds-select" onchange="loadTdsData()">
+          <option value="ALL">All Quarters</option>
+          <option value="Q1" selected>Q1 (Apr-Jun)</option>
+          <option value="Q2">Q2 (Jul-Sep)</option>
+          <option value="Q3">Q3 (Oct-Dec)</option>
+          <option value="Q4">Q4 (Jan-Mar)</option>
+        </select>
+      </div>
+
+      <div class="tds-filter-item">
+        <label for="tds-section-filter"><i class="bi bi-tag"></i> Section:</label>
+        <select id="tds-section-filter" class="tds-select" onchange="loadTdsData()">
+          <option value="ALL">All Sections</option>
+          <option value="194C">194C (Contractor)</option>
+          <option value="194J">194J (Professional)</option>
+          <option value="194I">194I (Rent)</option>
+          <option value="194H">194H (Commission)</option>
+        </select>
+      </div>
+
+      <div class="tds-filter-item">
+        <label for="tds-status-filter"><i class="bi bi-check-circle"></i> Status:</label>
+        <select id="tds-status-filter" class="tds-select" onchange="loadTdsData()">
+          <option value="ALL">All Status</option>
+          <option value="Confirmed">Confirmed</option>
+          <option value="Deposited">Deposited</option>
+          <option value="Suggested">Suggested</option>
+          <option value="Outstanding">Outstanding</option>
+        </select>
+      </div>
+
+      <div class="tds-filter-item">
+        <input type="text" id="tds-search" class="tds-input" placeholder="Search Voucher, Vendor, PAN..." style="width: 160px;" onkeyup="if(event.key==='Enter') loadTdsData()">
+      </div>
+    </div>
+
+    <div class="tds-filter-group btn-no-print">
+      <button class="tds-btn tds-btn-detect" onclick="detectTdsTransactions()" title="Auto-scan payment & purchase vouchers">
+        <i class="bi bi-magic"></i> Detect TDS
+      </button>
+      <button class="tds-btn tds-btn-primary" onclick="openNewTransactionModal()">
+        <i class="bi bi-plus-circle"></i> Add Entry
+      </button>
+      <button class="tds-btn" onclick="openChallanModal()">
+        <i class="bi bi-receipt-cutoff"></i> Challans
+      </button>
+      <button class="tds-btn" onclick="openDeducteeModal()">
+        <i class="bi bi-person-badge"></i> Deductees
+      </button>
+      <button class="tds-btn" onclick="loadTdsData()">
+        <i class="bi bi-arrow-clockwise"></i> Refresh
+      </button>
+      <button class="tds-btn tds-btn-success" onclick="exportToExcel()">
+        <i class="bi bi-file-earmark-excel"></i> Excel
+      </button>
+      <button class="tds-btn" onclick="window.print()">
+        <i class="bi bi-printer"></i> Print
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Tab Navigation ─────────────────────────────────────────────────────── -->
+  <div class="tds-tabs-bar btn-no-print">
+    <button class="tds-tab-btn active" onclick="switchTab('tab-register', this)">
+      <i class="bi bi-table"></i> Deductee Statement &amp; Register <span class="badge-cnt" id="cnt-txns">0</span>
+    </button>
+    <button class="tds-tab-btn" onclick="switchTab('tab-sections', this)">
+      <i class="bi bi-pie-chart-fill"></i> Section Summary (Sec E)
+    </button>
+    <button class="tds-tab-btn" onclick="switchTab('tab-deductees-summary', this)">
+      <i class="bi bi-people-fill"></i> Deductee Summary (Sec F)
+    </button>
+    <button class="tds-tab-btn" onclick="switchTab('tab-challans', this)">
+      <i class="bi bi-bank"></i> Challans &amp; Deposits (Sec C) <span class="badge-cnt" id="cnt-challans">0</span>
+    </button>
+    <button class="tds-tab-btn" onclick="switchTab('tab-rules', this)">
+      <i class="bi bi-sliders"></i> Tax Rules &amp; Rates Config
+    </button>
+  </div>
+
+  <!-- ── Scrollable Report Body ─────────────────────────────────────────────── -->
+  <div class="tds-scroll-area">
+
+    <!-- ── Section A: Society & Compliance Header Card ──────────────────────── -->
+    <div class="soc-header-card">
+      <div class="soc-info">
+        <h2 id="soc-name">HENU CO-OPERATIVE HOUSING SOCIETY LTD.</h2>
+        <div class="soc-meta" id="soc-address">Plot 12, Sector 19, Seawoods, Navi Mumbai, Maharashtra - 400706</div>
+        <div class="soc-tax-badges">
+          <span class="tax-badge"><i class="bi bi-credit-card"></i> PAN: <strong id="soc-pan">AAACH1234F</strong></span>
+          <span class="tax-badge"><i class="bi bi-file-earmark-text"></i> TAN: <strong id="soc-tan">MUMH01234F</strong></span>
+          <span class="tax-badge"><i class="bi bi-building"></i> GSTIN: <strong id="soc-gstin">27AAACH1234F1Z5</strong></span>
+          <span class="tax-badge"><i class="bi bi-calendar-event"></i> Period: <strong id="lbl-period">FY 2026-2027 (Q1)</strong></span>
+        </div>
+      </div>
+      <div class="report-badge-legal">
+        <div><i class="bi bi-shield-check"></i> TDS COMPLIANCE WORKING REPORT</div>
+        <div style="font-size: 9.5px; color: #78350f; font-weight: normal; margin-top: 2px;">
+          Section 194C / 194J / 194I / 194H — Income Tax Act, 1961
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Section B: TDS KPI Summary Cards ─────────────────────────────────── -->
+    <div class="tds-kpi-grid">
+      <div class="kpi-card">
+        <span class="kpi-label">Total Transactions</span>
+        <span class="kpi-val" id="kpi-txns">0</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-label">Gross Amount</span>
+        <span class="kpi-val" id="kpi-gross">₹ 0.00</span>
+      </div>
+      <div class="kpi-card kpi-deducted">
+        <span class="kpi-label">TDS Deducted</span>
+        <span class="kpi-val" id="kpi-deducted">₹ 0.00</span>
+      </div>
+      <div class="kpi-card kpi-deposited">
+        <span class="kpi-label">TDS Deposited</span>
+        <span class="kpi-val" id="kpi-deposited">₹ 0.00</span>
+      </div>
+      <div class="kpi-card kpi-outstanding">
+        <span class="kpi-label">Outstanding TDS</span>
+        <span class="kpi-val" id="kpi-outstanding">₹ 0.00</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-label">Challans Mapped</span>
+        <span class="kpi-val" id="kpi-challans">0</span>
+      </div>
+      <div class="kpi-card kpi-interest">
+        <span class="kpi-label">Interest &amp; Fees</span>
+        <span class="kpi-val" id="kpi-interest">₹ 0.00</span>
+      </div>
+    </div>
+
+    <!-- ── TAB 1: Main TDS Deductee Statement & Register ────────────────────── -->
+    <div id="tab-register" class="tds-tab-content">
+      <div class="tds-table-card">
+        <div class="tds-card-header">
+          <h3><i class="bi bi-list-check"></i> Section D — Deductee Statement &amp; Transaction Register</h3>
+          <span style="font-size:11px; color:#64748b;" id="lbl-table-info">Showing all transactions</span>
+        </div>
+        <div class="table-responsive">
+          <table class="tds-table">
+            <thead>
+              <tr>
+                <th class="text-center" style="width: 40px;">Sr</th>
+                <th>Voucher No</th>
+                <th>Date</th>
+                <th>Deductee / Vendor</th>
+                <th>PAN</th>
+                <th>Nature of Payment</th>
+                <th>Sec</th>
+                <th class="text-right">Gross Amt (₹)</th>
+                <th class="text-right">Taxable (₹)</th>
+                <th class="text-center">Rate</th>
+                <th class="text-right">TDS Amt (₹)</th>
+                <th>Challan No</th>
+                <th>Challan Date</th>
+                <th class="text-right">Deposited (₹)</th>
+                <th class="text-right">Outstanding (₹)</th>
+                <th class="text-center">Status</th>
+                <th class="text-center btn-no-print" style="width: 70px;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="tbl-tds-body">
+              <tr><td colspan="17" class="text-center" style="padding: 24px; color: #94a3b8;"><i class="bi bi-hourglass-split"></i> Loading TDS transactions...</td></tr>
+            </tbody>
+            <tfoot>
+              <tr class="total-row" id="tbl-tds-footer">
+                <td colspan="7" class="text-right">Total:</td>
+                <td class="text-right" id="tot-gross">₹ 0.00</td>
+                <td class="text-right" id="tot-taxable">₹ 0.00</td>
+                <td class="text-center">-</td>
+                <td class="text-right" id="tot-tds">₹ 0.00</td>
+                <td colspan="2">-</td>
+                <td class="text-right" id="tot-dep">₹ 0.00</td>
+                <td class="text-right" id="tot-out">₹ 0.00</td>
+                <td colspan="2">-</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB 2: Section-wise Summary (Section E) ──────────────────────────── -->
+    <div id="tab-sections" class="tds-tab-content" style="display:none;">
+      <div class="tds-table-card">
+        <div class="tds-card-header">
+          <h3><i class="bi bi-pie-chart"></i> Section E — Section-Wise TDS Summary</h3>
+        </div>
+        <div class="table-responsive">
+          <table class="tds-table">
+            <thead>
+              <tr>
+                <th style="width: 100px;">Section</th>
+                <th>Nature of Payment</th>
+                <th class="text-center">Transactions</th>
+                <th class="text-right">Gross Amount (₹)</th>
+                <th class="text-right">TDS Deducted (₹)</th>
+                <th class="text-right">Deposited (₹)</th>
+                <th class="text-right">Balance Outstanding (₹)</th>
+              </tr>
+            </thead>
+            <tbody id="tbl-sections-body">
+              <tr><td colspan="7" class="text-center" style="padding: 20px;">Loading section breakdown...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB 3: Deductee-wise Summary (Section F) ─────────────────────────── -->
+    <div id="tab-deductees-summary" class="tds-tab-content" style="display:none;">
+      <div class="tds-table-card">
+        <div class="tds-card-header">
+          <h3><i class="bi bi-people"></i> Section F — Deductee-Wise Cumulative Statement</h3>
+        </div>
+        <div class="table-responsive">
+          <table class="tds-table">
+            <thead>
+              <tr>
+                <th>Deductee / Vendor Name</th>
+                <th>PAN</th>
+                <th class="text-center">Transactions</th>
+                <th class="text-right">Total Gross (₹)</th>
+                <th class="text-right">Total TDS (₹)</th>
+                <th class="text-right">Deposited (₹)</th>
+                <th class="text-right">Outstanding (₹)</th>
+              </tr>
+            </thead>
+            <tbody id="tbl-deductees-summary-body">
+              <tr><td colspan="7" class="text-center" style="padding: 20px;">Loading deductee summary...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB 4: Challan Management (Section C) ────────────────────────────── -->
+    <div id="tab-challans" class="tds-tab-content" style="display:none;">
+      <div class="tds-table-card">
+        <div class="tds-card-header">
+          <h3><i class="bi bi-bank"></i> Section C — TDS Challans &amp; Payment Verification</h3>
+          <button class="tds-btn tds-btn-primary btn-no-print" onclick="openAddChallanModal()">
+            <i class="bi bi-plus-circle"></i> Record Challan Deposit
+          </button>
+        </div>
+        <div class="table-responsive">
+          <table class="tds-table">
+            <thead>
+              <tr>
+                <th>Challan No / Serial</th>
+                <th>BSR Code</th>
+                <th>Challan Date</th>
+                <th>Payment Date</th>
+                <th class="text-right">TDS (₹)</th>
+                <th class="text-right">Interest (₹)</th>
+                <th class="text-right">Fee (₹)</th>
+                <th class="text-right">Total Deposited (₹)</th>
+                <th class="text-right">Mapped TDS (₹)</th>
+                <th class="text-right">Unallocated (₹)</th>
+                <th class="text-center">Quarter</th>
+                <th class="text-center">Status</th>
+              </tr>
+            </thead>
+            <tbody id="tbl-challans-body">
+              <tr><td colspan="12" class="text-center" style="padding: 20px;">Loading challans...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB 5: Tax Rules Configuration ───────────────────────────────────── -->
+    <div id="tab-rules" class="tds-tab-content" style="display:none;">
+      <div class="tds-table-card">
+        <div class="tds-card-header">
+          <h3><i class="bi bi-sliders"></i> Date-Effective TDS Rate &amp; Threshold Rules Engine</h3>
+          <span style="font-size:11px; color:#64748b;">Statutory references under Income Tax Act, 1961</span>
+        </div>
+        <div class="table-responsive">
+          <table class="tds-table">
+            <thead>
+              <tr>
+                <th>Section</th>
+                <th>Nature of Payment</th>
+                <th>Deductee Type</th>
+                <th class="text-center">Applicable Rate</th>
+                <th class="text-right">Statutory Threshold (₹)</th>
+                <th>Effective From</th>
+                <th>Applicable Act</th>
+              </tr>
+            </thead>
+            <tbody id="tbl-rules-body">
+              <tr><td colspan="7" class="text-center" style="padding: 20px;">Loading tax rules...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── MODAL 1: New TDS Transaction ───────────────────────────────────────── -->
+  <div class="modal-overlay" id="modal-new-txn">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3><i class="bi bi-plus-circle text-primary"></i> Create / Review TDS Transaction</h3>
+        <button class="modal-close-btn" onclick="closeModal('modal-new-txn')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Voucher Ref / Number</label>
+            <input type="text" id="txn-vno" class="tds-input" placeholder="e.g. PV-2026-084">
+          </div>
+          <div class="form-group">
+            <label>Voucher Date</label>
+            <input type="date" id="txn-date" class="tds-input">
+          </div>
+          <div class="form-group full-width">
+            <label>Deductee / Vendor Name</label>
+            <input type="text" id="txn-deductee" class="tds-input" placeholder="e.g. Apex Security Solutions">
+          </div>
+          <div class="form-group">
+            <label>Deductee PAN</label>
+            <input type="text" id="txn-pan" class="tds-input" placeholder="e.g. AACCA1234K" maxlength="10">
+          </div>
+          <div class="form-group">
+            <label>TDS Section</label>
+            <select id="txn-section" class="tds-select" onchange="onSectionChanged()">
+              <option value="194C">194C - Contractor (2%)</option>
+              <option value="194J">194J - Professional (10%)</option>
+              <option value="194I">194I - Rent (10%)</option>
+              <option value="194H">194H - Commission (5%)</option>
+            </select>
+          </div>
+          <div class="form-group full-width">
+            <label>Nature of Payment</label>
+            <input type="text" id="txn-nature" class="tds-input" value="Security & Guarding Services">
+          </div>
+          <div class="form-group">
+            <label>Gross Amount (₹)</label>
+            <input type="number" id="txn-gross" class="tds-input" step="0.01" value="50000" oninput="recalcTdsModal()">
+          </div>
+          <div class="form-group">
+            <label>TDS Rate (%)</label>
+            <input type="number" id="txn-rate" class="tds-input" step="0.1" value="2.0" oninput="recalcTdsModal()">
+          </div>
+          <div class="form-group">
+            <label>Calculated TDS Amount (₹)</label>
+            <input type="number" id="txn-tds-amt" class="tds-input" step="0.01" readonly style="background:#f1f5f9; font-weight:700;">
+          </div>
+          <div class="form-group">
+            <label>Net Payable to Vendor (₹)</label>
+            <input type="number" id="txn-net" class="tds-input" step="0.01" readonly style="background:#f1f5f9; font-weight:700;">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="tds-btn" onclick="closeModal('modal-new-txn')">Cancel</button>
+        <button class="tds-btn tds-btn-primary" onclick="submitTdsTransaction()">Save TDS Record</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MODAL 2: Record Challan ────────────────────────────────────────────── -->
+  <div class="modal-overlay" id="modal-add-challan">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3><i class="bi bi-bank text-primary"></i> Record TDS Challan Deposit (ITNS 281)</h3>
+        <button class="modal-close-btn" onclick="closeModal('modal-add-challan')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Challan / BSR Serial No</label>
+            <input type="text" id="ch-no" class="tds-input" placeholder="e.g. CH-2026-0045">
+          </div>
+          <div class="form-group">
+            <label>BSR Code (7 Digits)</label>
+            <input type="text" id="ch-bsr" class="tds-input" value="0210001" maxlength="7">
+          </div>
+          <div class="form-group">
+            <label>Challan Date</label>
+            <input type="date" id="ch-date" class="tds-input">
+          </div>
+          <div class="form-group">
+            <label>Quarter</label>
+            <select id="ch-quarter" class="tds-select">
+              <option value="Q1">Q1 (Apr-Jun)</option>
+              <option value="Q2">Q2 (Jul-Sep)</option>
+              <option value="Q3">Q3 (Oct-Dec)</option>
+              <option value="Q4">Q4 (Jan-Mar)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>TDS Tax Amount (₹)</label>
+            <input type="number" id="ch-tds" class="tds-input" step="0.01" value="5000">
+          </div>
+          <div class="form-group">
+            <label>Interest (₹)</label>
+            <input type="number" id="ch-interest" class="tds-input" step="0.01" value="0">
+          </div>
+          <div class="form-group">
+            <label>Late Fee u/s 234E (₹)</label>
+            <input type="number" id="ch-fee" class="tds-input" step="0.01" value="0">
+          </div>
+          <div class="form-group">
+            <label>Payment Mode / Ref</label>
+            <input type="text" id="ch-ref" class="tds-input" placeholder="e.g. NetBanking CIN-982312">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="tds-btn" onclick="closeModal('modal-add-challan')">Cancel</button>
+        <button class="tds-btn tds-btn-success" onclick="submitChallan()">Save &amp; Verify Challan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MODAL 3: Deductee Master ───────────────────────────────────────────── -->
+  <div class="modal-overlay" id="modal-deductee">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3><i class="bi bi-person-badge text-primary"></i> Register TDS Deductee / Vendor</h3>
+        <button class="modal-close-btn" onclick="closeModal('modal-deductee')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-group full-width">
+            <label>Vendor / Deductee Legal Name</label>
+            <input type="text" id="ded-name" class="tds-input" placeholder="e.g. Shanti Electricals">
+          </div>
+          <div class="form-group">
+            <label>Party Type</label>
+            <select id="ded-type" class="tds-select">
+              <option value="Vendor">Vendor</option>
+              <option value="Contractor">Contractor</option>
+              <option value="Professional">Professional</option>
+              <option value="Company">Company / Firm</option>
+              <option value="Individual">Individual / HUF</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>PAN Number</label>
+            <input type="text" id="ded-pan" class="tds-input" placeholder="e.g. ABCDE1234F" maxlength="10">
+          </div>
+          <div class="form-group">
+            <label>Applicable TDS Section</label>
+            <select id="ded-sec" class="tds-select">
+              <option value="194C">194C (Contractor)</option>
+              <option value="194J">194J (Professional)</option>
+              <option value="194I">194I (Rent)</option>
+              <option value="194H">194H (Commission)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Default Rate (%)</label>
+            <input type="number" id="ded-rate" class="tds-input" step="0.1" value="2.0">
+          </div>
+          <div class="form-group">
+            <label>Contact Mobile</label>
+            <input type="text" id="ded-mobile" class="tds-input" placeholder="e.g. 9820012345">
+          </div>
+          <div class="form-group">
+            <label>Contact Email</label>
+            <input type="email" id="ded-email" class="tds-input" placeholder="e.g. accounts@vendor.com">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="tds-btn" onclick="closeModal('modal-deductee')">Cancel</button>
+        <button class="tds-btn tds-btn-primary" onclick="submitDeductee()">Save Deductee</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="tds-report.js"></script>
+</body>
+</html>

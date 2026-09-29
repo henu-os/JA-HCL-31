@@ -206,7 +206,8 @@ namespace JeevikaERP.Controllers
                 // Fetch Heads
                 using var headCmd = conn.CreateCommand();
                 headCmd.CommandText = @"
-                    SELECT h.HeadId, h.SrNo, h.AccountId, h.AccountCode, h.AccountName, a.AccCode AS MasterCode, a.AccName AS MasterName, h.GSTApplicable, h.GSTExempted
+                    SELECT h.HeadId, h.SrNo, h.AccountId, h.AccountCode, h.AccountName, a.AccCode AS MasterCode, a.AccName AS MasterName, 
+                           h.GSTApplicable, h.GSTExempted, h.DisplayName, h.GstCategory, h.IncludeThreshold
                     FROM jeevika_erp.SocBillTypeHead h
                     LEFT JOIN jeevika_erp.SocAccount a ON h.AccountId = a.AccountId
                     WHERE h.BillTypeId = @id
@@ -224,14 +225,31 @@ namespace JeevikaERP.Controllers
                         var name = GetStringSafe(r, "AccountName");
                         if (string.IsNullOrEmpty(name)) name = GetStringSafe(r, "MasterName");
 
+                        var dispName = GetStringSafe(r, "DisplayName");
+                        if (string.IsNullOrEmpty(dispName)) dispName = name;
+
+                        var gstCat = GetStringSafe(r, "GstCategory");
+                        if (string.IsNullOrEmpty(gstCat))
+                        {
+                            var app = GetBoolSafe(r, "GSTApplicable");
+                            var exm = GetBoolSafe(r, "GSTExempted");
+                            if (app && exm) gstCat = "Both (Exempt & Applicable)";
+                            else if (app) gstCat = "GST Applicable";
+                            else if (exm) gstCat = "Exempt";
+                            else gstCat = "Non-GST";
+                        }
+
                         heads.Add(new {
-                            headId        = Convert.ToInt32(r["HeadId"]),
-                            srNo          = Convert.ToInt32(r["SrNo"]),
-                            accountId     = r["AccountId"] != DBNull.Value ? Convert.ToInt32(r["AccountId"]) : (int?)null,
-                            accCode       = code,
-                            accName       = name,
-                            gstApp        = GetBoolSafe(r, "GSTApplicable"),
-                            gstExm        = GetBoolSafe(r, "GSTExempted")
+                            headId           = Convert.ToInt32(r["HeadId"]),
+                            srNo             = Convert.ToInt32(r["SrNo"]),
+                            accountId        = r["AccountId"] != DBNull.Value ? Convert.ToInt32(r["AccountId"]) : (int?)null,
+                            accCode          = code,
+                            accName          = name,
+                            displayName      = dispName,
+                            gstCategory      = gstCat,
+                            includeThreshold = GetBoolSafe(r, "IncludeThreshold"),
+                            gstApp           = GetBoolSafe(r, "GSTApplicable"),
+                            gstExm           = GetBoolSafe(r, "GSTExempted")
                         });
                     }
                 }
@@ -411,8 +429,11 @@ namespace JeevikaERP.Controllers
 
                         using var insHead = conn.CreateCommand();
                         insHead.CommandText = @"
-                            INSERT INTO jeevika_erp.SocBillTypeHead (SocietyId, BillTypeId, SrNo, AccountId, AccountCode, AccountName, GSTApplicable, GSTExempted)
-                            VALUES (@socId, @id, @sr, @accId, @code, @name, @gstApp, @gstEx)";
+                            INSERT INTO jeevika_erp.SocBillTypeHead (
+                                SocietyId, BillTypeId, SrNo, AccountId, AccountCode, AccountName, 
+                                GSTApplicable, GSTExempted, DisplayName, GstCategory, IncludeThreshold
+                            )
+                            VALUES (@socId, @id, @sr, @accId, @code, @name, @gstApp, @gstEx, @dispName, @gstCat, @incThresh)";
                         insHead.Parameters.AddWithValue("@socId", socId);
                         insHead.Parameters.AddWithValue("@id", id);
                         insHead.Parameters.AddWithValue("@sr", headSrNo);
@@ -421,6 +442,9 @@ namespace JeevikaERP.Controllers
                         insHead.Parameters.AddWithValue("@name", (object?)h.AccName ?? DBNull.Value);
                         insHead.Parameters.AddWithValue("@gstApp", h.GSTApplicable);
                         insHead.Parameters.AddWithValue("@gstEx", h.GSTExempted);
+                        insHead.Parameters.AddWithValue("@dispName", (object?)h.DisplayName ?? (object?)h.AccName ?? DBNull.Value);
+                        insHead.Parameters.AddWithValue("@gstCat", (object?)h.GstCategory ?? (h.GSTApplicable && h.GSTExempted ? "Both (Exempt & Applicable)" : (h.GSTApplicable ? "GST Applicable" : (h.GSTExempted ? "Exempt" : "Non-GST"))));
+                        insHead.Parameters.AddWithValue("@incThresh", h.IncludeThreshold);
                         insHead.ExecuteNonQuery();
                         autoSr++;
                     }
@@ -448,17 +472,50 @@ namespace JeevikaERP.Controllers
                     countCmd.CommandText = "SELECT COUNT(*) FROM jeevika_erp.SocBillType WHERE IsActive = TRUE";
                     var cnt = Convert.ToInt32(countCmd.ExecuteScalar());
                     if (cnt <= 1)
-                    {
-                        return BadRequest(new { success = false, message = "Cannot delete the last remaining Bill Type." });
-                    }
+                        return BadRequest(new { success = false, message = "Cannot delete the only remaining Bill Type." });
                 }
 
-                using var cmd = conn.CreateCommand();
-                cmd.CommandText = "DELETE FROM jeevika_erp.SocBillType WHERE BillTypeId = @id";
-                cmd.Parameters.AddWithValue("@id", id);
-                cmd.ExecuteNonQuery();
+                // Delete notes, heads, settings, then bill type
+                using var tx = conn.BeginTransaction();
+                try
+                {
+                    using (var delNotes = conn.CreateCommand())
+                    {
+                        delNotes.Transaction = tx;
+                        delNotes.CommandText = "DELETE FROM jeevika_erp.SocBillTypeNote WHERE BillTypeId = @id";
+                        delNotes.Parameters.AddWithValue("@id", id);
+                        delNotes.ExecuteNonQuery();
+                    }
+                    using (var delHeads = conn.CreateCommand())
+                    {
+                        delHeads.Transaction = tx;
+                        delHeads.CommandText = "DELETE FROM jeevika_erp.SocBillTypeHead WHERE BillTypeId = @id";
+                        delHeads.Parameters.AddWithValue("@id", id);
+                        delHeads.ExecuteNonQuery();
+                    }
+                    using (var delSettings = conn.CreateCommand())
+                    {
+                        delSettings.Transaction = tx;
+                        delSettings.CommandText = "DELETE FROM jeevika_erp.SocBillingSetting WHERE BillTypeId = @id";
+                        delSettings.Parameters.AddWithValue("@id", id);
+                        delSettings.ExecuteNonQuery();
+                    }
+                    using (var delBt = conn.CreateCommand())
+                    {
+                        delBt.Transaction = tx;
+                        delBt.CommandText = "DELETE FROM jeevika_erp.SocBillType WHERE BillTypeId = @id";
+                        delBt.Parameters.AddWithValue("@id", id);
+                        delBt.ExecuteNonQuery();
+                    }
+                    tx.Commit();
+                }
+                catch
+                {
+                    tx.Rollback();
+                    throw;
+                }
 
-                return Ok(new { success = true, message = "Bill type deleted successfully!" });
+                return Ok(new { success = true, message = "Bill type deleted successfully." });
             }
             catch (Exception ex)
             {
@@ -509,11 +566,14 @@ namespace JeevikaERP.Controllers
 
     public class HeadItemModel
     {
-        public int?    SrNo          { get; set; }
-        public int?    AccountId     { get; set; }
-        public string? AccCode       { get; set; }
-        public string? AccName       { get; set; }
-        public bool    GSTApplicable { get; set; }
-        public bool    GSTExempted   { get; set; }
+        public int?    SrNo             { get; set; }
+        public int?    AccountId        { get; set; }
+        public string? AccCode          { get; set; }
+        public string? AccName          { get; set; }
+        public string? DisplayName      { get; set; }
+        public string? GstCategory      { get; set; }
+        public bool    IncludeThreshold { get; set; }
+        public bool    GSTApplicable    { get; set; }
+        public bool    GSTExempted      { get; set; }
     }
 }

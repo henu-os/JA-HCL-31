@@ -310,9 +310,29 @@
     updateFooters(grandTotDebit, grandTotCredit);
   };
 
-  // Render Narration callout box with chips for Cheque/Ref, Date, Party
+  // Helper: Extract Line 1 and Line 2 narration
+  function getNarrationLines(v) {
+    let line1 = (v.particular1 || '').trim();
+    let line2 = (v.particular2 || '').trim();
+
+    if (!line1 && v.narration) {
+      const parts = v.narration.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+      line1 = parts[0] || '';
+      if (!line2 && parts.length > 1) {
+        line2 = parts.slice(1).join(' ');
+      }
+    } else if (line1 && !line2 && v.narration && v.narration.includes('\n')) {
+      const parts = v.narration.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+      if (parts.length > 1) {
+        line2 = parts.slice(1).join(' ');
+      }
+    }
+
+    return { line1, line2 };
+  }
+
+  // Render Narration callout box with chips for Cheque/Ref, Date, Party, and both Narration lines
   function renderNarrationBox(v) {
-    const narr = v.narration || '';
     let chips = '';
     if (v.chqNo && v.chqNo !== '-') {
       chips += `<span class="reg-chip reg-chip-chq"><i class="bi bi-file-earmark-text"></i> Chq: ${escHtml(v.chqNo)}</span>`;
@@ -325,13 +345,14 @@
       chips += `<span class="reg-chip reg-chip-party"><i class="bi bi-person"></i> Paid to: ${escHtml(party)}</span>`;
     }
 
-    const desc = narr || v.particular1 || '';
-    if (!chips && !desc) return '';
+    const { line1, line2 } = getNarrationLines(v);
+    if (!chips && !line1 && !line2) return '';
 
     return `
       <div class="reg-narr-box">
         ${chips ? `<div style="margin-bottom:3px;">${chips}</div>` : ''}
-        ${desc ? `<div>${escHtml(desc)}</div>` : ''}
+        ${line1 ? `<div class="reg-narr-line1">${escHtml(line1)}</div>` : ''}
+        ${line2 ? `<div class="reg-narr-line2">${escHtml(line2)}</div>` : ''}
       </div>
     `;
   }
@@ -352,12 +373,46 @@
 
   // ── 5. KPI & FOOTER BALANCING ────────────────────────────────────────────
   function updateKPIs(count, total, bank, cash) {
-    document.getElementById('kpiTotalVouchers').textContent = count.toLocaleString('en-IN');
-    document.getElementById('kpiTotalAmount').textContent = '₹ ' + formatINR(total);
-    document.getElementById('kpiBankAmount').textContent = '₹ ' + formatINR(bank);
-    document.getElementById('kpiCashAmount').textContent = '₹ ' + formatINR(cash);
-    document.getElementById('recordCountLabel').textContent = `${count} Vouchers Displayed`;
+    const elCount = document.getElementById('kpiTotalVouchers');
+    const elTotal = document.getElementById('kpiTotalAmount');
+    const elBank = document.getElementById('kpiBankAmount');
+    const elCash = document.getElementById('kpiCashAmount');
+    if (elCount) elCount.textContent = count.toLocaleString('en-IN');
+    if (elTotal) elTotal.textContent = '₹ ' + formatINR(total);
+    if (elBank) elBank.textContent = '₹ ' + formatINR(bank);
+    if (elCash) elCash.textContent = '₹ ' + formatINR(cash);
+    const recCount = document.getElementById('recordCountLabel');
+    if (recCount) recCount.textContent = `${count} Vouchers Displayed`;
   }
+
+  // ── Statement Summary Popover Toggle ───────────────────────────────────────
+  window.toggleSummaryPopover = function (event) {
+    if (event) event.stopPropagation();
+    const pop = document.getElementById('summaryPopover');
+    const btn = document.getElementById('btnSummaryToggle');
+    if (!pop) return;
+
+    const isShown = pop.classList.contains('show');
+    if (isShown) {
+      pop.classList.remove('show');
+      if (btn) btn.classList.remove('active');
+    } else {
+      pop.classList.add('show');
+      if (btn) btn.classList.add('active');
+    }
+  };
+
+  // Close summary popover when clicking anywhere outside
+  document.addEventListener('click', (e) => {
+    const pop = document.getElementById('summaryPopover');
+    const btn = document.getElementById('btnSummaryToggle');
+    if (pop && pop.classList.contains('show')) {
+      if (!pop.contains(e.target) && e.target !== btn && !btn?.contains(e.target)) {
+        pop.classList.remove('show');
+        if (btn) btn.classList.remove('active');
+      }
+    }
+  });
 
   function updateFooters(debit, credit) {
     const footDr = document.getElementById('footTotDebit');
@@ -393,13 +448,15 @@
         const cb = (v.cashBankName || '').toLowerCase();
         const p = (v.personName || '').toLowerCase();
         const n = (v.narration || '').toLowerCase();
+        const p1 = (v.particular1 || '').toLowerCase();
+        const p2 = (v.particular2 || '').toLowerCase();
         const chq = (v.chqNo || '').toLowerCase();
         const itemsMatch = (v.items || []).some(item => 
           (item.accountName || '').toLowerCase().includes(q) ||
           (item.accountCode || '').toLowerCase().includes(q)
         );
 
-        return vNo.includes(q) || cb.includes(q) || p.includes(q) || n.includes(q) || chq.includes(q) || itemsMatch;
+        return vNo.includes(q) || cb.includes(q) || p.includes(q) || n.includes(q) || p1.includes(q) || p2.includes(q) || chq.includes(q) || itemsMatch;
       });
     }
 
@@ -451,9 +508,13 @@
         ]);
       });
 
-      // Narration row in excel
-      if (v.narration) {
-        rows.push(['', '', '', `Narration: ${v.narration}`, '', '']);
+      // Narration row in excel (Line 1 & Line 2)
+      const { line1, line2 } = getNarrationLines(v);
+      const narrParts = [];
+      if (line1) narrParts.push(line1);
+      if (line2 && line2 !== line1) narrParts.push(line2);
+      if (narrParts.length > 0) {
+        rows.push(['', '', '', `Narration: ${narrParts.join(' | ')}`, '', '']);
       }
     });
 
@@ -481,8 +542,17 @@
 
   // ── 8. PRINT REGISTER ───────────────────────────────────────────────────
   window.printRegister = function () {
+    if (typeof syncSocietyInfo === 'function') syncSocietyInfo();
     updatePrintDates();
+    const socName = (window.Auth && Auth.getSocietyName && Auth.getSocietyName() !== '—') 
+      ? Auth.getSocietyName() 
+      : (sessionStorage.getItem('activeSocietyName') || 'Society');
+    const fromDate = document.getElementById('fromDate')?.value || '';
+    const toDate = document.getElementById('toDate')?.value || '';
+    const origTitle = document.title;
+    document.title = `${socName}_Payment_Register_${fromDate}_${toDate}`.replace(/[^a-zA-Z0-9_-]/g, '_');
     window.print();
+    setTimeout(() => { document.title = origTitle; }, 1000);
   };
 
   // ── 9. VIEW VOUCHER DETAILS MODAL ───────────────────────────────────────
@@ -533,11 +603,17 @@
               </tbody>
             </table>
 
-            ${v.narration ? `
-              <div style="font-size:11px;background:#f8fafc;padding:8px 12px;border-left:3px solid #0D47A1;border-radius:4px;color:#475569;">
-                <strong>Narration:</strong><br>${escHtml(v.narration)}
-              </div>
-            ` : ''}
+            ${(() => {
+              const { line1, line2 } = getNarrationLines(v);
+              if (!line1 && !line2) return '';
+              return `
+                <div style="font-size:11px;background:#f8fafc;padding:8px 12px;border-left:3px solid #0D47A1;border-radius:4px;color:#475569;">
+                  <strong>Narration:</strong><br>
+                  ${line1 ? `<div>${escHtml(line1)}</div>` : ''}
+                  ${line2 ? `<div style="margin-top:3px;color:#64748b;">${escHtml(line2)}</div>` : ''}
+                </div>
+              `;
+            })()}
           </div>
           <div style="background:#f8fafc;padding:10px 16px;display:flex;justify-content:flex-end;border-top:1px solid #e2e8f0;">
             <button onclick="document.getElementById('vDetailModalBackdrop').remove()" class="reg-btn">Close</button>

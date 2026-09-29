@@ -382,33 +382,63 @@ function renderTable(schedules, fmt, options) {
   if (fmt === 'full') {
     thead.innerHTML = `
       <tr>
-        <th style="width:95px; text-align:center;">Acc Code</th>
-        <th>Account Name</th>
-        <th style="width:110px; text-align:right;">Opening Dr</th>
-        <th style="width:110px; text-align:right;">Opening Cr</th>
-        <th style="width:120px; text-align:right;">Transaction Debit</th>
-        <th style="width:120px; text-align:right;">Transaction Credit</th>
-        <th style="width:120px; text-align:right;">Closing Dr</th>
-        <th style="width:120px; text-align:right;">Closing Cr</th>
+        <th style="width:85px; text-align:center; vertical-align:bottom;">Acc Code</th>
+        <th style="text-align:left; vertical-align:bottom;">Account Name</th>
+        <th style="width:1%; min-width:80px; text-align:right; white-space:nowrap; line-height:1.2; vertical-align:bottom;">
+          <span style="font-size:9px; font-weight:700; color:#64748b; display:block;">OPENING</span>
+          <span>Dr</span>
+        </th>
+        <th style="width:1%; min-width:80px; text-align:right; white-space:nowrap; line-height:1.2; vertical-align:bottom;">
+          <span style="font-size:9px; font-weight:700; color:#64748b; display:block;">OPENING</span>
+          <span>Cr</span>
+        </th>
+        <th style="width:1%; min-width:80px; text-align:right; white-space:nowrap; line-height:1.2; vertical-align:bottom;">
+          <span style="font-size:9px; font-weight:700; color:#64748b; display:block;">TRANSACTION</span>
+          <span>Dr</span>
+        </th>
+        <th style="width:1%; min-width:80px; text-align:right; white-space:nowrap; line-height:1.2; vertical-align:bottom;">
+          <span style="font-size:9px; font-weight:700; color:#64748b; display:block;">TRANSACTION</span>
+          <span>Cr</span>
+        </th>
+        <th style="width:1%; min-width:80px; text-align:right; white-space:nowrap; line-height:1.2; vertical-align:bottom;">
+          <span style="font-size:9px; font-weight:700; color:#64748b; display:block;">CLOSING</span>
+          <span>Dr</span>
+        </th>
+        <th style="width:1%; min-width:80px; text-align:right; white-space:nowrap; line-height:1.2; vertical-align:bottom;">
+          <span style="font-size:9px; font-weight:700; color:#64748b; display:block;">CLOSING</span>
+          <span>Cr</span>
+        </th>
       </tr>
     `;
   } else if (fmt === 'opening') {
     thead.innerHTML = `
       <tr>
-        <th style="width:120px; text-align:center;">Acc Code</th>
-        <th>Account Name</th>
-        <th style="width:160px; text-align:right;">Opening Dr</th>
-        <th style="width:160px; text-align:right;">Opening Cr</th>
+        <th style="width:85px; text-align:center; vertical-align:bottom;">Acc Code</th>
+        <th style="text-align:left; vertical-align:bottom;">Account Name</th>
+        <th style="width:1%; min-width:100px; text-align:right; white-space:nowrap; line-height:1.2; vertical-align:bottom;">
+          <span style="font-size:9px; font-weight:700; color:#64748b; display:block;">OPENING</span>
+          <span>Dr</span>
+        </th>
+        <th style="width:1%; min-width:100px; text-align:right; white-space:nowrap; line-height:1.2; vertical-align:bottom;">
+          <span style="font-size:9px; font-weight:700; color:#64748b; display:block;">OPENING</span>
+          <span>Cr</span>
+        </th>
       </tr>
     `;
   } else {
     // Closing
     thead.innerHTML = `
       <tr>
-        <th style="width:120px; text-align:center;">Acc Code</th>
-        <th>Account Name</th>
-        <th style="width:160px; text-align:right;">Closing Dr</th>
-        <th style="width:160px; text-align:right;">Closing Cr</th>
+        <th style="width:85px; text-align:center; vertical-align:bottom;">Acc Code</th>
+        <th style="text-align:left; vertical-align:bottom;">Account Name</th>
+        <th style="width:1%; min-width:100px; text-align:right; white-space:nowrap; line-height:1.2; vertical-align:bottom;">
+          <span style="font-size:9px; font-weight:700; color:#64748b; display:block;">CLOSING</span>
+          <span>Dr</span>
+        </th>
+        <th style="width:1%; min-width:100px; text-align:right; white-space:nowrap; line-height:1.2; vertical-align:bottom;">
+          <span style="font-size:9px; font-weight:700; color:#64748b; display:block;">CLOSING</span>
+          <span>Cr</span>
+        </th>
       </tr>
     `;
   }
@@ -772,9 +802,9 @@ function exportExcelFormatted(fmt, options) {
   } else if (fmt === 'full') {
     csvRows.push([
       'Code', 'Account Name',
-      'Opening Debit', 'Opening Credit',
-      'Transaction Debit', 'Transaction Credit',
-      'Closing Debit', 'Closing Credit'
+      'Opening Dr', 'Opening Cr',
+      'Dr', 'Cr',
+      'Closing Dr', 'Closing Cr'
     ].join(','));
 
     schedules.forEach(sec => {

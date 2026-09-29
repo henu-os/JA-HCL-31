@@ -37,6 +37,7 @@ namespace JeevikaERP.Controllers
                     ALTER TABLE jeevika_erp.SocMember ADD COLUMN IF NOT EXISTS AgreementValue NUMERIC(15, 2) DEFAULT 0;
                     ALTER TABLE jeevika_erp.SocMember ADD COLUMN IF NOT EXISTS StampValue NUMERIC(15, 2) DEFAULT 0;
                     ALTER TABLE jeevika_erp.SocMember ADD COLUMN IF NOT EXISTS RegistrationFees NUMERIC(15, 2) DEFAULT 0;
+                    ALTER TABLE jeevika_erp.SocMemberOpBalance ADD COLUMN IF NOT EXISTS BillTypeId INT;
 
                     -- Suffix existing soft-deleted members so their codes can be reused immediately
                     UPDATE jeevika_erp.SocMember 
@@ -62,6 +63,13 @@ namespace JeevikaERP.Controllers
                     CREATE UNIQUE INDEX IF NOT EXISTS idx_socmember_active_memcode 
                     ON jeevika_erp.SocMember (SocietyId, UPPER(MemCode)) 
                     WHERE IsDeleted = FALSE;
+
+                    -- Clean up any orphaned opening balances or matrix rows from deleted members
+                    DELETE FROM jeevika_erp.SocMemberOpBalance 
+                    WHERE MemberId IN (SELECT MemberId FROM jeevika_erp.SocMember WHERE IsDeleted = TRUE);
+
+                    DELETE FROM jeevika_erp.SocBillingMatrix 
+                    WHERE MemberId IN (SELECT MemberId FROM jeevika_erp.SocMember WHERE IsDeleted = TRUE);
                 ";
                 cmd.ExecuteNonQuery();
                 EnsureOpBalTable(conn);
@@ -71,6 +79,33 @@ namespace JeevikaERP.Controllers
             {
                 Console.WriteLine("[MemberController.EnsureSchema] Error: " + ex.Message);
             }
+        }
+
+        [HttpGet("debug-find-amounts")]
+        [AllowAnonymous]
+        public IActionResult DebugFindAmounts()
+        {
+            using var conn = DbHelper.GetConn();
+            var list = new List<object>();
+            using (var cmd = conn.CreateCommand())
+            {
+                cmd.CommandText = "SELECT SocietyId, MemberId, BillType, OpPrincipal, OpInterest FROM jeevika_erp.SocMemberOpBalance";
+                using var r = cmd.ExecuteReader();
+                while (r.Read()) list.Add(new { table = "SocMemberOpBalance", sid = r["SocietyId"], mid = r["MemberId"], bt = r["BillType"], prin = r["OpPrincipal"], intr = r["OpInterest"] });
+            }
+            using (var cmd = conn.CreateCommand())
+            {
+                cmd.CommandText = "SELECT BillId, SocietyId, MemberId, BillNo, BillType, BillTypeId, TotalAmount, PaidAmount, BalanceAmount, IsDeleted FROM jeevika_erp.SocMemberBill";
+                using var r = cmd.ExecuteReader();
+                while (r.Read()) list.Add(new { table = "SocMemberBill", bid = r["BillId"], sid = r["SocietyId"], mid = r["MemberId"], bno = r["BillNo"], bt = r["BillType"], btid = r["BillTypeId"], tot = r["TotalAmount"], paid = r["PaidAmount"], bal = r["BalanceAmount"], del = r["IsDeleted"] });
+            }
+            using (var cmd = conn.CreateCommand())
+            {
+                cmd.CommandText = "SELECT MemberId, SocietyId, MemCode, MemName, FlatNo, OpPrincipal, OpInterest, IsDeleted FROM jeevika_erp.SocMember";
+                using var r = cmd.ExecuteReader();
+                while (r.Read()) list.Add(new { table = "SocMember", mid = r["MemberId"], sid = r["SocietyId"], code = r["MemCode"], name = r["MemName"], flat = r["FlatNo"], prin = r["OpPrincipal"], intr = r["OpInterest"], del = r["IsDeleted"] });
+            }
+            return Ok(list);
         }
 
         // ── GET /api/members?societyId=X ────────────────────────
@@ -358,10 +393,12 @@ namespace JeevikaERP.Controllers
                     cmd.Parameters.AddWithValue("@id", id);
                     cmd.ExecuteNonQuery();
 
-                    // Remove orphaned entries in billing matrix
+                    // Remove orphaned entries in billing matrix and opening balances
                     using var matCmd = conn.CreateCommand();
                     matCmd.Transaction = tx;
-                    matCmd.CommandText = "DELETE FROM jeevika_erp.SocBillingMatrix WHERE MemberId = @id";
+                    matCmd.CommandText = @"
+                        DELETE FROM jeevika_erp.SocBillingMatrix WHERE MemberId = @id;
+                        DELETE FROM jeevika_erp.SocMemberOpBalance WHERE MemberId = @id;";
                     matCmd.Parameters.AddWithValue("@id", id);
                     matCmd.ExecuteNonQuery();
 
@@ -542,15 +579,12 @@ namespace JeevikaERP.Controllers
                         SELECT COALESCE(OpPrincipal, 0) + COALESCE(OpInterest, 0) 
                         FROM jeevika_erp.SocMemberOpBalance 
                         WHERE SocietyId = @sid 
-                          AND (MemberId = @mid OR MemberId IN (SELECT MemberId FROM jeevika_erp.SocMember WHERE SocietyId = @sid AND (MemCode = @mcode OR FlatNo = @mflat)))
-                          AND (LOWER(TRIM(BillType)) = LOWER(TRIM(@btype)) OR (BillTypeId > 0 AND BillTypeId = @btid))
+                          AND MemberId = @mid
+                          AND LOWER(TRIM(BillType)) = LOWER(TRIM(@btype))
                         LIMIT 1";
                     cmdOp.Parameters.AddWithValue("@sid", societyId);
                     cmdOp.Parameters.AddWithValue("@mid", memberId);
-                    cmdOp.Parameters.AddWithValue("@mcode", memCode);
-                    cmdOp.Parameters.AddWithValue("@mflat", flatNo);
                     cmdOp.Parameters.AddWithValue("@btype", bt.Name);
-                    cmdOp.Parameters.AddWithValue("@btid", bt.Id);
                     var opRes = cmdOp.ExecuteScalar();
                     if (opRes != null && opRes != DBNull.Value)
                     {

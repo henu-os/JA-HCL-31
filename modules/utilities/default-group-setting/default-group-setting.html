@@ -3,41 +3,68 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Default Account Group Settings — JEEVIKA ERP</title>
+  <title>Default Group Setting — JEEVIKA ERP</title>
   <script src="../../../config.js"></script>
+  <script src="../../../assets/js/utils.js"></script>
   <link rel="stylesheet" href="../../../assets/css/global.css">
   <link rel="stylesheet" href="../../../assets/css/components.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="default-group-setting.css">
 </head>
 <body class="erp-module">
-  <div class="erp-module-header">
+
+  <!-- ── Top Module Bar ───────────────────────────────────────── -->
+  <div class="module-top-bar">
     <div>
-      <div class="erp-module-title">Default Account Group Settings</div>
-      
+      <div class="module-title">
+        <i class="bi bi-diagram-3"></i> System Default Group Mappings
+      </div>
+      <div class="module-subtitle">
+        <i class="bi bi-gear text-primary"></i> Configure default chart of accounts parent groups for automated ledger creation and journal postings
+      </div>
     </div>
-    <button class="erp-btn erp-btn-primary" onclick="refreshData()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+    <div class="top-actions">
+      <button type="button" class="btn-top" onclick="loadDefaultGroups()">
+        <i class="bi bi-arrow-counterclockwise"></i> Reload
+      </button>
+      <button type="button" class="btn-top btn-top-success" id="btnSaveMappings" onclick="saveDefaultGroupMappings()">
+        <i class="bi bi-save"></i> Save Mappings
+      </button>
+    </div>
   </div>
 
-  <div class="erp-search-bar">
-    <input type="text" id="searchInput" class="erp-input erp-search-input" placeholder="🔍 Search..." onkeyup="filterTable()">
-    <div class="erp-record-count" id="recordCount">Total: 0</div>
+  <!-- ── Summary Stats Ribbon ─────────────────────────────────── -->
+  <div class="summary-strip">
+    <div class="summary-stats">
+      <div class="stat-item">
+        <span>System Categories:</span> <span id="metricCatCount" class="stat-val-highlight">8</span>
+      </div>
+      <div class="stat-item">
+        <span>Available Master Groups:</span> <span id="metricGrpCount" class="stat-val-highlight">0</span>
+      </div>
+    </div>
+    <div class="summary-count" id="recordCount">
+      Configuration Matrix
+    </div>
   </div>
 
-  <div class="erp-module-body" style="padding:0;">
-    <div class="erp-table-container" style="height:100%;border:none;">
-      <table class="erp-table striped" id="mainTable">
+  <!-- ── Main Content Area / Mapping Table ─────────────────────── -->
+  <div class="module-content">
+    <div class="table-container">
+      <table class="erp-data-table" id="mappingTable">
         <thead>
           <tr>
-            <th style="width:40px;" class="td-center">#</th>
-            <th>Particulars / Description</th>
-            <th style="width:120px;" class="td-center">Reference</th>
-            <th style="width:120px;" class="td-center">Status</th>
+            <th style="width:45px;" class="td-center">#</th>
+            <th style="width:220px;">System Transaction Category</th>
+            <th style="width:140px;">Nature</th>
+            <th style="width:380px;">Assigned Default Account Group</th>
+            <th>Description &amp; Automated Usage</th>
           </tr>
         </thead>
-        <tbody id="mainTableBody">
+        <tbody id="mappingTableBody">
           <tr>
-            <td colspan="4" class="text-center text-muted" style="padding:30px;">
-              Module initialized. Live data will be loaded here.
+            <td colspan="5" class="empty-state">
+              <div class="erp-spinner"></div> Loading account groups and system configuration...
             </td>
           </tr>
         </tbody>
@@ -45,9 +72,6 @@
     </div>
   </div>
 
-  <script src="../../../assets/js/api.js"></script>
-  <script src="../../../assets/js/auth.js"></script>
-  <script src="../../../assets/js/utils.js"></script>
   <script src="default-group-setting.js"></script>
 </body>
 </html>

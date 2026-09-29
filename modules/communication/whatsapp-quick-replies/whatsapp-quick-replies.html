@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quick Replies — HENU ERP</title>
+  <link rel="icon" type="image/svg+xml" href="../../../favicon.svg">
+  <script src="../../../config.js"></script>
+  <script src="../../../assets/js/utils.js"></script>
+  <script src="../../../assets/js/api.js"></script>
+  <script src="../../../assets/js/auth.js"></script>
+  <link rel="stylesheet" href="../../../assets/css/global.css">
+  <link rel="stylesheet" href="../../../assets/css/components.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="whatsapp-quick-replies.css">
+</head>
+<body class="erp-module qr-wacrm-body">
+
+  <!-- ── Top Header ───────────────────────────────────────────── -->
+  <div class="wacrm-header">
+    <div>
+      <h1 class="wacrm-title">Quick replies</h1>
+      <p class="wacrm-subtitle">Reusable snippets — plain text or a saved interactive message — that agents can insert from the inbox composer.</p>
+    </div>
+    <div class="wacrm-header-actions">
+      <button type="button" class="wacrm-btn-primary" id="btnOpenNewQrModal">
+        <i class="bi bi-plus-lg"></i> New quick reply
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Main Content Area ────────────────────────────────────── -->
+  <div class="wacrm-content-container">
+    <div class="qr-list-scroll">
+      <div class="qr-cards-list" id="quickRepliesList">
+        <div class="wacrm-loading">
+          <i class="bi bi-arrow-repeat spin-icon"></i> Loading quick replies...
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── CREATE / EDIT QUICK REPLY MODAL ──────────────────────── -->
+  <div class="wacrm-modal-overlay" id="qrModal" style="display: none;">
+    <div class="wacrm-modal-box modal-lg">
+      <div class="wacrm-modal-header">
+        <div class="wacrm-modal-title" id="qrModalTitle">Edit quick reply</div>
+        <button type="button" class="wacrm-modal-close" id="btnCloseQrModal">&times;</button>
+      </div>
+      <div class="wacrm-modal-body">
+        <div class="qr-modal-cols">
+          <!-- Form Section -->
+          <div class="qr-modal-form">
+            <div class="form-group mb-3">
+              <label class="form-label">Name *</label>
+              <input type="text" class="wacrm-input" id="qrNameInput" placeholder="e.g. HENU OS" required>
+            </div>
+
+            <!-- Type Tabs -->
+            <div class="type-toggle-pill mb-3">
+              <button type="button" class="type-pill-btn active" id="btnTypeTabInteractive" data-type="INTERACTIVE">Interactive</button>
+              <button type="button" class="type-pill-btn" id="btnTypeTabText" data-type="TEXT">Text</button>
+            </div>
+
+            <!-- Subtype for interactive (Reply buttons | List) -->
+            <div class="subtype-toggle-row mb-3" id="subTypeToggleRow">
+              <button type="button" class="subtype-btn" id="btnSubReplyButtons" data-subtype="BUTTONS">Reply buttons</button>
+              <button type="button" class="subtype-btn active" id="btnSubList" data-subtype="LIST">List</button>
+            </div>
+
+            <!-- Body -->
+            <div class="form-group mb-3">
+              <div class="d-flex justify-content-between">
+                <label class="form-label">Body *</label>
+                <span class="text-muted small" id="qrBodyCharCount">0/1024</span>
+              </div>
+              <textarea class="wacrm-textarea" id="qrBodyInput" rows="4" placeholder="Enter message body content..." required></textarea>
+            </div>
+
+            <!-- Interactive Specific Fields -->
+            <div id="interactiveFieldsSection">
+              <div class="form-row-2 mb-3">
+                <div class="form-group">
+                  <div class="d-flex justify-content-between">
+                    <label class="form-label">Header (optional)</label>
+                    <span class="text-muted small" id="qrHeaderCharCount">0/60</span>
+                  </div>
+                  <input type="text" class="wacrm-input" id="qrHeaderInput" placeholder="e.g. HENU OS Private Limited">
+                </div>
+                <div class="form-group">
+                  <div class="d-flex justify-content-between">
+                    <label class="form-label">Footer (optional)</label>
+                    <span class="text-muted small" id="qrFooterCharCount">0/60</span>
+                  </div>
+                  <input type="text" class="wacrm-input" id="qrFooterInput" placeholder="e.g. siddharth">
+                </div>
+              </div>
+
+              <div class="form-group mb-3" id="listButtonField">
+                <div class="d-flex justify-content-between">
+                  <label class="form-label">List button label</label>
+                  <span class="text-muted small" id="qrButtonCharCount">0/20</span>
+                </div>
+                <input type="text" class="wacrm-input" id="qrListButtonLabel" placeholder="e.g. Menu" value="Menu">
+              </div>
+
+              <div class="form-group mb-2" id="rowsField">
+                <label class="form-label">Rows (Options for member to click)</label>
+                <div id="rowsContainer" class="d-flex flex-column gap-2">
+                  <input type="text" class="wacrm-input qr-row-input" placeholder="e.g. Active Directors" value="Active Directors">
+                  <input type="text" class="wacrm-input qr-row-input" placeholder="e.g. Services" value="Services">
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Live Preview Section -->
+          <div class="qr-modal-preview">
+            <div class="preview-title">PREVIEW</div>
+            <div class="qr-preview-card">
+              <div class="qr-preview-bubble">
+                <div class="qr-bubble-header" id="previewHeader">HENU OS Private Limited</div>
+                <div class="qr-bubble-body" id="previewBody">is an Indian private company incorporated on December 2, 2025. Registered under the Registrar of Companies (RoC) Jaipur, its corporate office is located in Pali, Rajasthan. The company operates primarily within the computer software and IT ecosystem.</div>
+                <div class="qr-bubble-footer" id="previewFooter">siddharth</div>
+                <div class="qr-bubble-action-btn" id="previewActionBtn">
+                  <i class="bi bi-list-ul me-1"></i> <span id="previewActionLabel">Menu</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="wacrm-modal-footer">
+        <button type="button" class="wacrm-btn-secondary" id="btnCancelQrModal">Cancel</button>
+        <button type="button" class="wacrm-btn-primary" id="btnSaveQr">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="whatsapp-quick-replies.js"></script>
+</body>
+</html>

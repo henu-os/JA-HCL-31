@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GST Report &amp; Reconciliation — JEEVIKA ERP</title>
+  <script src="../../../config.js"></script>
+  <link rel="stylesheet" href="../../../assets/css/global.css">
+  <link rel="stylesheet" href="../../../assets/css/components.css">
+  <link rel="stylesheet" href="gst-report.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body class="erp-module">
+
+  <!-- ── Top Filter & Action Toolbar ────────────────────────────────────────── -->
+  <div class="gst-toolbar">
+    <div class="gst-filter-group">
+      <div class="gst-filter-item">
+        <label for="gst-fy"><i class="bi bi-calendar3"></i> FY:</label>
+        <select id="gst-fy" class="gst-select" onchange="loadGstData()">
+          <option value="2026-2027" selected>2026-2027</option>
+          <option value="2025-2026">2025-2026</option>
+          <option value="2024-2025">2024-2025</option>
+        </select>
+      </div>
+
+      <div class="gst-filter-item">
+        <label for="gst-month"><i class="bi bi-calendar-month"></i> Month:</label>
+        <select id="gst-month" class="gst-select" onchange="loadGstData()">
+          <option value="ALL" selected>All Months</option>
+          <option value="04">April</option>
+          <option value="05">May</option>
+          <option value="06">June</option>
+          <option value="07">July</option>
+          <option value="08">August</option>
+          <option value="09">September</option>
+          <option value="10">October</option>
+          <option value="11">November</option>
+          <option value="12">December</option>
+          <option value="01">January</option>
+          <option value="02">February</option>
+          <option value="03">March</option>
+        </select>
+      </div>
+
+      <div class="gst-filter-item">
+        <label for="gst-taxability"><i class="bi bi-funnel"></i> Taxability:</label>
+        <select id="gst-taxability" class="gst-select" onchange="loadGstData()">
+          <option value="ALL">All Supplies</option>
+          <option value="Taxable" selected>Taxable Supplies</option>
+          <option value="Exempt">Exempt / Pure Agent</option>
+        </select>
+      </div>
+
+      <div class="gst-filter-item">
+        <input type="text" id="gst-search" class="gst-input" placeholder="Search Member, Flat, Bill..." style="width: 160px;" onkeyup="if(event.key==='Enter') loadGstData()">
+      </div>
+    </div>
+
+    <div class="gst-filter-group btn-no-print">
+      <button class="gst-btn gst-btn-primary" onclick="loadGstData()">
+        <i class="bi bi-arrow-clockwise"></i> Refresh
+      </button>
+      <button class="gst-btn gst-btn-success" onclick="exportGstExcel()">
+        <i class="bi bi-file-earmark-excel"></i> Export Excel
+      </button>
+      <button class="gst-btn" onclick="window.print()">
+        <i class="bi bi-printer"></i> Print
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Tab Navigation ─────────────────────────────────────────────────────── -->
+  <div class="gst-tabs-bar btn-no-print">
+    <button class="gst-tab-btn active" onclick="switchGstTab('tab-summary', this)">
+      <i class="bi bi-grid-1x2"></i> Part C — Charge-wise GST Summary
+    </button>
+    <button class="gst-tab-btn" onclick="switchGstTab('tab-member-wise', this)">
+      <i class="bi bi-people"></i> Part D — Member-wise Invoices <span class="badge-cnt" id="cnt-member-bills" style="background:#e2e8f0; font-size:10px; padding:1px 6px; border-radius:10px;">0</span>
+    </button>
+    <button class="gst-tab-btn" onclick="switchGstTab('tab-monthly', this)">
+      <i class="bi bi-calendar-check"></i> Part E — Monthly Breakdown
+    </button>
+    <button class="gst-tab-btn" onclick="switchGstTab('tab-reconciliation', this)">
+      <i class="bi bi-arrow-left-right"></i> Part F — GST Reconciliation
+    </button>
+    <button class="gst-tab-btn" onclick="switchGstTab('tab-categories', this)">
+      <i class="bi bi-tags"></i> Tax Categories &amp; SAC Rates
+    </button>
+  </div>
+
+  <!-- ── Scrollable Body Area ───────────────────────────────────────────────── -->
+  <div class="gst-scroll-area">
+
+    <!-- ── Part A: Society & GST Details ────────────────────────────────────── -->
+    <div class="soc-header-card">
+      <div class="soc-info">
+        <h2 id="soc-name">HENU CO-OPERATIVE HOUSING SOCIETY LTD.</h2>
+        <div class="soc-meta" id="soc-address">Plot 12, Sector 19, Seawoods, Navi Mumbai, Maharashtra - 400706</div>
+        <div class="soc-tax-badges">
+          <span class="tax-badge"><i class="bi bi-building"></i> GSTIN: <strong id="soc-gstin">27AAACH1234F1Z5</strong></span>
+          <span class="tax-badge"><i class="bi bi-credit-card"></i> PAN: <strong id="soc-pan">AAACH1234F</strong></span>
+          <span class="tax-badge"><i class="bi bi-geo-alt"></i> State Code: <strong>27 (Maharashtra)</strong></span>
+          <span class="tax-badge"><i class="bi bi-calendar-event"></i> Period: <strong id="lbl-gst-period">FY 2026-2027</strong></span>
+        </div>
+      </div>
+      <div class="report-badge-legal">
+        <div><i class="bi bi-patch-check"></i> GST STATUTORY WORKING REPORT</div>
+        <div style="font-size: 9.5px; color: #78350f; font-weight: normal; margin-top: 2px;">
+          SAC 999598 — Housing Society Outward Supplies
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Part B: Applicability Assessment Card ────────────────────────────── -->
+    <div class="applicability-card">
+      <div>
+        <i class="bi bi-info-circle-fill"></i> <strong>RWA Exemption Threshold:</strong>
+        <span id="lbl-applicability-rule">CBIC Circular 109/28/2019-GST (Monthly maintenance exemption up to ₹7,500/member)</span>
+      </div>
+      <div>
+        Status: <strong id="lbl-reg-status" style="background:#dcfce7; padding:2px 8px; border-radius:4px; color:#15803d;">Registered</strong>
+      </div>
+    </div>
+
+    <!-- ── KPI Summary Cards ────────────────────────────────────────────────── -->
+    <div class="gst-kpi-grid">
+      <div class="kpi-card">
+        <span class="kpi-label">Total Invoices</span>
+        <span class="kpi-val" id="kpi-invoices">0</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-label">Gross Value</span>
+        <span class="kpi-val" id="kpi-gross">₹ 0.00</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-label">Taxable Value</span>
+        <span class="kpi-val" id="kpi-taxable">₹ 0.00</span>
+      </div>
+      <div class="kpi-card kpi-cgst">
+        <span class="kpi-label">CGST (9%)</span>
+        <span class="kpi-val" id="kpi-cgst">₹ 0.00</span>
+      </div>
+      <div class="kpi-card kpi-sgst">
+        <span class="kpi-label">SGST (9%)</span>
+        <span class="kpi-val" id="kpi-sgst">₹ 0.00</span>
+      </div>
+      <div class="kpi-card kpi-total">
+        <span class="kpi-label">Total Output GST</span>
+        <span class="kpi-val" id="kpi-total-gst">₹ 0.00</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-label">Exempt Supplies</span>
+        <span class="kpi-val" id="kpi-exempt">₹ 0.00</span>
+      </div>
+    </div>
+
+    <!-- ── TAB 1: Part C — Charge-wise Summary ──────────────────────────────── -->
+    <div id="tab-summary" class="gst-tab-content">
+      <div class="gst-table-card">
+        <div class="gst-card-header">
+          <h3><i class="bi bi-pie-chart"></i> Part C — Charge-wise GST Outward Supply Statement</h3>
+          <span style="font-size:11px; color:#64748b;">SAC 999598 Classification</span>
+        </div>
+        <div class="table-responsive">
+          <table class="gst-table">
+            <thead>
+              <tr>
+                <th class="text-center" style="width: 40px;">Sr</th>
+                <th>Charge Type / Description</th>
+                <th class="text-center">Taxability</th>
+                <th class="text-right">Taxable Value (₹)</th>
+                <th class="text-center">CGST %</th>
+                <th class="text-right">CGST (₹)</th>
+                <th class="text-center">SGST %</th>
+                <th class="text-right">SGST (₹)</th>
+                <th class="text-center">IGST %</th>
+                <th class="text-right">IGST (₹)</th>
+                <th class="text-right">Total GST (₹)</th>
+              </tr>
+            </thead>
+            <tbody id="tbl-charge-summary-body">
+              <tr><td colspan="11" class="text-center" style="padding: 20px;">Loading charge statement...</td></tr>
+            </tbody>
+            <tfoot>
+              <tr class="total-row" id="tbl-charge-footer">
+                <td colspan="3" class="text-right">Total Outward Supplies:</td>
+                <td class="text-right" id="tot-ch-taxable">₹ 0.00</td>
+                <td>-</td>
+                <td class="text-right" id="tot-ch-cgst">₹ 0.00</td>
+                <td>-</td>
+                <td class="text-right" id="tot-ch-sgst">₹ 0.00</td>
+                <td>-</td>
+                <td class="text-right">₹ 0.00</td>
+                <td class="text-right" id="tot-ch-gst" style="color:#16a34a;">₹ 0.00</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB 2: Part D — Member-wise GST Invoices ─────────────────────────── -->
+    <div id="tab-member-wise" class="gst-tab-content" style="display:none;">
+      <div class="gst-table-card">
+        <div class="gst-card-header">
+          <h3><i class="bi bi-people-fill"></i> Part D — Member-wise Tax Invoice Statement</h3>
+          <span style="font-size:11px; color:#64748b;" id="lbl-member-count">0 records</span>
+        </div>
+        <div class="table-responsive">
+          <table class="gst-table">
+            <thead>
+              <tr>
+                <th class="text-center" style="width: 40px;">Sr</th>
+                <th>Bill / Invoice No</th>
+                <th>Date</th>
+                <th>Member Name</th>
+                <th>Flat / Unit</th>
+                <th class="text-right">Taxable Value (₹)</th>
+                <th class="text-right">CGST (9%)</th>
+                <th class="text-right">SGST (9%)</th>
+                <th class="text-right">IGST</th>
+                <th class="text-right">Total GST (₹)</th>
+                <th class="text-right">Gross Total (₹)</th>
+              </tr>
+            </thead>
+            <tbody id="tbl-member-body">
+              <tr><td colspan="11" class="text-center" style="padding: 24px;">Loading member bills...</td></tr>
+            </tbody>
+            <tfoot>
+              <tr class="total-row" id="tbl-member-footer">
+                <td colspan="5" class="text-right">Total:</td>
+                <td class="text-right" id="tot-mem-taxable">₹ 0.00</td>
+                <td class="text-right" id="tot-mem-cgst">₹ 0.00</td>
+                <td class="text-right" id="tot-mem-sgst">₹ 0.00</td>
+                <td class="text-right">₹ 0.00</td>
+                <td class="text-right" id="tot-mem-gst" style="color:#16a34a;">₹ 0.00</td>
+                <td class="text-right" id="tot-mem-gross">₹ 0.00</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB 3: Part E — Monthly Breakdown ────────────────────────────────── -->
+    <div id="tab-monthly" class="gst-tab-content" style="display:none;">
+      <div class="gst-table-card">
+        <div class="gst-card-header">
+          <h3><i class="bi bi-calendar3"></i> Part E — Month-wise GST Collections &amp; Returns</h3>
+        </div>
+        <div class="table-responsive">
+          <table class="gst-table">
+            <thead>
+              <tr>
+                <th>Month</th>
+                <th class="text-right">Taxable Supplies (₹)</th>
+                <th class="text-right">CGST (₹)</th>
+                <th class="text-right">SGST (₹)</th>
+                <th class="text-right">IGST (₹)</th>
+                <th class="text-right">Total GST Output (₹)</th>
+              </tr>
+            </thead>
+            <tbody id="tbl-monthly-body">
+              <tr><td colspan="6" class="text-center" style="padding: 20px;">Loading monthly breakdown...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB 4: Part F — GST Reconciliation ───────────────────────────────── -->
+    <div id="tab-reconciliation" class="gst-tab-content" style="display:none;">
+      <div class="gst-table-card">
+        <div class="gst-card-header">
+          <h3><i class="bi bi-arrow-left-right"></i> Part F — Cross-Module GST Output Reconciliation</h3>
+        </div>
+        <div style="padding: 16px; display: flex; flex-direction: column; gap: 14px;">
+          <div class="gst-kpi-grid">
+            <div class="kpi-card">
+              <span class="kpi-label">Billed Output GST</span>
+              <span class="kpi-val" id="rec-billed">₹ 0.00</span>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-label">Receipts Collected GST</span>
+              <span class="kpi-val" id="rec-collected">₹ 0.00</span>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-label">Output GST Ledger Balance</span>
+              <span class="kpi-val" id="rec-ledger">₹ 0.00</span>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-label">Variance / Difference</span>
+              <span class="kpi-val" id="rec-diff" style="color:#dc2626;">₹ 0.00</span>
+            </div>
+          </div>
+
+          <div class="warning-box" id="rec-warnings-box">
+            <div class="warning-item">
+              <i class="bi bi-exclamation-triangle-fill text-warning"></i>
+              <span>Reconciliation Engine is verifying Billing vs Output Tax Ledger entries.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB 5: Tax Categories ────────────────────────────────────────────── -->
+    <div id="tab-categories" class="gst-tab-content" style="display:none;">
+      <div class="gst-table-card">
+        <div class="gst-card-header">
+          <h3><i class="bi bi-tags"></i> GST Tax Categories &amp; SAC Configuration</h3>
+          <span style="font-size:11px; color:#64748b;">Cooperative Society Tax Master</span>
+        </div>
+        <div class="table-responsive">
+          <table class="gst-table">
+            <thead>
+              <tr>
+                <th>Category Name</th>
+                <th class="text-center">Taxability</th>
+                <th>HSN / SAC</th>
+                <th class="text-center">CGST Rate</th>
+                <th class="text-center">SGST Rate</th>
+                <th class="text-center">IGST Rate</th>
+                <th class="text-center">Reverse Charge (RCM)</th>
+              </tr>
+            </thead>
+            <tbody id="tbl-cat-body">
+              <tr><td colspan="7" class="text-center" style="padding: 20px;">Loading categories...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="gst-report.js"></script>
+</body>
+</html>

@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Select Society &amp; Financial Year — JEEVIKA ERP</title>
+  <title>Select Society &amp; Financial Year — HENU ERP</title>
   <meta name="description" content="Select your society and financial year to continue">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
   <style>
@@ -449,9 +450,9 @@
 
       <!-- Header -->
       <div class="setup-header">
-        <div class="setup-header-logo">J</div>
+        <img class="setup-header-logo-img" src="favicon.svg" alt="HENU ERP" style="width: 40px; height: 40px; object-fit: contain;">
         <div class="setup-header-text">
-          <h1>JEEVIKA ERP</h1>
+          <h1>HENU ERP</h1>
           <p>Select Society &amp; Financial Year to Continue</p>
         </div>
         <div class="setup-user-badge">
@@ -898,10 +899,9 @@
 
     // ── API Base Resolver ─────────────────────────────────
     function getApiBase() {
-      if (typeof window !== 'undefined' && window.location && window.location.protocol && window.location.protocol.startsWith('http')) {
-        return window.location.origin + '/api';
-      }
-      return (window.APP_CONFIG && window.APP_CONFIG.API_BASE) || 'http://localhost:5002/api';
+      return (window.APP_CONFIG && window.APP_CONFIG.API_BASE) ||
+             (window.CONFIG && (window.CONFIG.API_BASE || window.CONFIG.apiBase)) ||
+             'http://localhost:5002/api';
     }
 
     // ── DYNAMIC RANGE POLICY & CREATE FINANCIAL YEAR MODAL ──

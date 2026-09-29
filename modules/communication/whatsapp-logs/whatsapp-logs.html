@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WhatsApp Logs — HENU ERP</title>
+  <link rel="icon" type="image/svg+xml" href="../../../favicon.svg">
+  <script src="../../../config.js"></script>
+  <script src="../../../assets/js/utils.js"></script>
+  <script src="../../../assets/js/api.js"></script>
+  <script src="../../../assets/js/auth.js"></script>
+  <link rel="stylesheet" href="../../../assets/css/global.css">
+  <link rel="stylesheet" href="../../../assets/css/components.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="whatsapp-logs.css">
+</head>
+<body class="erp-module">
+
+  <!-- ── Top Module Bar ───────────────────────────────────────── -->
+  <div class="module-top-bar">
+    <div>
+      <div class="module-title">
+        <i class="bi bi-journal-text text-success"></i> WhatsApp Activity &amp; Audit Logs
+      </div>
+      <div class="module-subtitle">
+        Real-time dispatch history, delivery receipts, inbound webhook events, and Meta Cloud API diagnostics
+      </div>
+    </div>
+    <div class="top-actions">
+      <button type="button" class="btn-top" id="btnExportLogs">
+        <i class="bi bi-file-earmark-spreadsheet-fill text-success"></i> Export CSV
+      </button>
+      <button type="button" class="btn-top" id="btnRefreshLogs">
+        <i class="bi bi-arrow-clockwise"></i> Refresh Logs
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Summary Ribbon ───────────────────────────────────────── -->
+  <div class="summary-strip">
+    <div class="summary-stats">
+      <div class="stat-item">
+        <span>Channel:</span> <span class="stat-val-highlight">WhatsApp Cloud API</span>
+      </div>
+      <div class="stat-item">
+        <span>Active Society:</span> <span id="statSocLabel" class="stat-val-highlight">Society #1</span>
+      </div>
+      <div class="stat-item">
+        <span>Total Logged:</span> <span id="statTotalLogs" class="stat-val-highlight">0</span>
+      </div>
+    </div>
+    <div>
+      <span class="live-indicator"><span class="pulse-dot"></span> Live SignalR Connected</span>
+    </div>
+  </div>
+
+  <!-- ── Main Content Container ───────────────────────────────── -->
+  <div class="logs-page-container">
+
+    <!-- Filter Toolbar -->
+    <div class="filter-toolbar">
+      <div class="search-box-wrap">
+        <i class="bi bi-search search-icon"></i>
+        <input type="text" class="erp-input search-input" id="searchFilter" placeholder="Search phone, recipient name, message text, Meta WAMID...">
+      </div>
+
+      <div class="filter-group">
+        <label class="filter-label">Status:</label>
+        <select class="erp-select" id="statusFilter">
+          <option value="">All Statuses</option>
+          <option value="QUEUED">QUEUED</option>
+          <option value="SENT">SENT (✓)</option>
+          <option value="DELIVERED">DELIVERED (✓✓)</option>
+          <option value="READ">READ (✓✓ Blue)</option>
+          <option value="FAILED">FAILED (⚠)</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label class="filter-label">Type:</label>
+        <select class="erp-select" id="typeFilter">
+          <option value="">All Types</option>
+          <option value="TEXT">TEXT</option>
+          <option value="TEMPLATE">TEMPLATE</option>
+          <option value="DOCUMENT">DOCUMENT / PDF</option>
+          <option value="IMAGE">IMAGE</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label class="filter-label">Direction:</label>
+        <select class="erp-select" id="directionFilter">
+          <option value="">All Directions</option>
+          <option value="OUTBOUND">OUTBOUND (Sent)</option>
+          <option value="INBOUND">INBOUND (Received)</option>
+        </select>
+      </div>
+
+      <div class="log-count-indicator" id="logCountBadge">
+        Showing 0 records
+      </div>
+    </div>
+
+    <!-- Data Table Card -->
+    <div class="table-card">
+      <div class="table-responsive-wrap">
+        <table class="erp-data-table" id="logsTable">
+          <thead>
+            <tr>
+              <th style="width: 140px;">TIMESTAMP</th>
+              <th style="width: 110px;">DIRECTION</th>
+              <th style="width: 200px;">RECIPIENT / MEMBER</th>
+              <th style="width: 100px;">TYPE</th>
+              <th>MESSAGE CONTENT / TEMPLATE</th>
+              <th style="width: 130px; text-align: center;">STATUS</th>
+              <th style="width: 190px;">META MESSAGE ID</th>
+              <th style="width: 160px;">DIAGNOSTICS</th>
+            </tr>
+          </thead>
+          <tbody id="logsTableBody">
+            <tr>
+              <td colspan="8" class="table-loading-cell">
+                <i class="bi bi-arrow-repeat spin-icon"></i> Loading audit logs...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Scripts -->
+  <script src="../../../assets/js/signalr.min.js"></script>
+  <script src="whatsapp-logs.js"></script>
+</body>
+</html>

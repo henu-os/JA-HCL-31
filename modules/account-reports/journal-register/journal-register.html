@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Journal Register — JEEVIKA ERP</title>
+  <script src="../../../config.js"></script>
+  <link rel="stylesheet" href="../../../assets/css/global.css">
+  <link rel="stylesheet" href="../../../assets/css/components.css">
+  <link rel="stylesheet" href="journal-register.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body class="erp-module">
+
+  <!-- ── Top Action & Filter Toolbar ───────────────────────────────────────── -->
+  <div class="reg-toolbar">
+    <div class="reg-filter-group">
+      <!-- Date Range Pickers -->
+      <div class="reg-filter-item">
+        <label for="fromDate"><i class="bi bi-calendar3"></i> From:</label>
+        <input type="date" id="fromDate" class="reg-input" style="width:120px;" onchange="onDateChange()">
+      </div>
+      <div class="reg-filter-item">
+        <label for="toDate">To:</label>
+        <input type="date" id="toDate" class="reg-input" style="width:120px;" onchange="onDateChange()">
+      </div>
+
+      <!-- Account Filter Dropdown -->
+      <div class="reg-filter-item">
+        <label for="accountSelect"><i class="bi bi-journal-bookmark"></i> Account:</label>
+        <select id="accountSelect" class="reg-select" style="max-width:220px;" onchange="loadJournalRegister()">
+          <option value="all">All Accounts</option>
+        </select>
+      </div>
+
+      <!-- Account Code / Voucher No Toggle -->
+      <div class="reg-filter-item">
+        <label class="reg-toggle-wrap" for="chk-voucher-no" title="Toggle display of Voucher No. / Account Head Codes">
+          <span class="reg-switch">
+            <input type="checkbox" id="chk-voucher-no" checked onchange="renderRegisterView()">
+            <span class="reg-slider"></span>
+          </span>
+          <span>Voucher No. / Code</span>
+        </label>
+      </div>
+
+      <!-- Live Search Box -->
+      <div class="reg-search-box">
+        <i class="bi bi-search"></i>
+        <input type="text" id="searchInput" placeholder="Search account, JV no, note..." onkeyup="filterTable()">
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div style="display:flex; align-items:center; gap:8px;">
+      <!-- Statement Summary Dropdown (Pop-over) -->
+      <div class="summary-dropdown-wrap">
+        <button type="button" class="summary-dropdown-btn" id="btnSummaryToggle" onclick="toggleSummaryPopover(event)" title="Click to view Statement Summary">
+          <i class="bi bi-bar-chart-fill" style="color:var(--reg-primary, #0284c7); font-size:12px;"></i>
+          <span>Statement Summary</span>
+          <i class="bi bi-chevron-down" style="font-size:9.5px; color:#64748b; margin-left:2px;"></i>
+        </button>
+
+        <!-- Popover Card -->
+        <div class="summary-popover" id="summaryPopover">
+          <div class="summary-popover-head">
+            <div style="font-size:12px; font-weight:800; color:#0f172a; display:flex; align-items:center; gap:6px;">
+              <i class="bi bi-pie-chart-fill" style="color:var(--reg-primary, #0284c7);"></i> Statement Summary
+            </div>
+            <span style="font-size:10px; font-weight:700; color:#0369a1; background:#e0f2fe; padding:2px 8px; border-radius:10px;" id="popover-period">Overview</span>
+          </div>
+
+          <div class="summary-popover-grid">
+            <div class="pop-card">
+              <span class="pop-lbl"><i class="bi bi-journal-text" style="color:#1d4ed8;"></i> Journal Vouchers</span>
+              <span class="pop-val" id="kpiTotalVouchers" style="color:#1d4ed8;">0</span>
+            </div>
+            <div class="pop-card">
+              <span class="pop-lbl"><i class="bi bi-arrow-down-left-circle" style="color:#16a34a;"></i> Total Debits (Dr)</span>
+              <span class="pop-val" id="kpiTotalDebit" style="color:#16a34a;">₹ 0.00</span>
+            </div>
+            <div class="pop-card">
+              <span class="pop-lbl"><i class="bi bi-arrow-up-right-circle" style="color:#0369a1;"></i> Total Credits (Cr)</span>
+              <span class="pop-val" id="kpiTotalCredit" style="color:#0369a1;">₹ 0.00</span>
+            </div>
+            <div class="pop-card">
+              <span class="pop-lbl"><i class="bi bi-scale" style="color:#b91c1c;"></i> Balance Difference</span>
+              <span class="pop-val" id="kpiDiff" style="color:#b91c1c;">₹ 0.00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button class="reg-btn reg-btn-primary" onclick="loadJournalRegister()" title="Refresh records from server">
+        <i class="bi bi-arrow-clockwise"></i> Refresh
+      </button>
+      <button class="reg-btn" onclick="printRegister()" title="Print statutory journal register">
+        <i class="bi bi-printer"></i> Print
+      </button>
+      <button class="reg-btn reg-btn-success" onclick="exportToExcel()" title="Export register to Excel .xlsx">
+        <i class="bi bi-file-earmark-excel"></i> Export Excel
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Scrollable Body Area ───────────────────────────────────────────────── -->
+  <div class="reg-scroll-wrapper">
+    <div class="reg-card-container">
+
+      <!-- Print-Only Statutory Society Header (Hidden on Screen) -->
+      <div class="reg-print-header">
+        <div class="reg-print-soc-name" id="prtSocName">CO-OPERATIVE HOUSING SOCIETY LTD.</div>
+        <div class="reg-print-soc-sub" id="prtSocSub">Registration No: — | City: —</div>
+        <div class="reg-print-title">
+          Journal Voucher Register from <span id="prtFromDate">—</span> to <span id="prtToDate">—</span>
+        </div>
+      </div>
+
+      <!-- Master-Detail Table -->
+      <table class="reg-table" id="regMainTable">
+        <thead>
+          <tr>
+            <th style="width:95px;" class="td-center">Date</th>
+            <th style="min-width:145px;" class="td-center">Voucher No.</th>
+            <th>Account Head &amp; Journal Particulars</th>
+            <th class="td-amt" style="text-align:right;">Debit (₹)</th>
+            <th class="td-amt" style="text-align:right;">Credit (₹)</th>
+          </tr>
+        </thead>
+        <tbody id="regTableBody">
+          <tr>
+            <td colspan="5" class="td-center text-muted" style="padding:40px;">
+              <i class="bi bi-arrow-repeat spin" style="font-size:20px;display:block;margin-bottom:8px;color:#0D47A1;"></i>
+              Loading Journal Register records...
+            </td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="3" class="foot-tot-label" style="text-align:right; padding-right:16px;">
+              TOTAL JOURNAL ENTRIES (BALANCED)
+            </td>
+            <td class="td-amt" id="footTotDebit" style="font-weight:800; color:#dc2626;">₹ 0.00</td>
+            <td class="td-amt" id="footTotCredit" style="font-weight:800; color:#16a34a;">₹ 0.00</td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <!-- Status Bar -->
+      <div id="balancedBanner" class="reg-balanced-bar">
+        <span><i class="bi bi-shield-check"></i> Register Double-Entry is Perfectly Balanced (₹ 0.00 difference)</span>
+        <span id="recordCountLabel">0 Vouchers Displayed</span>
+      </div>
+      <div id="diffBanner" class="reg-discrepancy-bar" style="display:none;">
+        <span><i class="bi bi-exclamation-triangle-fill"></i> Discrepancy Detected between Debit and Credit</span>
+        <span id="diffAmountLabel">Diff: ₹ 0.00</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- xlsx-js-style for rich-styled Excel workbook generation -->
+  <script src="../../../assets/js/xlsx-js-style.bundle.js"></script>
+  <script>
+    if (typeof XLSX === 'undefined' || !XLSX.writeFile) {
+      document.write('<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"><\/script>');
+    }
+  </script>
+  <script src="../../../assets/js/api.js"></script>
+  <script src="../../../assets/js/auth.js"></script>
+  <script src="../../../assets/js/utils.js"></script>
+  <script src="journal-register.js"></script>
+</body>
+</html>

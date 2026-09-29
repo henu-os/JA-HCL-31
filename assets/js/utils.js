@@ -1006,9 +1006,14 @@ function filterAccountsByGroupVisibility(list, moduleKey) {
   var vis = getModuleGroupVisibility(moduleKey);
   return list.filter(function (acc) {
     if (!acc) return false;
+    var code = (acc.accCode || '').toUpperCase().trim();
+    var name = (acc.accName || '').toLowerCase().trim();
+    // Exclude internal member control accounts from manual transaction modules (Other Receipt, Payment Entry, Purchase Order, etc.)
+    if (code === 'ASS-1025' || code === 'LIA-1020' || name === 'dues from members' || name === 'dues from member' || name === 'advance from members' || name === 'advance from member') {
+      return false;
+    }
     var grpId = acc.grpMainId;
     var mg = (acc.mainGroup || acc.primaryGroup || '').toLowerCase();
-    var code = (acc.accCode || '').toUpperCase();
 
     var isAsset = (grpId === 1) || mg.startsWith('asset') || code.startsWith('ASS');
     var isLiability = (grpId === 2) || mg.startsWith('liab') || code.startsWith('LIA');
@@ -1193,8 +1198,6 @@ var _masterAccountsList = [
   { accountId: 4018, accCode: 'LIA-1018', accName: 'Prov. Accounting Software AMC Exp.', accBSName: 'Prov. Accounting Software AMC Exp.', mainGroup: 'Liability', groupName: 'Current Liabilities & Provisions', grpMainId: 2 },
   { accountId: 4019, accCode: 'LIA-1019', accName: 'Prov. Income Tax', accBSName: 'Prov. Income Tax', mainGroup: 'Liability', groupName: 'Current Liabilities & Provisions', grpMainId: 2 },
   { accountId: 4020, accCode: 'LIA-1020', accName: 'Dues From Members', accBSName: 'Dues From Members', mainGroup: 'Liability', groupName: 'Dues from Members', grpMainId: 2 },
-  { accountId: 4021, accCode: 'LIA-1021', accName: 'Output CGST', accBSName: 'Output CGST', mainGroup: 'Liability', groupName: 'OUTPUT GST', grpMainId: 2 },
-  { accountId: 4022, accCode: 'LIA-1022', accName: 'Output SGST', accBSName: 'Output SGST', mainGroup: 'Liability', groupName: 'OUTPUT GST', grpMainId: 2 },
   { accountId: 4023, accCode: 'LIA-1023', accName: 'Output IGST', accBSName: 'Output IGST', mainGroup: 'Liability', groupName: 'OUTPUT GST', grpMainId: 2 },
   { accountId: 4032, accCode: 'LIA-1032', accName: 'CGST 9%', accBSName: 'CGST 9%', mainGroup: 'Liability', groupName: 'Current Liabilities & Provisions', grpMainId: 2 },
   { accountId: 4033, accCode: 'LIA-1033', accName: 'SGST 9%', accBSName: 'SGST 9%', mainGroup: 'Liability', groupName: 'Current Liabilities & Provisions', grpMainId: 2 },
@@ -1214,8 +1217,9 @@ async function fetchMasterAccounts(societyId) {
   try {
     if (window.API && API.get) {
       var res = await API.get('/api/accounts?societyId=' + sid);
-      if (res && Array.isArray(res) && res.length > 0) {
-        _cachedMasterAccounts = res.map(function(a) {
+      var raw = (res && Array.isArray(res)) ? res : ((res && res.data && Array.isArray(res.data)) ? res.data : null);
+      if (raw && raw.length > 0) {
+        _cachedMasterAccounts = raw.map(function(a) {
           var mainNames = { 1: 'Asset', 2: 'Liability', 3: 'Income', 4: 'Expenditure' };
           var mainId = a.grpMainId || a.GrpMainId || 1;
           return {
@@ -1374,6 +1378,11 @@ async function openAccountLookupModal(targetSelectId, onSelectCb, filterFn) {
   modal.style.display = 'flex';
 
   var list = await fetchMasterAccounts();
+  list = list.filter(function (a) {
+    var c = (a.accCode || '').toUpperCase().trim();
+    var n = (a.accName || '').toLowerCase().trim();
+    return c !== 'ASS-1025' && c !== 'LIA-1020' && n !== 'dues from members' && n !== 'dues from member' && n !== 'advance from members' && n !== 'advance from member';
+  });
   if (_activeLookupFilterFn) {
     list = list.filter(_activeLookupFilterFn);
   }
@@ -1393,6 +1402,11 @@ function filterAccountLookupTable() {
   var searchInp = document.getElementById('acc-lookup-search');
   var query = (searchInp ? searchInp.value : '').toLowerCase().trim();
   var list = _cachedMasterAccounts || getStandardMasterAccounts();
+  list = list.filter(function (a) {
+    var c = (a.accCode || '').toUpperCase().trim();
+    var n = (a.accName || '').toLowerCase().trim();
+    return c !== 'ASS-1025' && c !== 'LIA-1020' && n !== 'dues from members' && n !== 'dues from member' && n !== 'advance from members' && n !== 'advance from member';
+  });
   if (_activeLookupFilterFn) {
     list = list.filter(_activeLookupFilterFn);
   }

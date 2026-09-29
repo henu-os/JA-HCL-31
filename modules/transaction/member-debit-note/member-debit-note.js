@@ -730,7 +730,10 @@
 
   window.appendParticularTag = function (num) {
     var el = document.getElementById('frm-particular' + num);
-    if (el) el.value += (el.value ? ' ' : '') + 'Debit Note for ' + getFyLabel();
+    if (el) {
+      var val = (el.value ? el.value + ' ' : '') + 'Debit Note for ' + getFyLabel();
+      el.value = val.slice(0, 75);
+    }
   };
 
   // ── 7. SAVE / UPDATE DEBIT NOTE ──────────────────────────────────

@@ -78,23 +78,26 @@ body.erp-module {
   color: #475569;
 }
 
-.reg-switch {
+.reg-switch, .erp-toggle-switch {
   position: relative;
   display: inline-block;
   width: 34px;
   height: 18px;
   flex-shrink: 0;
   margin: 0;
+  cursor: pointer;
+  vertical-align: middle;
+  user-select: none;
 }
 
-.reg-switch input {
+.reg-switch input, .erp-toggle-switch input {
   opacity: 0;
   width: 0;
   height: 0;
   position: absolute;
 }
 
-.reg-slider {
+.reg-slider, .erp-toggle-slider {
   position: absolute;
   cursor: pointer;
   top: 0;
@@ -105,27 +108,30 @@ body.erp-module {
   transition: .2s ease;
   border-radius: 18px;
   border: 1px solid #94a3b8;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.12);
 }
 
-.reg-slider:before {
+.reg-slider:before, .erp-toggle-slider:before {
   position: absolute;
   content: "";
   height: 12px;
   width: 12px;
   left: 2px;
   bottom: 2px;
-  background-color: white;
-  transition: .2s ease;
+  background-color: #ffffff;
   border-radius: 50%;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: all 0.2s ease;
 }
 
-.reg-switch input:checked + .reg-slider {
+.reg-switch input:checked + .reg-slider,
+.erp-toggle-switch input:checked + .erp-toggle-slider {
   background-color: var(--primary, #0D47A1);
   border-color: #0a3880;
 }
 
-.reg-switch input:checked + .reg-slider:before {
+.reg-switch input:checked + .reg-slider:before,
+.erp-toggle-switch input:checked + .erp-toggle-slider:before {
   transform: translateX(16px);
 }
 
@@ -1073,11 +1079,9 @@ body.erp-module {
     background: #ffffff !important;
   }
 
-  body.print-voucher-mode {
-    @page {
-      size: A4 portrait;
-      margin: 4mm 6mm;
-    }
+  @page voucherSheetPage {
+    size: A4 portrait;
+    margin: 5mm 6mm;
   }
 
   body.print-voucher-mode .reg-toolbar,
@@ -1099,9 +1103,10 @@ body.erp-module {
   }
 
   .voucher-sheet {
+    page: voucherSheetPage;
     width: 100% !important;
-    height: 285mm !important;
-    max-height: 285mm !important;
+    height: auto !important;
+    max-height: 268mm !important;
     page-break-after: always !important;
     break-after: page !important;
     page-break-inside: avoid !important;
@@ -1111,7 +1116,7 @@ body.erp-module {
     justify-content: space-between !important;
     box-sizing: border-box !important;
     padding: 0 !important;
-    margin: 0 !important;
+    margin: 0 auto !important;
     overflow: hidden !important;
   }
 
@@ -1122,12 +1127,12 @@ body.erp-module {
 
   .voucher-card {
     width: 100% !important;
-    height: 138mm !important;
-    max-height: 138mm !important;
+    height: 130mm !important;
+    max-height: 130mm !important;
     border: 1px solid #111 !important;
     outline: 1px solid #111 !important;
     outline-offset: -3px !important;
-    padding: 4mm 7mm !important;
+    padding: 3mm 6mm !important;
     box-sizing: border-box !important;
     display: flex !important;
     flex-direction: column !important;
@@ -1135,16 +1140,27 @@ body.erp-module {
     background: #ffffff !important;
     position: relative !important;
     overflow: hidden !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .voucher-card-placeholder {
+    height: 130mm !important;
+    visibility: hidden !important;
+    box-sizing: border-box !important;
   }
 
   .voucher-cut-line {
-    height: 4mm !important;
-    line-height: 4mm !important;
+    height: 3.5mm !important;
+    line-height: 3.5mm !important;
     text-align: center !important;
     font-size: 8px !important;
     color: #64748b !important;
     overflow: hidden !important;
     user-select: none !important;
+    margin: 1mm 0 !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 
   .vcard-header {
@@ -1153,39 +1169,39 @@ body.erp-module {
   }
 
   .vcard-title {
-    font-size: 13pt !important;
+    font-size: 12pt !important;
     font-weight: 800 !important;
     text-decoration: underline !important;
     text-align: center !important;
     color: #000 !important;
     letter-spacing: 0.3px !important;
-    margin-bottom: 2px !important;
+    margin-bottom: 1px !important;
   }
 
   .vcard-soc-name {
-    font-size: 11pt !important;
+    font-size: 10.5pt !important;
     font-weight: 800 !important;
     text-align: center !important;
     color: #000 !important;
     margin-top: 1px !important;
-    line-height: 1.25 !important;
+    line-height: 1.2 !important;
   }
 
   .vcard-soc-reg {
-    font-size: 8pt !important;
+    font-size: 7.5pt !important;
     font-weight: 600 !important;
     text-align: center !important;
     color: #111 !important;
-    margin-top: 2px !important;
+    margin-top: 1px !important;
   }
 
   .vcard-soc-addr,
   .vcard-soc-contact {
-    font-size: 7.5pt !important;
+    font-size: 7.2pt !important;
     text-align: center !important;
     color: #222 !important;
     margin-top: 1px !important;
-    line-height: 1.2 !important;
+    line-height: 1.15 !important;
   }
 
   .vcard-copy-badge {
@@ -1195,7 +1211,7 @@ body.erp-module {
     font-size: 7pt !important;
     font-weight: 700 !important;
     border: 1px solid #475569 !important;
-    padding: 1px 6px !important;
+    padding: 1px 5px !important;
     border-radius: 3px !important;
     text-transform: uppercase !important;
     color: #1e293b !important;
@@ -1203,14 +1219,14 @@ body.erp-module {
 
   .vcard-hr {
     border-top: 1px solid #111 !important;
-    margin: 3px 0 !important;
+    margin: 2px 0 !important;
   }
 
   .vcard-meta-row {
     display: flex !important;
     justify-content: space-between !important;
     align-items: center !important;
-    font-size: 9pt !important;
+    font-size: 8.5pt !important;
     font-weight: 600 !important;
     color: #000 !important;
     padding: 1px 0 !important;
@@ -1218,29 +1234,29 @@ body.erp-module {
 
   .vcard-meta-no strong,
   .vcard-meta-date strong {
-    font-size: 9.5pt !important;
+    font-size: 9pt !important;
   }
 
   .vcard-payer-row {
     display: flex !important;
     align-items: baseline !important;
     gap: 8px !important;
-    font-size: 9pt !important;
-    padding: 2px 0 !important;
+    font-size: 8.5pt !important;
+    padding: 1px 0 !important;
   }
 
   .vcard-thanks-box {
     border: 1px solid #94a3b8 !important;
-    padding: 1px 8px !important;
+    padding: 1px 6px !important;
     border-radius: 3px !important;
-    font-size: 8.5pt !important;
+    font-size: 8pt !important;
     font-weight: 600 !important;
     color: #1e293b !important;
     white-space: nowrap !important;
   }
 
   .vcard-payer-name {
-    font-size: 9.5pt !important;
+    font-size: 9pt !important;
     font-weight: 800 !important;
     text-transform: uppercase !important;
     color: #000 !important;
@@ -1249,22 +1265,23 @@ body.erp-module {
 
   .vcard-body-table-wrap {
     flex: 1 !important;
-    min-height: 38mm !important;
+    min-height: 16mm !important;
     display: flex !important;
     flex-direction: column !important;
     justify-content: flex-start !important;
+    overflow: hidden !important;
   }
 
   .vcard-table {
     width: 100% !important;
     border-collapse: collapse !important;
-    font-size: 8.5pt !important;
+    font-size: 8pt !important;
   }
 
   .vcard-table th {
     border-top: 1px solid #111 !important;
     border-bottom: 1px solid #111 !important;
-    padding: 3px 4px !important;
+    padding: 2px 4px !important;
     font-weight: 800 !important;
     text-transform: uppercase !important;
     color: #000 !important;
@@ -1280,7 +1297,7 @@ body.erp-module {
   }
 
   .vcard-table td {
-    padding: 2.5px 4px !important;
+    padding: 2px 4px !important;
     color: #000 !important;
     vertical-align: top !important;
   }
@@ -1301,8 +1318,8 @@ body.erp-module {
     display: flex !important;
     justify-content: space-between !important;
     align-items: flex-end !important;
-    padding: 4px 4px !important;
-    font-size: 9pt !important;
+    padding: 2px 4px !important;
+    font-size: 8.5pt !important;
     margin-top: auto !important;
   }
 
@@ -1311,7 +1328,9 @@ body.erp-module {
     color: #000 !important;
     font-style: italic !important;
     flex: 1 !important;
-    padding-right: 12px !important;
+    padding-right: 10px !important;
+    font-size: 8pt !important;
+    line-height: 1.2 !important;
   }
 
   .vcard-total-box {
@@ -1323,7 +1342,7 @@ body.erp-module {
 
   .vcard-total-num {
     font-family: monospace, ui-monospace !important;
-    font-size: 10pt !important;
+    font-size: 9.5pt !important;
     font-weight: 800 !important;
     color: #000 !important;
   }
@@ -1331,9 +1350,11 @@ body.erp-module {
   .vcard-footer-grid {
     display: flex !important;
     justify-content: space-between !important;
-    padding: 4px 2px 2px !important;
-    font-size: 8pt !important;
+    padding: 2px 2px 1px !important;
+    font-size: 7.8pt !important;
     color: #000 !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 
   .vcard-footer-left {
@@ -1352,11 +1373,11 @@ body.erp-module {
   .vcard-narr-text {
     font-weight: 600 !important;
     text-transform: uppercase !important;
-    margin-bottom: 4px !important;
+    margin-bottom: 2px !important;
   }
 
   .vcard-disclaimer {
-    font-size: 7.5pt !important;
+    font-size: 7pt !important;
     font-style: italic !important;
     color: #333 !important;
   }
@@ -1372,18 +1393,18 @@ body.erp-module {
 
   .vcard-sign-soc {
     font-weight: 700 !important;
-    font-size: 8pt !important;
+    font-size: 7.5pt !important;
     text-align: right !important;
-    line-height: 1.2 !important;
+    line-height: 1.15 !important;
   }
 
   .vcard-sign-space {
-    height: 16mm !important;
+    height: 11mm !important;
   }
 
   .vcard-sign-title {
     font-weight: 600 !important;
-    font-size: 8pt !important;
+    font-size: 7.5pt !important;
     border-top: 1px dashed #666 !important;
     padding-top: 2px !important;
     display: inline-block !important;

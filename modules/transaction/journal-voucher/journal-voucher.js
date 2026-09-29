@@ -253,6 +253,12 @@
   }
 
   window.jvAccountFilter = function (a) {
+    if (!a) return false;
+    var c = (a.accCode || '').toUpperCase().trim();
+    var n = (a.accName || '').toLowerCase().trim();
+    if (c === 'ASS-1025' || c === 'LIA-1020' || n === 'dues from members' || n === 'dues from member' || n === 'advance from members' || n === 'advance from member') {
+      return false;
+    }
     if (getAllowCashBankJvConfig()) {
       return true;
     }
@@ -1286,7 +1292,10 @@
 
   window.appendParticularTag = function (num) {
     var el = document.getElementById('frm-particular' + num);
-    if (el) el.value += (el.value ? ' ' : '') + 'Journal Voucher Entry for ' + getFyLabel();
+    if (el) {
+      var val = (el.value ? el.value + ' ' : '') + 'Journal Voucher Entry for ' + getFyLabel();
+      el.value = val.slice(0, 75);
+    }
   };
 
   window.closeModal = function (id) {

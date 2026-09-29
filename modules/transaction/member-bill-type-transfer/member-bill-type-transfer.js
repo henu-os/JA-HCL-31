@@ -1200,4 +1200,12 @@
     await loadTransfers();
   })();
 
+  window.appendParticularTag = function (num) {
+    var el = document.getElementById('frm-particular' + num);
+    if (el) {
+      var val = (el.value ? el.value + ' ' : '') + 'Bill Type Transfer for ' + (sessionStorage.getItem('activePeriodLabel') || 'Current Period');
+      el.value = val.slice(0, 75);
+    }
+  };
+
 })();

@@ -1228,7 +1228,10 @@
 
   window.appendParticularTag = function (num) {
     var el = document.getElementById('frm-particular' + num);
-    if (el) el.value += (el.value ? ' ' : '') + 'Receipt for ' + getFyLabel();
+    if (el) {
+      var val = (el.value ? el.value + ' ' : '') + 'Receipt for ' + getFyLabel();
+      el.value = val.slice(0, 75);
+    }
   };
 
   // ── 4. SAVE & ACTIONS ─────────────────────────────────────────────
@@ -1585,9 +1588,38 @@
     if (bar) bar.style.display = (bar.style.display === 'none' ? 'flex' : 'none');
   };
 
-  window.toggleOtherDropdown = function () {
+  function closeAllToolbarDropdowns() {
+    ['mr-export-menu', 'mr-template-menu', 'mr-other-menu', 'add-receipt-menu'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
+  }
+
+  window.toggleExportDropdown = function (evt) {
+    if (evt) evt.stopPropagation();
+    var menu = document.getElementById('mr-export-menu');
+    if (!menu) return;
+    var isShown = menu.style.display === 'block';
+    closeAllToolbarDropdowns();
+    if (!isShown) menu.style.display = 'block';
+  };
+
+  window.toggleTemplateDropdown = function (evt) {
+    if (evt) evt.stopPropagation();
+    var menu = document.getElementById('mr-template-menu');
+    if (!menu) return;
+    var isShown = menu.style.display === 'block';
+    closeAllToolbarDropdowns();
+    if (!isShown) menu.style.display = 'block';
+  };
+
+  window.toggleOtherDropdown = function (evt) {
+    if (evt) evt.stopPropagation();
     var menu = document.getElementById('mr-other-menu');
-    if (menu) menu.style.display = (menu.style.display === 'block' ? 'none' : 'block');
+    if (!menu) return;
+    var isShown = menu.style.display === 'block';
+    closeAllToolbarDropdowns();
+    if (!isShown) menu.style.display = 'block';
   };
 
   window.applyFilters = function () { renderReceiptsTable(); };
@@ -1610,12 +1642,892 @@
     return d.toISOString().split('T')[0];
   }
 
+  function formatReceiptDate(d) {
+    if (!d) return '';
+    var dt = (d instanceof Date) ? d : new Date(d);
+    if (isNaN(dt.getTime())) return String(d);
+    var day = String(dt.getDate()).padStart(2, '0');
+    var month = String(dt.getMonth() + 1).padStart(2, '0');
+    var year = dt.getFullYear();
+    return day + '-' + month + '-' + year;
+  }
+
+  function normalizeHeaderKey(str) {
+    if (!str) return '';
+    return String(str)
+      .toLowerCase()
+      .replace(/[\(₹\)\.\/,\-_\*]/g, '')
+      .replace(/\s+/g, '')
+      .trim();
+  }
+
+  function parseDateValue(val) {
+    if (!val) return '';
+    if (val instanceof Date) return formatReceiptDate(val);
+    if (typeof val === 'number') {
+      var d = new Date(Math.round((val - 25569) * 86400 * 1000));
+      return formatReceiptDate(d);
+    }
+    var str = String(val).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+      var parts = str.split('-');
+      return parts[2] + '-' + parts[1] + '-' + parts[0];
+    }
+    if (/^\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}$/.test(str)) {
+      var segs = str.split(/[\/\-\.]/);
+      var day = segs[0].padStart(2, '0');
+      var mon = segs[1].padStart(2, '0');
+      var yr  = segs[2];
+      if (yr.length === 2) yr = '20' + yr;
+      return day + '-' + mon + '-' + yr;
+    }
+    return str;
+  }
+
+  function getReceiptExcelSchema() {
+    return [
+      { group: 'VOUCHER DETAILS', subGroup: 'VOUCHER DETAILS', label: 'Receipt No', key: 'receiptNo', width: 16, align: 'center' },
+      { group: 'VOUCHER DETAILS', subGroup: 'VOUCHER DETAILS', label: 'Receipt Date (DD-MM-YYYY) *', key: 'receiptDate', width: 22, align: 'center' },
+      { group: 'VOUCHER DETAILS', subGroup: 'VOUCHER DETAILS', label: 'Bill Type *', key: 'billType', width: 18, align: 'center' },
+      { group: 'MEMBER DETAILS', subGroup: 'MEMBER DETAILS', label: 'Member Code', key: 'memberCode', width: 15, align: 'center' },
+      { group: 'MEMBER DETAILS', subGroup: 'MEMBER DETAILS', label: 'Member Name *', key: 'memberName', width: 32, align: 'left' },
+      { group: 'MEMBER DETAILS', subGroup: 'MEMBER DETAILS', label: 'Flat No', key: 'wingFlat', width: 12, align: 'center' },
+      { group: 'BANKING & PAYMENT', subGroup: 'ACCOUNTING', label: 'Debit Account Type *', key: 'debitAccountType', width: 18, align: 'center' },
+      { group: 'BANKING & PAYMENT', subGroup: 'ACCOUNTING', label: 'Deposit To Account *', key: 'depositToAccount', width: 30, align: 'left' },
+      { group: 'BANKING & PAYMENT', subGroup: 'INSTRUMENT', label: 'Payment Mode *', key: 'transactionType', width: 16, align: 'center' },
+      { group: 'BANKING & PAYMENT', subGroup: 'INSTRUMENT', label: 'Cheque / Ref No', key: 'chqNo', width: 18, align: 'center' },
+      { group: 'BANKING & PAYMENT', subGroup: 'INSTRUMENT', label: 'Cheque Date', key: 'chqDate', width: 15, align: 'center' },
+      { group: 'BANKING & PAYMENT', subGroup: 'INSTRUMENT', label: 'Drawn On Bank', key: 'drawnOnBank', width: 20, align: 'left' },
+      { group: 'AMOUNT & ALLOCATION', subGroup: 'AMOUNT', label: 'Received Amount (₹) *', key: 'amount', width: 18, type: 'number', align: 'right' },
+      { group: 'AMOUNT & ALLOCATION', subGroup: 'ALLOCATION', label: 'Allocation Mode', key: 'allocationMode', width: 16, align: 'center' },
+      { group: 'AMOUNT & ALLOCATION', subGroup: 'ALLOCATION', label: 'Principal Amount (₹)', key: 'principalAmount', width: 18, type: 'number', align: 'right' },
+      { group: 'AMOUNT & ALLOCATION', subGroup: 'ALLOCATION', label: 'Interest Amount (₹)', key: 'interestAmount', width: 18, type: 'number', align: 'right' },
+      { group: 'AMOUNT & ALLOCATION', subGroup: 'ALLOCATION', label: 'Against Bill / Invoice No', key: 'againstBillNo', width: 22, align: 'center' },
+      { group: 'NARRATION & PARTICULARS', subGroup: 'NARRATION', label: 'Particulars 1 / Narration', key: 'particular1', width: 30, align: 'left' },
+      { group: 'NARRATION & PARTICULARS', subGroup: 'NARRATION', label: 'Particulars 2 / Note', key: 'particular2', width: 24, align: 'left' }
+    ];
+  }
+
+  async function fetchReceiptTemplateMeta() {
+    var sid = getActiveSocietyId();
+    var meta = await fetchApiData('/api/member-receipts/template-meta?societyId=' + sid);
+    if (meta && meta.success) return meta;
+
+    return {
+      success: true,
+      billTypes: billTypes.map(function (bt) { return { billTypeId: bt.billTypeId || bt.id, billTypeName: bt.billTypeName || bt.name }; }),
+      members: members.map(function (m) {
+        var flatStr = m.wing ? (m.wing + '-' + (m.flatNo || m.flat)) : (m.flatNo || m.flat || '');
+        return {
+          memberId: m.memberId || m.socMemId,
+          memCode: m.memCode || '',
+          memName: m.memName || '',
+          flatNo: flatStr,
+          label: '[' + (m.memCode || '') + '] ' + (m.memName || '') + (flatStr ? ' (' + flatStr + ')' : '')
+        };
+      }),
+      cashAccounts: accounts.filter(function (a) { return (a.accCode === 'ASS-1001' || (a.accName || '').toLowerCase().includes('cash')); }),
+      bankAccounts: accounts.filter(function (a) { return !(a.accCode === 'ASS-1001' || (a.accName || '').toLowerCase().includes('cash')); }),
+      allDepositAccounts: accounts,
+      transactionTypes: ['Cheque', 'NEFT', 'UPI', 'IMPS', 'IB [Internal Bank Transfer]', 'RTGS', 'Cash'],
+      allocationModes: ['AUTO', 'MANUAL']
+    };
+  }
+
+  // ── TEMPLATE GENERATION (Blank & With Members) ─────────────────
+  window.downloadReceiptTemplate = async function (withMembers) {
+    closeAllToolbarDropdowns();
+    var meta = await fetchReceiptTemplateMeta();
+    var schema = getReceiptExcelSchema();
+
+    if (typeof XLSX === 'undefined' || !XLSX.utils) {
+      toast('Excel generation library is loading, please wait...', false);
+      return;
+    }
+
+    var wsData = [
+      [], // Row 0: Group Headers
+      [], // Row 1: Sub-Group Headers
+      []  // Row 2: Leaf Headers
+    ];
+
+    schema.forEach(function (c) {
+      wsData[0].push(c.group);
+      wsData[1].push(c.subGroup || c.group);
+      wsData[2].push(c.label);
+    });
+
+    var todayStr = formatReceiptDate(new Date());
+    var defaultBType = (activeBillType && activeBillType !== 'ALL') ? activeBillType : (meta.billTypes[0] ? meta.billTypes[0].billTypeName : 'Maintenance');
+    var defaultBankAcc = (meta.bankAccounts && meta.bankAccounts[0]) ? meta.bankAccounts[0].label : (meta.allDepositAccounts[0] ? meta.allDepositAccounts[0].label : '[ASS-1001] Cash in Hand');
+
+    if (withMembers && meta.members && meta.members.length > 0) {
+      meta.members.forEach(function (m) {
+        wsData.push([
+          '', // Receipt No (Blank for auto-gen)
+          todayStr, // Receipt Date
+          defaultBType, // Bill Type
+          m.memCode || '', // Member Code
+          m.label || m.memName, // Member Name
+          m.flatNo || '', // Flat No
+          'BANK', // Debit Account Type
+          defaultBankAcc, // Deposit To Account
+          'Cheque', // Payment Mode
+          '', // Cheque / Ref No
+          '', // Cheque Date
+          '', // Drawn On Bank
+          '', // Received Amount
+          'AUTO', // Allocation Mode
+          '', // Principal Amount
+          '', // Interest Amount
+          '', // Against Bill No
+          defaultBType + ' Receipt', // Particulars 1
+          ''  // Particulars 2
+        ]);
+      });
+    }
+
+    var ws = XLSX.utils.aoa_to_sheet(wsData);
+
+    var borderAll = {
+      top: { style: 'thin', color: { rgb: 'CBD5E1' } },
+      bottom: { style: 'thin', color: { rgb: 'CBD5E1' } },
+      left: { style: 'thin', color: { rgb: 'CBD5E1' } },
+      right: { style: 'thin', color: { rgb: 'CBD5E1' } }
+    };
+
+    var topHdrStyle = {
+      fill: { fgColor: { rgb: '535FC1' } },
+      font: { name: 'Arial', sz: 11, bold: true, color: { rgb: 'FFFFFF' } },
+      alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+      border: borderAll
+    };
+    var subHdrStyle = {
+      fill: { fgColor: { rgb: '4852A8' } },
+      font: { name: 'Arial', sz: 10.5, bold: true, color: { rgb: 'FFFFFF' } },
+      alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+      border: borderAll
+    };
+    var leafHdrStyle = {
+      fill: { fgColor: { rgb: '3E4691' } },
+      font: { name: 'Arial', sz: 10, bold: true, color: { rgb: 'FFFFFF' } },
+      alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+      border: borderAll
+    };
+
+    // Calculate Merges for 3-tier headers
+    var merges = [];
+    var colIdx = 0;
+    while (colIdx < schema.length) {
+      var grp = schema[colIdx].group;
+      var endCol = colIdx;
+      while (endCol + 1 < schema.length && schema[endCol + 1].group === grp) {
+        endCol++;
+      }
+      merges.push({ s: { r: 0, c: colIdx }, e: { r: 0, c: endCol } });
+
+      var subCol = colIdx;
+      while (subCol <= endCol) {
+        var subGrp = schema[subCol].subGroup;
+        var endSubCol = subCol;
+        while (endSubCol + 1 <= endCol && schema[endSubCol + 1].subGroup === subGrp) {
+          endSubCol++;
+        }
+        if (endSubCol >= subCol) {
+          merges.push({ s: { r: 1, c: subCol }, e: { r: 1, c: endSubCol } });
+        }
+        subCol = endSubCol + 1;
+      }
+      colIdx = endCol + 1;
+    }
+    ws['!merges'] = merges;
+
+    // Apply Header Cell Styles
+    schema.forEach(function (c, cIdx) {
+      var c0 = XLSX.utils.encode_cell({ r: 0, c: cIdx });
+      var c1 = XLSX.utils.encode_cell({ r: 1, c: cIdx });
+      var c2 = XLSX.utils.encode_cell({ r: 2, c: cIdx });
+
+      if (ws[c0]) ws[c0].s = topHdrStyle;
+      if (ws[c1]) ws[c1].s = subHdrStyle;
+      if (ws[c2]) ws[c2].s = leafHdrStyle;
+    });
+
+    // Apply Data Cell Styles
+    var rowCount = wsData.length;
+    for (var r = 3; r < rowCount; r++) {
+      schema.forEach(function (c, cIdx) {
+        var cellRef = XLSX.utils.encode_cell({ r: r, c: cIdx });
+        if (!ws[cellRef]) ws[cellRef] = { t: (c.type === 'number' ? 'n' : 's'), v: '' };
+        var isNum = c.type === 'number';
+        ws[cellRef].s = {
+          font: { name: 'Arial', sz: 10, color: { rgb: '1E293B' } },
+          alignment: { horizontal: c.align || (isNum ? 'right' : 'left'), vertical: 'center' },
+          border: borderAll
+        };
+        if (isNum) ws[cellRef].z = '#,##0.00';
+      });
+    }
+
+    ws['!cols'] = schema.map(function (c) { return { wch: c.width || 15 }; });
+    ws['!rows'] = [{ hpt: 26 }, { hpt: 22 }, { hpt: 24 }];
+    ws['!views'] = [{ state: 'frozen', xSplit: 2, ySplit: 3, topLeftCell: 'C4', activeCell: 'C4' }];
+
+    // Hidden Lists Sheet for Data Validation Dropdowns
+    var listBillTypes = (meta.billTypes || []).map(function (b) { return b.billTypeName; });
+    var listMembers   = (meta.members || []).map(function (m) { return m.label || m.memName; });
+    var listDebit     = ['CASH', 'BANK'];
+    var listAccounts  = (meta.allDepositAccounts || []).map(function (a) { return a.label || a.accName; });
+    var listTxnTypes  = meta.transactionTypes || ['Cash', 'Cheque', 'NEFT', 'UPI', 'IMPS', 'RTGS'];
+    var listAlloc     = meta.allocationModes || ['AUTO', 'MANUAL'];
+
+    var maxLen = Math.max(listBillTypes.length, listMembers.length, listDebit.length, listAccounts.length, listTxnTypes.length, listAlloc.length, 1);
+    var wsListsData = [['BILL TYPES', 'MEMBERS', 'DEBIT TYPES', 'DEPOSIT ACCOUNTS', 'PAYMENT MODES', 'ALLOCATION MODES']];
+    for (var i = 0; i < maxLen; i++) {
+      wsListsData.push([
+        listBillTypes[i] || '',
+        listMembers[i] || '',
+        listDebit[i] || '',
+        listAccounts[i] || '',
+        listTxnTypes[i] || '',
+        listAlloc[i] || ''
+      ]);
+    }
+
+    var wsLists = XLSX.utils.aoa_to_sheet(wsListsData);
+    wsLists['!state'] = 'hidden';
+
+    var maxDataRows = Math.max(rowCount + 500, 1000);
+    ws['!dataValidations'] = [
+      {
+        type: 'list',
+        allowBlank: false,
+        sqref: 'C4:C' + maxDataRows,
+        formula1: 'Lists!$A$2:$A$' + (listBillTypes.length + 1)
+      },
+      {
+        type: 'list',
+        allowBlank: true,
+        sqref: 'E4:E' + maxDataRows,
+        formula1: 'Lists!$B$2:$B$' + (listMembers.length + 1)
+      },
+      {
+        type: 'list',
+        allowBlank: true,
+        sqref: 'G4:G' + maxDataRows,
+        formula1: 'Lists!$C$2:$C$3'
+      },
+      {
+        type: 'list',
+        allowBlank: true,
+        sqref: 'H4:H' + maxDataRows,
+        formula1: 'Lists!$D$2:$D$' + (listAccounts.length + 1)
+      },
+      {
+        type: 'list',
+        allowBlank: true,
+        sqref: 'I4:I' + maxDataRows,
+        formula1: 'Lists!$E$2:$E$' + (listTxnTypes.length + 1)
+      },
+      {
+        type: 'list',
+        allowBlank: true,
+        sqref: 'N4:N' + maxDataRows,
+        formula1: 'Lists!$F$2:$F$3'
+      }
+    ];
+
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Receipt_Entry');
+    XLSX.utils.book_append_sheet(wb, wsLists, 'Lists');
+
+    var fileName = withMembers ? 'Member_Receipt_Template_With_Members.xlsx' : 'Member_Receipt_Blank_Template.xlsx';
+    XLSX.writeFile(wb, fileName);
+    toast('Downloaded ' + (withMembers ? 'Template with Members' : 'Blank Template') + ' successfully.', true);
+  };
+
+  // ── EXPORT RECEIPTS (XLSX, CSV, XLS) ───────────────────────────
+  window.exportReceipts = async function (format) {
+    format = (format || 'xlsx').toLowerCase();
+    closeAllToolbarDropdowns();
+
+    var sid = getActiveSocietyId();
+    var res = await fetchApiData('/api/member-receipts/export-data?societyId=' + sid);
+    var exportRows = (res && res.data && Array.isArray(res.data)) ? res.data : (Array.isArray(res) ? res : []);
+
+    if (exportRows.length === 0) {
+      toast('No receipts found to export.', false);
+      return;
+    }
+
+    var schema = getReceiptExcelSchema();
+    var todayStr = todayISO();
+
+    // 1. XLSX Format (with 3-tier header, totals, styles)
+    if (format === 'xlsx' && typeof XLSX !== 'undefined') {
+      var wsData = [[], [], []];
+      schema.forEach(function (c) {
+        wsData[0].push(c.group);
+        wsData[1].push(c.subGroup || c.group);
+        wsData[2].push(c.label);
+      });
+
+      var sumAmount = 0;
+      var sumPrin = 0;
+      var sumInt = 0;
+
+      exportRows.forEach(function (r) {
+        var amt = parseFloat(r.amount || 0);
+        var prin = parseFloat(r.principalAmount || 0);
+        var intr = parseFloat(r.interestAmount || 0);
+        sumAmount += amt;
+        sumPrin += prin;
+        sumInt += intr;
+
+        wsData.push([
+          r.receiptNo || '',
+          r.receiptDate || '',
+          r.billType || '',
+          r.memberCode || '',
+          r.memberName || '',
+          r.wingFlat || '',
+          r.debitAccountType || '',
+          r.depositToAccount || '',
+          r.transactionType || '',
+          r.chqNo || '',
+          r.chqDate || '',
+          r.drawnOnBank || '',
+          amt,
+          r.allocationMode || 'AUTO',
+          prin,
+          intr,
+          r.againstBillNo || '',
+          r.particular1 || '',
+          r.particular2 || ''
+        ]);
+      });
+
+      // Append TOTALS Row
+      var totalRow = new Array(schema.length).fill('');
+      totalRow[0] = 'TOTAL (' + exportRows.length + ' Receipts)';
+      totalRow[12] = Math.round(sumAmount * 100) / 100;
+      totalRow[14] = Math.round(sumPrin * 100) / 100;
+      totalRow[15] = Math.round(sumInt * 100) / 100;
+      wsData.push(totalRow);
+
+      var ws = XLSX.utils.aoa_to_sheet(wsData);
+
+      var borderAll = {
+        top: { style: 'thin', color: { rgb: 'CBD5E1' } },
+        bottom: { style: 'thin', color: { rgb: 'CBD5E1' } },
+        left: { style: 'thin', color: { rgb: 'CBD5E1' } },
+        right: { style: 'thin', color: { rgb: 'CBD5E1' } }
+      };
+
+      var topHdrStyle = {
+        fill: { fgColor: { rgb: '535FC1' } },
+        font: { name: 'Arial', sz: 11, bold: true, color: { rgb: 'FFFFFF' } },
+        alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+        border: borderAll
+      };
+      var subHdrStyle = {
+        fill: { fgColor: { rgb: '4852A8' } },
+        font: { name: 'Arial', sz: 10.5, bold: true, color: { rgb: 'FFFFFF' } },
+        alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+        border: borderAll
+      };
+      var leafHdrStyle = {
+        fill: { fgColor: { rgb: '3E4691' } },
+        font: { name: 'Arial', sz: 10, bold: true, color: { rgb: 'FFFFFF' } },
+        alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+        border: borderAll
+      };
+
+      // Merges for header
+      var merges = [];
+      var colIdx = 0;
+      while (colIdx < schema.length) {
+        var grp = schema[colIdx].group;
+        var endCol = colIdx;
+        while (endCol + 1 < schema.length && schema[endCol + 1].group === grp) {
+          endCol++;
+        }
+        merges.push({ s: { r: 0, c: colIdx }, e: { r: 0, c: endCol } });
+
+        var subCol = colIdx;
+        while (subCol <= endCol) {
+          var subGrp = schema[subCol].subGroup;
+          var endSubCol = subCol;
+          while (endSubCol + 1 <= endCol && schema[endSubCol + 1].subGroup === subGrp) {
+            endSubCol++;
+          }
+          if (endSubCol >= subCol) {
+            merges.push({ s: { r: 1, c: subCol }, e: { r: 1, c: endSubCol } });
+          }
+          subCol = endSubCol + 1;
+        }
+        colIdx = endCol + 1;
+      }
+
+      // Merge cols 0 to 11 in TOTAL row
+      var totalRowIdx = wsData.length - 1;
+      merges.push({ s: { r: totalRowIdx, c: 0 }, e: { r: totalRowIdx, c: 11 } });
+      ws['!merges'] = merges;
+
+      // Header styles
+      schema.forEach(function (c, cIdx) {
+        var c0 = XLSX.utils.encode_cell({ r: 0, c: cIdx });
+        var c1 = XLSX.utils.encode_cell({ r: 1, c: cIdx });
+        var c2 = XLSX.utils.encode_cell({ r: 2, c: cIdx });
+        if (ws[c0]) ws[c0].s = topHdrStyle;
+        if (ws[c1]) ws[c1].s = subHdrStyle;
+        if (ws[c2]) ws[c2].s = leafHdrStyle;
+      });
+
+      // Data cell styles
+      for (var r = 3; r < totalRowIdx; r++) {
+        schema.forEach(function (c, cIdx) {
+          var cellRef = XLSX.utils.encode_cell({ r: r, c: cIdx });
+          if (ws[cellRef]) {
+            var isNum = c.type === 'number';
+            ws[cellRef].s = {
+              font: { name: 'Arial', sz: 10, color: { rgb: '1E293B' } },
+              alignment: { horizontal: c.align || (isNum ? 'right' : 'left'), vertical: 'center' },
+              border: borderAll
+            };
+            if (isNum) ws[cellRef].z = '#,##0.00';
+          }
+        });
+      }
+
+      // Total row styling
+      var totalStyle = {
+        fill: { fgColor: { rgb: 'E8EAF6' } },
+        font: { name: 'Arial', sz: 10.5, bold: true, color: { rgb: '1A237E' } },
+        alignment: { vertical: 'center' },
+        border: {
+          top: { style: 'thin', color: { rgb: '535FC1' } },
+          bottom: { style: 'double', color: { rgb: '535FC1' } },
+          left: { style: 'thin', color: { rgb: 'CBD5E1' } },
+          right: { style: 'thin', color: { rgb: 'CBD5E1' } }
+        }
+      };
+
+      for (var col = 0; col < schema.length; col++) {
+        var tRef = XLSX.utils.encode_cell({ r: totalRowIdx, c: col });
+        if (!ws[tRef]) ws[tRef] = { t: 's', v: '' };
+        var isNumCol = (col === 12 || col === 14 || col === 15);
+        ws[tRef].s = Object.assign({}, totalStyle, {
+          alignment: { horizontal: (isNumCol ? 'right' : (col === 0 ? 'left' : 'center')), vertical: 'center' }
+        });
+        if (isNumCol) ws[tRef].z = '#,##0.00';
+      }
+
+      ws['!cols'] = schema.map(function (c) { return { wch: c.width || 15 }; });
+      ws['!rows'] = [{ hpt: 26 }, { hpt: 22 }, { hpt: 24 }];
+      ws['!views'] = [{ state: 'frozen', xSplit: 2, ySplit: 3, topLeftCell: 'C4', activeCell: 'C4' }];
+
+      var wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'MemberReceipts');
+      XLSX.writeFile(wb, 'Member_Receipts_Export_' + todayStr + '.xlsx');
+      toast('Exported ' + exportRows.length + ' receipts to Excel successfully.', true);
+      return;
+    }
+
+    // 2. CSV Format
+    if (format === 'csv') {
+      var csvHeader = schema.map(function (c) { return '"' + c.label.replace(/"/g, '""') + '"'; }).join(',') + '\n';
+      var csvLines = exportRows.map(function (r) {
+        return [
+          r.receiptNo || '',
+          r.receiptDate || '',
+          r.billType || '',
+          r.memberCode || '',
+          r.memberName || '',
+          r.wingFlat || '',
+          r.debitAccountType || '',
+          r.depositToAccount || '',
+          r.transactionType || '',
+          r.chqNo || '',
+          r.chqDate || '',
+          r.drawnOnBank || '',
+          r.amount || 0,
+          r.allocationMode || 'AUTO',
+          r.principalAmount || 0,
+          r.interestAmount || 0,
+          r.againstBillNo || '',
+          r.particular1 || '',
+          r.particular2 || ''
+        ].map(function (val) {
+          if (typeof val === 'number') return val;
+          return '"' + String(val || '').replace(/"/g, '""') + '"';
+        }).join(',');
+      }).join('\n');
+
+      var blob = new Blob([csvHeader + csvLines], { type: 'text/csv;charset=utf-8;' });
+      var link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'Member_Receipts_Export_' + todayStr + '.csv';
+      link.click();
+      toast('Exported ' + exportRows.length + ' receipts to CSV successfully.', true);
+      return;
+    }
+
+    // 3. XLS Format (HTML Table)
+    if (format === 'xls') {
+      var leafThs = schema.map(function (c) {
+        return '<th style="background:#3E4691;color:#fff;padding:6px;border:1px solid #cbd5e1;">' + escHtml(c.label) + '</th>';
+      }).join('');
+
+      var rowsHtml = exportRows.map(function (r) {
+        return '<tr>' + [
+          r.receiptNo || '', r.receiptDate || '', r.billType || '', r.memberCode || '',
+          r.memberName || '', r.wingFlat || '', r.debitAccountType || '', r.depositToAccount || '',
+          r.transactionType || '', r.chqNo || '', r.chqDate || '', r.drawnOnBank || '',
+          r.amount || 0, r.allocationMode || 'AUTO', r.principalAmount || 0, r.interestAmount || 0,
+          r.againstBillNo || '', r.particular1 || '', r.particular2 || ''
+        ].map(function (v) {
+          return '<td style="padding:4px;border:1px solid #cbd5e1;">' + escHtml(v) + '</td>';
+        }).join('') + '</tr>';
+      }).join('');
+
+      var xlsHtml = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"></head><body><table border="1"><thead><tr>' + leafThs + '</tr></thead><tbody>' + rowsHtml + '</tbody></table></body></html>';
+
+      var xlsBlob = new Blob([xlsHtml], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+      var xlsLink = document.createElement('a');
+      xlsLink.href = URL.createObjectURL(xlsBlob);
+      xlsLink.download = 'Member_Receipts_Export_' + todayStr + '.xls';
+      xlsLink.click();
+      toast('Exported ' + exportRows.length + ' receipts to XLS successfully.', true);
+    }
+  };
+
+  // ── BULK IMPORT SYSTEM (Upload, Validate, Preview, Execute) ────
+  var currentValidatedReceiptRows = [];
+
+  window.openReceiptBulkImportModal = function () {
+    closeAllToolbarDropdowns();
+    resetReceiptImportUpload();
+    var modal = document.getElementById('modal-receipt-bulk-import');
+    if (modal) modal.style.display = 'flex';
+  };
+
+  window.resetReceiptImportUpload = function () {
+    var fileInp = document.getElementById('mr-import-file-input');
+    if (fileInp) fileInp.value = '';
+
+    var uploadZone = document.getElementById('mr-import-upload-zone');
+    var previewZone = document.getElementById('mr-import-preview-zone');
+    var btnReset = document.getElementById('btn-import-reset');
+    var btnConfirm = document.getElementById('btn-import-confirm');
+
+    if (uploadZone) uploadZone.style.display = 'block';
+    if (previewZone) previewZone.style.display = 'none';
+    if (btnReset) btnReset.style.display = 'none';
+    if (btnConfirm) btnConfirm.style.display = 'none';
+
+    var tbody = document.getElementById('mr-import-preview-tbody');
+    if (tbody) tbody.innerHTML = '';
+    currentValidatedReceiptRows = [];
+  };
+
+  window.handleReceiptImportFileSelected = function (inp) {
+    if (!inp || !inp.files || !inp.files[0]) return;
+    handleReceiptImportFile(inp.files[0]);
+  };
+
+  async function handleReceiptImportFile(file) {
+    if (!file) return;
+
+    var fnameEl = document.getElementById('mr-import-filename');
+    if (fnameEl) fnameEl.textContent = file.name;
+
+    var reader = new FileReader();
+    reader.onload = async function (e) {
+      try {
+        var rawData = e.target.result;
+        var allRows = [];
+
+        if (typeof XLSX !== 'undefined') {
+          var wb = XLSX.read(rawData, { type: 'array', cellDates: true, raw: false });
+          var sheetName = wb.SheetNames[0];
+          allRows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, defval: '' });
+        } else {
+          var text = new TextDecoder('utf-8').decode(rawData);
+          allRows = text.split(/\r?\n/).map(function (line) {
+            return line.split(',').map(function (c) { return c.trim().replace(/^"|"$/g, ''); });
+          });
+        }
+
+        if (!allRows || allRows.length < 2) {
+          toast('The uploaded file does not contain enough data rows.', false);
+          return;
+        }
+
+        // Detect header row (row 0, 1, or 2)
+        var headerRowIdx = 0;
+        var dataStartRowIdx = 1;
+
+        if (allRows.length > 2) {
+          var row2Str = (allRows[2] || []).map(function (c) { return String(c || '').toLowerCase(); }).join(' ');
+          if (row2Str.includes('receipt') || row2Str.includes('member') || row2Str.includes('amount') || row2Str.includes('bill type')) {
+            headerRowIdx = 2;
+            dataStartRowIdx = 3;
+          }
+        }
+
+        var headers = allRows[headerRowIdx] || [];
+        var colMap = {};
+        headers.forEach(function (h, idx) {
+          var norm = normalizeHeaderKey(h);
+          if (norm) colMap[norm] = idx;
+        });
+
+        function getColVal(row, keyNames) {
+          for (var i = 0; i < keyNames.length; i++) {
+            var k = keyNames[i];
+            if (colMap[k] !== undefined && row[colMap[k]] !== undefined) {
+              return row[colMap[k]];
+            }
+          }
+          return '';
+        }
+
+        var parsedRows = [];
+        for (var r = dataStartRowIdx; r < allRows.length; r++) {
+          var row = allRows[r];
+          if (!row || row.length === 0) continue;
+
+          var rowStr = row.map(function (c) { return String(c || '').trim(); }).join('');
+          if (!rowStr) continue;
+
+          var firstCell = String(row[0] || '').trim().toUpperCase();
+          if (firstCell.startsWith('TOTAL')) continue;
+
+          var rcptNo   = String(getColVal(row, ['receiptno', 'rcptno', 'voucherno', 'receiptnum'])).trim();
+          var rcptDate = parseDateValue(getColVal(row, ['receiptdate', 'date', 'rcptdate', 'voucherdate']));
+          var bType    = String(getColVal(row, ['billtype', 'billtypename', 'type'])).trim();
+          var mCode    = String(getColVal(row, ['membercode', 'memcode', 'code'])).trim();
+          var mName    = String(getColVal(row, ['membername', 'member', 'person', 'personname', 'memname'])).trim();
+          var debType  = String(getColVal(row, ['debitaccounttype', 'debittype', 'debitaccount', 'accounttype'])).trim();
+          var depAcc   = String(getColVal(row, ['deposittoaccount', 'depositaccount', 'bankcashaccount', 'account'])).trim();
+          var txnType  = String(getColVal(row, ['paymentmode', 'transactiontype', 'mode', 'paymode'])).trim();
+          var chqNo    = String(getColVal(row, ['chequerefno', 'chequeno', 'chqno', 'refno', 'instrumentno'])).trim();
+          var chqDate  = parseDateValue(getColVal(row, ['chequedate', 'chqdate', 'instrumentdate']));
+          var bankName = String(getColVal(row, ['drawnonbank', 'bankname', 'drawnon', 'bank'])).trim();
+          
+          var rawAmt   = getColVal(row, ['receivedamount', 'amount', 'receivedamt', 'rcptamount', 'amt']);
+          var amtNum   = parseFloat(String(rawAmt).replace(/,/g, '')) || 0;
+
+          var allocMode = String(getColVal(row, ['allocationmode', 'mode'])).trim().toUpperCase();
+          if (!allocMode) allocMode = 'AUTO';
+
+          var rawPrin  = getColVal(row, ['principalamount', 'principal', 'prinamt']);
+          var prinNum  = rawPrin !== '' ? (parseFloat(String(rawPrin).replace(/,/g, '')) || 0) : null;
+
+          var rawInt   = getColVal(row, ['interestamount', 'interest', 'intamt']);
+          var intNum   = rawInt !== '' ? (parseFloat(String(rawInt).replace(/,/g, '')) || 0) : null;
+
+          var agstBill = String(getColVal(row, ['againstbillinvoiceno', 'againstbillno', 'againstbill', 'billno', 'invoiceno'])).trim();
+          var part1    = String(getColVal(row, ['particulars1narration', 'particulars1', 'particular1', 'narration'])).trim();
+          var part2    = String(getColVal(row, ['particulars2note', 'particulars2', 'particular2', 'note'])).trim();
+
+          if (!mCode && !mName && amtNum <= 0) continue;
+
+          parsedRows.push({
+            rowIndex: r + 1,
+            receiptNo: rcptNo,
+            receiptDate: rcptDate,
+            billType: bType,
+            memberCode: mCode,
+            memberName: mName,
+            debitAccountType: debType,
+            depositToAccount: depAcc,
+            transactionType: txnType,
+            chqNo: chqNo,
+            chqDate: chqDate,
+            drawnOnBank: bankName,
+            amount: amtNum,
+            allocationMode: allocMode,
+            principalAmount: prinNum,
+            interestAmount: intNum,
+            againstBillNo: agstBill,
+            particular1: part1,
+            particular2: part2
+          });
+        }
+
+        if (parsedRows.length === 0) {
+          toast('No valid receipt data rows found in the file.', false);
+          return;
+        }
+
+        // Validate via backend
+        var sid = getActiveSocietyId();
+        var fyid = getFyId();
+        var baseHost = (typeof window.getApiBaseUrl === 'function') ? window.getApiBaseUrl() : 'http://localhost:5002';
+        var resp = await fetch(baseHost + '/api/member-receipts/validate-bulk', {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ societyId: parseInt(sid), fyId: parseInt(fyid), rows: parsedRows })
+        });
+
+        if (!resp.ok) {
+          var errJson = await resp.json().catch(function () { return {}; });
+          toast(errJson.message || 'Validation request failed with status ' + resp.status, false);
+          return;
+        }
+
+        var valResult = await resp.json();
+        currentValidatedReceiptRows = valResult.rows || [];
+        renderValidationPreview(valResult);
+
+      } catch (err) {
+        console.error('File import error:', err);
+        toast('Error processing file: ' + err.message, false);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  function renderValidationPreview(result) {
+    var uploadZone = document.getElementById('mr-import-upload-zone');
+    var previewZone = document.getElementById('mr-import-preview-zone');
+    var btnReset = document.getElementById('btn-import-reset');
+    var btnConfirm = document.getElementById('btn-import-confirm');
+
+    if (uploadZone) uploadZone.style.display = 'none';
+    if (previewZone) previewZone.style.display = 'flex';
+    if (btnReset) btnReset.style.display = 'inline-flex';
+
+    var totalRows = result.totalRows || 0;
+    var validRows = result.validRows || 0;
+    var errorRows = result.errorRows || 0;
+
+    var bTotal = document.getElementById('mr-import-badge-total');
+    var bValid = document.getElementById('mr-import-badge-valid');
+    var bError = document.getElementById('mr-import-badge-error');
+    var sAmt   = document.getElementById('mr-import-sum-amount');
+
+    if (bTotal) bTotal.textContent = totalRows + ' Total Rows';
+    if (bValid) bValid.textContent = validRows + ' Valid';
+    if (bError) bError.textContent = errorRows + ' Errors';
+
+    var totalSum = 0;
+    (result.rows || []).forEach(function (r) {
+      if (r.isValid) totalSum += (r.amount || 0);
+    });
+    if (sAmt) sAmt.textContent = '₹' + totalSum.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    var tbody = document.getElementById('mr-import-preview-tbody');
+    if (!tbody) return;
+
+    var html = '';
+    (result.rows || []).forEach(function (r) {
+      var rowStatusHtml = r.isValid
+        ? '<span style="background:#dcfce7; color:#15803d; font-size:10px; font-weight:800; padding:2px 8px; border-radius:10px;">VALID</span>'
+        : '<span style="background:#fee2e2; color:#b91c1c; font-size:10px; font-weight:800; padding:2px 8px; border-radius:10px;">ERROR</span>';
+
+      var bTypeBadge = '<span style="background:#eff6ff; color:#1d4ed8; padding:2px 6px; border-radius:3px; font-weight:700;">' + escHtml(r.resolvedBillTypeName || r.billType || 'Maintenance') + '</span>';
+      var memLabel = r.resolvedMemberName ? ('<strong>' + escHtml(r.resolvedMemberName) + '</strong> (' + escHtml(r.resolvedFlatNo || '') + ')') : escHtml(r.memberName || r.memberCode || 'Unknown');
+      var accLabel = r.resolvedAccountName ? ('[' + escHtml(r.resolvedAccountCode || '') + '] ' + escHtml(r.resolvedAccountName)) : escHtml(r.depositToAccount || 'Cash in Hand');
+
+      var notesHtml = '';
+      if (!r.isValid && r.errors && r.errors.length > 0) {
+        notesHtml = '<div style="color:#b91c1c; font-weight:600; line-height:1.3;">' + r.errors.map(function (err) { return '• ' + escHtml(err); }).join('<br>') + '</div>';
+      } else {
+        var dueInfo = '';
+        if (r.outstandingPrincipal > 0 || r.outstandingInterest > 0) {
+          dueInfo = ' [Due: Prin ₹' + r.outstandingPrincipal.toFixed(2) + ', Int ₹' + r.outstandingInterest.toFixed(2) + ']';
+        }
+        notesHtml = '<span style="color:#15803d; font-weight:600;">✓ Ready to import' + dueInfo + '</span>';
+      }
+
+      html += '<tr style="border-bottom:1px solid #e2e8f0; ' + (!r.isValid ? 'background:#fff1f2;' : '') + '">' +
+        '<td style="padding:6px 8px; text-align:center; font-weight:700; color:#64748b;">' + r.rowIndex + '</td>' +
+        '<td style="padding:6px 8px; text-align:center;">' + rowStatusHtml + '</td>' +
+        '<td style="padding:6px 8px; font-weight:700; color:#1e293b;">' + escHtml(r.receiptNo || '(Auto-gen)') + '</td>' +
+        '<td style="padding:6px 8px;">' + escHtml(r.receiptDate || '') + '</td>' +
+        '<td style="padding:6px 8px;">' + bTypeBadge + '</td>' +
+        '<td style="padding:6px 8px;">' + memLabel + '</td>' +
+        '<td style="padding:6px 8px;">' + accLabel + '</td>' +
+        '<td style="padding:6px 8px; text-align:right; font-weight:700; font-family:\'Consolas\', monospace;">₹' + (r.amount || 0).toFixed(2) + '</td>' +
+        '<td style="padding:6px 8px; text-align:right; font-family:\'Consolas\', monospace; color:#15803d;">₹' + (r.allocatedPrincipal || 0).toFixed(2) + '</td>' +
+        '<td style="padding:6px 8px; text-align:right; font-family:\'Consolas\', monospace; color:#b45309;">₹' + (r.allocatedInterest || 0).toFixed(2) + '</td>' +
+        '<td style="padding:6px 12px; font-size:10.5px;">' + notesHtml + '</td>' +
+        '</tr>';
+    });
+
+    tbody.innerHTML = html;
+
+    if (btnConfirm) {
+      if (validRows > 0) {
+        btnConfirm.style.display = 'inline-flex';
+        btnConfirm.disabled = false;
+        if (errorRows > 0) {
+          btnConfirm.innerHTML = '<i class="bi bi-check-circle-fill"></i> Import ' + validRows + ' Valid Receipts (' + errorRows + ' Errors Skipped)';
+        } else {
+          btnConfirm.innerHTML = '<i class="bi bi-check-circle-fill"></i> Confirm & Import ' + validRows + ' Receipts';
+        }
+      } else {
+        btnConfirm.style.display = 'none';
+      }
+    }
+  }
+
+  window.executeReceiptBulkImport = async function () {
+    var validRows = currentValidatedReceiptRows.filter(function (r) { return r.isValid; });
+    if (validRows.length === 0) {
+      toast('No valid receipt rows to import.', false);
+      return;
+    }
+
+    var btnConfirm = document.getElementById('btn-import-confirm');
+    if (btnConfirm) {
+      btnConfirm.disabled = true;
+      btnConfirm.innerHTML = '<i class="bi bi-hourglass-split"></i> Importing receipts...';
+    }
+
+    try {
+      var sid = getActiveSocietyId();
+      var fyid = getFyId();
+      var baseHost = (typeof window.getApiBaseUrl === 'function') ? window.getApiBaseUrl() : 'http://localhost:5002';
+      var resp = await fetch(baseHost + '/api/member-receipts/bulk-import', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ societyId: parseInt(sid), fyId: parseInt(fyid), rows: validRows })
+      });
+
+      var resJson = await resp.json();
+      if (resp.ok && resJson.success) {
+        toast('Successfully imported ' + resJson.importedCount + ' member receipt(s)!', true);
+        closeModal('modal-receipt-bulk-import');
+        await loadReceipts();
+        try {
+          localStorage.setItem('jeevika_receipt_sync', Date.now().toString());
+        } catch (e) {}
+      } else {
+        toast(resJson.message || 'Bulk import failed.', false);
+        if (btnConfirm) {
+          btnConfirm.disabled = false;
+          btnConfirm.innerHTML = '<i class="bi bi-check-circle-fill"></i> Retry Import';
+        }
+      }
+    } catch (err) {
+      console.error('Import execution error:', err);
+      toast('Import failed: ' + err.message, false);
+      if (btnConfirm) {
+        btnConfirm.disabled = false;
+        btnConfirm.innerHTML = '<i class="bi bi-check-circle-fill"></i> Retry Import';
+      }
+    }
+  };
+
   // Close dropdown on outside click
   document.addEventListener('click', function (e) {
-    var drop = document.querySelector('.mr-dropdown');
-    var menu = document.getElementById('mr-other-menu');
-    if (drop && menu && !drop.contains(e.target)) {
-      menu.style.display = 'none';
+    var inDropdown = e.target.closest && (e.target.closest('.mr-dropdown') || e.target.closest('.add-receipt-wrap'));
+    if (!inDropdown) {
+      closeAllToolbarDropdowns();
     }
   });
 
@@ -1660,6 +2572,29 @@
     await loadBills();
     await loadReceipts();
     togglePayMode('Cash');
+
+    // Drag & Drop listeners on upload zone
+    var dropZone = document.getElementById('mr-import-upload-zone');
+    if (dropZone) {
+      dropZone.addEventListener('dragover', function (e) {
+        e.preventDefault();
+        dropZone.style.borderColor = '#535FC1';
+        dropZone.style.background = '#f0f4ff';
+      });
+      dropZone.addEventListener('dragleave', function (e) {
+        e.preventDefault();
+        dropZone.style.borderColor = '#94a3b8';
+        dropZone.style.background = '#ffffff';
+      });
+      dropZone.addEventListener('drop', function (e) {
+        e.preventDefault();
+        dropZone.style.borderColor = '#94a3b8';
+        dropZone.style.background = '#ffffff';
+        if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+          handleReceiptImportFile(e.dataTransfer.files[0]);
+        }
+      });
+    }
 
     // Real-time synchronization listeners
     window.addEventListener('storage', function (e) {

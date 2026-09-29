@@ -8,7 +8,7 @@
   <script src="../../../config.js"></script>
   <link rel="stylesheet" href="../../../assets/css/global.css">
   <link rel="stylesheet" href="../../../assets/css/components.css">
-  <link rel="stylesheet" href="balance-sheet.css">
+  <link rel="stylesheet" href="balance-sheet.css?v=20260928_1720">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 </head>
 
@@ -30,14 +30,20 @@
         </select>
       </div>
 
-      <div class="bs-filter-item">
-        <input type="checkbox" id="chk-voucher-no" checked onchange="renderBalanceSheetView()">
-        <label for="chk-voucher-no">Voucher No.</label>
+      <div class="bs-filter-item" style="display:flex; align-items:center; gap:6px;">
+        <label class="erp-toggle-switch">
+          <input type="checkbox" id="chk-voucher-no" checked onchange="renderBalanceSheetView()">
+          <span class="erp-toggle-slider"></span>
+        </label>
+        <span style="font-size:11.5px; font-weight:700; color:#334155; cursor:pointer;" onclick="document.getElementById('chk-voucher-no').click()">Voucher No.</span>
       </div>
 
-      <div class="bs-filter-item">
-        <input type="checkbox" id="chk-member-breakup" checked onchange="toggleMemberBreakup()">
-        <label for="chk-member-breakup">Member Dues Breakup</label>
+      <div class="bs-filter-item" style="display:flex; align-items:center; gap:6px;">
+        <label class="erp-toggle-switch">
+          <input type="checkbox" id="chk-member-breakup" checked onchange="toggleMemberBreakup()">
+          <span class="erp-toggle-slider"></span>
+        </label>
+        <span style="font-size:11.5px; font-weight:700; color:#334155; cursor:pointer;" onclick="document.getElementById('chk-member-breakup').click()">Member Dues Breakup</span>
       </div>
     </div>
 
@@ -93,13 +99,13 @@
             </tr>
             <!-- Clean Single-Tier Column Headers -->
             <tr class="bs-col-header-row">
-              <th class="bs-col-header col-prev text-center col-amount" id="th-prev-liab">31/03/2025<br>Amount(Rs.)</th>
+              <th class="bs-col-header col-prev text-center col-amount" id="th-prev-liab">31/03/2025<br>Amount (<span class="erp-currency-sym" style="font-size:9.5px;">₹</span>)</th>
               <th class="bs-col-header text-center" colspan="2" id="th-liab-title">Liabilities</th>
-              <th class="bs-col-header text-center bs-side-divider col-amount" id="th-cur-liab">31/03/2026<br>Amount(Rs.)</th>
+              <th class="bs-col-header text-center bs-side-divider col-amount" id="th-cur-liab">31/03/2026<br>Amount (<span class="erp-currency-sym" style="font-size:9.5px;">₹</span>)</th>
 
-              <th class="bs-col-header col-prev text-center col-amount" id="th-prev-asset">31/03/2025<br>Amount(Rs.)</th>
+              <th class="bs-col-header col-prev text-center col-amount" id="th-prev-asset">31/03/2025<br>Amount (<span class="erp-currency-sym" style="font-size:9.5px;">₹</span>)</th>
               <th class="bs-col-header text-center" colspan="2" id="th-asset-title">Assets</th>
-              <th class="bs-col-header text-center col-amount" id="th-cur-asset">31/03/2026<br>Amount(Rs.)</th>
+              <th class="bs-col-header text-center col-amount" id="th-cur-asset">31/03/2026<br>Amount (<span class="erp-currency-sym" style="font-size:9.5px;">₹</span>)</th>
             </tr>
           </thead>
           <tbody id="bsTBody">
@@ -157,10 +163,10 @@
       document.write('<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"><\/script>');
     }
   </script>
-  <script src="../../../assets/js/api.js"></script>
-  <script src="../../../assets/js/auth.js"></script>
-  <script src="../../../assets/js/utils.js"></script>
-  <script src="balance-sheet.js"></script>
+  <script src="../../../assets/js/api.js?v=20260928_1700"></script>
+  <script src="../../../assets/js/auth.js?v=20260928_1700"></script>
+  <script src="../../../assets/js/utils.js?v=20260928_1700"></script>
+  <script src="balance-sheet.js?v=20260928_1720"></script>
 </body>
 
 </html>

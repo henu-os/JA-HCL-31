@@ -1318,7 +1318,10 @@
 
   window.appendParticularTag = function (num) {
     var el = document.getElementById('frm-particular' + num);
-    if (el) el.value += (el.value ? ' ' : '') + 'Reversal for ' + getFyLabel();
+    if (el) {
+      var val = (el.value ? el.value + ' ' : '') + 'Reversal for ' + getFyLabel();
+      el.value = val.slice(0, 75);
+    }
   };
 
   function toIsoDate(dStr) {

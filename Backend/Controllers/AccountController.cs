@@ -121,8 +121,6 @@ namespace JeevikaERP.Controllers
             ("LIA-1018", "Prov. Accounting Software AMC Exp.", "Current Liabilities & Provisions", 2),
             ("LIA-1019", "Prov. Income Tax", "Current Liabilities & Provisions", 2),
             ("LIA-1020", "Advance From Members", "Advance from Members", 2),
-            ("LIA-1021", "Output CGST", "OUTPUT GST", 2),
-            ("LIA-1022", "Output SGST", "OUTPUT GST", 2),
             ("LIA-1023", "Output IGST", "OUTPUT GST", 2),
             ("LIA-1032", "CGST 9%", "Current Liabilities & Provisions", 2),
             ("LIA-1033", "SGST 9%", "Current Liabilities & Provisions", 2),
@@ -650,7 +648,7 @@ namespace JeevikaERP.Controllers
             "ASS-1025", "ASS-1026", "ASS-1027", "ASS-1028", "ASS-1029", "ASS-1999",
 
             // Liability
-            "LIA-1001", "LIA-1002", "LIA-1004", "LIA-1020", "LIA-1021", "LIA-1022", "LIA-1023", "LIA-1032", "LIA-1033", "LIA-1999"
+            "LIA-1001", "LIA-1002", "LIA-1004", "LIA-1020", "LIA-1023", "LIA-1032", "LIA-1033", "LIA-1999"
         };
 
         // ── Helpers ──────────────────────────────────────────────
@@ -710,13 +708,11 @@ namespace JeevikaERP.Controllers
                     UPDATE jeevika_erp.SocAccount
                     SET IsDefault = @isDef,
                         AccName = CASE 
-                            WHEN AccCode IN ('LIA-1021', 'LIA-1022') AND AccName ILIKE '%INPUT%' THEN @name 
                             WHEN AccCode IN ('ASS-1027', 'ASS-1028') AND AccName = 'INPUT CGST' THEN 'Input CGST'
                             WHEN AccCode IN ('ASS-1027', 'ASS-1028') AND AccName = 'INPUT SGST' THEN 'Input SGST'
                             ELSE AccName 
                         END,
                         AccBSName = CASE 
-                            WHEN AccCode IN ('LIA-1021', 'LIA-1022') AND AccBSName ILIKE '%INPUT%' THEN @name 
                             WHEN AccCode IN ('ASS-1027', 'ASS-1028') AND AccBSName = 'INPUT CGST' THEN 'Input CGST'
                             WHEN AccCode IN ('ASS-1027', 'ASS-1028') AND AccBSName = 'INPUT SGST' THEN 'Input SGST'
                             ELSE AccBSName 

@@ -415,6 +415,24 @@
             </div>
           </div>
 
+          <!-- Frame: MEMBER CONTACT DETAILS -->
+          <div class="mm-frame">
+            <div class="mm-frame-title">MEMBER CONTACT DETAILS</div>
+            <div style="display:grid;grid-template-columns:100px 1fr 100px 1fr 90px 1fr 90px 1fr;gap:6px 12px;align-items:center;">
+              <label>MOBILE NO. 1 *</label>
+              <input type="text" id="mm-phone1" class="mm-input" placeholder="e.g. 9876543210" maxlength="15">
+
+              <label>MOBILE NO. 2</label>
+              <input type="text" id="mm-phone2" class="mm-input" placeholder="e.g. 9876543211" maxlength="15">
+
+              <label>EMAIL ID 1</label>
+              <input type="email" id="mm-email1" class="mm-input" placeholder="e.g. member@gmail.com" maxlength="75">
+
+              <label>EMAIL ID 2</label>
+              <input type="email" id="mm-email2" class="mm-input" placeholder="e.g. alternate@gmail.com" maxlength="75">
+            </div>
+          </div>
+
           <!-- Frame 4: MEMBER KYC & VERIFICATION -->
           <div class="mm-frame">
             <div class="mm-frame-title">MEMBER KYC &amp; VERIFICATION</div>
@@ -1265,7 +1283,7 @@
     <div class="mm-dialog-title" style="background:#535fc1;color:#ffffff;padding:10px 16px;">
       <span style="font-weight:700;font-size:13px;letter-spacing:0.3px;display:flex;align-items:center;gap:8px;">
         <i class="bi bi-file-earmark-spreadsheet-fill" style="font-size:16px;"></i> MEMBER MASTER BULK IMPORT & SYNC
-        <span style="background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;">28 Standard Columns</span>
+        <span style="background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;">Multi-Tier Accounting Schema</span>
       </span>
       <button onclick="document.getElementById('mm-import-overlay').style.display='none'" style="color:#ffffff;font-size:16px;">✕</button>
     </div>
@@ -1284,8 +1302,8 @@
       <!-- Blank Template Download Bar -->
       <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:6px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
         <div>
-          <div style="font-size:11.5px;font-weight:700;color:#1e293b;">Need the Standard 28-Column Template?</div>
-          <div style="font-size:10px;color:#64748b;">Styled header with <b>#535fc1</b> background and complete field schema.</div>
+          <div style="font-size:11.5px;font-weight:700;color:#1e293b;">Need the Master Accounting Template?</div>
+          <div style="font-size:10px;color:#64748b;">Multi-level executive headers with <b>#535FC1</b> styling, data validation, and dynamic bill types.</div>
         </div>
         <div style="display:flex;gap:6px;">
           <button type="button" onclick="mmDownloadMemberTemplate('xlsx')" class="mm-btn" style="background:#f0fdf4;border:1px solid #86efac;color:#166534;font-size:11px;padding:4px 10px;font-weight:700;">
@@ -1330,7 +1348,7 @@
             <i class="bi bi-table" style="color:#535fc1;"></i> Data Preview (<span id="mm-preview-row-count">0</span> rows detected)
           </div>
           <div style="font-size:10.5px;color:#64748b;" id="mm-preview-col-status">
-            28 Standard Columns Verified
+            Multi-Tier Master Schema Verified
           </div>
         </div>
         <div style="max-height:160px;overflow-x:auto;overflow-y:auto;border:1px solid #cbd5e1;border-radius:4px;">
@@ -1568,10 +1586,15 @@
 <!-- Hidden File Input for Single Row RC Upload -->
 <input type="file" id="mm-single-rc-file-input" style="display:none;" accept="image/*,application/pdf" onchange="mmHandleSingleRcFileSelected(this)">
 
-<script src="../../../config.js?v=20260816_25"></script>
-<script src="../../../assets/js/api.js?v=20260816_25"></script>
-<script src="../../../assets/js/auth.js?v=20260816_25"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="./member-master.js?v=20260816_25"></script>
+<script src="../../../config.js?v=20260928_1500"></script>
+<script src="../../../assets/js/api.js?v=20260928_1500"></script>
+<script src="../../../assets/js/auth.js?v=20260928_1800"></script>
+<script src="../../../assets/js/xlsx-js-style.bundle.js"></script>
+<script>
+  if (typeof XLSX === 'undefined' || !XLSX.writeFile) {
+    document.write('<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"><\/script>');
+  }
+</script>
+<script src="./member-master.js?v=20260928_1800"></script>
 </body>
 </html>

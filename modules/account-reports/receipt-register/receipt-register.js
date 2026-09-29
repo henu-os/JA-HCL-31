@@ -708,66 +708,9 @@
     XLSX.writeFile(wb, `${cleanSoc}_Receipt_Register_${fromDate}_to_${toDate}.xlsx`);
   };
 
-  // ── 8. PRINT FORMAT MODAL & MULTI-FORMAT PRINT ENGINE ────────────────────
+  // ── 8. THREE DIRECT PRINT ENGINES (CURRENT FORMAT, DUPLICATE, CONTINUOUS) ──
 
-  window.openPrintModal = function () {
-    loadSocietyDetails();
-    updatePrintDates();
-
-    const memSel = document.getElementById('memberSelect');
-    selectedMember = memSel ? memSel.value : 'all';
-
-    const pfMemSel = document.getElementById('pfMemberSelect');
-    if (pfMemSel) pfMemSel.value = selectedMember;
-
-    updateModalMemberNotice();
-    setPrintFormat(selectedPrintFormat || 'register');
-
-    const modal = document.getElementById('printFormatModal');
-    if (modal) modal.style.display = 'flex';
-  };
-
-  window.closePrintModal = function () {
-    const modal = document.getElementById('printFormatModal');
-    if (modal) modal.style.display = 'none';
-  };
-
-  window.handleModalBackdropClick = function (event) {
-    if (event.target && event.target.id === 'printFormatModal') {
-      closePrintModal();
-    }
-  };
-
-  window.setPrintFormat = function (format) {
-    selectedPrintFormat = format || 'register';
-
-    const cardReg = document.getElementById('optCardRegister');
-    const cardVou = document.getElementById('optCardVoucher');
-    const radioReg = document.getElementById('pfRadioRegister');
-    const radioVou = document.getElementById('pfRadioVoucher');
-
-    if (selectedPrintFormat === 'register') {
-      if (cardReg) cardReg.classList.add('active');
-      if (cardVou) cardVou.classList.remove('active');
-      if (radioReg) radioReg.checked = true;
-    } else {
-      if (cardVou) cardVou.classList.add('active');
-      if (cardReg) cardReg.classList.remove('active');
-      if (radioVou) radioVou.checked = true;
-    }
-  };
-
-  window.confirmAndPrint = function () {
-    closePrintModal();
-
-    if (selectedPrintFormat === 'voucher') {
-      printVoucherFormat();
-    } else {
-      printRegister();
-    }
-  };
-
-  // Option 1: Print standard Receipt Register (Current format)
+  // Option 1: Print standard Receipt Register (Current format visible on screen)
   window.printRegister = function () {
     document.body.classList.remove('print-voucher-mode');
     document.body.classList.add('print-register-mode');
@@ -792,18 +735,13 @@
     setTimeout(resetTitle, 2000);
   };
 
-  // Option 2: Print Receipt Voucher (Image 1 Format — Exactly 2 receipts per page)
-  window.printVoucherFormat = function () {
+  // Option 2: Print with Duplicate (2 copies on 1 page: Society Copy on top, Member Copy on bottom)
+  window.printVouchersWithDuplicate = function (singleVoucherNo) {
     let vouchersToPrint = [];
 
-    if (selectedMember && selectedMember !== 'all') {
-      const mem = selectedMember.toLowerCase().trim();
-      vouchersToPrint = rawVouchers.filter(v => {
-        const p = (v.personName || v.paidTo || '').toLowerCase();
-        const p1 = (v.particular1 || '').toLowerCase();
-        const narr = (v.narration || '').toLowerCase();
-        return p.includes(mem) || p1.includes(mem) || narr.includes(mem);
-      });
+    if (singleVoucherNo) {
+      const v = rawVouchers.find(x => String(x.voucherNo) === String(singleVoucherNo));
+      if (v) vouchersToPrint = [v];
     } else {
       vouchersToPrint = [...filteredVouchers];
     }
@@ -820,7 +758,6 @@
     const printArea = document.getElementById('voucherPrintArea');
     if (!printArea) return;
 
-    // Generate sheets: exactly 2 vouchers per page (Society Copy & Member Copy)
     let sheetsHtml = '';
     vouchersToPrint.forEach(v => {
       sheetsHtml += buildVoucherSheetHtml(v);
@@ -834,7 +771,7 @@
     const cleanSoc = (societyDetails.societyName || 'Society').replace(/[^a-zA-Z0-9_-]/g, '_');
     const memberTag = (selectedMember && selectedMember !== 'all') ? `_${selectedMember.replace(/[^a-zA-Z0-9_-]/g, '_')}` : '';
     const origTitle = document.title;
-    document.title = `${cleanSoc}_Receipt_Voucher${memberTag}`;
+    document.title = `${cleanSoc}_Receipt_Vouchers_With_Duplicate${memberTag}`;
 
     window.print();
 
@@ -848,7 +785,79 @@
     setTimeout(cleanup, 2000);
   };
 
-  // Build Voucher Sheet (Containing exactly 2 vouchers on one page: Top Society Copy, Bottom Member Copy)
+  // Option 3: Print Continuous (No duplicates; exactly 2 distinct member receipts per single A4 page)
+  window.printVouchersContinuous = function () {
+    const vouchersToPrint = [...filteredVouchers];
+
+    if (vouchersToPrint.length === 0) {
+      if (window.showToast) {
+        showToast('No receipt vouchers found to print for the selected criteria.', 'warning');
+      } else {
+        alert('No receipt vouchers found to print for the selected criteria.');
+      }
+      return;
+    }
+
+    const printArea = document.getElementById('voucherPrintArea');
+    if (!printArea) return;
+
+    let sheetsHtml = '';
+    for (let i = 0; i < vouchersToPrint.length; i += 2) {
+      const v1 = vouchersToPrint[i];
+      const v2 = (i + 1 < vouchersToPrint.length) ? vouchersToPrint[i + 1] : null;
+
+      sheetsHtml += `
+        <div class="voucher-sheet">
+          <!-- Top: Member Receipt 1 -->
+          ${buildVoucherCardHtml(v1, '')}
+
+          <!-- Cut Line Divider -->
+          <div class="voucher-cut-line">
+            ✂ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+          </div>
+
+          <!-- Bottom: Member Receipt 2 (or blank placeholder if odd total count) -->
+          ${v2 ? buildVoucherCardHtml(v2, '') : '<div class="voucher-card-placeholder" style="height:130mm; visibility:hidden;"></div>'}
+        </div>
+      `;
+    }
+
+    printArea.innerHTML = sheetsHtml;
+
+    document.body.classList.remove('print-register-mode');
+    document.body.classList.add('print-voucher-mode');
+
+    const cleanSoc = (societyDetails.societyName || 'Society').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const memberTag = (selectedMember && selectedMember !== 'all') ? `_${selectedMember.replace(/[^a-zA-Z0-9_-]/g, '_')}` : '';
+    const origTitle = document.title;
+    document.title = `${cleanSoc}_Receipt_Vouchers_Continuous${memberTag}`;
+
+    window.print();
+
+    const cleanup = () => {
+      document.title = origTitle;
+      document.body.classList.remove('print-voucher-mode');
+      printArea.innerHTML = '';
+      window.removeEventListener('afterprint', cleanup);
+    };
+    window.addEventListener('afterprint', cleanup);
+    setTimeout(cleanup, 2000);
+  };
+
+  // Helper: Print a single voucher with duplicate
+  window.printSingleVoucher = function (voucherNo) {
+    printVouchersWithDuplicate(voucherNo);
+  };
+
+  // Fallbacks for backward compatibility
+  window.openPrintModal = function () { printRegister(); };
+  window.closePrintModal = function () {};
+  window.handleModalBackdropClick = function () {};
+  window.setPrintFormat = function () {};
+  window.confirmAndPrint = function () { printRegister(); };
+  window.printVoucherFormat = function () { printVouchersWithDuplicate(); };
+
+  // Build Voucher Sheet (Duplicate format: Top Society Copy, Bottom Member Copy)
   function buildVoucherSheetHtml(v) {
     return `
       <div class="voucher-sheet">
@@ -932,7 +941,7 @@
           <div class="vcard-soc-reg">Registration No : ${escHtml(regNo)}</div>
           <div class="vcard-soc-addr">Address: ${escHtml(fullAddr)}.</div>
           <div class="vcard-soc-contact">${escHtml(contactLine)}</div>
-          <div class="vcard-copy-badge">${escHtml(copyType)}</div>
+          ${copyType ? `<div class="vcard-copy-badge">${escHtml(copyType)}</div>` : ''}
         </div>
 
         <div class="vcard-hr"></div>
@@ -1079,8 +1088,9 @@
               </div>
             ` : ''}
           </div>
-          <div style="background:#f8fafc;padding:10px 16px;display:flex;justify-content:flex-end;border-top:1px solid #e2e8f0;">
+          <div style="background:#f8fafc;padding:10px 16px;display:flex;justify-content:flex-end;gap:8px;border-top:1px solid #e2e8f0;">
             <button onclick="document.getElementById('vDetailModalBackdrop').remove()" class="reg-btn">Close</button>
+            <button onclick="document.getElementById('vDetailModalBackdrop').remove(); printSingleVoucher('${escHtml(v.voucherNo)}');" class="reg-btn reg-btn-primary"><i class="bi bi-printer"></i> Print Voucher</button>
           </div>
         </div>
       </div>

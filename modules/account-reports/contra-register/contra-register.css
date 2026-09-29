@@ -79,23 +79,26 @@ body.erp-module {
   color: #475569;
 }
 
-.reg-switch {
+.reg-switch, .erp-toggle-switch {
   position: relative;
   display: inline-block;
   width: 34px;
   height: 18px;
   flex-shrink: 0;
   margin: 0;
+  cursor: pointer;
+  vertical-align: middle;
+  user-select: none;
 }
 
-.reg-switch input {
+.reg-switch input, .erp-toggle-switch input {
   opacity: 0;
   width: 0;
   height: 0;
   position: absolute;
 }
 
-.reg-slider {
+.reg-slider, .erp-toggle-slider {
   position: absolute;
   cursor: pointer;
   top: 0;
@@ -106,27 +109,30 @@ body.erp-module {
   transition: .2s ease;
   border-radius: 18px;
   border: 1px solid #94a3b8;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.12);
 }
 
-.reg-slider:before {
+.reg-slider:before, .erp-toggle-slider:before {
   position: absolute;
   content: "";
   height: 12px;
   width: 12px;
   left: 2px;
   bottom: 2px;
-  background-color: white;
-  transition: .2s ease;
+  background-color: #ffffff;
   border-radius: 50%;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: all 0.2s ease;
 }
 
-.reg-switch input:checked + .reg-slider {
+.reg-switch input:checked + .reg-slider,
+.erp-toggle-switch input:checked + .erp-toggle-slider {
   background-color: var(--primary, #0D47A1);
   border-color: #0a3880;
 }
 
-.reg-switch input:checked + .reg-slider:before {
+.reg-switch input:checked + .reg-slider:before,
+.erp-toggle-switch input:checked + .erp-toggle-slider:before {
   transform: translateX(16px);
 }
 
@@ -774,5 +780,343 @@ body.erp-module {
     border-top: 1px solid #fecaca !important;
     color: #b91c1c !important;
     font-weight: 700 !important;
+  }
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   CONTRA VOUCHER PRINT ENGINE (130mm Height, 2 per A4 Page)
+   ═════════════════════════════════════════════════════════════════════ */
+.voucher-print-area {
+  display: none;
+}
+
+@media print {
+  /* Hide voucher area when printing standard register */
+  body.print-register-mode .voucher-print-area {
+    display: none !important;
+  }
+
+  /* When printing in voucher mode */
+  body.print-voucher-mode {
+    background: #ffffff !important;
+  }
+
+  @page voucherSheetPage {
+    size: A4 portrait;
+    margin: 5mm 6mm;
+  }
+
+  body.print-voucher-mode .reg-toolbar,
+  body.print-voucher-mode .reg-scroll-wrapper,
+  body.print-voucher-mode .reg-print-header,
+  body.print-voucher-mode .summary-popover,
+  body.print-voucher-mode .summary-dropdown-wrap,
+  body.print-voucher-mode #vDetailModalBackdrop,
+  body.print-voucher-mode .no-print {
+    display: none !important;
+  }
+
+  body.print-voucher-mode .voucher-print-area {
+    display: block !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .voucher-sheet {
+    page: voucherSheetPage;
+    width: 100% !important;
+    height: auto !important;
+    max-height: 268mm !important;
+    page-break-after: always !important;
+    break-after: page !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    box-sizing: border-box !important;
+    padding: 0 !important;
+    margin: 0 auto !important;
+    overflow: hidden !important;
+  }
+
+  .voucher-sheet:last-child {
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+  .voucher-card {
+    width: 100% !important;
+    height: 130mm !important;
+    max-height: 130mm !important;
+    border: 1px solid #111 !important;
+    outline: 1px solid #111 !important;
+    outline-offset: -3px !important;
+    padding: 3mm 6mm !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    background: #ffffff !important;
+    position: relative !important;
+    overflow: hidden !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .voucher-card-placeholder {
+    height: 130mm !important;
+    visibility: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  .voucher-cut-line {
+    height: 3.5mm !important;
+    line-height: 3.5mm !important;
+    text-align: center !important;
+    font-size: 8px !important;
+    color: #64748b !important;
+    overflow: hidden !important;
+    user-select: none !important;
+    margin: 1mm 0 !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .vcard-header {
+    text-align: center !important;
+    position: relative !important;
+  }
+
+  .vcard-title {
+    font-size: 12pt !important;
+    font-weight: 800 !important;
+    text-decoration: underline !important;
+    text-align: center !important;
+    color: #000 !important;
+    letter-spacing: 0.3px !important;
+    margin-bottom: 1px !important;
+  }
+
+  .vcard-soc-name {
+    font-size: 10.5pt !important;
+    font-weight: 800 !important;
+    text-align: center !important;
+    color: #000 !important;
+    margin-top: 1px !important;
+    line-height: 1.2 !important;
+  }
+
+  .vcard-soc-reg {
+    font-size: 7.5pt !important;
+    font-weight: 600 !important;
+    text-align: center !important;
+    color: #111 !important;
+    margin-top: 1px !important;
+  }
+
+  .vcard-soc-addr,
+  .vcard-soc-contact {
+    font-size: 7.2pt !important;
+    text-align: center !important;
+    color: #222 !important;
+    margin-top: 1px !important;
+    line-height: 1.15 !important;
+  }
+
+  .vcard-hr {
+    border-top: 1px solid #111 !important;
+    margin: 2px 0 !important;
+  }
+
+  .vcard-meta-row {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    font-size: 8.5pt !important;
+    font-weight: 600 !important;
+    color: #000 !important;
+    padding: 1px 0 !important;
+  }
+
+  .vcard-meta-left {
+    font-size: 8.5pt !important;
+    color: #000 !important;
+  }
+
+  .vcard-meta-left strong {
+    font-size: 9pt !important;
+    font-weight: 700 !important;
+  }
+
+  .vcard-meta-right {
+    font-size: 8.5pt !important;
+    color: #000 !important;
+    white-space: nowrap !important;
+    text-align: right !important;
+  }
+
+  .vcard-meta-right strong {
+    font-size: 9pt !important;
+    font-weight: 700 !important;
+  }
+
+  .vcard-body-table-wrap {
+    flex: 1 !important;
+    min-height: 16mm !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    overflow: hidden !important;
+  }
+
+  .vcard-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 8pt !important;
+  }
+
+  .vcard-table th {
+    border-top: 1px solid #111 !important;
+    border-bottom: 1px solid #111 !important;
+    padding: 2px 4px !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+    color: #000 !important;
+  }
+
+  .vcard-table th.th-part {
+    text-align: left !important;
+  }
+
+  .vcard-table th.th-amt {
+    text-align: right !important;
+    width: 100px !important;
+  }
+
+  .vcard-table td {
+    padding: 2px 4px !important;
+    color: #000 !important;
+    vertical-align: top !important;
+  }
+
+  .vcard-table td.td-part {
+    text-align: left !important;
+    font-weight: 600 !important;
+  }
+
+  .vcard-table td.td-amt {
+    text-align: right !important;
+    font-family: monospace, ui-monospace !important;
+    font-weight: 600 !important;
+  }
+
+  .vcard-total-row {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: flex-end !important;
+    padding: 2px 4px !important;
+    font-size: 8.5pt !important;
+    margin-top: auto !important;
+  }
+
+  .vcard-words {
+    font-weight: 700 !important;
+    color: #000 !important;
+    font-style: italic !important;
+    flex: 1 !important;
+    padding-right: 10px !important;
+    font-size: 8pt !important;
+    line-height: 1.2 !important;
+  }
+
+  .vcard-total-box {
+    text-align: right !important;
+    min-width: 110px !important;
+    border-top: 1px solid #111 !important;
+    padding-top: 2px !important;
+  }
+
+  .vcard-total-num {
+    font-family: monospace, ui-monospace !important;
+    font-size: 9.5pt !important;
+    font-weight: 800 !important;
+    color: #000 !important;
+  }
+
+  .vcard-footer-grid {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: flex-start !important;
+    padding: 2px 2px 1px !important;
+    font-size: 7.8pt !important;
+    color: #000 !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .vcard-footer-left {
+    flex: 1 !important;
+    max-width: 68% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+  }
+
+  .vcard-chq-text {
+    font-weight: 600 !important;
+    margin-bottom: 2px !important;
+    font-size: 8pt !important;
+  }
+
+  .vcard-narr-text {
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    margin-bottom: 2px !important;
+    font-size: 7.5pt !important;
+    line-height: 1.25 !important;
+    color: #111 !important;
+  }
+
+  .vcard-footer-right {
+    text-align: center !important;
+    max-width: 30% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+  }
+
+  .vcard-receiver-box {
+    width: 34mm !important;
+    height: 11mm !important;
+    border: 1px dashed #64748b !important;
+    margin: 0 auto !important;
+    background: transparent !important;
+  }
+
+  .vcard-receiver-lbl {
+    font-size: 7pt !important;
+    color: #1e293b !important;
+    text-align: center !important;
+    margin-top: 2px !important;
+    font-weight: 600 !important;
+  }
+
+  .vcard-sign-row {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: flex-end !important;
+    font-size: 7.8pt !important;
+    font-weight: 700 !important;
+    padding-top: 3px !important;
+    border-top: 1px solid #111 !important;
+    margin-top: 2px !important;
+    color: #000 !important;
+  }
+
+  .vcard-sign-col {
+    font-weight: 700 !important;
+    font-size: 7.8pt !important;
   }
 }

@@ -659,6 +659,11 @@ function mmAdd() {
   setVal('mm-opbal-interest', '0.00');
   setVal('mm-total-bal', '0.00');
 
+  setVal('mm-phone1', '');
+  setVal('mm-phone2', '');
+  setVal('mm-email1', '');
+  setVal('mm-email2', '');
+
   mmSetNocStatus(false);
   setVal('mm-nonocc-charges', '0');
   setVal('mm-tenant-name', '');
@@ -799,8 +804,10 @@ function mmAlterById(id, code, name) {
   setVal('mm-opbal-interest', (parseFloat(initI) || 0).toFixed(2));
   mmCalcTotalBal();
 
-  setVal('mm-phone1', m.contactNo || m.ContactNo || '');
-  setVal('mm-email1', m.email || m.Email || '');
+  setVal('mm-phone1', m.contactNo || m.ContactNo || m.memMobile || '');
+  setVal('mm-phone2', m.contactNo2 || m.ContactNo2 || m.phone2 || '');
+  setVal('mm-email1', m.email || m.Email || m.memEmail || '');
+  setVal('mm-email2', m.email2 || m.Email2 || '');
 
   const hasTenant = (m.nonOccApplicable || m.NonOccApplicable) === 'Yes' || !!(m.tenantName || m.TenantName);
   mmSetNocStatus(hasTenant);
@@ -1014,7 +1021,9 @@ async function mmSave() {
     AreaCategory: 'Carpet',
     AreaUnit: 'Sq.Ft',
     ContactNo: val('mm-phone1').trim(),
+    ContactNo2: val('mm-phone2').trim(),
     Email: val('mm-email1').trim(),
+    Email2: val('mm-email2').trim(),
     PANNo: val('mm-panno').trim(),
     OpBalances: mmOpBalStore,
     OpPrincipal: (mmOpBalStore['Maintenance'] && mmOpBalStore['Maintenance'].principal > 0) ? mmOpBalStore['Maintenance'].principal : curPrin,
@@ -1706,40 +1715,198 @@ async function mmApplyBulkReassign() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// 28 STANDARD COLUMNS DEFINITION & TEMPLATE / EXPORT / IMPORT
+// PROFESSIONAL MULTI-TIER MASTER SCHEMA SYSTEM
+// Aligned with Member Master UI (Source of Truth)
 // ═══════════════════════════════════════════════════════════
-const MM_28_COLUMNS = [
-  "Member Code",
-  "Person 1",
-  "Person 2",
-  "Person 3",
-  "Person 4",
-  "Person 5",
-  "Person 6",
-  "Type",
-  "Flat No.",
-  "Wing Name/No.",
-  "Floor Number",
-  "Flat Type",
-  "Building Name",
-  "GSTIN Registration",
-  "PAN No.",
-  "Area Value",
-  "Area Type",
-  "Bill Type",
-  "Opening Principal (₹)",
-  "Opening Interest (₹)",
-  "Total Balance (₹)",
-  "Date of Agreement",
-  "Date of Registration",
-  "Date of Stamp Duty",
-  "Agreement Reg. No.",
-  "Agreement Value (₹)",
-  "Stamp Duty Value (₹)",
-  "Registration Fees (₹)"
-];
 
 let mmImportParsedData = [];
+
+// Helper to extract Unit Types from UI select
+function mmGetMasterUnitTypes() {
+  const types = [];
+  const el = document.getElementById('mm-unittype');
+  if (el && el.options) {
+    for (let i = 0; i < el.options.length; i++) {
+      const opt = el.options[i];
+      const v = (opt.value || opt.text || '').trim();
+      if (v && !v.startsWith('--') && !v.includes('ADD_UNIT_TYPE') && !types.includes(v)) {
+        types.push(v);
+      }
+    }
+  }
+  if (types.length === 0) {
+    types.push('Flat', 'Shop', 'Office', 'Unit', 'Room', 'Residential');
+  }
+  return types;
+}
+
+// Helper to extract Flat Types from UI select
+function mmGetMasterFlatTypes() {
+  const types = [];
+  const el = document.getElementById('mm-flattype');
+  if (el && el.options) {
+    for (let i = 0; i < el.options.length; i++) {
+      const opt = el.options[i];
+      const v = (opt.value || opt.text || '').trim();
+      if (v && !v.startsWith('--') && !v.includes('ADD_FLAT_TYPE') && !types.includes(v)) {
+        types.push(v);
+      }
+    }
+  }
+  if (types.length === 0) {
+    types.push('1 RK', '1 BHK', '2 BHK', '3 BHK', '4 BHK', '5 BHK', 'PENTHOUSE', 'DUPLEX', 'RAW HOUSE', 'BUNGLOW', 'HUT');
+  }
+  return types;
+}
+
+// Centralized Schema Builder
+async function getMemberMasterExcelSchema(societyId) {
+  const socId = societyId || mmGetActiveSocietyId();
+  let billTypes = [];
+
+  // 1. Fetch society bill types from API
+  try {
+    const url = socId > 0 ? `${mmApiBase()}/api/bill-types?societyId=${socId}` : `${mmApiBase()}/api/bill-types`;
+    const res = await fetch(url, { headers: (typeof getAuthHeaders === 'function' ? getAuthHeaders() : {}) });
+    if (res.ok) {
+      const json = await res.json();
+      if (json && json.success && Array.isArray(json.data) && json.data.length > 0) {
+        json.data.forEach(b => {
+          const name = (b.billTypeName || b.BillTypeName || '').trim();
+          const id = b.billTypeId || b.BillTypeId || b.id || b.Id || 0;
+          if (name && !billTypes.some(x => x.name.toLowerCase() === name.toLowerCase())) {
+            billTypes.push({ id, name });
+          }
+        });
+      }
+    }
+  } catch (e) {
+    console.warn('Error fetching bill types for schema:', e);
+  }
+
+  // Fallback to select options or LocalStorage
+  if (billTypes.length === 0) {
+    const sel = document.getElementById('mm-opbal-billtype');
+    if (sel && sel.options.length > 0) {
+      for (let i = 0; i < sel.options.length; i++) {
+        const tName = sel.options[i].value.trim();
+        if (tName && !billTypes.some(x => x.name.toLowerCase() === tName.toLowerCase())) {
+          billTypes.push({ id: 0, name: tName });
+        }
+      }
+    }
+  }
+  if (billTypes.length === 0) {
+    billTypes = [
+      { id: 79, name: 'Maintenance' },
+      { id: 7, name: 'Major Repair' }
+    ];
+  }
+
+  const unitTypes = mmGetMasterUnitTypes();
+  const flatTypes = mmGetMasterFlatTypes();
+
+  const cols = [];
+
+  // Group 1: Member Identification & Nominees (7 cols)
+  cols.push({ key: 'memCode', label: 'Member Code', group: 'MEMBER IDENTIFICATION & NOMINEES', width: 15, align: 'center', req: true, sample: '101' });
+  cols.push({ key: 'person1', label: 'Person 1', group: 'MEMBER IDENTIFICATION & NOMINEES', width: 26, align: 'left', req: true, sample: 'RAMESH SHARMA' });
+  cols.push({ key: 'person2', label: 'Person 2', group: 'MEMBER IDENTIFICATION & NOMINEES', width: 22, align: 'left', sample: 'SURESH SHARMA' });
+  cols.push({ key: 'person3', label: 'Person 3', group: 'MEMBER IDENTIFICATION & NOMINEES', width: 22, align: 'left', sample: '' });
+  cols.push({ key: 'person4', label: 'Person 4', group: 'MEMBER IDENTIFICATION & NOMINEES', width: 22, align: 'left', sample: '' });
+  cols.push({ key: 'person5', label: 'Person 5', group: 'MEMBER IDENTIFICATION & NOMINEES', width: 22, align: 'left', sample: '' });
+  cols.push({ key: 'person6', label: 'Person 6', group: 'MEMBER IDENTIFICATION & NOMINEES', width: 22, align: 'left', sample: '' });
+
+  // Group 2: Member Contact Details (4 cols)
+  cols.push({ key: 'mobileNo1', label: 'Mobile No. 1', group: 'MEMBER CONTACT DETAILS', width: 16, align: 'center', req: true, sample: '9876543210' });
+  cols.push({ key: 'mobileNo2', label: 'Mobile No. 2', group: 'MEMBER CONTACT DETAILS', width: 16, align: 'center', sample: '' });
+  cols.push({ key: 'emailID1', label: 'Email ID 1', group: 'MEMBER CONTACT DETAILS', width: 26, align: 'left', sample: 'ramesh@gmail.com' });
+  cols.push({ key: 'emailID2', label: 'Email ID 2', group: 'MEMBER CONTACT DETAILS', width: 26, align: 'left', sample: '' });
+
+  // Group 3: Property & Flat Details (6 cols)
+  cols.push({ key: 'type', label: 'Type', group: 'PROPERTY & FLAT DETAILS', width: 14, align: 'center', req: true, sample: 'Flat', validation: 'unitTypes' });
+  cols.push({ key: 'flatNo', label: 'Flat No.', group: 'PROPERTY & FLAT DETAILS', width: 12, align: 'center', req: true, sample: '101' });
+  cols.push({ key: 'wing', label: 'Wing Name/No.', group: 'PROPERTY & FLAT DETAILS', width: 14, align: 'center', sample: 'A' });
+  cols.push({ key: 'floor', label: 'Floor Number', group: 'PROPERTY & FLAT DETAILS', width: 12, align: 'center', sample: '1' });
+  cols.push({ key: 'flatType', label: 'Flat Type', group: 'PROPERTY & FLAT DETAILS', width: 14, align: 'center', sample: '2 BHK', validation: 'flatTypes' });
+  cols.push({ key: 'building', label: 'Building Name', group: 'PROPERTY & FLAT DETAILS', width: 22, align: 'left', sample: 'SHREE SAI' });
+
+  // Group 4: Tax & Statutory (3 cols - Note: Area Type EXCLUDED!)
+  cols.push({ key: 'gstin', label: 'GSTIN Registration', group: 'TAX & STATUTORY', width: 18, align: 'center', sample: '' });
+  cols.push({ key: 'panNo', label: 'PAN No.', group: 'TAX & STATUTORY', width: 15, align: 'center', sample: '' });
+  cols.push({ key: 'areaValue', label: 'Area Value', group: 'TAX & STATUTORY', width: 14, align: 'right', type: 'number', sample: 650.00 });
+
+  // Group 5: Bill Type & Opening Balance (Dynamic per society bill type)
+  billTypes.forEach(bt => {
+    const btName = bt.name || 'Bill';
+    cols.push({
+      key: `op_prin_${bt.id || btName}`,
+      label: 'Principal (₹)',
+      group: 'BILL TYPE & OPENING BALANCE',
+      subGroup: btName.toUpperCase(),
+      billTypeId: bt.id,
+      billTypeName: btName,
+      isPrincipal: true,
+      width: 16,
+      align: 'right',
+      type: 'number',
+      sample: 0.00
+    });
+    cols.push({
+      key: `op_int_${bt.id || btName}`,
+      label: 'Interest (₹)',
+      group: 'BILL TYPE & OPENING BALANCE',
+      subGroup: btName.toUpperCase(),
+      billTypeId: bt.id,
+      billTypeName: btName,
+      isInterest: true,
+      width: 16,
+      align: 'right',
+      type: 'number',
+      sample: 0.00
+    });
+  });
+
+  // Summary column inside opening balances
+  cols.push({
+    key: 'totalBalance',
+    label: 'Total Balance (₹)',
+    group: 'BILL TYPE & OPENING BALANCE',
+    subGroup: 'TOTAL',
+    width: 18,
+    align: 'right',
+    type: 'number',
+    sample: 0.00
+  });
+
+  // Group 6: Agreement & Registration (7 cols)
+  cols.push({ key: 'agreementDate', label: 'Date of Agreement', group: 'AGREEMENT & REGISTRATION', width: 16, align: 'center', type: 'date', sample: '2020-01-15' });
+  cols.push({ key: 'registrationDate', label: 'Date of Registration', group: 'AGREEMENT & REGISTRATION', width: 16, align: 'center', type: 'date', sample: '2020-01-20' });
+  cols.push({ key: 'stampDate', label: 'Date of Stamp Duty', group: 'AGREEMENT & REGISTRATION', width: 16, align: 'center', type: 'date', sample: '2020-01-18' });
+  cols.push({ key: 'agreementRegNo', label: 'Agreement Reg. No.', group: 'AGREEMENT & REGISTRATION', width: 18, align: 'center', sample: 'REG-12345' });
+  cols.push({ key: 'agreementValue', label: 'Agreement Value (₹)', group: 'AGREEMENT & REGISTRATION', width: 18, align: 'right', type: 'number', sample: 4500000.00 });
+  cols.push({ key: 'stampValue', label: 'Stamp Duty Value (₹)', group: 'AGREEMENT & REGISTRATION', width: 18, align: 'right', type: 'number', sample: 225000.00 });
+  cols.push({ key: 'registrationFees', label: 'Registration Fees (₹)', group: 'AGREEMENT & REGISTRATION', width: 18, align: 'right', type: 'number', sample: 30000.00 });
+
+  return {
+    societyId: socId,
+    billTypes,
+    unitTypes,
+    flatTypes,
+    columns: cols
+  };
+}
+
+// Global alias for compatibility
+const MM_28_COLUMNS = [
+  "Member Code", "Person 1", "Person 2", "Person 3", "Person 4", "Person 5", "Person 6",
+  "Mobile No. 1", "Mobile No. 2", "Email ID 1", "Email ID 2",
+  "Type", "Flat No.", "Wing Name/No.", "Floor Number", "Flat Type", "Building Name",
+  "GSTIN Registration", "PAN No.", "Area Value",
+  "Maintenance Principal (₹)", "Maintenance Interest (₹)", "Total Balance (₹)",
+  "Date of Agreement", "Date of Registration", "Date of Stamp Duty",
+  "Agreement Reg. No.", "Agreement Value (₹)", "Stamp Duty Value (₹)", "Registration Fees (₹)"
+];
 
 // ── Open Bulk Import Modal ────────────────────────────────
 function mmOpenBulkImportModal() {
@@ -1762,46 +1929,191 @@ function mmOpenImportCSV() {
   mmOpenBulkImportModal();
 }
 
-// ── Download Standard 28-Column Template ──────────────────
-function mmDownloadMemberTemplate(format) {
+// ── Download Master Accounting Template ───────────────────
+async function mmDownloadMemberTemplate(format) {
   format = (format || 'xlsx').toLowerCase();
+  const schemaInfo = await getMemberMasterExcelSchema();
+  const schema = schemaInfo.columns;
+  const unitTypes = schemaInfo.unitTypes;
+  const flatTypes = schemaInfo.flatTypes;
 
   if (format === 'xlsx' && typeof XLSX !== 'undefined') {
-    const wsData = [MM_28_COLUMNS];
+    const wsData = [
+      [], // Row 0: Group Headers
+      [], // Row 1: Sub-Group Headers
+      []  // Row 2: Leaf Headers
+    ];
+
+    schema.forEach(c => {
+      wsData[0].push(c.group);
+      wsData[1].push(c.subGroup || c.group);
+      wsData[2].push(c.label);
+    });
+
     const ws = XLSX.utils.aoa_to_sheet(wsData);
 
-    // Apply #535fc1 header styling
-    const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:AB1');
-    for (let C = range.s.c; C <= range.e.c; ++C) {
-      const cellRef = XLSX.utils.encode_cell({ c: C, r: 0 });
-      if (!ws[cellRef]) continue;
-      ws[cellRef].s = {
-        fill: { fgColor: { rgb: "535FC1" } },
-        font: { name: "Arial", sz: 11, bold: true, color: { rgb: "FFFFFF" } },
-        alignment: { horizontal: "center", vertical: "center" }
-      };
-    }
+    const borderAll = {
+      top: { style: 'thin', color: { rgb: 'CBD5E1' } },
+      bottom: { style: 'thin', color: { rgb: 'CBD5E1' } },
+      left: { style: 'thin', color: { rgb: 'CBD5E1' } },
+      right: { style: 'thin', color: { rgb: 'CBD5E1' } }
+    };
+    const topHdrStyle = {
+      fill: { fgColor: { rgb: '535FC1' } },
+      font: { name: 'Arial', sz: 11, bold: true, color: { rgb: 'FFFFFF' } },
+      alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+      border: borderAll
+    };
+    const subHdrStyle = {
+      fill: { fgColor: { rgb: '4852A8' } },
+      font: { name: 'Arial', sz: 10.5, bold: true, color: { rgb: 'FFFFFF' } },
+      alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+      border: borderAll
+    };
+    const leafHdrStyle = {
+      fill: { fgColor: { rgb: '3E4691' } },
+      font: { name: 'Arial', sz: 10, bold: true, color: { rgb: 'FFFFFF' } },
+      alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+      border: borderAll
+    };
 
-    // Set column widths
-    ws['!cols'] = MM_28_COLUMNS.map(col => ({ wch: Math.max(col.length + 4, 14) }));
+    // Calculate Merges
+    const merges = [];
+    let colIdx = 0;
+    while (colIdx < schema.length) {
+      const grp = schema[colIdx].group;
+      let endCol = colIdx;
+      while (endCol + 1 < schema.length && schema[endCol + 1].group === grp) {
+        endCol++;
+      }
+
+      if (grp === 'BILL TYPE & OPENING BALANCE') {
+        merges.push({ s: { r: 0, c: colIdx }, e: { r: 0, c: endCol } });
+        let subCol = colIdx;
+        while (subCol <= endCol) {
+          const subGrp = schema[subCol].subGroup;
+          let endSubCol = subCol;
+          while (endSubCol + 1 <= endCol && schema[endSubCol + 1].subGroup === subGrp) {
+            endSubCol++;
+          }
+          if (endSubCol > subCol) {
+            merges.push({ s: { r: 1, c: subCol }, e: { r: 1, c: endSubCol } });
+          }
+          subCol = endSubCol + 1;
+        }
+      } else {
+        merges.push({ s: { r: 0, c: colIdx }, e: { r: 1, c: endCol } });
+      }
+
+      colIdx = endCol + 1;
+    }
+    ws['!merges'] = merges;
+
+    // Apply header styles
+    schema.forEach((c, cIdx) => {
+      const c0 = XLSX.utils.encode_cell({ r: 0, c: cIdx });
+      const c1 = XLSX.utils.encode_cell({ r: 1, c: cIdx });
+      const c2 = XLSX.utils.encode_cell({ r: 2, c: cIdx });
+
+      if (ws[c0]) ws[c0].s = topHdrStyle;
+      if (ws[c1]) ws[c1].s = subHdrStyle;
+      if (ws[c2]) ws[c2].s = leafHdrStyle;
+    });
+
+    ws['!cols'] = schema.map(c => ({ wch: c.width || 15 }));
+    ws['!rows'] = [{ hpt: 26 }, { hpt: 22 }, { hpt: 24 }];
+    ws['!views'] = [{ state: 'frozen', xSplit: 2, ySplit: 3, topLeftCell: 'C4', activeCell: 'C4' }];
+
+    // Hidden Lists Sheet for Data Validations
+    const wsListsData = [['UNIT TYPES', 'FLAT TYPES']];
+    const maxListLen = Math.max(unitTypes.length, flatTypes.length);
+    for (let i = 0; i < maxListLen; i++) {
+      wsListsData.push([unitTypes[i] || '', flatTypes[i] || '']);
+    }
+    const wsLists = XLSX.utils.aoa_to_sheet(wsListsData);
+    wsLists['!state'] = 'hidden';
+
+    const typeColIdx = schema.findIndex(c => c.key === 'type');
+    const flatTypeColIdx = schema.findIndex(c => c.key === 'flatType');
+    const typeColL = XLSX.utils.encode_col(typeColIdx);
+    const flatTypeColL = XLSX.utils.encode_col(flatTypeColIdx);
+
+    ws['!dataValidations'] = [
+      {
+        type: 'list',
+        allowBlank: true,
+        sqref: `${typeColL}4:${typeColL}1000`,
+        formula1: `Lists!$A$2:$A$${unitTypes.length + 1}`
+      },
+      {
+        type: 'list',
+        allowBlank: true,
+        sqref: `${flatTypeColL}4:${flatTypeColL}1000`,
+        formula1: `Lists!$B$2:$B$${flatTypes.length + 1}`
+      }
+    ];
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "MemberMaster");
-    XLSX.writeFile(wb, "Member_Master_Blank_Template.xlsx");
+    XLSX.utils.book_append_sheet(wb, wsLists, "Lists");
+    XLSX.writeFile(wb, "Member_Master_Template.xlsx");
     return;
   }
 
-  if (format === 'csv' || format === 'xlsx') {
-    let csv = MM_28_COLUMNS.map(c => `"${c}"`).join(',') + '\n';
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  // Fallback CSV
+  if (format === 'csv') {
+    const csvHdr = schema.map(c => {
+      if (c.subGroup && c.subGroup !== c.group && c.subGroup !== 'TOTAL') {
+        return `"${c.subGroup} ${c.label}"`;
+      }
+      return `"${c.label}"`;
+    }).join(',') + '\n';
+
+    const blob = new Blob([csvHdr], { type: 'text/csv;charset=utf-8;' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'Member_Master_Blank_Template.csv';
+    a.download = 'Member_Master_Template.csv';
     a.click();
     return;
   }
 
+  // Fallback XLS (HTML)
   if (format === 'xls') {
+    let topCells = '';
+    let subCells = '';
+    let leafCells = '';
+
+    let cI = 0;
+    while (cI < schema.length) {
+      const grp = schema[cI].group;
+      let endC = cI;
+      while (endC + 1 < schema.length && schema[endC + 1].group === grp) {
+        endC++;
+      }
+      const span = (endC - cI + 1);
+      if (grp === 'BILL TYPE & OPENING BALANCE') {
+        topCells += `<th colspan="${span}" style="background-color:#535fc1;color:#ffffff;font-family:Arial,sans-serif;font-size:11pt;font-weight:bold;padding:8px;border:1px solid #3d4a99;text-align:center;">${grp}</th>`;
+        let sI = cI;
+        while (sI <= endC) {
+          const sGrp = schema[sI].subGroup;
+          let endSC = sI;
+          while (endSC + 1 <= endC && schema[endSC + 1].subGroup === sGrp) {
+            endSC++;
+          }
+          const sSpan = (endSC - sI + 1);
+          subCells += `<th colspan="${sSpan}" style="background-color:#4852a8;color:#ffffff;font-family:Arial,sans-serif;font-size:10pt;font-weight:bold;padding:6px;border:1px solid #3d4a99;text-align:center;">${sGrp}</th>`;
+          sI = endSC + 1;
+        }
+      } else {
+        topCells += `<th colspan="${span}" rowspan="2" style="background-color:#535fc1;color:#ffffff;font-family:Arial,sans-serif;font-size:11pt;font-weight:bold;padding:8px;border:1px solid #3d4a99;text-align:center;">${grp}</th>`;
+      }
+      cI = endC + 1;
+    }
+
+    schema.forEach(c => {
+      leafCells += `<th style="background-color:#3e4691;color:#ffffff;font-family:Arial,sans-serif;font-size:10pt;font-weight:bold;padding:6px;border:1px solid #3d4a99;text-align:center;">${c.label}</th>`;
+    });
+
     let html = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
       <head><meta charset="utf-8">
@@ -1810,9 +2122,9 @@ function mmDownloadMemberTemplate(format) {
       <body>
       <table border="1">
         <thead>
-          <tr>
-            ${MM_28_COLUMNS.map(c => `<th style="background-color:#535fc1;color:#ffffff;font-family:Arial,sans-serif;font-size:11pt;font-weight:bold;padding:8px;border:1px solid #3d4a99;text-align:center;">${c}</th>`).join('')}
-          </tr>
+          <tr>${topCells}</tr>
+          <tr>${subCells}</tr>
+          <tr>${leafCells}</tr>
         </thead>
         <tbody>
         </tbody>
@@ -1822,19 +2134,26 @@ function mmDownloadMemberTemplate(format) {
     const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'Member_Master_Blank_Template.xls';
+    a.download = 'Member_Master_Template.xls';
     a.click();
   }
 }
 
-// ── Export Members (All 28 Standard Columns) ──────────────
-function mmExportMembers(format) {
+// ── Export Members (Multi-Tier Accounting Format) ─────────
+async function mmExportMembers(format) {
   format = (format || 'xlsx').toLowerCase();
   const members = Array.isArray(mmList) ? mmList : [];
   if (members.length === 0) {
     mmAlert('No members found to export.', true);
     return;
   }
+
+  const schemaInfo = await getMemberMasterExcelSchema();
+  const schema = schemaInfo.columns;
+  const unitTypes = schemaInfo.unitTypes;
+  const flatTypes = schemaInfo.flatTypes;
+
+  const todayStr = new Date().toISOString().split('T')[0];
 
   const rows = members.map(m => {
     const memCode   = m.memCode || m.MemCode || '';
@@ -1844,33 +2163,22 @@ function mmExportMembers(format) {
     const person4   = m.memName4 || m.MemName4 || '';
     const person5   = m.memName5 || m.MemName5 || '';
     const person6   = m.memName6 || m.MemName6 || '';
-    const memType   = m.memberType || m.MemberType || 'Owner';
+
+    const mobile1   = m.contactNo || m.ContactNo || m.mobileNo1 || m.MobileNo1 || '';
+    const mobile2   = m.contactNo2 || m.ContactNo2 || m.mobileNo2 || m.MobileNo2 || '';
+    const email1    = m.email || m.Email || m.emailID1 || m.EmailID1 || '';
+    const email2    = m.email2 || m.Email2 || m.emailID2 || m.EmailID2 || '';
+
+    const memType   = m.memberType || m.MemberType || m.unitType || 'Flat';
     const flatNo    = m.flatNo || m.FlatNo || '';
     const wing      = m.wing || m.Wing || '';
     const floor     = m.floor || m.Floor || '';
     const flatType  = m.flatType || m.FlatType || 'Residential';
     const building  = m.building || m.bldg || m.Building || '';
+
     const gstin     = m.gstin || m.GSTIN || '';
     const panNo     = m.panNo || m.PANNo || '';
-    const areaVal   = parseFloat(m.areaSqft || m.sqft || m.AreaSqft || 0);
-    const areaType  = m.areaType || m.AreaType || 'Carpet';
-    const billType  = m.defaultBillType || m.billType || 'Maintenance';
-
-    // Opening balances
-    let opPrin = 0;
-    let opInt  = 0;
-    if (m.opBalances && typeof m.opBalances === 'object') {
-      const bEntry = m.opBalances[billType] || m.opBalances['Maintenance'] || Object.values(m.opBalances)[0];
-      if (bEntry) {
-        opPrin = parseFloat(bEntry.principal || bEntry.Principal || 0);
-        opInt  = parseFloat(bEntry.interest || bEntry.Interest || 0);
-      }
-    }
-    if (opPrin === 0 && opInt === 0) {
-      opPrin = parseFloat(m.opPrincipal || m.OpPrincipal || 0);
-      opInt  = parseFloat(m.opInterest || m.OpInterest || 0);
-    }
-    const totBal = opPrin + opInt;
+    const areaVal   = parseFloat(m.areaSqft || m.sqft || m.AreaSqft || m.areaValue || 0);
 
     const agreeDate = m.agreementDate || m.AgreementDate || '';
     const regDate   = m.registrationDate || m.RegistrationDate || '';
@@ -1880,70 +2188,214 @@ function mmExportMembers(format) {
     const stampVal  = parseFloat(m.stampValue || m.StampValue || 0);
     const regFees   = parseFloat(m.registrationFees || m.RegistrationFees || 0);
 
-    return [
-      memCode,
-      person1,
-      person2,
-      person3,
-      person4,
-      person5,
-      person6,
-      memType,
-      flatNo,
-      wing,
-      floor,
-      flatType,
-      building,
-      gstin,
-      panNo,
-      areaVal,
-      areaType,
-      billType,
-      opPrin,
-      opInt,
-      totBal,
-      agreeDate,
-      regDate,
-      stampDate,
-      agreeReg,
-      agreeVal,
-      stampVal,
-      regFees
-    ];
+    const opBalMap = m.opBalances || {};
+    let totalBal = 0;
+
+    const rowObj = {
+      memCode, person1, person2, person3, person4, person5, person6,
+      mobileNo1: mobile1, mobileNo2: mobile2, emailID1: email1, emailID2: email2,
+      type: memType, flatNo, wing, floor, flatType, building,
+      gstin, panNo, areaValue: areaVal,
+      agreementDate: agreeDate, registrationDate: regDate, stampDate: stampDate,
+      agreementRegNo: agreeReg, agreementValue: agreeVal, stampValue: stampVal,
+      registrationFees: regFees
+    };
+
+    schema.forEach(c => {
+      if (c.billTypeName) {
+        const btKey = c.billTypeName.toLowerCase().trim();
+        let bEntry = opBalMap[c.billTypeName] || opBalMap[btKey];
+        if (!bEntry && typeof opBalMap === 'object') {
+          for (let k in opBalMap) {
+            if (k.toLowerCase().trim() === btKey) {
+              bEntry = opBalMap[k];
+              break;
+            }
+          }
+        }
+        if (!bEntry && (btKey === 'maintenance' || btKey === (m.defaultBillType || '').toLowerCase())) {
+          bEntry = {
+            principal: m.opPrincipal || m.OpPrincipal || 0,
+            interest: m.opInterest || m.OpInterest || 0
+          };
+        }
+
+        const pVal = parseFloat((bEntry && (bEntry.principal || bEntry.Principal)) || 0);
+        const iVal = parseFloat((bEntry && (bEntry.interest || bEntry.Interest)) || 0);
+
+        if (c.isPrincipal) {
+          rowObj[c.key] = pVal;
+          totalBal += pVal;
+        } else if (c.isInterest) {
+          rowObj[c.key] = iVal;
+          totalBal += iVal;
+        }
+      }
+    });
+
+    rowObj['totalBalance'] = totalBal;
+
+    return schema.map(c => rowObj[c.key] !== undefined ? rowObj[c.key] : '');
   });
 
-  const todayStr = new Date().toISOString().split('T')[0];
-
   if (format === 'xlsx' && typeof XLSX !== 'undefined') {
-    const wsData = [MM_28_COLUMNS, ...rows];
+    const wsData = [
+      [], // Row 0
+      [], // Row 1
+      [], // Row 2
+      ...rows
+    ];
+
+    schema.forEach(c => {
+      wsData[0].push(c.group);
+      wsData[1].push(c.subGroup || c.group);
+      wsData[2].push(c.label);
+    });
+
     const ws = XLSX.utils.aoa_to_sheet(wsData);
 
-    // Apply #535fc1 header styling
-    const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:AB1');
-    for (let C = range.s.c; C <= range.e.c; ++C) {
-      const cellRef = XLSX.utils.encode_cell({ c: C, r: 0 });
-      if (!ws[cellRef]) continue;
-      ws[cellRef].s = {
-        fill: { fgColor: { rgb: "535FC1" } },
-        font: { name: "Arial", sz: 11, bold: true, color: { rgb: "FFFFFF" } },
-        alignment: { horizontal: "center", vertical: "center" }
-      };
+    const borderAll = {
+      top: { style: 'thin', color: { rgb: 'CBD5E1' } },
+      bottom: { style: 'thin', color: { rgb: 'CBD5E1' } },
+      left: { style: 'thin', color: { rgb: 'CBD5E1' } },
+      right: { style: 'thin', color: { rgb: 'CBD5E1' } }
+    };
+    const topHdrStyle = {
+      fill: { fgColor: { rgb: '535FC1' } },
+      font: { name: 'Arial', sz: 11, bold: true, color: { rgb: 'FFFFFF' } },
+      alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+      border: borderAll
+    };
+    const subHdrStyle = {
+      fill: { fgColor: { rgb: '4852A8' } },
+      font: { name: 'Arial', sz: 10.5, bold: true, color: { rgb: 'FFFFFF' } },
+      alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+      border: borderAll
+    };
+    const leafHdrStyle = {
+      fill: { fgColor: { rgb: '3E4691' } },
+      font: { name: 'Arial', sz: 10, bold: true, color: { rgb: 'FFFFFF' } },
+      alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+      border: borderAll
+    };
+
+    // Calculate Merges
+    const merges = [];
+    let colIdx = 0;
+    while (colIdx < schema.length) {
+      const grp = schema[colIdx].group;
+      let endCol = colIdx;
+      while (endCol + 1 < schema.length && schema[endCol + 1].group === grp) {
+        endCol++;
+      }
+
+      if (grp === 'BILL TYPE & OPENING BALANCE') {
+        merges.push({ s: { r: 0, c: colIdx }, e: { r: 0, c: endCol } });
+        let subCol = colIdx;
+        while (subCol <= endCol) {
+          const subGrp = schema[subCol].subGroup;
+          let endSubCol = subCol;
+          while (endSubCol + 1 <= endCol && schema[endSubCol + 1].subGroup === subGrp) {
+            endSubCol++;
+          }
+          if (endSubCol > subCol) {
+            merges.push({ s: { r: 1, c: subCol }, e: { r: 1, c: endSubCol } });
+          }
+          subCol = endSubCol + 1;
+        }
+      } else {
+        merges.push({ s: { r: 0, c: colIdx }, e: { r: 1, c: endCol } });
+      }
+
+      colIdx = endCol + 1;
     }
-    ws['!cols'] = MM_28_COLUMNS.map(col => ({ wch: Math.max(col.length + 4, 14) }));
+    ws['!merges'] = merges;
+
+    // Apply header styles
+    schema.forEach((c, cIdx) => {
+      const c0 = XLSX.utils.encode_cell({ r: 0, c: cIdx });
+      const c1 = XLSX.utils.encode_cell({ r: 1, c: cIdx });
+      const c2 = XLSX.utils.encode_cell({ r: 2, c: cIdx });
+
+      if (ws[c0]) ws[c0].s = topHdrStyle;
+      if (ws[c1]) ws[c1].s = subHdrStyle;
+      if (ws[c2]) ws[c2].s = leafHdrStyle;
+    });
+
+    // Apply data styles
+    const numRows = rows.length;
+    for (let r = 0; r < numRows; r++) {
+      const rIdx = r + 3;
+      schema.forEach((c, cIdx) => {
+        const cellRef = XLSX.utils.encode_cell({ r: rIdx, c: cIdx });
+        if (ws[cellRef]) {
+          const isNum = c.type === 'number';
+          ws[cellRef].s = {
+            font: { name: 'Arial', sz: 10, color: { rgb: '1E293B' } },
+            alignment: { horizontal: c.align || (isNum ? 'right' : 'left'), vertical: 'center' },
+            border: borderAll
+          };
+          if (isNum) ws[cellRef].z = '#,##0.00';
+        }
+      });
+    }
+
+    ws['!cols'] = schema.map(c => ({ wch: c.width || 15 }));
+    ws['!rows'] = [{ hpt: 26 }, { hpt: 22 }, { hpt: 24 }];
+    ws['!views'] = [{ state: 'frozen', xSplit: 2, ySplit: 3, topLeftCell: 'C4', activeCell: 'C4' }];
+
+    // Hidden Lists Sheet for Data Validations
+    const wsListsData = [['UNIT TYPES', 'FLAT TYPES']];
+    const maxListLen = Math.max(unitTypes.length, flatTypes.length);
+    for (let i = 0; i < maxListLen; i++) {
+      wsListsData.push([unitTypes[i] || '', flatTypes[i] || '']);
+    }
+    const wsLists = XLSX.utils.aoa_to_sheet(wsListsData);
+    wsLists['!state'] = 'hidden';
+
+    const typeColIdx = schema.findIndex(c => c.key === 'type');
+    const flatTypeColIdx = schema.findIndex(c => c.key === 'flatType');
+    const typeColL = XLSX.utils.encode_col(typeColIdx);
+    const flatTypeColL = XLSX.utils.encode_col(flatTypeColIdx);
+
+    ws['!dataValidations'] = [
+      {
+        type: 'list',
+        allowBlank: true,
+        sqref: `${typeColL}4:${typeColL}${rows.length + 100}`,
+        formula1: `Lists!$A$2:$A$${unitTypes.length + 1}`
+      },
+      {
+        type: 'list',
+        allowBlank: true,
+        sqref: `${flatTypeColL}4:${flatTypeColL}${rows.length + 100}`,
+        formula1: `Lists!$B$2:$B$${flatTypes.length + 1}`
+      }
+    ];
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Members");
+    XLSX.utils.book_append_sheet(wb, wsLists, "Lists");
     XLSX.writeFile(wb, `Member_Master_Export_${todayStr}.xlsx`);
     mmAlert(`Exported ${members.length} members successfully.`);
     return;
   }
 
-  if (format === 'csv' || format === 'xlsx') {
-    let csv = MM_28_COLUMNS.map(c => `"${c}"`).join(',') + '\n';
+  // Fallback CSV
+  if (format === 'csv') {
+    const csvHdr = schema.map(c => {
+      if (c.subGroup && c.subGroup !== c.group && c.subGroup !== 'TOTAL') {
+        return `"${c.subGroup} ${c.label}"`;
+      }
+      return `"${c.label}"`;
+    }).join(',') + '\n';
+
+    let csvBody = '';
     rows.forEach(r => {
-      csv += r.map(v => typeof v === 'number' ? v : `"${(v || '').toString().replace(/"/g, '""')}"`).join(',') + '\n';
+      csvBody += r.map(v => typeof v === 'number' ? v : `"${(v || '').toString().replace(/"/g, '""')}"`).join(',') + '\n';
     });
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+
+    const blob = new Blob([csvHdr + csvBody], { type: 'text/csv;charset=utf-8;' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = `Member_Master_Export_${todayStr}.csv`;
@@ -1952,7 +2404,45 @@ function mmExportMembers(format) {
     return;
   }
 
+  // Fallback XLS (HTML)
   if (format === 'xls') {
+    let topCells = '';
+    let subCells = '';
+    let leafCells = '';
+
+    let cI = 0;
+    while (cI < schema.length) {
+      const grp = schema[cI].group;
+      let endC = cI;
+      while (endC + 1 < schema.length && schema[endC + 1].group === grp) {
+        endC++;
+      }
+      const span = (endC - cI + 1);
+      if (grp === 'BILL TYPE & OPENING BALANCE') {
+        topCells += `<th colspan="${span}" style="background-color:#535fc1;color:#ffffff;font-family:Arial,sans-serif;font-size:11pt;font-weight:bold;padding:8px;border:1px solid #3d4a99;text-align:center;">${grp}</th>`;
+        let sI = cI;
+        while (sI <= endC) {
+          const sGrp = schema[sI].subGroup;
+          let endSC = sI;
+          while (endSC + 1 <= endC && schema[endSC + 1].subGroup === sGrp) {
+            endSC++;
+          }
+          const sSpan = (endSC - sI + 1);
+          subCells += `<th colspan="${sSpan}" style="background-color:#4852a8;color:#ffffff;font-family:Arial,sans-serif;font-size:10pt;font-weight:bold;padding:6px;border:1px solid #3d4a99;text-align:center;">${sGrp}</th>`;
+          sI = endSC + 1;
+        }
+      } else {
+        topCells += `<th colspan="${span}" rowspan="2" style="background-color:#535fc1;color:#ffffff;font-family:Arial,sans-serif;font-size:11pt;font-weight:bold;padding:8px;border:1px solid #3d4a99;text-align:center;">${grp}</th>`;
+      }
+      cI = endC + 1;
+    }
+
+    schema.forEach(c => {
+      leafCells += `<th style="background-color:#3e4691;color:#ffffff;font-family:Arial,sans-serif;font-size:10pt;font-weight:bold;padding:6px;border:1px solid #3d4a99;text-align:center;">${c.label}</th>`;
+    });
+
+    const rowsHtml = rows.map(r => `<tr>${r.map(v => `<td style="padding:5px;font-family:Arial,sans-serif;font-size:10pt;border:1px solid #cbd5e1;">${v !== null && v !== undefined ? v : ''}</td>`).join('')}</tr>`).join('');
+
     let html = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
       <head><meta charset="utf-8">
@@ -1961,12 +2451,12 @@ function mmExportMembers(format) {
       <body>
       <table border="1">
         <thead>
-          <tr>
-            ${MM_28_COLUMNS.map(c => `<th style="background-color:#535fc1;color:#ffffff;font-family:Arial,sans-serif;font-size:11pt;font-weight:bold;padding:8px;border:1px solid #3d4a99;text-align:center;">${c}</th>`).join('')}
-          </tr>
+          <tr>${topCells}</tr>
+          <tr>${subCells}</tr>
+          <tr>${leafCells}</tr>
         </thead>
         <tbody>
-          ${rows.map(r => `<tr>${r.map(v => `<td style="padding:5px;font-family:Arial,sans-serif;font-size:10pt;">${v !== null && v !== undefined ? v : ''}</td>`).join('')}</tr>`).join('')}
+          ${rowsHtml}
         </tbody>
       </table>
       </body>
@@ -1995,7 +2485,7 @@ function mmHandleFileDrop(e) {
   }
 }
 
-function mmHandleImportFileSelect(input) {
+async function mmHandleImportFileSelect(input) {
   if (!input || !input.files || !input.files[0]) return;
   const file = input.files[0];
 
@@ -2009,30 +2499,28 @@ function mmHandleImportFileSelect(input) {
   }
 
   const reader = new FileReader();
-  reader.onload = function (e) {
+  reader.onload = async function (e) {
     try {
       const data = e.target.result;
-      let rows = [];
+      let allRows = [];
 
       if (typeof XLSX !== 'undefined') {
         const wb = XLSX.read(data, { type: 'array', cellDates: true, raw: false });
         const firstSheet = wb.SheetNames[0];
-        rows = XLSX.utils.sheet_to_json(wb.Sheets[firstSheet], { header: 1, defval: '' });
+        allRows = XLSX.utils.sheet_to_json(wb.Sheets[firstSheet], { header: 1, defval: '' });
       } else {
-        // Fallback CSV text decoder
         const text = new TextDecoder("utf-8").decode(data);
-        rows = text.split(/\r?\n/).map(line => {
+        allRows = text.split(/\r?\n/).map(line => {
           return line.split(',').map(cell => cell.trim().replace(/^"|"$/g, ''));
         });
       }
 
-      if (!rows || rows.length <= 1) {
+      if (!allRows || allRows.length <= 1) {
         mmAlert('File contains no data rows.', true);
         return;
       }
 
-      const headers = rows[0].map(h => (h || '').toString().trim());
-      mmParseImportRows(headers, rows.slice(1));
+      await mmParseImportRows(allRows);
     } catch (err) {
       console.error('File parse error:', err);
       mmAlert('Failed to parse file: ' + err.message, true);
@@ -2050,11 +2538,91 @@ function mmNormalizeColKey(h) {
     .trim();
 }
 
-function mmParseImportRows(headers, dataRows) {
-  // Build header mapping
+// ── Parse Import Rows with Dynamic Bill Types ─────────────
+async function mmParseImportRows(allRows) {
+  const schemaInfo = await getMemberMasterExcelSchema();
+  const societyBillTypes = schemaInfo.billTypes;
+
+  // 1. Detect Header Row and Sub-Header Row
+  let headerRowIdx = 0;
+  let subHeaderRowIdx = -1;
+  let dataStartRowIdx = 1;
+
+  if (allRows.length > 2) {
+    const row2Str = allRows[2].map(c => String(c || '').toLowerCase()).join(' ');
+    if (row2Str.includes('code') || row2Str.includes('person') || row2Str.includes('flat')) {
+      headerRowIdx = 2;
+      subHeaderRowIdx = 1;
+      dataStartRowIdx = 3;
+    }
+  }
+
+  const leafHeaders = allRows[headerRowIdx] || [];
+  const subHeaders = subHeaderRowIdx >= 0 ? (allRows[subHeaderRowIdx] || []) : [];
+
+  const btByName = {};
+  societyBillTypes.forEach(bt => {
+    btByName[bt.name.toLowerCase().trim()] = bt;
+  });
+
   const colMap = {};
-  headers.forEach((h, idx) => {
+  const billTypeCols = {};
+
+  leafHeaders.forEach((rawH, idx) => {
+    const h = String(rawH || '').trim();
     const norm = mmNormalizeColKey(h);
+    const subH = String(subHeaders[idx] || '').trim();
+
+    // Check for Bill Type Opening Balances
+    const isLeafPrin = norm.includes('principal') || norm === 'opprincipal' || norm === 'prin';
+    const isLeafInt = norm.includes('interest') || norm === 'opinterest' || norm === 'intr';
+
+    if (isLeafPrin || isLeafInt) {
+      let matchedBtName = '';
+      if (subH && subH.toUpperCase() !== 'BILL TYPE & OPENING BALANCE' && subH.toUpperCase() !== 'TOTAL') {
+        matchedBtName = subH;
+      } else {
+        // Flattened header check: e.g. "Maintenance Principal (₹)"
+        for (let i = 0; i < societyBillTypes.length; i++) {
+          const bt = societyBillTypes[i];
+          if (norm.includes(mmNormalizeColKey(bt.name))) {
+            matchedBtName = bt.name;
+            break;
+          }
+        }
+      }
+
+      // Check preceding column's sub-header (in case of merged cells)
+      if (!matchedBtName && idx > 0 && subHeaders[idx - 1]) {
+        const prevSub = String(subHeaders[idx - 1] || '').trim();
+        if (prevSub && prevSub.toUpperCase() !== 'BILL TYPE & OPENING BALANCE' && prevSub.toUpperCase() !== 'TOTAL') {
+          matchedBtName = prevSub;
+        }
+      }
+
+      if (!matchedBtName) {
+        matchedBtName = societyBillTypes[0] ? societyBillTypes[0].name : 'Maintenance';
+      }
+
+      const btKey = matchedBtName.toLowerCase().trim();
+      const resolvedBt = btByName[btKey] || { id: 0, name: matchedBtName };
+
+      if (!billTypeCols[btKey]) {
+        billTypeCols[btKey] = {
+          billTypeId: resolvedBt.id,
+          billTypeName: resolvedBt.name
+        };
+      }
+
+      if (isLeafPrin) {
+        billTypeCols[btKey].principalCol = idx;
+      } else if (isLeafInt) {
+        billTypeCols[btKey].interestCol = idx;
+      }
+      return;
+    }
+
+    // Standard Columns
     if (norm.includes('membercode') || norm === 'code') colMap['memCode'] = idx;
     else if (norm === 'person1' || norm === 'membername' || norm === 'name') colMap['person1'] = idx;
     else if (norm === 'person2') colMap['person2'] = idx;
@@ -2062,7 +2630,11 @@ function mmParseImportRows(headers, dataRows) {
     else if (norm === 'person4') colMap['person4'] = idx;
     else if (norm === 'person5') colMap['person5'] = idx;
     else if (norm === 'person6') colMap['person6'] = idx;
-    else if (norm === 'type' || norm === 'membertype') colMap['type'] = idx;
+    else if (norm.includes('mobile1') || norm.includes('mobileno1') || norm.includes('phone1') || norm.includes('contact1') || norm === 'mobile' || norm === 'phone' || norm === 'contactno') colMap['mobileNo1'] = idx;
+    else if (norm.includes('mobile2') || norm.includes('mobileno2') || norm.includes('phone2') || norm.includes('contact2')) colMap['mobileNo2'] = idx;
+    else if (norm.includes('email1') || norm.includes('emailid1') || norm === 'email' || norm === 'emailid') colMap['emailID1'] = idx;
+    else if (norm.includes('email2') || norm.includes('emailid2')) colMap['emailID2'] = idx;
+    else if (norm === 'type' || norm === 'unittype' || norm === 'membertype') colMap['type'] = idx;
     else if (norm.includes('flatno') || norm === 'flat') colMap['flatNo'] = idx;
     else if (norm.includes('wing')) colMap['wing'] = idx;
     else if (norm.includes('floor')) colMap['floor'] = idx;
@@ -2070,11 +2642,7 @@ function mmParseImportRows(headers, dataRows) {
     else if (norm.includes('building') || norm === 'bldg') colMap['building'] = idx;
     else if (norm.includes('gstin') || norm.includes('gst')) colMap['gstin'] = idx;
     else if (norm.includes('panno') || norm === 'pan') colMap['panNo'] = idx;
-    else if (norm.includes('areavalue') || norm.includes('areasqft') || norm === 'area') colMap['areaValue'] = idx;
-    else if (norm.includes('areatype')) colMap['areaType'] = idx;
-    else if (norm.includes('billtype')) colMap['billType'] = idx;
-    else if (norm.includes('openingprincipal') || norm.includes('opprincipal')) colMap['opPrincipal'] = idx;
-    else if (norm.includes('openinginterest') || norm.includes('opinterest')) colMap['opInterest'] = idx;
+    else if ((norm.includes('areavalue') || norm.includes('areasqft') || norm === 'area') && !norm.includes('areatype')) colMap['areaValue'] = idx;
     else if (norm.includes('totalbalance')) colMap['totalBalance'] = idx;
     else if (norm.includes('dateofagreement') || norm.includes('agreementdate')) colMap['agreementDate'] = idx;
     else if (norm.includes('dateofregistration') || norm.includes('registrationdate')) colMap['registrationDate'] = idx;
@@ -2085,61 +2653,81 @@ function mmParseImportRows(headers, dataRows) {
     else if (norm.includes('registrationfees') || norm.includes('regfees')) colMap['registrationFees'] = idx;
   });
 
-  // If column names didn't match, fallback by standard position (0..27)
-  const isPositional = Object.keys(colMap).length < 5;
-  const getVal = (row, key, pos) => {
-    let val = '';
-    if (!isPositional && colMap[key] !== undefined) {
-      val = row[colMap[key]];
-    } else if (pos < row.length) {
-      val = row[pos];
-    }
-    return val !== null && val !== undefined ? String(val).trim() : '';
+  const getCell = (row, colIdx) => {
+    if (colIdx === undefined || colIdx < 0 || colIdx >= row.length) return '';
+    const v = row[colIdx];
+    return v !== null && v !== undefined ? String(v).trim() : '';
   };
 
   mmImportParsedData = [];
+  const rawDataRows = allRows.slice(dataStartRowIdx);
 
-  dataRows.forEach((row, i) => {
+  const existingCodes = new Set(
+    (mmList || []).map(m => (m.memCode || m.MemCode || '').trim().toUpperCase()).filter(Boolean)
+  );
+  const seenInFile = new Set();
+
+  rawDataRows.forEach((row, rIdx) => {
     if (!row || row.length === 0) return;
 
-    const memCode  = getVal(row, 'memCode', 0);
-    const person1  = getVal(row, 'person1', 1);
-    const person2  = getVal(row, 'person2', 2);
-    const person3  = getVal(row, 'person3', 3);
-    const person4  = getVal(row, 'person4', 4);
-    const person5  = getVal(row, 'person5', 5);
-    const person6  = getVal(row, 'person6', 6);
-    const type     = getVal(row, 'type', 7) || 'Owner';
-    const flatNo   = getVal(row, 'flatNo', 8);
-    const wing     = getVal(row, 'wing', 9);
-    const floor    = getVal(row, 'floor', 10);
-    const flatType = getVal(row, 'flatType', 11) || 'Residential';
-    const building = getVal(row, 'building', 12);
-    const gstin    = getVal(row, 'gstin', 13);
-    const panNo    = getVal(row, 'panNo', 14);
-    const areaVal  = parseFloat(getVal(row, 'areaValue', 15)) || 0;
-    const areaType = getVal(row, 'areaType', 16) || 'Carpet';
-    const billType = getVal(row, 'billType', 17) || 'Maintenance';
-    const opPrin   = parseFloat(getVal(row, 'opPrincipal', 18)) || 0;
-    const opInt    = parseFloat(getVal(row, 'opInterest', 19)) || 0;
-    const totBal   = parseFloat(getVal(row, 'totalBalance', 20)) || (opPrin + opInt);
-    const agreeDate = getVal(row, 'agreementDate', 21);
-    const regDate   = getVal(row, 'registrationDate', 22);
-    const stampDate = getVal(row, 'stampDate', 23);
-    const agreeReg  = getVal(row, 'agreementRegNo', 24);
-    const agreeVal  = parseFloat(getVal(row, 'agreementValue', 25)) || 0;
-    const stampVal  = parseFloat(getVal(row, 'stampValue', 26)) || 0;
-    const regFees   = parseFloat(getVal(row, 'registrationFees', 27)) || 0;
+    const memCode = getCell(row, colMap['memCode']);
+    const person1 = getCell(row, colMap['person1']);
+    const flatNo = getCell(row, colMap['flatNo']);
+    const wing = getCell(row, colMap['wing']);
 
-    // Skip empty rows
+    // Skip empty row
     if (!memCode && !person1 && !flatNo && !wing) return;
 
-    // Check duplicate code against existing members and seen codes in file
-    const existingCodes = new Set(
-      (mmList || []).map(m => (m.memCode || m.MemCode || '').trim().toUpperCase()).filter(Boolean)
-    );
-    const isCodeExisting = existingCodes.has(memCode.toUpperCase());
-    const isCodeInFile = (window._mmSeenImportCodes || new Set()).has(memCode.toUpperCase());
+    const person2 = getCell(row, colMap['person2']);
+    const person3 = getCell(row, colMap['person3']);
+    const person4 = getCell(row, colMap['person4']);
+    const person5 = getCell(row, colMap['person5']);
+    const person6 = getCell(row, colMap['person6']);
+
+    const mobileNo1 = getCell(row, colMap['mobileNo1']);
+    const mobileNo2 = getCell(row, colMap['mobileNo2']);
+    const emailID1 = getCell(row, colMap['emailID1']);
+    const emailID2 = getCell(row, colMap['emailID2']);
+
+    const type = getCell(row, colMap['type']) || 'Flat';
+    const floor = getCell(row, colMap['floor']);
+    const flatType = getCell(row, colMap['flatType']) || 'Residential';
+    const building = getCell(row, colMap['building']);
+    const gstin = getCell(row, colMap['gstin']);
+    const panNo = getCell(row, colMap['panNo']);
+    const areaVal = parseFloat(getCell(row, colMap['areaValue'])) || 0;
+
+    // Build Opening Balances
+    const openingBalances = [];
+    let calcTotBal = 0;
+
+    Object.keys(billTypeCols).forEach(k => {
+      const cfg = billTypeCols[k];
+      const pVal = parseFloat(getCell(row, cfg.principalCol)) || 0;
+      const iVal = parseFloat(getCell(row, cfg.interestCol)) || 0;
+      openingBalances.push({
+        billTypeId: cfg.billTypeId,
+        billTypeName: cfg.billTypeName,
+        principal: pVal,
+        interest: iVal
+      });
+      calcTotBal += (pVal + iVal);
+    });
+
+    const totBal = parseFloat(getCell(row, colMap['totalBalance'])) || calcTotBal;
+
+    const agreeDate = getCell(row, colMap['agreementDate']);
+    const regDate = getCell(row, colMap['registrationDate']);
+    const stampDate = getCell(row, colMap['stampDate']);
+    const agreeReg = getCell(row, colMap['agreementRegNo']);
+    const agreeVal = parseFloat(getCell(row, colMap['agreementValue'])) || 0;
+    const stampVal = parseFloat(getCell(row, colMap['stampValue'])) || 0;
+    const regFees = parseFloat(getCell(row, colMap['registrationFees'])) || 0;
+
+    // Deduplication check
+    const codeUpper = memCode.toUpperCase();
+    const isCodeExisting = existingCodes.has(codeUpper);
+    const isCodeInFile = seenInFile.has(codeUpper);
     const isDuplicate = isCodeExisting || isCodeInFile;
     let duplicateReason = '';
     if (isCodeExisting) {
@@ -2147,31 +2735,17 @@ function mmParseImportRows(headers, dataRows) {
     } else if (isCodeInFile) {
       duplicateReason = `Duplicate code '${memCode}' within file`;
     }
-
-    if (!window._mmSeenImportCodes) window._mmSeenImportCodes = new Set();
-    if (memCode) window._mmSeenImportCodes.add(memCode.toUpperCase());
+    if (memCode) seenInFile.add(codeUpper);
 
     mmImportParsedData.push({
       memCode,
-      person1: person1 || (memCode ? `Member ${memCode}` : `Member ${wing}-${flatNo}`),
-      person2,
-      person3,
-      person4,
-      person5,
-      person6,
-      type,
-      flatNo,
-      wing,
-      floor,
-      flatType,
-      building,
-      gstin,
-      panNo,
-      areaValue: areaVal,
-      areaType,
-      billType,
-      opPrincipal: opPrin,
-      opInterest: opInt,
+      person1: person1 || `Member ${memCode || (wing + '-' + flatNo)}`,
+      person2, person3, person4, person5, person6,
+      mobileNo1, mobileNo2, emailID1, emailID2,
+      contactNo: mobileNo1, contactNo2: mobileNo2, email: emailID1, email2: emailID2,
+      type, flatNo, wing, floor, flatType, building,
+      gstin, panNo, areaValue: areaVal,
+      openingBalances,
       totalBalance: totBal,
       agreementDate: agreeDate,
       registrationDate: regDate,
@@ -2185,12 +2759,14 @@ function mmParseImportRows(headers, dataRows) {
     });
   });
 
-  // Clean up temporary set
-  delete window._mmSeenImportCodes;
+  mmRenderImportPreview(billTypeCols);
+}
 
-  // Render preview
+// ── Render Import Preview ─────────────────────────────────
+function mmRenderImportPreview(billTypeCols) {
   const prevBox = document.getElementById('mm-import-preview-box');
   const rCountEl = document.getElementById('mm-preview-row-count');
+  const colStatusEl = document.getElementById('mm-preview-col-status');
   const theadRow = document.getElementById('mm-preview-thead-row');
   const tbody = document.getElementById('mm-preview-tbody');
   const dupAlert = document.getElementById('mm-import-duplicate-alert');
@@ -2209,9 +2785,30 @@ function mmParseImportRows(headers, dataRows) {
   }
 
   if (rCountEl) rCountEl.textContent = mmImportParsedData.length;
+  if (colStatusEl) {
+    const btCount = billTypeCols ? Object.keys(billTypeCols).length : 0;
+    colStatusEl.textContent = `Accounting Multi-Tier Schema Verified (${btCount} Bill Types)`;
+  }
+
+  const detectedBts = billTypeCols ? Object.values(billTypeCols) : [];
+
   if (theadRow) {
-    theadRow.innerHTML = MM_28_COLUMNS.slice(0, 10).map(c => `<th style="padding:6px 8px;white-space:nowrap;">${c}</th>`).join('') +
-      `<th style="padding:6px 8px;white-space:nowrap;">Bill Type</th><th style="padding:6px 8px;white-space:nowrap;">Total Bal (₹)</th><th style="padding:6px 8px;white-space:nowrap;">Status</th>`;
+    let thHtml = `
+      <th style="padding:6px 8px;white-space:nowrap;">Code</th>
+      <th style="padding:6px 8px;white-space:nowrap;">Person 1</th>
+      <th style="padding:6px 8px;white-space:nowrap;">Mobile No. 1</th>
+      <th style="padding:6px 8px;white-space:nowrap;">Type</th>
+      <th style="padding:6px 8px;white-space:nowrap;">Flat No.</th>
+      <th style="padding:6px 8px;white-space:nowrap;">Wing</th>
+    `;
+    detectedBts.forEach(bt => {
+      thHtml += `<th style="padding:6px 8px;white-space:nowrap;background:#434ea3;color:#ffffff;">${bt.billTypeName} (₹)</th>`;
+    });
+    thHtml += `
+      <th style="padding:6px 8px;white-space:nowrap;text-align:right;">Total Bal (₹)</th>
+      <th style="padding:6px 8px;white-space:nowrap;text-align:center;">Status</th>
+    `;
+    theadRow.innerHTML = thHtml;
   }
 
   if (tbody) {
@@ -2226,21 +2823,24 @@ function mmParseImportRows(headers, dataRows) {
         ? `<span style="background:#fee2e2;color:#dc2626;font-size:9.5px;font-weight:700;padding:2px 6px;border-radius:4px;border:1px solid #f87171;white-space:nowrap;">REJECT (DUPLICATE)</span>`
         : `<span style="background:#f0fdf4;color:#16a34a;font-size:9.5px;font-weight:700;padding:2px 6px;border-radius:4px;border:1px solid #86efac;white-space:nowrap;">VALID (NEW)</span>`;
 
+      let btCells = '';
+      detectedBts.forEach(bt => {
+        const found = (r.openingBalances || []).find(b => b.billTypeName.toLowerCase() === bt.billTypeName.toLowerCase() || b.billTypeId === bt.billTypeId);
+        const p = found ? (found.principal || 0) : 0;
+        const i = found ? (found.interest || 0) : 0;
+        const tot = p + i;
+        btCells += `<td style="padding:5px 8px;text-align:right;color:${textCol};font-weight:500;">₹${tot.toFixed(2)}</td>`;
+      });
+
       return `
         <tr style="${borderCol}background:${rowBg};">
-          <td style="padding:5px 8px;font-weight:bold;color:${textCol};">
-            ${r.memCode || '—'}
-          </td>
+          <td style="padding:5px 8px;font-weight:bold;color:${textCol};">${r.memCode || '—'}</td>
           <td style="padding:5px 8px;font-weight:600;color:${textCol};">${r.person1 || '—'}</td>
-          <td style="padding:5px 8px;color:${isDup ? '#b91c1c' : '#64748b'};">${r.person2 || '—'}</td>
-          <td style="padding:5px 8px;color:${isDup ? '#b91c1c' : '#64748b'};">${r.person3 || '—'}</td>
-          <td style="padding:5px 8px;color:${isDup ? '#b91c1c' : '#64748b'};">${r.person4 || '—'}</td>
-          <td style="padding:5px 8px;color:${isDup ? '#b91c1c' : '#64748b'};">${r.person5 || '—'}</td>
-          <td style="padding:5px 8px;color:${isDup ? '#b91c1c' : '#64748b'};">${r.person6 || '—'}</td>
-          <td style="padding:5px 8px;color:${textCol};">${r.type}</td>
-          <td style="padding:5px 8px;font-weight:bold;color:${textCol};">${r.flatNo}</td>
-          <td style="padding:5px 8px;color:${textCol};">${r.wing}</td>
-          <td style="padding:5px 8px;color:${textCol};">${r.billType}</td>
+          <td style="padding:5px 8px;color:${textCol};">${r.mobileNo1 || '—'}</td>
+          <td style="padding:5px 8px;color:${textCol};">${r.type || 'Flat'}</td>
+          <td style="padding:5px 8px;font-weight:bold;color:${textCol};">${r.flatNo || '—'}</td>
+          <td style="padding:5px 8px;color:${textCol};">${r.wing || '—'}</td>
+          ${btCells}
           <td style="padding:5px 8px;text-align:right;font-weight:bold;color:${isDup ? '#dc2626' : '#0f766e'};">₹${(r.totalBalance || 0).toFixed(2)}</td>
           <td style="padding:5px 8px;text-align:center;">${statusBadge}</td>
         </tr>
@@ -3374,10 +3974,10 @@ function mmOpenTransferPreview(idx) {
             6. Owner 6: ${snap.memName6 || '—'}
           </div>
           <div style="grid-column:span 4;border-top:1px dashed #cbd5e1;padding-top:8px;display:grid;grid-template-columns:repeat(4, 1fr);gap:8px;">
-            <div><b>Mobile 1:</b> ${snap.contactNo || snap.memMobile || '9876543219'}</div>
-            <div><b>Mobile 2:</b> —</div>
+            <div><b>Mobile 1:</b> ${snap.contactNo || snap.memMobile || '—'}</div>
+            <div><b>Mobile 2:</b> ${snap.contactNo2 || snap.phone2 || '—'}</div>
             <div><b>Email 1:</b> ${snap.email || snap.memEmail || '—'}</div>
-            <div><b>Email 2:</b> —</div>
+            <div><b>Email 2:</b> ${snap.email2 || '—'}</div>
             <div><b>GSTIN:</b> —</div>
             <div><b>Bank Name:</b> PNB</div>
             <div><b>Account No:</b> —</div>
@@ -5412,10 +6012,17 @@ window.mmSyncParkingToMatrixAndBreakup = mmSyncParkingToMatrixAndBreakup;
 window.mmGetParkingAmountFromMatrix = mmGetParkingAmountFromMatrix;
 window.mmHandlePersonKeyNav = mmHandlePersonKeyNav;
 window.MM_28_COLUMNS = MM_28_COLUMNS;
+window.getMemberMasterExcelSchema = getMemberMasterExcelSchema;
+window.mmGetMasterUnitTypes = mmGetMasterUnitTypes;
+window.mmGetMasterFlatTypes = mmGetMasterFlatTypes;
 window.mmOpenBulkImportModal = mmOpenBulkImportModal;
 window.mmDownloadMemberTemplate = mmDownloadMemberTemplate;
 window.mmExportMembers = mmExportMembers;
+window.mmExportExcel = mmExportExcel;
+window.mmParseImportRows = mmParseImportRows;
+window.mmRenderImportPreview = mmRenderImportPreview;
 window.mmProcessMemberBulkImport = mmProcessMemberBulkImport;
+window.mmProcessImportCSV = mmProcessImportCSV;
 window.mmHandleFileDrop = mmHandleFileDrop;
 window.mmHandleImportFileSelect = mmHandleImportFileSelect;
 

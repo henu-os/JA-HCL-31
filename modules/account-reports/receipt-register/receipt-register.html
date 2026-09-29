@@ -7,7 +7,7 @@
   <script src="../../../config.js"></script>
   <link rel="stylesheet" href="../../../assets/css/global.css">
   <link rel="stylesheet" href="../../../assets/css/components.css">
-  <link rel="stylesheet" href="receipt-register.css">
+  <link rel="stylesheet" href="receipt-register.css?v=20260928_0210">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 </head>
 <body class="erp-module">
@@ -102,8 +102,14 @@
       <button class="reg-btn reg-btn-primary" onclick="loadReceiptRegister()" title="Refresh records from server">
         <i class="bi bi-arrow-clockwise"></i> Refresh
       </button>
-      <button class="reg-btn" onclick="openPrintModal()" title="Print register or receipt vouchers">
-        <i class="bi bi-printer"></i> Print
+      <button class="reg-btn" onclick="printRegister()" title="Print current register in tabular format">
+        <i class="bi bi-printer"></i> Print Current Format
+      </button>
+      <button class="reg-btn" onclick="printVouchersWithDuplicate()" title="Print receipt vouchers with 2 copies per page (Society Copy & Member Copy)">
+        <i class="bi bi-files"></i> Print with Duplicate
+      </button>
+      <button class="reg-btn" onclick="printVouchersContinuous()" title="Print all member receipts continuously (2 distinct member receipts per page)">
+        <i class="bi bi-receipt-cutoff"></i> Print Continuous
       </button>
       <button class="reg-btn reg-btn-success" onclick="exportToExcel()" title="Export register to Excel .xlsx">
         <i class="bi bi-file-earmark-excel"></i> Export Excel
@@ -167,75 +173,6 @@
     </div>
   </div>
 
-  <!-- ── Print Format Selection Modal ────────────────────────────────────── -->
-  <div id="printFormatModal" class="pf-modal-backdrop" style="display:none;" onclick="handleModalBackdropClick(event)">
-    <div class="pf-modal-card">
-      <div class="pf-modal-header">
-        <div class="pf-modal-title">
-          <i class="bi bi-printer-fill" style="color:var(--primary, #0D47A1);"></i> Select Report Print Format
-        </div>
-        <button type="button" class="pf-modal-close" onclick="closePrintModal()" title="Close">&times;</button>
-      </div>
-
-      <div class="pf-modal-body">
-        <div class="pf-modal-prompt">What kind of report print do you want?</div>
-
-        <div class="pf-options-grid">
-          <!-- Option 1: Current Receipt Register -->
-          <div class="pf-option-box active" id="optCardRegister" onclick="setPrintFormat('register')">
-            <div class="pf-option-radio">
-              <input type="radio" name="printFormatChoice" id="pfRadioRegister" value="register" checked>
-            </div>
-            <div class="pf-option-main">
-              <div class="pf-option-badge">Standard Report</div>
-              <div class="pf-option-heading">
-                <i class="bi bi-table"></i> Option 1: Receipt Register (Current Format)
-              </div>
-              <div class="pf-option-text">
-                Full chronological tabular register showing dates, voucher numbers, account head splits, debit &amp; credit amounts, and balancing totals.
-              </div>
-            </div>
-          </div>
-
-          <!-- Option 2: Receipt Voucher (Image 1 Format) -->
-          <div class="pf-option-box" id="optCardVoucher" onclick="setPrintFormat('voucher')">
-            <div class="pf-option-radio">
-              <input type="radio" name="printFormatChoice" id="pfRadioVoucher" value="voucher">
-            </div>
-            <div class="pf-option-main">
-              <div class="pf-option-badge pf-badge-voucher">2 Receipts Per Page</div>
-              <div class="pf-option-heading">
-                <i class="bi bi-receipt-cutoff"></i> Option 2: Receipt Voucher (Image 1 Format)
-              </div>
-              <div class="pf-option-text">
-                Official housing society receipt voucher with letterhead, member acknowledgment, itemized particulars, amount in words, instrument details, and Hon. Secretary/Treasurer signature. Exactly 2 receipts per page.
-              </div>
-              <div class="pf-member-alert" id="pfMemberAlertBox">
-                <i class="bi bi-info-circle-fill"></i>
-                <span id="pfMemberAlertText">When an individual member is selected, 2 identical copies will be printed on one page (Society Copy &amp; Member Copy).</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Target Member Selector -->
-        <div class="pf-member-row">
-          <label for="pfMemberSelect"><i class="bi bi-person-circle"></i> Member / Payer:</label>
-          <select id="pfMemberSelect" class="reg-select" style="flex:1;" onchange="onModalMemberChange(this.value)">
-            <option value="all">All Members / Payers</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="pf-modal-footer">
-        <button type="button" class="reg-btn" onclick="closePrintModal()">Cancel</button>
-        <button type="button" class="reg-btn reg-btn-primary" onclick="confirmAndPrint()">
-          <i class="bi bi-printer"></i> Print Selected Format
-        </button>
-      </div>
-    </div>
-  </div>
-
   <!-- ── Print-Only Container for Receipt Vouchers (Image 1 Layout) ───────── -->
   <div id="voucherPrintArea" class="voucher-print-area"></div>
 
@@ -246,9 +183,9 @@
       document.write('<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"><\/script>');
     }
   </script>
-  <script src="../../../assets/js/api.js"></script>
-  <script src="../../../assets/js/auth.js"></script>
-  <script src="../../../assets/js/utils.js"></script>
-  <script src="receipt-register.js"></script>
+  <script src="../../../assets/js/api.js?v=20260928_0200"></script>
+  <script src="../../../assets/js/auth.js?v=20260928_0200"></script>
+  <script src="../../../assets/js/utils.js?v=20260928_0200"></script>
+  <script src="receipt-register.js?v=20260928_0210"></script>
 </body>
 </html>

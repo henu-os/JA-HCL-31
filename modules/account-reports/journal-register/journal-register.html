@@ -7,7 +7,7 @@
   <script src="../../../config.js"></script>
   <link rel="stylesheet" href="../../../assets/css/global.css">
   <link rel="stylesheet" href="../../../assets/css/components.css">
-  <link rel="stylesheet" href="journal-register.css">
+  <link rel="stylesheet" href="journal-register.css?v=20260928_0230">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 </head>
 <body class="erp-module">
@@ -94,9 +94,15 @@
       <button class="reg-btn reg-btn-primary" onclick="loadJournalRegister()" title="Refresh records from server">
         <i class="bi bi-arrow-clockwise"></i> Refresh
       </button>
-      <button class="reg-btn" onclick="printRegister()" title="Print statutory journal register">
-        <i class="bi bi-printer"></i> Print
+
+      <!-- 2 Direct Print Engines (No Duplicate for Journal) -->
+      <button class="reg-btn" onclick="printRegister()" title="Print Statutory Register (Current format visible on screen)">
+        <i class="bi bi-printer"></i> Print Current Format
       </button>
+      <button class="reg-btn" style="background:#16a34a; color:#fff;" onclick="printVouchersContinuous()" title="Print All Journal Vouchers Continuous (2 per A4 Page, No Duplicates)">
+        <i class="bi bi-printer-fill"></i> Print Continuous
+      </button>
+
       <button class="reg-btn reg-btn-success" onclick="exportToExcel()" title="Export register to Excel .xlsx">
         <i class="bi bi-file-earmark-excel"></i> Export Excel
       </button>
@@ -159,6 +165,9 @@
     </div>
   </div>
 
+  <!-- ── Print-Only Container for Journal Vouchers ───────── -->
+  <div id="voucherPrintArea" class="voucher-print-area"></div>
+
   <!-- xlsx-js-style for rich-styled Excel workbook generation -->
   <script src="../../../assets/js/xlsx-js-style.bundle.js"></script>
   <script>
@@ -166,9 +175,9 @@
       document.write('<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"><\/script>');
     }
   </script>
-  <script src="../../../assets/js/api.js"></script>
-  <script src="../../../assets/js/auth.js"></script>
-  <script src="../../../assets/js/utils.js"></script>
-  <script src="journal-register.js"></script>
+  <script src="../../../assets/js/api.js?v=20260928_0235"></script>
+  <script src="../../../assets/js/auth.js?v=20260928_0235"></script>
+  <script src="../../../assets/js/utils.js?v=20260928_0235"></script>
+  <script src="journal-register.js?v=20260928_0235"></script>
 </body>
 </html>

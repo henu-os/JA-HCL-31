@@ -397,7 +397,7 @@
               <i class="bi bi-check-circle-fill" style="font-size:13px; color:#ffffff;"></i> <span style="color:#ffffff;">Confirm</span>
             </button>
             <div style="display:flex; flex-direction:column; gap:3px; margin-left:6px; border-left:1px solid #cbd5e1; padding-left:8px;">
-              <div style="display:flex; align-items:center; gap:4px;" title="Quickly calculate & add OUTPUT CGST & SGST (Liability accounts - LI-15 OUTPUT GST)">
+              <div style="display:flex; align-items:center; gap:4px;" title="Quickly calculate & add CGST 9% & SGST 9% (Liability accounts - LIA-1032 / LIA-1033)">
                 <span class="form-label" style="margin-bottom:0; font-size:10px; white-space:nowrap; font-weight:800; color:#0284c7;">+ GST CALC:</span>
                 <button type="button" onclick="quickApplyGst(2.5)" class="erp-btn erp-btn-sm" style="font-size:10px; font-weight:800; padding:1px 7px; background:#f0f9ff; border:1px solid #7dd3fc; color:#0369a1; cursor:pointer;" title="Add 2.5% CGST & 2.5% SGST (5% Total GST)">2.5%</button>
                 <button type="button" onclick="quickApplyGst(9)" class="erp-btn erp-btn-sm" style="font-size:10px; font-weight:800; padding:1px 7px; background:#f0f9ff; border:1px solid #7dd3fc; color:#0369a1; cursor:pointer;" title="Add 9% CGST & 9% SGST (18% Total GST)">9%</button>
@@ -514,11 +514,11 @@
             PARTICULARS
           </span>
           <div style="display:flex; width:100%; gap:8px; align-items:center;">
-            <input type="text" class="form-inp" id="frm-particular1" placeholder="Particulars 1..." style="flex:1;">
+            <input type="text" class="form-inp" id="frm-particular1" placeholder="Particulars 1 (Max 75 chars)..." maxlength="75" title="Maximum 75 characters with spaces" style="flex:1;">
             <button type="button" onclick="appendParticularTag(1)" style="width:90px; height:30px; background:#e2e8f0; border:1px solid #cbd5e1; border-radius:3px; font-size:10px; font-weight:800; cursor:pointer;">Ctrl + L</button>
           </div>
           <div style="display:flex; width:100%; gap:8px; align-items:center;">
-            <input type="text" class="form-inp" id="frm-particular2" placeholder="Particulars 2..." style="flex:1;">
+            <input type="text" class="form-inp" id="frm-particular2" placeholder="Particulars 2 (Max 75 chars)..." maxlength="75" title="Maximum 75 characters with spaces" style="flex:1;">
             <button type="button" onclick="appendParticularTag(2)" style="width:90px; height:30px; background:#e2e8f0; border:1px solid #cbd5e1; border-radius:3px; font-size:10px; font-weight:800; cursor:pointer;">Ctrl + L</button>
           </div>
         </div>
@@ -711,10 +711,10 @@
 </div>
 
 <!-- SCRIPTS -->
-<script src="../../../assets/js/api.js?v=20260831_0018"></script>
-<script src="../../../assets/js/auth.js?v=20260831_0018"></script>
-<script src="../../../assets/js/utils.js?v=20260831_0018"></script>
-<script src="other-receipt.js?v=20260831_0018"></script>
+<script src="../../../assets/js/api.js?v=20260928_0026"></script>
+<script src="../../../assets/js/auth.js?v=20260928_0026"></script>
+<script src="../../../assets/js/utils.js?v=20260928_0026"></script>
+<script src="other-receipt.js?v=20260928_0026"></script>
 <script>
 /* Safety: ensure account lookup functions are reachable from onclick handlers */
 window._accLookupTarget = 'entry-acc-sel';

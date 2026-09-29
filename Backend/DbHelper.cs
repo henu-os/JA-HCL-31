@@ -289,14 +289,19 @@ namespace JeevikaERP
                         SET GrpName = 'OUTPUT GST', GrpPrimaryName = 'OUTPUT GST'
                         WHERE GrpCode = 'LI-15' AND GrpMainId = 2 AND GrpName ILIKE '%INPUT GST%';
 
-                        -- Fix default accounts LIA-1021 and LIA-1022 if they were incorrectly named INPUT CGST/SGST
-                        UPDATE jeevika_erp.SocAccount
-                        SET AccName = 'Output CGST', AccBSName = 'Output CGST'
-                        WHERE AccCode = 'LIA-1021' AND GrpMainId = 2 AND AccName ILIKE '%INPUT%';
+                        -- Migrate any historical vouchers using LIA-1021 / LIA-1022 to LIA-1032 (CGST 9%) and LIA-1033 (SGST 9%)
+                        UPDATE jeevika_erp.SocVoucherDetail
+                        SET AccountCode = 'LIA-1032', AccountName = 'CGST 9%'
+                        WHERE AccountCode = 'LIA-1021';
 
+                        UPDATE jeevika_erp.SocVoucherDetail
+                        SET AccountCode = 'LIA-1033', AccountName = 'SGST 9%'
+                        WHERE AccountCode = 'LIA-1022';
+
+                        -- Soft-delete redundant Output CGST & Output SGST accounts so CGST 9% and SGST 9% take over
                         UPDATE jeevika_erp.SocAccount
-                        SET AccName = 'Output SGST', AccBSName = 'Output SGST'
-                        WHERE AccCode = 'LIA-1022' AND GrpMainId = 2 AND AccName ILIKE '%INPUT%';
+                        SET IsDeleted = TRUE, IsDefault = FALSE
+                        WHERE AccCode IN ('LIA-1021', 'LIA-1022');
 
                         CREATE TABLE IF NOT EXISTS jeevika_erp.SocBillingMatrix (
                             MatrixId SERIAL PRIMARY KEY, SocietyId INT NOT NULL, FYId INT, BillTypeId INT NOT NULL, MemberId INT NOT NULL,
@@ -328,6 +333,10 @@ namespace JeevikaERP
                             AccountName VARCHAR(255),
                             Amount NUMERIC(18,2) DEFAULT 0
                         );
+
+                        -- Ensure SocMember columns exist for secondary contact details
+                        ALTER TABLE jeevika_erp.SocMember ADD COLUMN IF NOT EXISTS ContactNo2 VARCHAR(50);
+                        ALTER TABLE jeevika_erp.SocMember ADD COLUMN IF NOT EXISTS Email2 VARCHAR(100);
 
                         -- Ensure SocStaff columns exist for extended details
                         ALTER TABLE jeevika_erp.SocStaff ADD COLUMN IF NOT EXISTS Phone2 VARCHAR(50);

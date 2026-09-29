@@ -7,7 +7,7 @@
   <script src="../../../config.js"></script>
   <link rel="stylesheet" href="../../../assets/css/global.css">
   <link rel="stylesheet" href="../../../assets/css/components.css">
-  <link rel="stylesheet" href="receipt-payment-report.css">
+  <link rel="stylesheet" href="receipt-payment-report.css?v=20260928_0140">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 </head>
 <body class="erp-module">
@@ -49,14 +49,20 @@
         </select>
       </div>
 
-      <div class="rp-filter-item">
-        <input type="checkbox" id="chk-voucher-no" checked onchange="renderRPView()">
-        <label for="chk-voucher-no">Voucher No. / Code</label>
+      <div class="rp-filter-item" style="display:flex; align-items:center; gap:6px;">
+        <label class="erp-toggle-switch">
+          <input type="checkbox" id="chk-voucher-no" checked onchange="renderRPView()">
+          <span class="erp-toggle-slider"></span>
+        </label>
+        <span style="font-size:11px; font-weight:600; color:#475569; cursor:pointer; user-select:none;" onclick="document.getElementById('chk-voucher-no').click()">Voucher No. / Code</span>
       </div>
 
-      <div class="rp-filter-item">
-        <input type="checkbox" id="chk-hide-zero" onchange="renderRPView()">
-        <label for="chk-hide-zero">Hide Zero Balances</label>
+      <div class="rp-filter-item" style="display:flex; align-items:center; gap:6px;">
+        <label class="erp-toggle-switch">
+          <input type="checkbox" id="chk-hide-zero" onchange="renderRPView()">
+          <span class="erp-toggle-slider"></span>
+        </label>
+        <span style="font-size:11px; font-weight:600; color:#475569; cursor:pointer; user-select:none;" onclick="document.getElementById('chk-hide-zero').click()">Hide Zero Balances</span>
       </div>
 
       <div class="rp-search-box">
@@ -213,9 +219,9 @@
       document.write('<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"><\/script>');
     }
   </script>
-  <script src="../../../assets/js/api.js"></script>
-  <script src="../../../assets/js/auth.js"></script>
-  <script src="../../../assets/js/utils.js"></script>
-  <script src="receipt-payment-report.js"></script>
+  <script src="../../../assets/js/api.js?v=20260928_0140"></script>
+  <script src="../../../assets/js/auth.js?v=20260928_0140"></script>
+  <script src="../../../assets/js/utils.js?v=20260928_0140"></script>
+  <script src="receipt-payment-report.js?v=20260928_0140"></script>
 </body>
 </html>

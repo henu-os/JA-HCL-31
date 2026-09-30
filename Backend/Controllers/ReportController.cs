@@ -404,6 +404,28 @@ namespace JeevikaERP.Controllers
                     }
                 }
 
+                // Add member billing item income up to effectiveAsOn
+                decimal memberBillIncome = 0;
+                using (var cmdMBS = conn.CreateCommand())
+                {
+                    cmdMBS.CommandText = @"
+                        SELECT COALESCE(SUM(bi.Amount), 0) AS TotalAmount
+                        FROM jeevika_erp.SocMemberBillItem bi
+                        JOIN jeevika_erp.SocMemberBill b ON bi.BillId = b.BillId
+                        WHERE b.SocietyId = @sid 
+                          AND (b.FYId = @fyid OR (@hasBounds = TRUE AND b.BillDate >= @fyStart AND b.BillDate <= @fyEnd))
+                          AND b.BillDate <= @asOn
+                          AND b.IsDeleted = FALSE";
+                    cmdMBS.Parameters.AddWithValue("@sid", societyId);
+                    cmdMBS.Parameters.AddWithValue("@fyid", fyId);
+                    cmdMBS.Parameters.AddWithValue("@hasBounds", (fyStart.HasValue && fyEnd.HasValue));
+                    cmdMBS.Parameters.AddWithValue("@fyStart", fyStart.HasValue ? fyStart.Value.Date : (object)DBNull.Value);
+                    cmdMBS.Parameters.AddWithValue("@fyEnd", fyEnd.HasValue ? fyEnd.Value.Date : (object)DBNull.Value);
+                    cmdMBS.Parameters.AddWithValue("@asOn", effectiveAsOn);
+                    memberBillIncome = Convert.ToDecimal(cmdMBS.ExecuteScalar() ?? 0);
+                }
+                totalIncome += memberBillIncome;
+
                 decimal currentSurplus = totalIncome - totalExpense; // >0 Surplus, <0 Deficit
 
                 // 5. Structure Liabilities & Assets into standard Schedule Groups
@@ -837,6 +859,68 @@ namespace JeevikaERP.Controllers
                 cmd.Parameters.AddWithValue("@prevStart", prevFyStart.HasValue ? prevFyStart.Value.Date : (object)DBNull.Value);
                 cmd.Parameters.AddWithValue("@prevEnd", prevFyEnd.HasValue ? prevFyEnd.Value.Date : (object)DBNull.Value);
 
+                // Fetch Member Bill item credits for current and previous FY to match Account Ledger
+                var memberBillCredits = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+                var memberBillPrevCredits = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+
+                using (var cmdMB = conn.CreateCommand())
+                {
+                    cmdMB.CommandText = @"
+                        SELECT bi.AccountCode, COALESCE(bi.AccountName, '') AS AccountName, SUM(bi.Amount) AS TotalAmount
+                        FROM jeevika_erp.SocMemberBillItem bi
+                        JOIN jeevika_erp.SocMemberBill b ON bi.BillId = b.BillId
+                        WHERE b.SocietyId = @sid 
+                          AND (b.FYId = @fyid OR (@hasBounds = TRUE AND b.BillDate >= @fyStart AND b.BillDate <= @fyEnd))
+                          AND b.BillDate >= @from AND b.BillDate <= @to
+                          AND b.IsDeleted = FALSE
+                        GROUP BY bi.AccountCode, bi.AccountName";
+                    cmdMB.Parameters.AddWithValue("@sid", societyId);
+                    cmdMB.Parameters.AddWithValue("@fyid", fyId);
+                    cmdMB.Parameters.AddWithValue("@hasBounds", (fyStart.HasValue && fyEnd.HasValue));
+                    cmdMB.Parameters.AddWithValue("@fyStart", fyStart.HasValue ? fyStart.Value.Date : (object)DBNull.Value);
+                    cmdMB.Parameters.AddWithValue("@fyEnd", fyEnd.HasValue ? fyEnd.Value.Date : (object)DBNull.Value);
+                    cmdMB.Parameters.AddWithValue("@from", effectiveFrom);
+                    cmdMB.Parameters.AddWithValue("@to", effectiveTo);
+
+                    using var rMB = cmdMB.ExecuteReader();
+                    while (rMB.Read())
+                    {
+                        string c = rMB["AccountCode"]?.ToString()?.Trim() ?? "";
+                        string n = rMB["AccountName"]?.ToString()?.Trim() ?? "";
+                        decimal amt = Convert.ToDecimal(rMB["TotalAmount"]);
+                        if (!string.IsNullOrEmpty(c)) memberBillCredits[c] = memberBillCredits.GetValueOrDefault(c) + amt;
+                        if (!string.IsNullOrEmpty(n)) memberBillCredits[n] = memberBillCredits.GetValueOrDefault(n) + amt;
+                    }
+                }
+
+                if (prevFyId > 0 || prevFyStart.HasValue)
+                {
+                    using var cmdMBP = conn.CreateCommand();
+                    cmdMBP.CommandText = @"
+                        SELECT bi.AccountCode, COALESCE(bi.AccountName, '') AS AccountName, SUM(bi.Amount) AS TotalAmount
+                        FROM jeevika_erp.SocMemberBillItem bi
+                        JOIN jeevika_erp.SocMemberBill b ON bi.BillId = b.BillId
+                        WHERE b.SocietyId = @sid 
+                          AND (b.FYId = @prevFyId OR (@hasPrevBounds = TRUE AND b.BillDate >= @prevStart AND b.BillDate <= @prevEnd))
+                          AND b.IsDeleted = FALSE
+                        GROUP BY bi.AccountCode, bi.AccountName";
+                    cmdMBP.Parameters.AddWithValue("@sid", societyId);
+                    cmdMBP.Parameters.AddWithValue("@prevFyId", prevFyId);
+                    cmdMBP.Parameters.AddWithValue("@hasPrevBounds", (prevFyStart.HasValue && prevFyEnd.HasValue));
+                    cmdMBP.Parameters.AddWithValue("@prevStart", prevFyStart.HasValue ? prevFyStart.Value.Date : (object)DBNull.Value);
+                    cmdMBP.Parameters.AddWithValue("@prevEnd", prevFyEnd.HasValue ? prevFyEnd.Value.Date : (object)DBNull.Value);
+
+                    using var rMBP = cmdMBP.ExecuteReader();
+                    while (rMBP.Read())
+                    {
+                        string c = rMBP["AccountCode"]?.ToString()?.Trim() ?? "";
+                        string n = rMBP["AccountName"]?.ToString()?.Trim() ?? "";
+                        decimal amt = Convert.ToDecimal(rMBP["TotalAmount"]);
+                        if (!string.IsNullOrEmpty(c)) memberBillPrevCredits[c] = memberBillPrevCredits.GetValueOrDefault(c) + amt;
+                        if (!string.IsNullOrEmpty(n)) memberBillPrevCredits[n] = memberBillPrevCredits.GetValueOrDefault(n) + amt;
+                    }
+                }
+
                 var rawAccounts = new List<dynamic>();
                 using (var r = cmd.ExecuteReader())
                 {
@@ -877,8 +961,18 @@ namespace JeevikaERP.Controllers
                         }
                         else if (grpMain == 3) // Income (Cr normal)
                         {
-                            currentAmt = txnCredit - txnDebit;
-                            decimal voucherPrev = prevCredit - prevDebit;
+                            decimal billCredit = 0;
+                            if (memberBillCredits.TryGetValue(accCode, out var bc)) billCredit = bc;
+                            else if (memberBillCredits.TryGetValue(accName, out var bn)) billCredit = bn;
+
+                            decimal billPrevCredit = 0;
+                            if (memberBillPrevCredits.TryGetValue(accCode, out var bpc)) billPrevCredit = bpc;
+                            else if (memberBillPrevCredits.TryGetValue(accName, out var bpn)) billPrevCredit = bpn;
+
+                            decimal totalCredit = txnCredit + billCredit;
+                            currentAmt = totalCredit - txnDebit;
+
+                            decimal voucherPrev = (prevCredit + billPrevCredit) - prevDebit;
                             if (voucherPrev != 0)
                             {
                                 prevAmt = voucherPrev;
@@ -1207,10 +1301,11 @@ namespace JeevikaERP.Controllers
 
                 foreach (var acc in targetAccounts)
                 {
-                    // 2. Fetch Base Opening Balance
+                    // 2. Fetch Base Opening Balance & Prev Year Balance
                     using var cmdOB = conn.CreateCommand();
                     cmdOB.CommandText = @"
-                        SELECT COALESCE(ob.OpenBal, a.OpBal, 0) AS OpenBal, COALESCE(ob.DrCr, a.OpDrCr, 'Dr') AS DrCr
+                        SELECT COALESCE(ob.OpenBal, a.OpBal, 0) AS OpenBal, COALESCE(ob.DrCr, a.OpDrCr, 'Dr') AS DrCr,
+                               COALESCE(a.PrBal, 0) AS PrBal, COALESCE(a.PrDrCr, 'Dr') AS PrDrCr
                         FROM jeevika_erp.SocAccount a
                         LEFT JOIN jeevika_erp.SocOpeningBalance ob ON a.AccountId = ob.AccountId AND ob.FYId = @fyid
                         WHERE a.AccountId = @aid";
@@ -1219,13 +1314,26 @@ namespace JeevikaERP.Controllers
 
                     decimal baseOpBal = 0;
                     string baseOpDrCr = "Dr";
+                    decimal prBal = 0;
+                    string prDrCr = "Dr";
                     using (var rOB = cmdOB.ExecuteReader())
                     {
                         if (rOB.Read())
                         {
                             baseOpBal = Convert.ToDecimal(rOB["OpenBal"]);
                             baseOpDrCr = rOB["DrCr"].ToString() ?? "Dr";
+                            prBal = Convert.ToDecimal(rOB["PrBal"]);
+                            prDrCr = rOB["PrDrCr"].ToString() ?? "Dr";
                         }
+                    }
+
+                    // For Nominal accounts (Income GrpMain=3, Expenditure GrpMain=4):
+                    // Operating ledger starts at 0.00 for the current financial year.
+                    // Previous year balance is preserved in prBal for statutory comparative reference only.
+                    if (acc.grpMain == 3 || acc.grpMain == 4)
+                    {
+                        baseOpBal = 0;
+                        baseOpDrCr = acc.grpMain == 3 ? "Cr" : "Dr";
                     }
 
                     // 3. Compute Effective Opening Balance if fromDate is provided
@@ -1638,6 +1746,8 @@ namespace JeevikaERP.Controllers
                         grpName     = acc.grpName,
                         opBal       = effectiveOpBal,
                         opDrCr      = effectiveOpDrCr,
+                        prBal       = prBal,
+                        prDrCr      = prDrCr,
                         totalDebit  = totalDr,
                         totalCredit = totalCr,
                         closingBalance = closingBal,

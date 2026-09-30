@@ -591,7 +591,7 @@
         </label>
         <label id="ob-lbl-IE">
           <input type="radio" name="balType" value="IE" onchange="OB.changeType(); OB.updateActiveTypeBtn('IE')">
-          2. INCOME &amp; EXPEN.
+          2. INCOME &amp; EXPEN. (PREV. YEAR)
         </label>
         <label id="ob-lbl-MB">
           <input type="radio" name="balType" value="MB" onchange="OB.changeType(); OB.updateActiveTypeBtn('MB')">
@@ -1575,7 +1575,7 @@
           var d = OB.getData(); var t = OB.getType();
           var soc = document.getElementById('obSocName').textContent;
           var fy = document.getElementById('obFyLabel').textContent;
-          var ttl = t === 'BS' ? 'Balance Sheet Opening Balances' : t === 'IE' ? 'Income & Expense Opening Balances' : 'Member Opening Balances';
+          var ttl = t === 'BS' ? 'Balance Sheet Opening Balances' : t === 'IE' ? 'Income & Expense Previous Year Balances' : 'Member Opening Balances';
           var w = window.open('', '_blank', 'width=900,height=700');
           if (!w) { toast('Popup blocked.', false); return; }
           var html = '<!DOCTYPE html><html><head><title>' + ttl + '</title>' +

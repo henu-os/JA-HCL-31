@@ -348,16 +348,6 @@ namespace JeevikaERP.Controllers
                 voucherTypes = voucherTypes.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
                 var inClause = string.Join(",", voucherTypes.Select((_, i) => $"@vt{i}"));
 
-                cmd.CommandText = $@"
-                    SELECT VoucherNo FROM jeevika_erp.SocVoucherHeader
-                    WHERE SocietyId = @sid AND (@fyid = 0 OR FYId = @fyid) AND VoucherType IN ({inClause}) AND IsDeleted = FALSE";
-                cmd.Parameters.AddWithValue("@sid",  societyId);
-                cmd.Parameters.AddWithValue("@fyid", fyId);
-                for (int i = 0; i < voucherTypes.Count; i++)
-                {
-                    cmd.Parameters.AddWithValue($"@vt{i}", voucherTypes[i]);
-                }
-
                 var prefixes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
                 {
                     { "Payment", "PYMT" },
@@ -379,6 +369,21 @@ namespace JeevikaERP.Controllers
                     : (prefixes.ContainsKey(type) ? prefixes[type] : type.ToUpper());
 
                 string actualFy = !string.IsNullOrWhiteSpace(fyLabel) ? fyLabel.Trim() : "2025-26";
+                string pfxLike = $"{actualPrefix}/{actualFy}/%";
+                string altPfxLike = (actualPrefix == "MRV") ? $"REC/{actualFy}/%" : pfxLike;
+
+                cmd.CommandText = $@"
+                    SELECT VoucherNo FROM jeevika_erp.SocVoucherHeader
+                    WHERE SocietyId = @sid AND (@fyid = 0 OR FYId = @fyid) AND VoucherType IN ({inClause}) AND IsDeleted = FALSE
+                      AND (VoucherNo LIKE @pfxLike OR VoucherNo LIKE @altPfxLike)";
+                cmd.Parameters.AddWithValue("@sid",  societyId);
+                cmd.Parameters.AddWithValue("@fyid", fyId);
+                cmd.Parameters.AddWithValue("@pfxLike", pfxLike);
+                cmd.Parameters.AddWithValue("@altPfxLike", altPfxLike);
+                for (int i = 0; i < voucherTypes.Count; i++)
+                {
+                    cmd.Parameters.AddWithValue($"@vt{i}", voucherTypes[i]);
+                }
 
                 int maxSeq = 0;
                 using (var r = cmd.ExecuteReader())
@@ -486,7 +491,7 @@ namespace JeevikaERP.Controllers
                     seqCmd.Transaction = tx;
                     seqCmd.CommandText = @"
                         SELECT VoucherNo FROM jeevika_erp.SocVoucherHeader
-                        WHERE SocietyId = @sid AND FYId = @fyid AND VoucherType = @type";
+                        WHERE SocietyId = @sid AND FYId = @fyid AND VoucherType = @type AND IsDeleted = FALSE";
                     seqCmd.Parameters.AddWithValue("@sid",  model.SocietyId);
                     seqCmd.Parameters.AddWithValue("@fyid", model.FYId);
                     seqCmd.Parameters.AddWithValue("@type", model.VoucherType.Trim());
@@ -817,6 +822,15 @@ namespace JeevikaERP.Controllers
                 if (int.TryParse(id, out int numId))
                 {
                     cmd.CommandText = @"
+                        -- Revert any linked member bill balance
+                        UPDATE jeevika_erp.SocMemberBill b
+                        SET PaidAmount = GREATEST(0, b.PaidAmount - v.Amount),
+                            BalanceAmount = LEAST(b.TotalAmount, b.TotalAmount - GREATEST(0, b.PaidAmount - v.Amount)),
+                            Status = CASE WHEN b.TotalAmount - GREATEST(0, b.PaidAmount - v.Amount) >= b.TotalAmount THEN 'Generated' ELSE 'PartPaid' END,
+                            VoucherId = NULL
+                        FROM jeevika_erp.SocVoucherHeader v
+                        WHERE b.VoucherId = v.VoucherId AND v.SocietyId = b.SocietyId AND (v.VoucherId = @numId OR v.VoucherNo = @id) AND v.IsDeleted = FALSE;
+
                         DELETE FROM jeevika_erp.SocVoucherDetail 
                         WHERE VoucherId IN (
                             SELECT VoucherId FROM jeevika_erp.SocVoucherHeader 
@@ -831,6 +845,15 @@ namespace JeevikaERP.Controllers
                 else
                 {
                     cmd.CommandText = @"
+                        -- Revert any linked member bill balance
+                        UPDATE jeevika_erp.SocMemberBill b
+                        SET PaidAmount = GREATEST(0, b.PaidAmount - v.Amount),
+                            BalanceAmount = LEAST(b.TotalAmount, b.TotalAmount - GREATEST(0, b.PaidAmount - v.Amount)),
+                            Status = CASE WHEN b.TotalAmount - GREATEST(0, b.PaidAmount - v.Amount) >= b.TotalAmount THEN 'Generated' ELSE 'PartPaid' END,
+                            VoucherId = NULL
+                        FROM jeevika_erp.SocVoucherHeader v
+                        WHERE b.VoucherId = v.VoucherId AND v.SocietyId = b.SocietyId AND v.VoucherNo = @id AND v.IsDeleted = FALSE;
+
                         DELETE FROM jeevika_erp.SocVoucherDetail 
                         WHERE VoucherId IN (
                             SELECT VoucherId FROM jeevika_erp.SocVoucherHeader 

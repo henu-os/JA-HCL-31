@@ -373,10 +373,11 @@ namespace JeevikaERP.Controllers
 
                     if (item.Id <= 0) continue;
 
+                    bool isBS = string.Equals(category, "BS", StringComparison.OrdinalIgnoreCase);
                     decimal bal = 0;
                     string drcr = "Dr";
 
-                    if (string.Equals(category, "BS", StringComparison.OrdinalIgnoreCase))
+                    if (isBS)
                     {
                         if (item.Dr > 0) { bal = item.Dr; drcr = "Dr"; }
                         else if (item.Cr > 0) { bal = item.Cr; drcr = "Cr"; }
@@ -389,10 +390,22 @@ namespace JeevikaERP.Controllers
 
                     using var cmd = conn.CreateCommand();
                     cmd.Transaction = tx;
-                    cmd.CommandText = @"
-                        UPDATE jeevika_erp.SocAccount
-                        SET OpBal = @bal, OpDrCr = @drcr, PrBal = @bal, PrDrCr = @drcr
-                        WHERE AccountId = @accId AND SocietyId = @sid";
+                    if (isBS)
+                    {
+                        cmd.CommandText = @"
+                            UPDATE jeevika_erp.SocAccount
+                            SET OpBal = @bal, OpDrCr = @drcr, PrBal = @bal, PrDrCr = @drcr
+                            WHERE AccountId = @accId AND SocietyId = @sid";
+                    }
+                    else
+                    {
+                        // Income & Expenditure: OpBal must be 0 (nominal accounts start at 0).
+                        // Bal is saved to PrBal (Previous Year Balance) for statutory comparative presentation.
+                        cmd.CommandText = @"
+                            UPDATE jeevika_erp.SocAccount
+                            SET OpBal = 0, OpDrCr = 'Dr', PrBal = @bal, PrDrCr = @drcr
+                            WHERE AccountId = @accId AND SocietyId = @sid";
+                    }
 
                     cmd.Parameters.AddWithValue("@bal",   bal);
                     cmd.Parameters.AddWithValue("@drcr",  drcr);
@@ -400,8 +413,8 @@ namespace JeevikaERP.Controllers
                     cmd.Parameters.AddWithValue("@sid",   societyId);
                     cmd.ExecuteNonQuery();
 
-                    // Also upsert into SocOpeningBalance if fyId is available
-                    if (fyId > 0)
+                    // Only upsert into SocOpeningBalance for Balance Sheet (Asset & Liability) accounts
+                    if (isBS && fyId > 0)
                     {
                         using var obCmd = conn.CreateCommand();
                         obCmd.Transaction = tx;
@@ -419,6 +432,18 @@ namespace JeevikaERP.Controllers
                         obCmd.Parameters.AddWithValue("@accId", item.Id);
                         obCmd.Parameters.AddWithValue("@bal",   bal);
                         obCmd.Parameters.AddWithValue("@drcr",  drcr);
+                        obCmd.ExecuteNonQuery();
+                    }
+                    else if (!isBS && fyId > 0)
+                    {
+                        using var obCmd = conn.CreateCommand();
+                        obCmd.Transaction = tx;
+                        obCmd.CommandText = @"
+                            DELETE FROM jeevika_erp.SocOpeningBalance 
+                            WHERE SocietyId = @sid AND FYId = @fyid AND AccountId = @accId";
+                        obCmd.Parameters.AddWithValue("@sid",   societyId);
+                        obCmd.Parameters.AddWithValue("@fyid",  fyId);
+                        obCmd.Parameters.AddWithValue("@accId", item.Id);
                         obCmd.ExecuteNonQuery();
                     }
                 }

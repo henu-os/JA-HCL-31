@@ -533,18 +533,36 @@ function renderContinuousLedger(data, fromDate, toDate) {
       </tr>
     `;
 
-    // 2. Opening Balance Row
-    html += `
-      <tr class="row-opening">
-        <td><strong>${opDateStr}</strong></td>
-        <td><div style="text-align:left;"><span class="badge-vtype" style="background:#bbf7d0;color:#14532d;">OPENING</span></div></td>
-        <td><strong>OPENING BALANCE B/F</strong></td>
-        <td colspan="2" style="font-size:10px; color:#166534;">Initial balance brought forward</td>
-        <td class="td-num val-debit">${opType === 'Dr' && opAmt > 0 ? formatAmount(opAmt) : '—'}</td>
-        <td class="td-num val-credit">${opType === 'Cr' && opAmt > 0 ? formatAmount(opAmt) : '—'}</td>
-        <td class="td-num" style="font-weight:800; color:#166534;">${formatAmount(opAmt)} ${opType}</td>
-      </tr>
-    `;
+    // 2. Opening / Previous Year Balance Row
+    const isNominal = (acc.grpMainId === 3 || acc.grpMainId === 4);
+    const prAmt = acc.prBal || 0;
+    const prType = acc.prDrCr || (acc.grpMainId === 3 ? 'Cr' : 'Dr');
+
+    if (isNominal) {
+      html += `
+        <tr class="row-opening" style="background:#f8fafc;">
+          <td><strong>${opDateStr}</strong></td>
+          <td><div style="text-align:left;"><span class="badge-vtype" style="background:#e0e7ff;color:#3730a3;">PREV YEAR</span></div></td>
+          <td><strong>PREV. YEAR BALANCE</strong></td>
+          <td colspan="2" style="font-size:10px; color:#475569;">Previous year balance (comparative reference only)</td>
+          <td class="td-num val-debit">${acc.grpMainId === 4 && prAmt > 0 ? formatAmount(prAmt) : '—'}</td>
+          <td class="td-num val-credit">${acc.grpMainId === 3 && prAmt > 0 ? formatAmount(prAmt) : '—'}</td>
+          <td class="td-num" style="font-weight:800; color:#475569;">${prAmt > 0 ? `${formatAmount(prAmt)} ${prType}` : '0.00 ' + prType}</td>
+        </tr>
+      `;
+    } else {
+      html += `
+        <tr class="row-opening">
+          <td><strong>${opDateStr}</strong></td>
+          <td><div style="text-align:left;"><span class="badge-vtype" style="background:#bbf7d0;color:#14532d;">OPENING</span></div></td>
+          <td><strong>OPENING BALANCE B/F</strong></td>
+          <td colspan="2" style="font-size:10px; color:#166534;">Initial balance brought forward</td>
+          <td class="td-num val-debit">${opType === 'Dr' && opAmt > 0 ? formatAmount(opAmt) : '—'}</td>
+          <td class="td-num val-credit">${opType === 'Cr' && opAmt > 0 ? formatAmount(opAmt) : '—'}</td>
+          <td class="td-num" style="font-weight:800; color:#166534;">${formatAmount(opAmt)} ${opType}</td>
+        </tr>
+      `;
+    }
 
     // 3. Transactions Rows
     if (txs.length === 0) {
@@ -719,21 +737,40 @@ function exportToExcel() {
     rows.push([`"ACCOUNT: [${acc.accCode}] ${acc.accName}"`, `"{ ${getMainGroupName(acc.grpMainId)} } - { ${acc.grpName || ''} }"`]);
     rows.push(['"Date"', '"Voucher No"', '"Voucher Type"', '"Contra Account"', '"Particulars / Narration"', '"Cheque / Ref"', '"Debit (Rs)"', '"Credit (Rs)"', '"Running Balance (Rs)"', '"Dr/Cr"']);
 
-    // Opening Row
+    // Opening / Prev Year Row
+    const isNominal = (acc.grpMainId === 3 || acc.grpMainId === 4);
     const opAmt = acc.opBal || 0;
     const opType = acc.opDrCr || 'Dr';
-    rows.push([
-      `"${formatDateDMY(fromDate)}"`,
-      '""',
-      '"OPENING"',
-      '"OPENING BALANCE B/F"',
-      '"Initial Balance Brought Forward"',
-      '""',
-      opType === 'Dr' ? opAmt.toFixed(2) : '0.00',
-      opType === 'Cr' ? opAmt.toFixed(2) : '0.00',
-      opAmt.toFixed(2),
-      `"${opType}"`
-    ]);
+    const prAmt = acc.prBal || 0;
+    const prType = acc.prDrCr || (acc.grpMainId === 3 ? 'Cr' : 'Dr');
+
+    if (isNominal) {
+      rows.push([
+        `"${formatDateDMY(fromDate)}"`,
+        '""',
+        '"PREV YEAR"',
+        '"PREV. YEAR BALANCE"',
+        '"Previous Year Balance (Comparative Reference)"',
+        '""',
+        acc.grpMainId === 4 ? prAmt.toFixed(2) : '0.00',
+        acc.grpMainId === 3 ? prAmt.toFixed(2) : '0.00',
+        prAmt.toFixed(2),
+        `"${prType}"`
+      ]);
+    } else {
+      rows.push([
+        `"${formatDateDMY(fromDate)}"`,
+        '""',
+        '"OPENING"',
+        '"OPENING BALANCE B/F"',
+        '"Initial Balance Brought Forward"',
+        '""',
+        opType === 'Dr' ? opAmt.toFixed(2) : '0.00',
+        opType === 'Cr' ? opAmt.toFixed(2) : '0.00',
+        opAmt.toFixed(2),
+        `"${opType}"`
+      ]);
+    }
 
     // Transaction rows
     (acc.transactions || []).forEach((t) => {

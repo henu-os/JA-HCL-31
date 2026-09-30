@@ -330,4 +330,4 @@ else
 Console.WriteLine($"[Startup] 🚀 JEEVIKA ERP v2 running at http://localhost:5002");
 Console.WriteLine($"[Startup] 📚 Swagger UI: http://localhost:5002/swagger");
 
-app.Run("http://0.0.0.0:5002");
+app.Run("http://*:5002");

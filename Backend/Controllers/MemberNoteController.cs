@@ -277,7 +277,7 @@ namespace JeevikaERP.Controllers
                 {
                     using var countCmd = conn.CreateCommand();
                     countCmd.Transaction = tx;
-                    countCmd.CommandText = "SELECT VoucherNo FROM jeevika_erp.SocVoucherHeader WHERE SocietyId = @sid AND FYId = @fyid AND VoucherType = @vtype";
+                    countCmd.CommandText = "SELECT VoucherNo FROM jeevika_erp.SocVoucherHeader WHERE SocietyId = @sid AND FYId = @fyid AND VoucherType = @vtype AND IsDeleted = FALSE";
                     countCmd.Parameters.AddWithValue("@sid",   model.SocietyId);
                     countCmd.Parameters.AddWithValue("@fyid",  model.FYId);
                     countCmd.Parameters.AddWithValue("@vtype", vType);

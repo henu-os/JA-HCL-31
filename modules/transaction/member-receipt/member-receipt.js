@@ -87,9 +87,20 @@
     return headers;
   }
 
+  function getApiBaseHost() {
+    if (typeof window.getApiBaseUrl === 'function') return window.getApiBaseUrl();
+    if (window.APP_CONFIG && window.APP_CONFIG.API_BASE) {
+      return window.APP_CONFIG.API_BASE.replace(/\/api\/?$/, '');
+    }
+    if (window.location && window.location.origin && window.location.origin.indexOf('http') === 0) {
+      return window.location.origin;
+    }
+    return 'http://localhost:5002';
+  }
+
   async function fetchApiData(endpoint) {
     var headers = getAuthHeaders();
-    var baseHost = (typeof window.getApiBaseUrl === 'function') ? window.getApiBaseUrl() : 'http://localhost:5002';
+    var baseHost = getApiBaseHost();
     var path = endpoint.startsWith('/api/') ? endpoint : ('/api' + (endpoint.startsWith('/') ? endpoint : '/' + endpoint));
     var fullUrl = baseHost + path;
 
@@ -1470,31 +1481,293 @@
     document.getElementById('mr-section-preview').style.display = 'flex';
   };
 
-  window.showChequeManagement = function () {
+  // ── BANK SLIP (CHEQUE MANAGEMENT) ───────────────────────────
+  window.currentBankSlipRecords = [];
+
+  window.showBankSlip = function () {
+    // Populate Deposit Account filter dropdown with distinct accounts present in receipts
+    var bankSel = document.getElementById('bs-bank-filter');
+    if (bankSel) {
+      var currentVal = bankSel.value;
+      var accSet = {};
+      receipts.forEach(function (r) {
+        if (r.cashBank && r.cashBank.trim()) {
+          accSet[r.cashBank.trim()] = true;
+        }
+      });
+      var accList = Object.keys(accSet).sort();
+      var optHtml = '<option value="">-- All Deposit Accounts --</option>';
+      accList.forEach(function (acc) {
+        var sel = (acc === currentVal) ? ' selected' : '';
+        optHtml += '<option value="' + escHtml(acc) + '"' + sel + '>' + escHtml(acc) + '</option>';
+      });
+      bankSel.innerHTML = optHtml;
+    }
+
+    filterBankSlip();
+
+    document.getElementById('mr-section-list').style.display = 'none';
+    document.getElementById('mr-section-form').style.display = 'none';
+    if (document.getElementById('mr-section-preview')) {
+      document.getElementById('mr-section-preview').style.display = 'none';
+    }
+    document.getElementById('mr-section-cheque').style.display = 'flex';
+  };
+
+  // Backwards compatibility
+  window.showChequeManagement = window.showBankSlip;
+
+  window.filterBankSlip = function () {
     var tbody = document.getElementById('chq-tbody');
-    var chqs = receipts.filter(function (r) { return r.chqNo && r.chqNo !== '—'; });
+    if (!tbody) return;
 
-    document.getElementById('mr-cheque-count').textContent = chqs.length + ' Cheques';
+    var bankFilter = (document.getElementById('bs-bank-filter') ? document.getElementById('bs-bank-filter').value.trim() : '');
+    var fromDate = (document.getElementById('bs-from-date') ? document.getElementById('bs-from-date').value.trim() : '');
+    var toDate = (document.getElementById('bs-to-date') ? document.getElementById('bs-to-date').value.trim() : '');
+    var fromNoRaw = (document.getElementById('bs-from-no') ? document.getElementById('bs-from-no').value.trim() : '');
+    var toNoRaw = (document.getElementById('bs-to-no') ? document.getElementById('bs-to-no').value.trim() : '');
 
+    function parseSeq(val) {
+      var m = (val || '').match(/(\d+)$/);
+      return m ? parseInt(m[1], 10) : NaN;
+    }
+    var fromSeq = parseSeq(fromNoRaw);
+    var toSeq = parseSeq(toNoRaw);
+    var hasSeqRange = !isNaN(fromSeq) || !isNaN(toSeq);
+
+    // Filter receipts with cheques/instruments
+    var filtered = receipts.filter(function (r) {
+      if (!r.chqNo || r.chqNo === '—' || !r.chqNo.trim()) return false;
+
+      if (bankFilter && (r.cashBank || '').trim() !== bankFilter) return false;
+
+      if (fromDate && (r.receiptDate || '') < fromDate) return false;
+      if (toDate && (r.receiptDate || '') > toDate) return false;
+
+      var rNo = (r.receiptNo || r.voucherNo || '').trim();
+      if (hasSeqRange) {
+        var s = parseSeq(rNo);
+        if (!isNaN(s)) {
+          if (!isNaN(fromSeq) && s < fromSeq) return false;
+          if (!isNaN(toSeq) && s > toSeq) return false;
+        }
+      } else if (fromNoRaw || toNoRaw) {
+        var rNoLow = rNo.toLowerCase();
+        if (fromNoRaw && rNoLow < fromNoRaw.toLowerCase()) return false;
+        if (toNoRaw && rNoLow > toNoRaw.toLowerCase()) return false;
+      }
+
+      return true;
+    });
+
+    window.currentBankSlipRecords = filtered;
+
+    var totalAmt = 0;
     var html = '';
-    chqs.forEach(function (c) {
-      html += '<tr>' +
-        '<td class="mr-mono">' + c.receiptDate + '</td>' +
-        '<td class="mr-mono" style="font-weight:700; color:#1565C0;">' + c.receiptNo + '</td>' +
-        '<td>' + (c.memberName || c.personName) + '</td>' +
-        '<td class="mr-mono" style="font-weight:700;">' + c.chqNo + '</td>' +
-        '<td>' + (c.bankName || '—') + '</td>' +
-        '<td>' + c.cashBank + '</td>' +
-        '<td class="mr-mono" style="text-align:right; font-weight:700;">' + (c.amount || 0).toFixed(2) + '</td>' +
+    filtered.forEach(function (c) {
+      var amt = parseFloat(c.amount) || 0;
+      totalAmt += amt;
+      html += '<tr ondblclick="editSelectedReceipt(\'' + (c.receiptId || c.voucherId || c.receiptNo) + '\')">' +
+        '<td class="mr-mono">' + escHtml(c.receiptDate || '') + '</td>' +
+        '<td class="mr-mono" style="font-weight:700; color:#1565C0;">' + escHtml(c.receiptNo || c.voucherNo || '') + '</td>' +
+        '<td>' + escHtml(c.memberName || c.personName || '') + '</td>' +
+        '<td class="mr-mono" style="font-weight:700;">' + escHtml(c.chqNo || '') + '</td>' +
+        '<td>' + escHtml(c.bankName || '—') + '</td>' +
+        '<td>' + escHtml(c.cashBank || '') + '</td>' +
+        '<td class="mr-mono" style="text-align:right; font-weight:700;">' + amt.toFixed(2) + '</td>' +
         '<td style="text-align:center;"><span style="color:#2E7D32; font-weight:700;">Received</span></td>' +
         '</tr>';
     });
 
-    tbody.innerHTML = html || '<tr><td colspan="8" style="text-align:center; color:#94a3b8; padding:30px;">No cheques recorded yet.</td></tr>';
+    tbody.innerHTML = html || '<tr><td colspan="8" style="text-align:center; color:#94a3b8; padding:30px;">No cheques found matching filter criteria.</td></tr>';
 
-    document.getElementById('mr-section-list').style.display = 'none';
-    document.getElementById('mr-section-form').style.display = 'none';
-    document.getElementById('mr-section-cheque').style.display = 'flex';
+    var countEl = document.getElementById('mr-cheque-count');
+    if (countEl) countEl.textContent = filtered.length + ' Cheque(s)';
+
+    var totalBadge = document.getElementById('mr-cheque-total');
+    if (totalBadge) totalBadge.textContent = 'Total: ₹' + totalAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    var totalFoot = document.getElementById('bs-total-amount');
+    if (totalFoot) totalFoot.textContent = '₹' + totalAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  window.resetBankSlipFilters = function () {
+    if (document.getElementById('bs-bank-filter')) document.getElementById('bs-bank-filter').value = '';
+    if (document.getElementById('bs-from-date')) document.getElementById('bs-from-date').value = '';
+    if (document.getElementById('bs-to-date')) document.getElementById('bs-to-date').value = '';
+    if (document.getElementById('bs-from-no')) document.getElementById('bs-from-no').value = '';
+    if (document.getElementById('bs-to-no')) document.getElementById('bs-to-no').value = '';
+    filterBankSlip();
+  };
+
+  window.printBankSlip = function () {
+    var rows = window.currentBankSlipRecords || [];
+    if (!rows || rows.length === 0) {
+      toast('No cheque records found to print.', false);
+      return;
+    }
+
+    var socName = (window.Auth && Auth.getSocietyName) ? Auth.getSocietyName() : (sessionStorage.getItem('activeSocietyName') || 'Society Name');
+    var bankFilter = (document.getElementById('bs-bank-filter') ? document.getElementById('bs-bank-filter').value.trim() : '') || 'All Deposit Accounts';
+    var fromDate = (document.getElementById('bs-from-date') ? document.getElementById('bs-from-date').value.trim() : '');
+    var toDate = (document.getElementById('bs-to-date') ? document.getElementById('bs-to-date').value.trim() : '');
+    var dateRangeStr = (fromDate && toDate) ? (fromDate + ' to ' + toDate) : (fromDate || toDate || todayISO());
+
+    var totalAmt = rows.reduce(function (sum, r) { return sum + (parseFloat(r.amount) || 0); }, 0);
+    var inWords = (typeof amountInWords === 'function') ? amountInWords(totalAmt) : ('Rupees ' + totalAmt.toFixed(2));
+
+    var trs = '';
+    rows.forEach(function (r, i) {
+      var amt = parseFloat(r.amount) || 0;
+      trs += '<tr>' +
+        '<td style="border:1px solid #94a3b8; padding:5px 6px; text-align:center;">' + (i + 1) + '</td>' +
+        '<td style="border:1px solid #94a3b8; padding:5px 6px; text-align:center;">' + escHtml(r.receiptDate || '') + '</td>' +
+        '<td style="border:1px solid #94a3b8; padding:5px 6px; font-weight:bold; font-family:monospace;">' + escHtml(r.receiptNo || r.voucherNo || '') + '</td>' +
+        '<td style="border:1px solid #94a3b8; padding:5px 6px;">' + escHtml(r.memberName || r.personName || '') + '</td>' +
+        '<td style="border:1px solid #94a3b8; padding:5px 6px; text-align:center;">' + escHtml(r.flatNo || r.wingFlat || '—') + '</td>' +
+        '<td style="border:1px solid #94a3b8; padding:5px 6px; font-weight:bold; font-family:monospace; text-align:center;">' + escHtml(r.chqNo || '') + '</td>' +
+        '<td style="border:1px solid #94a3b8; padding:5px 6px;">' + escHtml(r.bankName || '—') + '</td>' +
+        '<td style="border:1px solid #94a3b8; padding:5px 6px;">' + escHtml(r.cashBank || '') + '</td>' +
+        '<td style="border:1px solid #94a3b8; padding:5px 6px; text-align:right; font-weight:bold; font-family:monospace;">' + amt.toFixed(2) + '</td>' +
+        '</tr>';
+    });
+
+    var printHtml = '<!DOCTYPE html><html><head><meta charset="utf-8">' +
+      '<title>Bank Deposit Slip - ' + escHtml(socName) + '</title>' +
+      '<style>' +
+      'body { font-family: Arial, sans-serif; font-size: 11px; color: #1e293b; margin: 15px; }' +
+      '@page { size: A4 portrait; margin: 12mm; }' +
+      '@media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }' +
+      'table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 11px; }' +
+      'th { background: #1e3a8a !important; color: white !important; font-weight: bold; border: 1px solid #1e3a8a; padding: 6px; font-size: 10px; text-align: left; }' +
+      '</style>' +
+      '</head><body>' +
+      '<div style="text-align:center; border-bottom:2px solid #1e3a8a; padding-bottom:8px; margin-bottom:12px;">' +
+      '<h2 style="margin:0; font-size:18px; color:#1e3a8a; text-transform:uppercase;">' + escHtml(socName) + '</h2>' +
+      '<div style="font-size:11px; color:#475569; margin-top:3px;">Reg. No: MUM/MH/102948/2012 &nbsp;|&nbsp; Financial Year: ' + escHtml(getFyLabel()) + '</div>' +
+      '<h3 style="margin:8px 0 0 0; font-size:13px; color:#0f172a; letter-spacing:0.5px; text-decoration:underline;">BANK DEPOSIT SLIP / PAY-IN SLIP SUMMARY</h3>' +
+      '</div>' +
+      '<div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:10px; background:#f8fafc; padding:8px 10px; border:1px solid #cbd5e1; border-radius:4px;">' +
+      '<div><strong>Deposit Account:</strong> ' + escHtml(bankFilter) + '</div>' +
+      '<div><strong>Period / Date:</strong> ' + escHtml(dateRangeStr) + '</div>' +
+      '<div><strong>Total Cheques:</strong> ' + rows.length + '</div>' +
+      '<div><strong>Printed On:</strong> ' + todayISO() + '</div>' +
+      '</div>' +
+      '<table>' +
+      '<thead>' +
+      '<tr>' +
+      '<th style="width:30px; text-align:center;">#</th>' +
+      '<th style="width:75px; text-align:center;">DATE</th>' +
+      '<th style="width:105px;">RECEIPT NO</th>' +
+      '<th>MEMBER NAME</th>' +
+      '<th style="width:65px; text-align:center;">FLAT</th>' +
+      '<th style="width:85px; text-align:center;">CHEQUE NO</th>' +
+      '<th style="width:115px;">DRAWEE BANK</th>' +
+      '<th style="width:125px;">DEPOSIT ACC</th>' +
+      '<th style="width:90px; text-align:right;">AMOUNT (₹)</th>' +
+      '</tr>' +
+      '</thead>' +
+      '<tbody>' + trs + '</tbody>' +
+      '<tfoot>' +
+      '<tr style="background:#f1f5f9; font-weight:bold;">' +
+      '<td colspan="8" style="border:1px solid #94a3b8; padding:7px; text-align:right; font-size:11px;">TOTAL AMOUNT (₹):</td>' +
+      '<td style="border:1px solid #94a3b8; padding:7px; text-align:right; font-size:12px; font-family:monospace; color:#1e3a8a;">₹' + totalAmt.toFixed(2) + '</td>' +
+      '</tr>' +
+      '</tfoot>' +
+      '</table>' +
+      '<div style="margin-top:8px; padding:6px 10px; background:#f8fafc; border:1px solid #e2e8f0; font-size:11px;">' +
+      '<strong>Amount in Words:</strong> ' + escHtml(inWords) +
+      '</div>' +
+      '<div style="margin-top:40px; display:flex; justify-content:space-between; text-align:center; font-size:11px; padding:0 20px;">' +
+      '<div><div style="border-top:1px dashed #64748b; width:140px; margin-bottom:5px;"></div><strong>Prepared By</strong></div>' +
+      '<div><div style="border-top:1px dashed #64748b; width:160px; margin-bottom:5px;"></div><strong>Hon. Treasurer / Secretary</strong></div>' +
+      '<div><div style="border-top:1px dashed #64748b; width:150px; margin-bottom:5px;"></div><strong>Depositor\'s Signature</strong></div>' +
+      '<div><div style="border-top:1px dashed #64748b; width:160px; margin-bottom:5px;"></div><strong>Bank Receiving Stamp & Sign</strong></div>' +
+      '</div>' +
+      '</body></html>';
+
+    var printWin = window.open('', '_blank', 'width=950,height=750');
+    if (printWin) {
+      printWin.document.open();
+      printWin.document.write(printHtml);
+      printWin.document.close();
+      printWin.focus();
+      setTimeout(function () {
+        printWin.print();
+      }, 350);
+    } else {
+      toast('Pop-up blocked. Please allow pop-ups to print bank slip.', false);
+    }
+  };
+
+  window.exportBankSlipExcel = function () {
+    var rows = window.currentBankSlipRecords || [];
+    if (!rows || rows.length === 0) {
+      toast('No cheque records found to export.', false);
+      return;
+    }
+
+    if (typeof XLSX === 'undefined') {
+      toast('Excel export library not available.', false);
+      return;
+    }
+
+    var socName = (window.Auth && Auth.getSocietyName) ? Auth.getSocietyName() : (sessionStorage.getItem('activeSocietyName') || 'Society');
+    var bankFilter = (document.getElementById('bs-bank-filter') ? document.getElementById('bs-bank-filter').value.trim() : '') || 'All Deposit Accounts';
+    var fromDate = (document.getElementById('bs-from-date') ? document.getElementById('bs-from-date').value.trim() : '');
+    var toDate = (document.getElementById('bs-to-date') ? document.getElementById('bs-to-date').value.trim() : '');
+    var dateStr = (fromDate && toDate) ? (fromDate + ' to ' + toDate) : (fromDate || toDate || todayISO());
+
+    var wsData = [];
+    wsData.push([socName.toUpperCase()]);
+    wsData.push(['BANK DEPOSIT SLIP / CHEQUE SCHEDULE']);
+    wsData.push(['Deposit Account: ' + bankFilter, '', 'Period: ' + dateStr, '', '', '', '', 'Generated: ' + todayISO()]);
+    wsData.push([]);
+
+    wsData.push(['SR NO', 'DATE', 'RECEIPT NO', 'MEMBER NAME', 'FLAT NO', 'CHEQUE NO', 'DRAWEE BANK', 'DEPOSIT ACCOUNT', 'AMOUNT (₹)', 'STATUS']);
+
+    var totalAmt = 0;
+    rows.forEach(function (c, idx) {
+      var amt = parseFloat(c.amount) || 0;
+      totalAmt += amt;
+      wsData.push([
+        idx + 1,
+        c.receiptDate || '',
+        c.receiptNo || c.voucherNo || '',
+        c.memberName || c.personName || '',
+        c.flatNo || c.wingFlat || '',
+        c.chqNo || '',
+        c.bankName || '',
+        c.cashBank || '',
+        amt,
+        'Received'
+      ]);
+    });
+
+    wsData.push(['', '', '', '', '', '', '', 'TOTAL AMOUNT:', totalAmt, rows.length + ' Cheques']);
+
+    var ws = XLSX.utils.aoa_to_sheet(wsData);
+
+    ws['!cols'] = [
+      { wch: 8 },
+      { wch: 12 },
+      { wch: 16 },
+      { wch: 25 },
+      { wch: 12 },
+      { wch: 14 },
+      { wch: 22 },
+      { wch: 26 },
+      { wch: 15 },
+      { wch: 12 }
+    ];
+
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Bank Slip');
+
+    var cleanBank = bankFilter.replace(/[^a-zA-Z0-9]/g, '_');
+    var fileName = 'Bank_Deposit_Slip_' + cleanBank + '_' + todayISO() + '.xlsx';
+    XLSX.writeFile(wb, fileName);
+    toast('Bank slip exported to Excel successfully.', true);
   };
 
   window.openMultiDeleteModal = function () {
@@ -1503,26 +1776,80 @@
     document.getElementById('modal-multi-delete').style.display = 'flex';
   };
 
-  window.runMultiDelete = function () {
-    var fromNo = (document.getElementById('md-from').value || '').trim().toLowerCase();
-    var toNo = (document.getElementById('md-to').value || '').trim().toLowerCase();
+  window.runMultiDelete = async function () {
+    var fromRaw = (document.getElementById('md-from').value || '').trim();
+    var toRaw = (document.getElementById('md-to').value || '').trim();
 
-    if (!fromNo || !toNo) {
+    if (!fromRaw || !toRaw) {
       toast('Please enter both From and To receipt numbers.', false);
       return;
     }
 
-    var initialCount = receipts.length;
-    receipts = receipts.filter(function (r) {
-      var no = (r.receiptNo || '').toLowerCase();
-      return !(no >= fromNo && no <= toNo);
+    function parseSeq(val) {
+      var m = (val || '').match(/(\d+)$/);
+      return m ? parseInt(m[1], 10) : NaN;
+    }
+
+    var fromNum = parseSeq(fromRaw);
+    var toNum = parseSeq(toRaw);
+    var hasNumRange = !isNaN(fromNum) && !isNaN(toNum);
+
+    var fromLower = fromRaw.toLowerCase();
+    var toLower = toRaw.toLowerCase();
+
+    var targets = receipts.filter(function (r) {
+      var no = (r.receiptNo || r.voucherNo || '').trim();
+      if (!no) return false;
+      var noLower = no.toLowerCase();
+
+      if (hasNumRange) {
+        var n = parseSeq(no);
+        if (!isNaN(n)) {
+          return n >= Math.min(fromNum, toNum) && n <= Math.max(fromNum, toNum);
+        }
+      }
+      return (noLower >= fromLower && noLower <= toLower);
     });
 
-    var deletedCount = initialCount - receipts.length;
-    localStorage.setItem('jeevika_member_receipts_' + getActiveSocietyId(), JSON.stringify(receipts));
+    if (targets.length === 0) {
+      toast('No receipts found in the specified range (' + fromRaw + ' to ' + toRaw + ').', false);
+      return;
+    }
+
+    var ok = typeof showConfirm === 'function'
+      ? await showConfirm('Are you sure you want to delete ' + targets.length + ' receipt(s) from ' + fromRaw + ' to ' + toRaw + '?', 'Confirm Multi Delete')
+      : confirm('Are you sure you want to delete ' + targets.length + ' receipt(s) from ' + fromRaw + ' to ' + toRaw + '?');
+    if (!ok) return;
+
+    var baseHost = (typeof window.getApiBaseUrl === 'function') ? window.getApiBaseUrl() : 'http://localhost:5002';
+    var deletedCount = 0;
+
+    for (var i = 0; i < targets.length; i++) {
+      var r = targets[i];
+      var delId = r.voucherId || r.receiptId || r.receiptNo || r.voucherNo;
+      try {
+        var resp = await fetch(baseHost + '/api/member-receipts/' + encodeURIComponent(delId), {
+          method: 'DELETE',
+          headers: getAuthHeaders()
+        });
+        if (!resp.ok) {
+          resp = await fetch(baseHost + '/api/vouchers/' + encodeURIComponent(delId), {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+          });
+        }
+        if (resp.ok) {
+          deletedCount++;
+        }
+      } catch (err) {
+        console.error('Error deleting receipt ' + delId, err);
+      }
+    }
+
+    try { localStorage.setItem('jeevika_receipt_sync', Date.now().toString()); } catch (e) {}
     closeModal('modal-multi-delete');
-    toast('Multi-deleted ' + deletedCount + ' receipt(s).', true);
-    renderReceiptsTable();
+    toast('Successfully deleted ' + deletedCount + ' receipt(s).', true);
+    await loadReceipts();
   };
 
   window.openMultiChangeModal = function () {
@@ -1656,8 +1983,7 @@
     if (!str) return '';
     return String(str)
       .toLowerCase()
-      .replace(/[\(₹\)\.\/,\-_\*]/g, '')
-      .replace(/\s+/g, '')
+      .replace(/[^a-z0-9]/gi, '')
       .trim();
   }
 
@@ -1684,7 +2010,7 @@
     return str;
   }
 
-  function getReceiptExcelSchema() {
+  function getReceiptExportSchema() {
     return [
       { group: 'VOUCHER DETAILS', subGroup: 'VOUCHER DETAILS', label: 'Receipt No', key: 'receiptNo', width: 16, align: 'center' },
       { group: 'VOUCHER DETAILS', subGroup: 'VOUCHER DETAILS', label: 'Receipt Date (DD-MM-YYYY) *', key: 'receiptDate', width: 22, align: 'center' },
@@ -1708,10 +2034,47 @@
     ];
   }
 
+  function getReceiptImportTemplateSchema() {
+    return [
+      { group: 'VOUCHER DETAILS', subGroup: 'VOUCHER DETAILS', label: 'Receipt Date (DD-MM-YYYY) [Optional]', key: 'receiptDate', width: 24, align: 'center' },
+      { group: 'VOUCHER DETAILS', subGroup: 'VOUCHER DETAILS', label: 'Bill Type *', key: 'billType', width: 18, align: 'center' },
+      { group: 'MEMBER DETAILS', subGroup: 'MEMBER DETAILS', label: 'Member Code', key: 'memberCode', width: 15, align: 'center' },
+      { group: 'MEMBER DETAILS', subGroup: 'MEMBER DETAILS', label: 'Member Name *', key: 'memberName', width: 32, align: 'left' },
+      { group: 'MEMBER DETAILS', subGroup: 'MEMBER DETAILS', label: 'Flat No', key: 'wingFlat', width: 14, align: 'center' },
+      { group: 'BANKING & PAYMENT', subGroup: 'ACCOUNTING', label: 'Debit Account Type *', key: 'debitAccountType', width: 18, align: 'center' },
+      { group: 'BANKING & PAYMENT', subGroup: 'ACCOUNTING', label: 'Deposit To Account *', key: 'depositToAccount', width: 30, align: 'left' },
+      { group: 'BANKING & PAYMENT', subGroup: 'INSTRUMENT', label: 'Payment Mode *', key: 'transactionType', width: 16, align: 'center' },
+      { group: 'BANKING & PAYMENT', subGroup: 'INSTRUMENT', label: 'Cheque / Ref No', key: 'chqNo', width: 18, align: 'center' },
+      { group: 'BANKING & PAYMENT', subGroup: 'INSTRUMENT', label: 'Cheque Date', key: 'chqDate', width: 15, align: 'center' },
+      { group: 'BANKING & PAYMENT', subGroup: 'INSTRUMENT', label: 'Drawn On Bank', key: 'drawnOnBank', width: 20, align: 'left' },
+      { group: 'AMOUNT & ALLOCATION', subGroup: 'AMOUNT', label: 'Received Amount (₹) *', key: 'amount', width: 18, type: 'number', align: 'right' },
+      { group: 'AMOUNT & ALLOCATION', subGroup: 'ALLOCATION', label: 'Allocation Mode', key: 'allocationMode', width: 16, align: 'center' },
+      { group: 'AMOUNT & ALLOCATION', subGroup: 'ALLOCATION', label: 'Principal Amount (₹)', key: 'principalAmount', width: 18, type: 'number', align: 'right' },
+      { group: 'AMOUNT & ALLOCATION', subGroup: 'ALLOCATION', label: 'Interest Amount (₹)', key: 'interestAmount', width: 18, type: 'number', align: 'right' },
+      { group: 'AMOUNT & ALLOCATION', subGroup: 'ALLOCATION', label: 'Against Bill / Invoice No', key: 'againstBillNo', width: 22, align: 'center' },
+      { group: 'NARRATION & PARTICULARS', subGroup: 'NARRATION', label: 'Particulars 1 / Narration', key: 'particular1', width: 30, align: 'left' },
+      { group: 'NARRATION & PARTICULARS', subGroup: 'NARRATION', label: 'Particulars 2 / Note', key: 'particular2', width: 24, align: 'left' }
+    ];
+  }
+
   async function fetchReceiptTemplateMeta() {
     var sid = getActiveSocietyId();
     var meta = await fetchApiData('/api/member-receipts/template-meta?societyId=' + sid);
-    if (meta && meta.success) return meta;
+    if (meta && meta.success && meta.members) {
+      meta.members = meta.members.map(function (m) {
+        return {
+          memberId: m.memberId || m.socMemId,
+          memCode: m.memCode || '',
+          memName: m.memName || '',
+          flatNo: m.flatNo || '',
+          label: m.label || ('[' + (m.memCode || '') + '] ' + (m.memName || '')),
+          netDue: parseFloat(m.netDue) || 0,
+          principalDue: parseFloat(m.principalDue) || 0,
+          interestDue: parseFloat(m.interestDue) || 0
+        };
+      });
+      return meta;
+    }
 
     return {
       success: true,
@@ -1723,7 +2086,10 @@
           memCode: m.memCode || '',
           memName: m.memName || '',
           flatNo: flatStr,
-          label: '[' + (m.memCode || '') + '] ' + (m.memName || '') + (flatStr ? ' (' + flatStr + ')' : '')
+          label: '[' + (m.memCode || '') + '] ' + (m.memName || '') + (flatStr ? ' (' + flatStr + ')' : ''),
+          netDue: 0,
+          principalDue: 0,
+          interestDue: 0
         };
       }),
       cashAccounts: accounts.filter(function (a) { return (a.accCode === 'ASS-1001' || (a.accName || '').toLowerCase().includes('cash')); }),
@@ -1738,7 +2104,7 @@
   window.downloadReceiptTemplate = async function (withMembers) {
     closeAllToolbarDropdowns();
     var meta = await fetchReceiptTemplateMeta();
-    var schema = getReceiptExcelSchema();
+    var schema = getReceiptImportTemplateSchema();
 
     if (typeof XLSX === 'undefined' || !XLSX.utils) {
       toast('Excel generation library is loading, please wait...', false);
@@ -1760,31 +2126,77 @@
     var todayStr = formatReceiptDate(new Date());
     var defaultBType = (activeBillType && activeBillType !== 'ALL') ? activeBillType : (meta.billTypes[0] ? meta.billTypes[0].billTypeName : 'Maintenance');
     var defaultBankAcc = (meta.bankAccounts && meta.bankAccounts[0]) ? meta.bankAccounts[0].label : (meta.allDepositAccounts[0] ? meta.allDepositAccounts[0].label : '[ASS-1001] Cash in Hand');
+    var memberRowsCount = (meta.members || []).length;
+    var listMax = Math.max(memberRowsCount + 1, 2);
 
     if (withMembers && meta.members && meta.members.length > 0) {
       meta.members.forEach(function (m) {
+        var excelRowNum = wsData.length + 1;
+        var fMemName = 'IFERROR(INDEX(Lists!$C$2:$C$' + listMax + ', MATCH(C' + excelRowNum + ', Lists!$B$2:$B$' + listMax + ', 0)), "' + (m.memName || '') + '")';
+        var fFlat = 'IFERROR(INDEX(Lists!$D$2:$D$' + listMax + ', MATCH(C' + excelRowNum + ', Lists!$B$2:$B$' + listMax + ', 0)), IFERROR(INDEX(Lists!$D$2:$D$' + listMax + ', MATCH(D' + excelRowNum + ', Lists!$C$2:$C$' + listMax + ', 0)), "' + (m.flatNo || '') + '"))';
+        var fAmt = 'IFERROR(INDEX(Lists!$J$2:$J$' + listMax + ', MATCH(C' + excelRowNum + ', Lists!$B$2:$B$' + listMax + ', 0)), IFERROR(INDEX(Lists!$J$2:$J$' + listMax + ', MATCH(D' + excelRowNum + ', Lists!$C$2:$C$' + listMax + ', 0)), ' + (m.netDue || 0) + '))';
+        var fIntLookup = 'IFERROR(INDEX(Lists!$L$2:$L$' + listMax + ', MATCH(C' + excelRowNum + ', Lists!$B$2:$B$' + listMax + ', 0)), IFERROR(INDEX(Lists!$L$2:$L$' + listMax + ', MATCH(D' + excelRowNum + ', Lists!$C$2:$C$' + listMax + ', 0)), 0))';
+        var fInt = 'IFERROR(IF(L' + excelRowNum + '>0, MIN(L' + excelRowNum + ', MAX(0, ' + fIntLookup + ')), 0), 0)';
+        var fPrin = 'IFERROR(IF(L' + excelRowNum + '>0, MAX(0, L' + excelRowNum + ' - O' + excelRowNum + '), 0), 0)';
+
+        var mNet = m.netDue || 0;
+        var mIntDue = m.interestDue || 0;
+        var initInt = (mNet > 0 && mIntDue > 0) ? Math.min(mNet, mIntDue) : 0;
+        var initPrin = Math.max(0, mNet - initInt);
+
         wsData.push([
-          '', // Receipt No (Blank for auto-gen)
-          todayStr, // Receipt Date
+          todayStr, // Receipt Date (DD-MM-YYYY) [Optional]
           defaultBType, // Bill Type
           m.memCode || '', // Member Code
-          m.label || m.memName, // Member Name
-          m.flatNo || '', // Flat No
+          { f: fMemName, v: m.memName || '' }, // Member Name (Auto-resolved from Code)
+          { f: fFlat, v: m.flatNo || '' }, // Flat No (Auto-resolved)
           'BANK', // Debit Account Type
           defaultBankAcc, // Deposit To Account
           'Cheque', // Payment Mode
           '', // Cheque / Ref No
           '', // Cheque Date
           '', // Drawn On Bank
-          '', // Received Amount
+          { f: fAmt, v: mNet }, // Received Amount (Auto-filled with Member Due)
           'AUTO', // Allocation Mode
-          '', // Principal Amount
-          '', // Interest Amount
+          { f: fPrin, v: initPrin }, // Principal Amount (Auto-split)
+          { f: fInt, v: initInt }, // Interest Amount (Auto-split)
           '', // Against Bill No
           defaultBType + ' Receipt', // Particulars 1
           ''  // Particulars 2
         ]);
       });
+    } else {
+      // Blank Template: Provide 20 blank entry rows with formulas and defaults
+      for (var b = 0; b < 20; b++) {
+        var excelRowNum = wsData.length + 1;
+        var fMemName = 'IFERROR(INDEX(Lists!$C$2:$C$' + listMax + ', MATCH(C' + excelRowNum + ', Lists!$B$2:$B$' + listMax + ', 0)), "")';
+        var fFlat = 'IFERROR(INDEX(Lists!$D$2:$D$' + listMax + ', MATCH(C' + excelRowNum + ', Lists!$B$2:$B$' + listMax + ', 0)), IFERROR(INDEX(Lists!$D$2:$D$' + listMax + ', MATCH(D' + excelRowNum + ', Lists!$C$2:$C$' + listMax + ', 0)), ""))';
+        var fAmt = 'IFERROR(INDEX(Lists!$J$2:$J$' + listMax + ', MATCH(C' + excelRowNum + ', Lists!$B$2:$B$' + listMax + ', 0)), IFERROR(INDEX(Lists!$J$2:$J$' + listMax + ', MATCH(D' + excelRowNum + ', Lists!$C$2:$C$' + listMax + ', 0)), 0))';
+        var fIntLookup = 'IFERROR(INDEX(Lists!$L$2:$L$' + listMax + ', MATCH(C' + excelRowNum + ', Lists!$B$2:$B$' + listMax + ', 0)), IFERROR(INDEX(Lists!$L$2:$L$' + listMax + ', MATCH(D' + excelRowNum + ', Lists!$C$2:$C$' + listMax + ', 0)), 0))';
+        var fInt = 'IFERROR(IF(L' + excelRowNum + '>0, MIN(L' + excelRowNum + ', MAX(0, ' + fIntLookup + ')), 0), 0)';
+        var fPrin = 'IFERROR(IF(L' + excelRowNum + '>0, MAX(0, L' + excelRowNum + ' - O' + excelRowNum + '), 0), 0)';
+
+        wsData.push([
+          '', // Receipt Date (blank = today)
+          defaultBType, // Bill Type
+          '', // Member Code
+          { f: fMemName, v: '' }, // Member Name (Auto-resolved from Code)
+          { f: fFlat, v: '' }, // Flat No (Auto-resolved)
+          'BANK', // Debit Account Type
+          defaultBankAcc, // Deposit To Account
+          'Cheque', // Payment Mode
+          '', // Cheque / Ref No
+          '', // Cheque Date
+          '', // Drawn On Bank
+          { f: fAmt, v: 0 }, // Received Amount (Auto-pulled from Member Due)
+          'AUTO', // Allocation Mode
+          { f: fPrin, v: 0 }, // Principal Amount (Auto-split)
+          { f: fInt, v: 0 }, // Interest Amount (Auto-split)
+          '', // Against Bill No
+          defaultBType + ' Receipt', // Particulars 1
+          ''  // Particulars 2
+        ]);
+      }
     }
 
     var ws = XLSX.utils.aoa_to_sheet(wsData);
@@ -1873,24 +2285,31 @@
     ws['!rows'] = [{ hpt: 26 }, { hpt: 22 }, { hpt: 24 }];
     ws['!views'] = [{ state: 'frozen', xSplit: 2, ySplit: 3, topLeftCell: 'C4', activeCell: 'C4' }];
 
-    // Hidden Lists Sheet for Data Validation Dropdowns
+    // Hidden Lists Sheet for Data Validation Dropdowns & Dynamic Lookups
     var listBillTypes = (meta.billTypes || []).map(function (b) { return b.billTypeName; });
-    var listMembers   = (meta.members || []).map(function (m) { return m.label || m.memName; });
+    var listMembers   = meta.members || [];
     var listDebit     = ['CASH', 'BANK'];
     var listAccounts  = (meta.allDepositAccounts || []).map(function (a) { return a.label || a.accName; });
-    var listTxnTypes  = meta.transactionTypes || ['Cash', 'Cheque', 'NEFT', 'UPI', 'IMPS', 'RTGS'];
+    var listTxnTypes  = meta.transactionTypes || ['Cheque', 'NEFT', 'UPI', 'IMPS', 'IB [Internal Bank Transfer]', 'RTGS', 'Cash'];
     var listAlloc     = meta.allocationModes || ['AUTO', 'MANUAL'];
 
-    var maxLen = Math.max(listBillTypes.length, listMembers.length, listDebit.length, listAccounts.length, listTxnTypes.length, listAlloc.length, 1);
-    var wsListsData = [['BILL TYPES', 'MEMBERS', 'DEBIT TYPES', 'DEPOSIT ACCOUNTS', 'PAYMENT MODES', 'ALLOCATION MODES']];
+    var maxLen = Math.max(listBillTypes.length, memberRowsCount, listDebit.length, listAccounts.length, listTxnTypes.length, listAlloc.length, 1);
+    var wsListsData = [['BILL TYPES', 'MEMBER CODE', 'MEMBER NAME', 'FLAT NO', 'MEMBER ID', 'DEBIT TYPES', 'DEPOSIT ACCOUNTS', 'PAYMENT MODES', 'ALLOCATION MODES', 'NET DUE', 'PRINCIPAL DUE', 'INTEREST DUE']];
     for (var i = 0; i < maxLen; i++) {
+      var mItem = listMembers[i] || {};
       wsListsData.push([
         listBillTypes[i] || '',
-        listMembers[i] || '',
+        mItem.memCode || '',
+        mItem.memName || '',
+        mItem.flatNo || '',
+        mItem.memberId || '',
         listDebit[i] || '',
         listAccounts[i] || '',
         listTxnTypes[i] || '',
-        listAlloc[i] || ''
+        listAlloc[i] || '',
+        mItem.netDue !== undefined ? mItem.netDue : 0,
+        mItem.principalDue !== undefined ? mItem.principalDue : 0,
+        mItem.interestDue !== undefined ? mItem.interestDue : 0
       ]);
     }
 
@@ -1902,38 +2321,44 @@
       {
         type: 'list',
         allowBlank: false,
-        sqref: 'C4:C' + maxDataRows,
+        sqref: 'B4:B' + maxDataRows,
         formula1: 'Lists!$A$2:$A$' + (listBillTypes.length + 1)
       },
       {
         type: 'list',
         allowBlank: true,
-        sqref: 'E4:E' + maxDataRows,
-        formula1: 'Lists!$B$2:$B$' + (listMembers.length + 1)
+        sqref: 'C4:C' + maxDataRows,
+        formula1: 'Lists!$B$2:$B$' + listMax
+      },
+      {
+        type: 'list',
+        allowBlank: true,
+        sqref: 'D4:D' + maxDataRows,
+        formula1: 'Lists!$C$2:$C$' + listMax
+      },
+      {
+        type: 'list',
+        allowBlank: true,
+        sqref: 'F4:F' + maxDataRows,
+        formula1: 'Lists!$F$2:$F$3'
       },
       {
         type: 'list',
         allowBlank: true,
         sqref: 'G4:G' + maxDataRows,
-        formula1: 'Lists!$C$2:$C$3'
+        formula1: 'Lists!$G$2:$G$' + (listAccounts.length + 1)
       },
       {
         type: 'list',
         allowBlank: true,
         sqref: 'H4:H' + maxDataRows,
-        formula1: 'Lists!$D$2:$D$' + (listAccounts.length + 1)
+        formula1: 'Lists!$H$2:$H$' + (listTxnTypes.length + 1)
       },
       {
         type: 'list',
         allowBlank: true,
-        sqref: 'I4:I' + maxDataRows,
-        formula1: 'Lists!$E$2:$E$' + (listTxnTypes.length + 1)
-      },
-      {
-        type: 'list',
-        allowBlank: true,
-        sqref: 'N4:N' + maxDataRows,
-        formula1: 'Lists!$F$2:$F$3'
+        sqref: 'M4:M' + maxDataRows,
+        formula1: 'Lists!$I$2:$I$3'
       }
     ];
 
@@ -1960,7 +2385,7 @@
       return;
     }
 
-    var schema = getReceiptExcelSchema();
+    var schema = getReceiptExportSchema();
     var todayStr = todayISO();
 
     // 1. XLSX Format (with 3-tier header, totals, styles)
@@ -2264,15 +2689,29 @@
           return;
         }
 
-        // Detect header row (row 0, 1, or 2)
+        // Detect header row (support 1-tier, 2-tier, or 3-tier headers)
         var headerRowIdx = 0;
         var dataStartRowIdx = 1;
 
-        if (allRows.length > 2) {
-          var row2Str = (allRows[2] || []).map(function (c) { return String(c || '').toLowerCase(); }).join(' ');
-          if (row2Str.includes('receipt') || row2Str.includes('member') || row2Str.includes('amount') || row2Str.includes('bill type')) {
-            headerRowIdx = 2;
-            dataStartRowIdx = 3;
+        var bestScore = -1;
+        var searchRowsLimit = Math.min(allRows.length, 5);
+        for (var ri = 0; ri < searchRowsLimit; ri++) {
+          var rowCells = allRows[ri] || [];
+          var score = 0;
+          rowCells.forEach(function (c) {
+            var norm = normalizeHeaderKey(c);
+            if (norm === 'membercode' || norm === 'membername' || norm === 'amount' || norm === 'receivedamount' ||
+                norm === 'billtype' || norm === 'debitaccounttype' || norm === 'deposittoaccount' || norm === 'paymentmode' ||
+                norm.indexOf('receiptdate') === 0 || norm.indexOf('principalamount') === 0 || norm.indexOf('interestamount') === 0) {
+              score += 2;
+            } else if (norm.includes('member') || norm.includes('amount') || norm.includes('receipt') || norm.includes('chq') || norm.includes('bank')) {
+              score += 1;
+            }
+          });
+          if (score > bestScore && score >= 2) {
+            bestScore = score;
+            headerRowIdx = ri;
+            dataStartRowIdx = ri + 1;
           }
         }
 
@@ -2305,10 +2744,11 @@
           if (firstCell.startsWith('TOTAL')) continue;
 
           var rcptNo   = String(getColVal(row, ['receiptno', 'rcptno', 'voucherno', 'receiptnum'])).trim();
-          var rcptDate = parseDateValue(getColVal(row, ['receiptdate', 'date', 'rcptdate', 'voucherdate']));
+          var rcptDate = parseDateValue(getColVal(row, ['receiptdate', 'date', 'rcptdate', 'voucherdate', 'receiptdateddmmyyyyoptional', 'receiptdateoptional']));
           var bType    = String(getColVal(row, ['billtype', 'billtypename', 'type'])).trim();
           var mCode    = String(getColVal(row, ['membercode', 'memcode', 'code'])).trim();
           var mName    = String(getColVal(row, ['membername', 'member', 'person', 'personname', 'memname'])).trim();
+          var wFlat    = String(getColVal(row, ['flatno', 'flat', 'wingflat', 'unitno', 'unit'])).trim();
           var debType  = String(getColVal(row, ['debitaccounttype', 'debittype', 'debitaccount', 'accounttype'])).trim();
           var depAcc   = String(getColVal(row, ['deposittoaccount', 'depositaccount', 'bankcashaccount', 'account'])).trim();
           var txnType  = String(getColVal(row, ['paymentmode', 'transactiontype', 'mode', 'paymode'])).trim();
@@ -2332,7 +2772,8 @@
           var part1    = String(getColVal(row, ['particulars1narration', 'particulars1', 'particular1', 'narration'])).trim();
           var part2    = String(getColVal(row, ['particulars2note', 'particulars2', 'particular2', 'note'])).trim();
 
-          if (!mCode && !mName && amtNum <= 0) continue;
+          // A row is parsed if it specifies Member Code, Member Name, or Flat No
+          if (!mCode && !mName && !wFlat) continue;
 
           parsedRows.push({
             rowIndex: r + 1,
@@ -2341,6 +2782,7 @@
             billType: bType,
             memberCode: mCode,
             memberName: mName,
+            wingFlat: wFlat,
             debitAccountType: debType,
             depositToAccount: depAcc,
             transactionType: txnType,
@@ -2358,14 +2800,14 @@
         }
 
         if (parsedRows.length === 0) {
-          toast('No valid receipt data rows found in the file.', false);
+          toast('No valid receipt data rows found in the uploaded file.', false);
           return;
         }
 
         // Validate via backend
         var sid = getActiveSocietyId();
         var fyid = getFyId();
-        var baseHost = (typeof window.getApiBaseUrl === 'function') ? window.getApiBaseUrl() : 'http://localhost:5002';
+        var baseHost = getApiBaseHost();
         var resp = await fetch(baseHost + '/api/member-receipts/validate-bulk', {
           method: 'POST',
           headers: getAuthHeaders(),
@@ -2491,7 +2933,7 @@
     try {
       var sid = getActiveSocietyId();
       var fyid = getFyId();
-      var baseHost = (typeof window.getApiBaseUrl === 'function') ? window.getApiBaseUrl() : 'http://localhost:5002';
+      var baseHost = getApiBaseHost();
       var resp = await fetch(baseHost + '/api/member-receipts/bulk-import', {
         method: 'POST',
         headers: getAuthHeaders(),
@@ -2499,8 +2941,9 @@
       });
 
       var resJson = await resp.json();
+      var countVal = (resJson.count !== undefined) ? resJson.count : (resJson.importedCount !== undefined ? resJson.importedCount : validRows.length);
       if (resp.ok && resJson.success) {
-        toast('Successfully imported ' + resJson.importedCount + ' member receipt(s)!', true);
+        toast('Successfully imported ' + countVal + ' member receipt(s)!', true);
         closeModal('modal-receipt-bulk-import');
         await loadReceipts();
         try {
@@ -2543,6 +2986,14 @@
       e.preventDefault();
       openMultiDeleteModal();
     } else if (e.key === 'Escape') {
+      var modals = ['modal-receipt-bulk-import', 'modal-multi-change', 'modal-multi-delete'];
+      for (var mi = 0; mi < modals.length; mi++) {
+        var mEl = document.getElementById(modals[mi]);
+        if (mEl && mEl.style.display !== 'none' && mEl.style.display !== '') {
+          closeModal(modals[mi]);
+          return;
+        }
+      }
       showList();
     }
   });

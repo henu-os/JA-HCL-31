@@ -537,7 +537,7 @@
 
       <div style="border-right:1px solid rgba(255,255,255,0.3); height:16px; margin:0 4px;"></div>
 
-      <button class="btn-tb-outline" onclick="showChequeManagement()"><i class="bi bi-bank"></i> CHEQUE MANAGEMENT</button>
+      <button class="btn-tb-outline" onclick="showBankSlip()"><i class="bi bi-bank"></i> BANK SLIP</button>
 
       <div style="border-right:1px solid rgba(255,255,255,0.3); height:16px; margin:0 4px;"></div>
 
@@ -870,27 +870,75 @@
     </div>
   </div>
 
-  <!-- SECTION 4: CHEQUE MANAGEMENT -->
+  <!-- SECTION 4: BANK SLIP -->
   <div id="mr-section-cheque" style="display:none; flex-direction:column; flex:1; overflow:hidden;">
-    <div class="mr-toolbar" style="justify-content:space-between;">
-      <button class="btn-tb-outline" onclick="showList()"><i class="bi bi-arrow-left"></i> BACK TO REGISTER</button>
-      <span style="color:white; font-size:11px; font-weight:700;" id="mr-cheque-count">0 Cheques</span>
+    <div class="mr-toolbar" style="justify-content:space-between; align-items:center; background:#0F3A7A; padding:6px 14px;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <button class="btn-tb-outline" onclick="showList()"><i class="bi bi-arrow-left"></i> BACK TO REGISTER</button>
+        <span style="color:white; font-size:13px; font-weight:800; display:flex; align-items:center; gap:6px;">
+          <i class="bi bi-receipt"></i> BANK DEPOSIT SLIP
+        </span>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <button class="btn-tb-outline" onclick="printBankSlip()"><i class="bi bi-printer"></i> PRINT</button>
+        <button class="btn-tb-outline" onclick="exportBankSlipExcel()"><i class="bi bi-file-earmark-excel"></i> EXCEL</button>
+        <span style="border-right:1px solid rgba(255,255,255,0.3); height:16px; margin:0 2px;"></span>
+        <span style="color:white; font-size:11px; font-weight:700;" id="mr-cheque-count">0 Cheques</span>
+        <span style="color:#fde047; font-size:11px; font-weight:800; margin-left:6px;" id="mr-cheque-total">Total: ₹0.00</span>
+      </div>
     </div>
-    <div class="mr-table-wrapper">
+
+    <!-- BANK SLIP RANGE / FILTER STRIP -->
+    <div class="mr-filter-panel" style="background:#f8fafc; border-bottom:1px solid #cbd5e1; padding:6px 14px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+      <div class="filter-group" style="display:flex; align-items:center; gap:6px;">
+        <label class="filter-lbl" style="font-size:10px; font-weight:700; color:#475569;">DEPOSIT ACCOUNT:</label>
+        <select id="bs-bank-filter" class="filter-sel" style="min-width:180px; height:24px; border:1px solid #94a3b8; border-radius:3px; font-size:11px;" onchange="filterBankSlip()">
+          <option value="">-- All Deposit Accounts --</option>
+        </select>
+      </div>
+
+      <div class="filter-group" style="display:flex; align-items:center; gap:4px;">
+        <label class="filter-lbl" style="font-size:10px; font-weight:700; color:#475569;">DATE RANGE:</label>
+        <input type="date" id="bs-from-date" class="filter-inp" style="height:24px; border:1px solid #94a3b8; border-radius:3px; font-size:11px; padding:0 4px;" onchange="filterBankSlip()">
+        <span style="font-size:10px; color:#64748b; font-weight:700;">TO</span>
+        <input type="date" id="bs-to-date" class="filter-inp" style="height:24px; border:1px solid #94a3b8; border-radius:3px; font-size:11px; padding:0 4px;" onchange="filterBankSlip()">
+      </div>
+
+      <div class="filter-group" style="display:flex; align-items:center; gap:4px;">
+        <label class="filter-lbl" style="font-size:10px; font-weight:700; color:#475569;">RECEIPT NO RANGE:</label>
+        <input type="text" id="bs-from-no" class="filter-inp" placeholder="e.g. 01" style="width:75px; height:24px; border:1px solid #94a3b8; border-radius:3px; font-size:11px; padding:0 4px;" oninput="filterBankSlip()">
+        <span style="font-size:10px; color:#64748b; font-weight:700;">TO</span>
+        <input type="text" id="bs-to-no" class="filter-inp" placeholder="e.g. 10" style="width:75px; height:24px; border:1px solid #94a3b8; border-radius:3px; font-size:11px; padding:0 4px;" oninput="filterBankSlip()">
+      </div>
+
+      <button class="btn-tb-outline" style="height:24px; padding:0 8px; font-size:10px; color:#475569; border-color:#94a3b8; background:#fff;" onclick="resetBankSlipFilters()">
+        <i class="bi bi-x-circle"></i> RESET
+      </button>
+    </div>
+
+    <!-- BANK SLIP TABLE -->
+    <div class="mr-table-wrapper" style="flex:1; overflow:auto;">
       <table class="mr-main-table">
         <thead>
           <tr>
             <th style="width:85px;">DATE</th>
-            <th style="width:110px;">RECEIPT NO</th>
+            <th style="width:115px;">RECEIPT NO</th>
             <th>MEMBER</th>
             <th style="width:100px;">CHEQUE NO</th>
             <th style="width:130px;">BANK</th>
-            <th style="width:120px;">DEPOSIT ACC</th>
-            <th style="width:105px; text-align:right;">AMOUNT</th>
+            <th style="width:140px;">DEPOSIT ACC</th>
+            <th style="width:110px; text-align:right;">AMOUNT</th>
             <th style="width:80px; text-align:center;">STATUS</th>
           </tr>
         </thead>
         <tbody id="chq-tbody"></tbody>
+        <tfoot id="chq-tfoot" style="background:#f1f5f9; font-weight:700; border-top:2px solid #cbd5e1;">
+          <tr>
+            <td colspan="6" style="text-align:right; padding:6px 12px; font-size:11px; color:#334155;">TOTAL DEPOSIT:</td>
+            <td id="bs-total-amount" style="text-align:right; padding:6px 10px; font-size:12px; color:#1565C0; font-family:'Consolas', monospace; font-weight:800;">₹0.00</td>
+            <td></td>
+          </tr>
+        </tfoot>
       </table>
     </div>
   </div>
@@ -913,6 +961,7 @@
             <label>TO RECEIPT NO</label>
             <input type="text" id="md-to" class="form-inp">
           </div>
+        </div>
       </div>
       <div class="modal-footer">
         <button class="btn-tb-outline" onclick="closeModal('modal-multi-delete')">CANCEL</button>
@@ -1069,6 +1118,6 @@
     document.write('<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"><\/script>');
   }
 </script>
-<script src="member-receipt.js?v=20260928_2200"></script>
+<script src="member-receipt.js?v=20260930_2245"></script>
 </body>
 </html>

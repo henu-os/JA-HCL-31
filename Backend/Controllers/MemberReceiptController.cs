@@ -430,11 +430,28 @@ namespace JeevikaERP.Controllers
                 string receiptNo = model.ReceiptNo?.Trim() ?? "";
                 if (string.IsNullOrWhiteSpace(receiptNo))
                 {
+                    string fyLabel = "2026-27";
+                    using (var fyCmd = conn.CreateCommand())
+                    {
+                        fyCmd.Transaction = tx;
+                        fyCmd.CommandText = "SELECT FYStart, FYEnd FROM jeevika_erp.FinancialYear WHERE FYId = @fyid LIMIT 1";
+                        fyCmd.Parameters.AddWithValue("@fyid", fyid);
+                        using var rFy = fyCmd.ExecuteReader();
+                        if (rFy.Read())
+                        {
+                            var sDate = Convert.ToDateTime(rFy["FYStart"]);
+                            var eDate = Convert.ToDateTime(rFy["FYEnd"]);
+                            fyLabel = $"{sDate.Year}-{eDate.ToString("yy")}";
+                        }
+                    }
+
                     using var countCmd = conn.CreateCommand();
                     countCmd.Transaction = tx;
-                    countCmd.CommandText = "SELECT VoucherNo FROM jeevika_erp.SocVoucherHeader WHERE SocietyId = @sid AND FYId = @fyid AND VoucherType IN ('MemberReceipt', 'Receipt')";
+                    countCmd.CommandText = "SELECT VoucherNo FROM jeevika_erp.SocVoucherHeader WHERE SocietyId = @sid AND FYId = @fyid AND VoucherType IN ('MemberReceipt', 'Receipt') AND IsDeleted = FALSE AND (VoucherNo LIKE @prefix OR VoucherNo LIKE @altPrefix)";
                     countCmd.Parameters.AddWithValue("@sid",  sid);
                     countCmd.Parameters.AddWithValue("@fyid", fyid);
+                    countCmd.Parameters.AddWithValue("@prefix", $"MRV/{fyLabel}/%");
+                    countCmd.Parameters.AddWithValue("@altPrefix", $"REC/{fyLabel}/%");
 
                     int maxSeq = 0;
                     using (var r = countCmd.ExecuteReader())
@@ -451,7 +468,7 @@ namespace JeevikaERP.Controllers
                         }
                     }
 
-                    receiptNo = $"MRV/2025-26/{(maxSeq + 1):D2}";
+                    receiptNo = $"MRV/{fyLabel}/{(maxSeq + 1):D2}";
                 }
 
                 // 2. Fetch Member Name & Flat No
@@ -952,9 +969,21 @@ namespace JeevikaERP.Controllers
                 if (int.TryParse(id, out int numId))
                 {
                     cmd.CommandText = @"
+                        -- 1. Revert any linked member bill balance
+                        UPDATE jeevika_erp.SocMemberBill b
+                        SET PaidAmount = GREATEST(0, b.PaidAmount - v.Amount),
+                            BalanceAmount = LEAST(b.TotalAmount, b.TotalAmount - GREATEST(0, b.PaidAmount - v.Amount)),
+                            Status = CASE WHEN b.TotalAmount - GREATEST(0, b.PaidAmount - v.Amount) >= b.TotalAmount THEN 'Generated' ELSE 'PartPaid' END,
+                            VoucherId = NULL
+                        FROM jeevika_erp.SocVoucherHeader v
+                        WHERE b.VoucherId = v.VoucherId AND v.SocietyId = b.SocietyId AND (v.VoucherId = @numId OR v.VoucherNo = @id) AND v.IsDeleted = FALSE;
+
+                        -- 2. Delete voucher details
                         DELETE FROM jeevika_erp.SocVoucherDetail WHERE VoucherId IN (
                             SELECT VoucherId FROM jeevika_erp.SocVoucherHeader WHERE (VoucherId = @numId OR VoucherNo = @id) AND IsDeleted = FALSE
                         );
+
+                        -- 3. Soft-delete voucher header
                         UPDATE jeevika_erp.SocVoucherHeader SET IsDeleted = TRUE, UpdatedAt = NOW() WHERE (VoucherId = @numId OR VoucherNo = @id) AND IsDeleted = FALSE;";
                     cmd.Parameters.AddWithValue("@numId", numId);
                     cmd.Parameters.AddWithValue("@id",    id);
@@ -962,9 +991,21 @@ namespace JeevikaERP.Controllers
                 else
                 {
                     cmd.CommandText = @"
+                        -- 1. Revert any linked member bill balance
+                        UPDATE jeevika_erp.SocMemberBill b
+                        SET PaidAmount = GREATEST(0, b.PaidAmount - v.Amount),
+                            BalanceAmount = LEAST(b.TotalAmount, b.TotalAmount - GREATEST(0, b.PaidAmount - v.Amount)),
+                            Status = CASE WHEN b.TotalAmount - GREATEST(0, b.PaidAmount - v.Amount) >= b.TotalAmount THEN 'Generated' ELSE 'PartPaid' END,
+                            VoucherId = NULL
+                        FROM jeevika_erp.SocVoucherHeader v
+                        WHERE b.VoucherId = v.VoucherId AND v.SocietyId = b.SocietyId AND v.VoucherNo = @id AND v.IsDeleted = FALSE;
+
+                        -- 2. Delete voucher details
                         DELETE FROM jeevika_erp.SocVoucherDetail WHERE VoucherId IN (
                             SELECT VoucherId FROM jeevika_erp.SocVoucherHeader WHERE VoucherNo = @id AND IsDeleted = FALSE
                         );
+
+                        -- 3. Soft-delete voucher header
                         UPDATE jeevika_erp.SocVoucherHeader SET IsDeleted = TRUE, UpdatedAt = NOW() WHERE VoucherNo = @id AND IsDeleted = FALSE;";
                     cmd.Parameters.AddWithValue("@id", id);
                 }
@@ -1151,8 +1192,8 @@ namespace JeevikaERP.Controllers
                     billTypes.Add(new { billTypeId = 2, billTypeName = "Major Repair" });
                 }
 
-                // 2. Members
-                var members = new List<object>();
+                // 2. Members with current dues
+                var rawMembers = new List<(int MemberId, string Code, string Name, string Wing, string Flat, string FlatStr, string Label)>();
                 using (var cmd = conn.CreateCommand())
                 {
                     cmd.CommandText = "SELECT MemberId, MemCode, MemName, Wing, FlatNo FROM jeevika_erp.SocMember WHERE (SocietyId = @sid OR SocietyId = 1) AND IsDeleted = FALSE ORDER BY MemCode ASC, MemName ASC";
@@ -1167,8 +1208,37 @@ namespace JeevikaERP.Controllers
                         var flat = r["FlatNo"]?.ToString()?.Trim() ?? "";
                         var flatStr = !string.IsNullOrEmpty(wing) ? $"{wing}-{flat}" : flat;
                         var label = !string.IsNullOrEmpty(flatStr) ? $"[{code}] {name} ({flatStr})" : $"[{code}] {name}";
-                        members.Add(new { memberId = mid, memCode = code, memName = name, wing, flatNo = flat, label });
+                        rawMembers.Add((mid, code, name, wing, flat, flatStr, label));
                     }
+                }
+
+                var members = new List<object>();
+                foreach (var rm in rawMembers)
+                {
+                    decimal prinDue = 0;
+                    decimal intDue = 0;
+                    decimal netDue = 0;
+                    try
+                    {
+                        var d = CalculateMemberDueInternal(conn, societyId, rm.MemberId, "Maintenance");
+                        prinDue = d.PrincipalDue;
+                        intDue = d.InterestDue;
+                        netDue = d.NetDue;
+                    }
+                    catch { }
+
+                    members.Add(new
+                    {
+                        memberId = rm.MemberId,
+                        memCode = rm.Code,
+                        memName = rm.Name,
+                        wing = rm.Wing,
+                        flatNo = rm.Flat,
+                        label = rm.Label,
+                        principalDue = prinDue,
+                        interestDue = intDue,
+                        netDue = netDue
+                    });
                 }
 
                 // 3. Accounts under Asset -> Cash & Bank Balance
@@ -1488,64 +1558,103 @@ namespace JeevikaERP.Controllers
                     row.Errors.Clear();
                     row.IsValid = true;
 
-                    // 1. Validate Date
+                    // 1. Validate Date (Optional - defaults to today)
                     if (string.IsNullOrWhiteSpace(row.ReceiptDate))
                     {
-                        row.Errors.Add("Receipt Date is required.");
+                        row.ReceiptDate = DateTime.Today.ToString("dd-MM-yyyy");
                     }
                     else
                     {
-                        if (!DateTime.TryParseExact(row.ReceiptDate.Trim(), new[] { "yyyy-MM-dd", "dd-MM-yyyy", "dd/MM/yyyy", "d/M/yyyy", "yyyy/MM/dd" },
-                            System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out _))
+                        if (!DateTime.TryParseExact(row.ReceiptDate.Trim(), new[] { "yyyy-MM-dd", "dd-MM-yyyy", "dd/MM/yyyy", "d/M/yyyy", "d-M-yyyy", "yyyy/MM/dd", "yyyy-MM-dd HH:mm:ss", "dd-MM-yyyy HH:mm:ss", "dd/MM/yyyy HH:mm:ss" },
+                            System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out _) &&
+                            !DateTime.TryParse(row.ReceiptDate.Trim(), System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out _))
                         {
                             row.Errors.Add($"Invalid Date format '{row.ReceiptDate}'. Expected DD-MM-YYYY or YYYY-MM-DD.");
                         }
                     }
 
-                    // 2. Validate Amount
-                    if (row.Amount <= 0)
-                    {
-                        row.Errors.Add("Received Amount must be greater than 0.");
-                    }
-
-                    // 3. Resolve Member
-                    (int Id, string Code, string Name, string Wing, string Flat)? matchedMem = null;
+                    // 3. Resolve Member & Strictly Detect Conflicts (Rule 11)
+                    (int Id, string Code, string Name, string Wing, string Flat)? memByCode = null;
+                    (int Id, string Code, string Name, string Wing, string Flat)? memByName = null;
+                    (int Id, string Code, string Name, string Wing, string Flat)? memByFlat = null;
                     var mCode = row.MemberCode?.Trim() ?? "";
                     var mName = row.MemberName?.Trim() ?? "";
+                    var mFlat = row.WingFlat?.Trim() ?? "";
 
                     if (!string.IsNullOrEmpty(mCode))
                     {
                         var f = members.FirstOrDefault(m => m.Code.Equals(mCode, StringComparison.OrdinalIgnoreCase) || m.Id.ToString() == mCode);
-                        if (f.Id > 0) matchedMem = f;
+                        if (f.Id > 0) memByCode = f;
                     }
 
-                    if (matchedMem == null && !string.IsNullOrEmpty(mName))
+                    if (!string.IsNullOrEmpty(mName))
                     {
                         var mMatch = System.Text.RegularExpressions.Regex.Match(mName, @"\[(.*?)\]");
                         if (mMatch.Success)
                         {
                             var bracketCode = mMatch.Groups[1].Value.Trim();
                             var f = members.FirstOrDefault(m => m.Code.Equals(bracketCode, StringComparison.OrdinalIgnoreCase) || m.Id.ToString() == bracketCode);
-                            if (f.Id > 0) matchedMem = f;
+                            if (f.Id > 0) memByName = f;
                         }
                     }
 
-                    if (matchedMem == null && !string.IsNullOrEmpty(mName))
+                    if (memByName == null && !string.IsNullOrEmpty(mName))
                     {
                         var cleanName = System.Text.RegularExpressions.Regex.Replace(mName, @"\[.*?\]|\(.*?\)", "").Trim().ToLower();
-                        var f = members.FirstOrDefault(m => m.Name.ToLower() == cleanName || m.Name.ToLower().Contains(cleanName) || cleanName.Contains(m.Name.ToLower()));
-                        if (f.Id > 0) matchedMem = f;
+                        var f = members.FirstOrDefault(m => m.Name.Equals(cleanName, StringComparison.OrdinalIgnoreCase));
+                        if (f.Id > 0) memByName = f;
+                        else
+                        {
+                            var f2 = members.FirstOrDefault(m => m.Name.ToLower().Contains(cleanName) || cleanName.Contains(m.Name.ToLower()));
+                            if (f2.Id > 0) memByName = f2;
+                        }
                     }
 
-                    if (matchedMem != null && matchedMem.Value.Id > 0)
+                    if (!string.IsNullOrEmpty(mFlat))
                     {
-                        row.ResolvedMemberId = matchedMem.Value.Id;
-                        row.ResolvedMemberName = matchedMem.Value.Name;
-                        row.ResolvedFlatNo = !string.IsNullOrEmpty(matchedMem.Value.Wing) ? $"{matchedMem.Value.Wing}-{matchedMem.Value.Flat}" : matchedMem.Value.Flat;
+                        var cleanFlat = mFlat.Trim().ToLower();
+                        var f = members.FirstOrDefault(m =>
+                            (!string.IsNullOrEmpty(m.Wing) && $"{m.Wing}-{m.Flat}".Equals(cleanFlat, StringComparison.OrdinalIgnoreCase)) ||
+                            (!string.IsNullOrEmpty(m.Wing) && $"{m.Wing}{m.Flat}".Equals(cleanFlat, StringComparison.OrdinalIgnoreCase)) ||
+                            m.Flat.Equals(cleanFlat, StringComparison.OrdinalIgnoreCase)
+                        );
+                        if (f.Id > 0) memByFlat = f;
+                    }
+
+                    if (memByCode != null && memByName != null)
+                    {
+                        if (memByCode.Value.Id != memByName.Value.Id)
+                        {
+                            row.Errors.Add($"Member conflict: Member Code '{mCode}' belongs to '{memByCode.Value.Name}', but Member Name '{mName}' was provided. They do not belong to the same Member.");
+                        }
+                        else
+                        {
+                            row.ResolvedMemberId = memByCode.Value.Id;
+                            row.ResolvedMemberName = memByCode.Value.Name;
+                            row.ResolvedFlatNo = !string.IsNullOrEmpty(memByCode.Value.Wing) ? $"{memByCode.Value.Wing}-{memByCode.Value.Flat}" : memByCode.Value.Flat;
+                        }
+                    }
+                    else if (memByCode != null)
+                    {
+                        row.ResolvedMemberId = memByCode.Value.Id;
+                        row.ResolvedMemberName = memByCode.Value.Name;
+                        row.ResolvedFlatNo = !string.IsNullOrEmpty(memByCode.Value.Wing) ? $"{memByCode.Value.Wing}-{memByCode.Value.Flat}" : memByCode.Value.Flat;
+                    }
+                    else if (memByName != null)
+                    {
+                        row.ResolvedMemberId = memByName.Value.Id;
+                        row.ResolvedMemberName = memByName.Value.Name;
+                        row.ResolvedFlatNo = !string.IsNullOrEmpty(memByName.Value.Wing) ? $"{memByName.Value.Wing}-{memByName.Value.Flat}" : memByName.Value.Flat;
+                    }
+                    else if (memByFlat != null)
+                    {
+                        row.ResolvedMemberId = memByFlat.Value.Id;
+                        row.ResolvedMemberName = memByFlat.Value.Name;
+                        row.ResolvedFlatNo = !string.IsNullOrEmpty(memByFlat.Value.Wing) ? $"{memByFlat.Value.Wing}-{memByFlat.Value.Flat}" : memByFlat.Value.Flat;
                     }
                     else
                     {
-                        row.Errors.Add($"Member '{(!string.IsNullOrEmpty(mCode) ? mCode : mName)}' could not be resolved.");
+                        row.Errors.Add($"Member '{(!string.IsNullOrEmpty(mCode) ? mCode : (!string.IsNullOrEmpty(mName) ? mName : mFlat))}' could not be resolved from Member Master.");
                     }
 
                     // 4. Resolve Bill Type
@@ -1629,6 +1738,18 @@ namespace JeevikaERP.Controllers
                         row.OutstandingPrincipal = due.PrincipalDue;
                         row.OutstandingInterest  = due.InterestDue;
 
+                        // Auto-populate amount from member due if empty/zero
+                        if (row.Amount <= 0 && due.NetDue > 0)
+                        {
+                            row.Amount = due.NetDue;
+                        }
+
+                        // Validate Amount
+                        if (row.Amount <= 0)
+                        {
+                            row.Errors.Add("Received Amount must be greater than 0.");
+                        }
+
                         var mode = row.AllocationMode?.Trim().ToUpper() ?? "AUTO";
                         if (mode == "MANUAL" && (row.PrincipalAmount.HasValue || row.InterestAmount.HasValue))
                         {
@@ -1636,7 +1757,7 @@ namespace JeevikaERP.Controllers
                             decimal i = row.InterestAmount ?? 0;
                             if (Math.Round(p + i, 2) != Math.Round(row.Amount, 2))
                             {
-                                row.Errors.Add($"In MANUAL mode, Principal (₹{p}) + Interest (₹{i}) must equal Received Amount (₹{row.Amount}).");
+                                row.Errors.Add($"In MANUAL mode, Principal (₹{p:F2}) + Interest (₹{i:F2}) must equal Received Amount (₹{row.Amount:F2}).");
                             }
                             else
                             {
@@ -1661,6 +1782,13 @@ namespace JeevikaERP.Controllers
 
                         row.RemainingPrincipal = Math.Max(0, row.OutstandingPrincipal - row.AllocatedPrincipal);
                         row.RemainingInterest = Math.Max(0, row.OutstandingInterest - row.AllocatedInterest);
+                    }
+                    else
+                    {
+                        if (row.Amount <= 0)
+                        {
+                            row.Errors.Add("Received Amount must be greater than 0.");
+                        }
                     }
 
                     row.IsValid = (row.Errors.Count == 0);
@@ -1719,9 +1847,11 @@ namespace JeevikaERP.Controllers
                 using (var countCmd = conn.CreateCommand())
                 {
                     countCmd.Transaction = tx;
-                    countCmd.CommandText = "SELECT VoucherNo FROM jeevika_erp.SocVoucherHeader WHERE SocietyId = @sid AND FYId = @fyid AND VoucherType IN ('MemberReceipt', 'Receipt')";
+                    countCmd.CommandText = "SELECT VoucherNo FROM jeevika_erp.SocVoucherHeader WHERE SocietyId = @sid AND FYId = @fyid AND VoucherType IN ('MemberReceipt', 'Receipt') AND IsDeleted = FALSE AND (VoucherNo LIKE @prefix OR VoucherNo LIKE @altPrefix)";
                     countCmd.Parameters.AddWithValue("@sid", sid);
                     countCmd.Parameters.AddWithValue("@fyid", fyid);
+                    countCmd.Parameters.AddWithValue("@prefix", $"MRV/{fyLabel}/%");
+                    countCmd.Parameters.AddWithValue("@altPrefix", $"REC/{fyLabel}/%");
                     using var r = countCmd.ExecuteReader();
                     while (r.Read())
                     {
@@ -1741,7 +1871,7 @@ namespace JeevikaERP.Controllers
                 using (var accCmd = conn.CreateCommand())
                 {
                     accCmd.Transaction = tx;
-                    accCmd.CommandText = "SELECT AccountId, AccCode, AccName FROM jeevika_erp.SocAccount WHERE SocietyId = @sid AND (AccCode = 'ASS-1025' OR AccName ILIKE 'Dues From Members%') AND IsDeleted = FALSE LIMIT 1";
+                    accCmd.CommandText = "SELECT AccountId, AccCode, AccName FROM jeevika_erp.SocAccount WHERE (SocietyId = @sid OR SocietyId = 1) AND (AccCode = 'ASS-1025' OR AccName ILIKE 'Dues From Members%') AND IsDeleted = FALSE ORDER BY (CASE WHEN SocietyId = @sid THEN 0 ELSE 1 END) LIMIT 1";
                     accCmd.Parameters.AddWithValue("@sid", sid);
                     using var rA = accCmd.ExecuteReader();
                     if (rA.Read())
@@ -1818,6 +1948,23 @@ namespace JeevikaERP.Controllers
                         {
                             chqDate = pCDate;
                         }
+                    }
+
+                    // Clean up any soft-deleted voucher with same number to prevent unique constraint violation
+                    using (var cleanCmd = conn.CreateCommand())
+                    {
+                        cleanCmd.Transaction = tx;
+                        cleanCmd.CommandText = @"
+                            DELETE FROM jeevika_erp.SocVoucherDetail WHERE VoucherId IN (
+                                SELECT VoucherId FROM jeevika_erp.SocVoucherHeader 
+                                WHERE SocietyId = @sid AND FYId = @fyid AND VoucherNo = @vno AND IsDeleted = TRUE
+                            );
+                            DELETE FROM jeevika_erp.SocVoucherHeader 
+                            WHERE SocietyId = @sid AND FYId = @fyid AND VoucherNo = @vno AND IsDeleted = TRUE;";
+                        cleanCmd.Parameters.AddWithValue("@sid",  sid);
+                        cleanCmd.Parameters.AddWithValue("@fyid", fyid);
+                        cleanCmd.Parameters.AddWithValue("@vno",  rNo);
+                        cleanCmd.ExecuteNonQuery();
                     }
 
                     // Insert SocVoucherHeader
@@ -1960,6 +2107,7 @@ namespace JeevikaERP.Controllers
                     success = true,
                     message = $"Successfully imported {importedReceipts.Count} member receipt(s).",
                     count = importedReceipts.Count,
+                    importedCount = importedReceipts.Count,
                     receipts = importedReceipts
                 });
             }
@@ -2033,6 +2181,7 @@ namespace JeevikaERP.Controllers
         public string? BillType { get; set; }
         public string? MemberCode { get; set; }
         public string? MemberName { get; set; }
+        public string? WingFlat { get; set; }
         public string? DebitAccountType { get; set; }
         public string? DepositToAccount { get; set; }
         public string? TransactionType { get; set; }

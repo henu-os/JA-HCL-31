@@ -1,0 +1,12 @@
+/* ═════════════════════════════════════════════════════════════════════
+   PAYMENT VOUCHER PRINT CSS — JEEVIKA ERP
+   ═════════════════════════════════════════════════════════════════════ */
+@import url('../voucher-print-common.css');
+
+.badge-payment {
+  background: #fef3c7;
+  color: #b45309;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+}

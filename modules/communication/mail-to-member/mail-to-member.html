@@ -3,51 +3,227 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Send Email to Society Members — JEEVIKA ERP</title>
+  <title>Mail to Member — HENU ERP</title>
   <script src="../../../config.js"></script>
-  <link rel="stylesheet" href="../../../assets/css/global.css">
-  <link rel="stylesheet" href="../../../assets/css/components.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-</head>
-<body class="erp-module">
-  <div class="erp-module-header">
-    <div>
-      <div class="erp-module-title">Send Email to Society Members</div>
-      
-    </div>
-    <button class="erp-btn erp-btn-primary" onclick="refreshData()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
-  </div>
-
-  <div class="erp-search-bar">
-    <input type="text" id="searchInput" class="erp-input erp-search-input" placeholder="🔍 Search..." onkeyup="filterTable()">
-    <div class="erp-record-count" id="recordCount">Total: 0</div>
-  </div>
-
-  <div class="erp-module-body" style="padding:0;">
-    <div class="erp-table-container" style="height:100%;border:none;">
-      <table class="erp-table striped" id="mainTable">
-        <thead>
-          <tr>
-            <th style="width:40px;" class="td-center">#</th>
-            <th>Particulars / Description</th>
-            <th style="width:120px;" class="td-center">Reference</th>
-            <th style="width:120px;" class="td-center">Status</th>
-          </tr>
-        </thead>
-        <tbody id="mainTableBody">
-          <tr>
-            <td colspan="4" class="text-center text-muted" style="padding:30px;">
-              Module initialized. Live data will be loaded here.
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
   <script src="../../../assets/js/api.js"></script>
   <script src="../../../assets/js/auth.js"></script>
   <script src="../../../assets/js/utils.js"></script>
+  <link rel="stylesheet" href="../../../assets/vendor/bootstrap-icons/bootstrap-icons.css">
+  <link rel="stylesheet" href="mail-to-member.css">
+</head>
+<body class="erp-module">
+
+  <!-- Top Action Header -->
+  <header class="module-top-bar">
+    <div class="module-title">
+      <i class="bi bi-envelope-at-fill text-primary"></i>
+      <span>Communication ➔ Mail to Member</span>
+    </div>
+    <div class="top-actions">
+      <button class="btn-top" id="btnRefreshMembers" title="Reload Member Directory">
+        <i class="bi bi-arrow-clockwise"></i> Refresh List
+      </button>
+      <button class="btn-top btn-top-primary" id="btnPreviewMail">
+        <i class="bi bi-eye"></i> Preview Sample
+      </button>
+      <button class="btn-top btn-top-success" id="btnQueueMail">
+        <i class="bi bi-send-check"></i> Queue Outbox Job (<span id="countSelectedTop">0</span>)
+      </button>
+    </div>
+  </header>
+
+  <!-- 9 Subfeature Navigation Tabs -->
+  <nav class="subfeature-tabs" id="subfeatureTabs">
+    <button class="sub-tab active" data-feature="BILL_FORMAT">
+      <i class="bi bi-receipt"></i> Bill Format
+    </button>
+    <button class="sub-tab" data-feature="RECEIPT">
+      <i class="bi bi-cash-stack"></i> Receipt
+    </button>
+    <button class="sub-tab" data-feature="MEMBER_ACCOUNT">
+      <i class="bi bi-file-earmark-spreadsheet"></i> Member Account
+    </button>
+    <button class="sub-tab" data-feature="MEMBER_REGISTER">
+      <i class="bi bi-journal-text"></i> Member Register
+    </button>
+    <button class="sub-tab" data-feature="OUTSTANDING_REMINDER">
+      <i class="bi bi-exclamation-triangle"></i> Outstanding Reminder
+    </button>
+    <button class="sub-tab" data-feature="OUTSTANDING_LETTER">
+      <i class="bi bi-file-earmark-pdf"></i> Outstanding Letter
+    </button>
+    <button class="sub-tab" data-feature="MESSAGE">
+      <i class="bi bi-chat-left-dots"></i> Message
+    </button>
+    <button class="sub-tab" data-feature="BALANCE_CONFIRMATION">
+      <i class="bi bi-shield-check"></i> Balance Confirmation Letter
+    </button>
+    <button class="sub-tab" data-feature="MESSAGE_WITH_PDF">
+      <i class="bi bi-paperclip"></i> Message with PDF
+    </button>
+  </nav>
+
+  <!-- Filter & Period Configuration Strip -->
+  <div class="filter-strip">
+    <div class="filter-group">
+      <label class="filter-label">Wing / Block:</label>
+      <select class="filter-select" id="filterWing">
+        <option value="">-- All Wings --</option>
+      </select>
+    </div>
+
+    <div class="filter-group" id="groupBillMonth">
+      <label class="filter-label">Bill / Period Month:</label>
+      <input type="month" class="filter-input" id="inputMonth" value="2026-09">
+    </div>
+
+    <div class="filter-group" id="groupDateRange" style="display: none;">
+      <label class="filter-label">From Date:</label>
+      <input type="date" class="filter-input" id="fromDate" value="2026-04-01">
+      <label class="filter-label">To Date:</label>
+      <input type="date" class="filter-input" id="toDate" value="2027-03-31">
+    </div>
+
+    <div class="filter-group">
+      <label class="filter-label">Filter Status:</label>
+      <select class="filter-select" id="filterStatus">
+        <option value="ALL">All Members</option>
+        <option value="VALID_EMAIL" selected>Only with Valid Email</option>
+        <option value="MISSING_EMAIL">Only Missing Email</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label class="filter-label">Search:</label>
+      <input type="text" class="filter-input" id="searchMember" placeholder="Name or Flat...">
+    </div>
+  </div>
+
+  <!-- Summary Counters Strip -->
+  <div class="summary-strip">
+    <div class="summary-stats">
+      <span>Total Members: <strong class="badge-stat badge-total" id="statTotal">0</strong></span>
+      <span>Selected: <strong class="badge-stat badge-valid" id="statSelected">0</strong></span>
+      <span>Valid Email: <strong class="badge-stat badge-valid" id="statValid">0</strong></span>
+      <span>Missing Email: <strong class="badge-stat badge-missing" id="statMissing">0</strong></span>
+    </div>
+    <div style="font-size: 11px; color: var(--text-muted);">
+      <i class="bi bi-info-circle"></i> Emails are dispatched asynchronously via Communication Outbox Engine
+    </div>
+  </div>
+
+  <!-- Main View Split -->
+  <main class="module-content">
+    
+    <!-- Left: Member Selection Table -->
+    <section class="recipients-pane">
+      <div class="table-container">
+        <table class="erp-table">
+          <thead>
+            <tr>
+              <th style="width: 36px; text-align: center;">
+                <input type="checkbox" id="selectAllCheckbox">
+              </th>
+              <th>Flat</th>
+              <th>Member Code</th>
+              <th>Member Name</th>
+              <th>Email Address</th>
+              <th>Contact No</th>
+              <th style="text-align: right;">Outstanding (₹)</th>
+              <th style="text-align: center;">Email Status</th>
+            </tr>
+          </thead>
+          <tbody id="memberTableBody">
+            <tr>
+              <td colspan="8" style="text-align: center; padding: 24px; color: var(--text-muted);">
+                <i class="bi bi-hourglass-split"></i> Loading member records...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Right: Template & Parameters Preview / Customization -->
+    <aside class="template-pane">
+      
+      <div class="template-card">
+        <div class="template-title">
+          <i class="bi bi-sliders"></i> Message Template
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Subject Line:</label>
+          <input type="text" class="form-input" id="emailSubject" value="[Society] Maintenance Bill for {{bill_date}}">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Email Body (Markdown / Text):</label>
+          <textarea class="form-textarea" id="emailBody"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Available Variables (Click to Insert):</label>
+          <div class="variable-tags" id="varTagContainer">
+            <span class="var-tag" data-var="{{member_name}}">{{member_name}}</span>
+            <span class="var-tag" data-var="{{flat_no}}">{{flat_no}}</span>
+            <span class="var-tag" data-var="{{society_name}}">{{society_name}}</span>
+            <span class="var-tag" data-var="{{bill_no}}">{{bill_no}}</span>
+            <span class="var-tag" data-var="{{bill_amount}}">{{bill_amount}}</span>
+            <span class="var-tag" data-var="{{outstanding_amount}}">{{outstanding_amount}}</span>
+            <span class="var-tag" data-var="{{due_date}}">{{due_date}}</span>
+            <span class="var-tag" data-var="{{receipt_no}}">{{receipt_no}}</span>
+            <span class="var-tag" data-var="{{financial_year}}">{{financial_year}}</span>
+          </div>
+        </div>
+
+        <div class="form-group" id="attachmentGroup">
+          <label class="form-label">Attachment Type:</label>
+          <div class="attach-badge" id="attachmentBadge">
+            <i class="bi bi-file-earmark-pdf-fill text-danger"></i>
+            <span id="attachmentLabel">Maintenance Bill PDF (Dynamic)</span>
+          </div>
+        </div>
+
+        <div class="form-group" id="customFileGroup" style="display: none;">
+          <label class="form-label">Upload Custom PDF Attachment:</label>
+          <input type="file" id="customFileInput" accept="application/pdf" class="form-input">
+        </div>
+      </div>
+
+    </aside>
+
+  </main>
+
+  <!-- Preview Modal -->
+  <div class="modal-overlay" id="previewModal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <span id="previewModalTitle"><i class="bi bi-envelope-open"></i> Sample Email Preview</span>
+        <button style="background:none; border:none; color:white; font-size:18px; cursor:pointer;" id="btnClosePreview">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="margin-bottom: 8px;">
+          <strong>To:</strong> <span id="previewRecipient" style="color: var(--primary); font-family: monospace;">-</span>
+        </div>
+        <div style="margin-bottom: 8px;">
+          <strong>Subject:</strong> <span id="previewSubject" style="font-weight: 700;">-</span>
+        </div>
+        <div style="margin-bottom: 8px;">
+          <strong>Attachment:</strong> <span id="previewAttachment" class="attach-badge">-</span>
+        </div>
+        <div><strong>Message Content:</strong></div>
+        <div class="preview-box" id="previewContent"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-top" id="btnDismissPreview">Close</button>
+        <button class="btn-top btn-top-success" id="btnConfirmQueue">
+          <i class="bi bi-send-check"></i> Confirm & Queue Selected (<span id="previewCount">0</span>)
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script src="mail-to-member.js"></script>
 </body>
 </html>

@@ -3,51 +3,301 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WhatsApp API Delivery Dashboard — JEEVIKA ERP</title>
+  <title>WhatsApp API Delivery Control — HENU ERP</title>
   <script src="../../../config.js"></script>
+  <script src="../../../assets/js/api.js"></script>
+  <script src="../../../assets/js/auth.js"></script>
+  <script src="../../../assets/js/utils.js"></script>
   <link rel="stylesheet" href="../../../assets/css/global.css">
   <link rel="stylesheet" href="../../../assets/css/components.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="../../../assets/vendor/bootstrap-icons/bootstrap-icons.css">
+  <style>
+    :root {
+      --primary: #005F73;
+      --secondary: #0A9396;
+      --accent: #94D2BD;
+      --success: #2E7D32;
+      --warning: #F57F17;
+      --danger: #C62828;
+      --wa-green: #25D366;
+      --wa-dark: #075E54;
+      --bg: #F4F6F9;
+      --card-bg: #FFFFFF;
+      --border: #D1D5DB;
+    }
+
+    body.erp-module {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--bg);
+      margin: 0;
+      padding: 16px;
+      color: #1F2937;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      height: 100vh;
+      box-sizing: border-box;
+      overflow-y: auto;
+    }
+
+    .dashboard-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #FFF;
+      padding: 14px 20px;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      border: 1px solid var(--border);
+    }
+
+    .dashboard-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--wa-dark);
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+    }
+
+    .kpi-card {
+      background: #FFF;
+      padding: 14px 18px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+
+    .kpi-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: #6B7280;
+      letter-spacing: 0.5px;
+    }
+
+    .kpi-value {
+      font-size: 24px;
+      font-weight: 800;
+      color: #111827;
+    }
+
+    .kpi-card.sent .kpi-value { color: var(--success); }
+    .kpi-card.pending .kpi-value { color: var(--warning); }
+    .kpi-card.failed .kpi-value { color: var(--danger); }
+    .kpi-card.rate .kpi-value { color: var(--primary); }
+
+    .control-panel {
+      background: #FFF;
+      padding: 14px 20px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-badge {
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .status-badge.active { background: #E8F5E9; color: #2E7D32; border: 1px solid #A5D6A7; }
+    .status-badge.sent { background: #E8F5E9; color: #2E7D32; border: 1px solid #A5D6A7; }
+    .status-badge.queued { background: #FFF8E1; color: #F57F17; border: 1px solid #FFE082; }
+    .status-badge.failed { background: #FFEBEE; color: #C62828; border: 1px solid #FFCDD2; }
+
+    .table-container {
+      background: #FFF;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .table-header-strip {
+      padding: 12px 18px;
+      background: #F9FAFB;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .erp-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .erp-table th {
+      background: #F3F4F6;
+      padding: 10px 14px;
+      text-align: left;
+      font-weight: 700;
+      color: #374151;
+      border-bottom: 2px solid var(--border);
+    }
+
+    .erp-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid #E5E7EB;
+      color: #1F2937;
+      vertical-align: middle;
+    }
+
+    .erp-table tr:hover {
+      background: #F9FAFB;
+    }
+
+    .btn-act {
+      background: var(--wa-dark);
+      color: #FFF;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 5px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .btn-act:hover { background: #064E46; }
+    .btn-act.secondary { background: #4B5563; }
+    .btn-act.secondary:hover { background: #374151; }
+    .btn-act.success { background: #2E7D32; }
+    .btn-act.success:hover { background: #1B5E20; }
+  </style>
 </head>
 <body class="erp-module">
-  <div class="erp-module-header">
-    <div>
-      <div class="erp-module-title">WhatsApp API Delivery Dashboard</div>
-      
+
+  <!-- Header -->
+  <header class="dashboard-header">
+    <div class="dashboard-title">
+      <i class="bi bi-whatsapp" style="font-size: 26px; color: var(--wa-green);"></i>
+      <div>
+        <div>WhatsApp API Delivery & Monitoring Dashboard</div>
+        <div style="font-size: 12px; font-weight: 400; color: #6B7280;">
+          Meta WhatsApp Cloud API v21.0 Real-Time Delivery Gateway
+        </div>
+      </div>
     </div>
-    <button class="erp-btn erp-btn-primary" onclick="refreshData()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
-  </div>
+    <div class="control-group">
+      <span id="gatewayStatusBadge" class="status-badge active">
+        <i class="bi bi-broadcast"></i> LIVE GATEWAY ACTIVE
+      </span>
+      <button class="btn-act secondary" id="btnRefreshLogs">
+        <i class="bi bi-arrow-clockwise"></i> Refresh
+      </button>
+      <button class="btn-act success" id="btnTriggerOutbox">
+        <i class="bi bi-send-check"></i> Process Outbox Now
+      </button>
+    </div>
+  </header>
 
-  <div class="erp-search-bar">
-    <input type="text" id="searchInput" class="erp-input erp-search-input" placeholder="🔍 Search..." onkeyup="filterTable()">
-    <div class="erp-record-count" id="recordCount">Total: 0</div>
-  </div>
+  <!-- KPI Overview -->
+  <section class="kpi-grid">
+    <div class="kpi-card">
+      <span class="kpi-label">Active Society</span>
+      <span class="kpi-value" id="kpiSocietyLabel" style="font-size: 18px; color: var(--primary);">Society #1</span>
+    </div>
+    <div class="kpi-card sent">
+      <span class="kpi-label">Dispatched Live</span>
+      <span class="kpi-value" id="kpiSentCount">0</span>
+    </div>
+    <div class="kpi-card pending">
+      <span class="kpi-label">Queued in Outbox</span>
+      <span class="kpi-value" id="kpiQueuedCount">0</span>
+    </div>
+    <div class="kpi-card failed">
+      <span class="kpi-label">Failed / Retries</span>
+      <span class="kpi-value" id="kpiFailedCount">0</span>
+    </div>
+    <div class="kpi-card rate">
+      <span class="kpi-label">Daily Limit / Quota</span>
+      <span class="kpi-value" id="kpiDailyLimit">1000 / Day</span>
+    </div>
+  </section>
 
-  <div class="erp-module-body" style="padding:0;">
-    <div class="erp-table-container" style="height:100%;border:none;">
-      <table class="erp-table striped" id="mainTable">
+  <!-- Quick Test Dispatch Strip -->
+  <section class="control-panel">
+    <div class="control-group" style="flex: 1; min-width: 320px;">
+      <label style="font-size: 12px; font-weight: 700; color: #374151;">Direct Test WhatsApp:</label>
+      <input type="text" id="quickTestMobile" class="erp-input" value="+91 9352956727" style="max-width: 180px; padding: 6px 10px; font-size: 13px;" placeholder="+91 98XXXXXXXX">
+      <input type="text" id="quickTestMsg" class="erp-input" value="HENU ERP: Direct live dispatch test" style="flex: 1; padding: 6px 10px; font-size: 13px;" placeholder="Message...">
+      <button class="btn-act" id="btnSendQuickTest">
+        <i class="bi bi-send"></i> Send Test
+      </button>
+    </div>
+  </section>
+
+  <!-- Outbox & Log Grid -->
+  <section class="table-container">
+    <div class="table-header-strip">
+      <div style="font-weight: 700; color: #111827; display: flex; align-items: center; gap: 8px;">
+        <i class="bi bi-list-columns-reverse text-primary"></i>
+        <span>Live Message Activity & Delivery Stream</span>
+      </div>
+      <div class="control-group">
+        <input type="text" id="filterSearch" class="erp-input" placeholder="Search recipient or ID..." style="padding: 4px 10px; font-size: 12px; width: 200px;">
+        <select id="filterStatus" class="erp-input" style="padding: 4px 10px; font-size: 12px;">
+          <option value="ALL">All Statuses</option>
+          <option value="SENT">Sent / Delivered</option>
+          <option value="QUEUED">Queued</option>
+          <option value="FAILED">Failed</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="overflow-y: auto; flex: 1;">
+      <table class="erp-table">
         <thead>
           <tr>
-            <th style="width:40px;" class="td-center">#</th>
-            <th>Particulars / Description</th>
-            <th style="width:120px;" class="td-center">Reference</th>
-            <th style="width:120px;" class="td-center">Status</th>
+            <th style="width: 50px;">#</th>
+            <th style="width: 150px;">Recipient</th>
+            <th style="width: 130px;">Category</th>
+            <th>Message / Content</th>
+            <th style="width: 100px; text-align: center;">Status</th>
+            <th style="width: 160px;">Timestamp</th>
+            <th style="width: 80px; text-align: center;">Action</th>
           </tr>
         </thead>
-        <tbody id="mainTableBody">
+        <tbody id="outboxTableBody">
           <tr>
-            <td colspan="4" class="text-center text-muted" style="padding:30px;">
-              Module initialized. Live data will be loaded here.
+            <td colspan="7" style="text-align: center; padding: 30px; color: #6B7280;">
+              <i class="bi bi-hourglass-split"></i> Loading WhatsApp delivery logs...
             </td>
           </tr>
         </tbody>
       </table>
     </div>
-  </div>
+  </section>
 
-  <script src="../../../assets/js/api.js"></script>
-  <script src="../../../assets/js/auth.js"></script>
-  <script src="../../../assets/js/utils.js"></script>
   <script src="whatsapp-api-control.js"></script>
 </body>
 </html>

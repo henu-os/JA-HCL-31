@@ -3,54 +3,293 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Multi Report — JEEVIKA ERP</title>
+  <title>Multi Report (Unified Society Reporting) — JEEVIKA ERP</title>
   <script src="../../../config.js"></script>
   <link rel="stylesheet" href="../../../assets/css/global.css">
   <link rel="stylesheet" href="../../../assets/css/components.css">
+  <link rel="stylesheet" href="multi-report.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 </head>
 <body class="erp-module">
-  <div class="erp-module-header">
-    <div>
-      <div class="erp-module-title">Multi Report</div>
-      
+
+  <!-- ── Top Action & Filter Toolbar ────────────────────────────────────────── -->
+  <div class="multi-toolbar">
+    <div class="multi-filter-group">
+      <div class="multi-filter-item">
+        <label for="multi-fy"><i class="bi bi-calendar3"></i> FY:</label>
+        <select id="multi-fy" class="multi-select" onchange="generateMultiReport()">
+          <option value="2026-2027" selected>2026-2027</option>
+          <option value="2025-2026">2025-2026</option>
+          <option value="2024-2025">2024-2025</option>
+        </select>
+      </div>
+
+      <div class="multi-filter-item">
+        <label for="multi-preset"><i class="bi bi-bookmark-star"></i> Preset:</label>
+        <select id="multi-preset" class="multi-select" onchange="applyPreset(this.value)">
+          <option value="ALL" selected>Complete Comprehensive Multi Report</option>
+          <option value="MEMBER_DUES">Member Billing &amp; Outstanding</option>
+          <option value="ACCOUNTING_AUDIT">Chart of Accounts &amp; Voucher Summary</option>
+          <option value="TAX_COMPLIANCE">TDS &amp; GST Statutory Compliance</option>
+          <option value="FUNDS_RESERVES">Statutory Funds &amp; Reserves</option>
+        </select>
+      </div>
     </div>
-    <button class="erp-btn erp-btn-primary" onclick="refreshData()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
-  </div>
 
-  <div class="erp-search-bar">
-    <input type="text" id="searchInput" class="erp-input erp-search-input" placeholder="🔍 Search Multi Report..." onkeyup="filterTable()">
-    <div class="erp-record-count" id="recordCount">Total: 0</div>
-  </div>
-
-  <div class="erp-module-body" style="padding:0;">
-    <div class="erp-table-container" style="height:100%;border:none;">
-      <table class="erp-table striped" id="mainTable">
-        <thead>
-          <tr>
-            <th style="width:40px;" class="td-center">#</th>
-            <th>Particulars / Description</th>
-            <th style="width:140px;" class="td-center">Voucher / Ref No</th>
-            <th style="width:120px;" class="td-center">Date</th>
-            <th style="width:120px;" class="td-right">Amount (₹)</th>
-            <th style="width:100px;" class="td-center">Status</th>
-          </tr>
-        </thead>
-        <tbody id="mainTableBody">
-          <tr>
-            <td colspan="6" class="text-center text-muted" style="padding:40px;">
-              <i class="bi bi-folder-check" style="font-size:24px;display:block;margin-bottom:8px;color:#94a3b8;"></i>
-              Multi Report module initialized. Live records will be displayed here.
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <div class="multi-filter-group btn-no-print">
+      <button class="multi-btn multi-btn-primary" onclick="generateMultiReport()">
+        <i class="bi bi-play-circle"></i> Generate
+      </button>
+      <button class="multi-btn" onclick="openSavePresetModal()">
+        <i class="bi bi-save"></i> Save Layout
+      </button>
+      <button class="multi-btn multi-btn-success" onclick="exportMultiExcel()">
+        <i class="bi bi-file-earmark-excel"></i> Export Excel
+      </button>
+      <button class="multi-btn" onclick="window.print()">
+        <i class="bi bi-printer"></i> Print Report
+      </button>
     </div>
   </div>
 
-  <script src="../../../assets/js/api.js"></script>
-  <script src="../../../assets/js/auth.js"></script>
-  <script src="../../../assets/js/utils.js"></script>
+  <!-- ── Section Selector Strip ─────────────────────────────────────────────── -->
+  <div class="section-toggle-strip btn-no-print">
+    <span style="font-weight:700; color:#475569;"><i class="bi bi-toggles"></i> Include Sections:</span>
+    <label class="section-chk-item"><input type="checkbox" id="chk-members" checked onchange="toggleSection('sec-members', this.checked)"> Members &amp; Dues</label>
+    <label class="section-chk-item"><input type="checkbox" id="chk-accounts" checked onchange="toggleSection('sec-accounts', this.checked)"> Accounts &amp; Ledgers</label>
+    <label class="section-chk-item"><input type="checkbox" id="chk-vouchers" checked onchange="toggleSection('sec-vouchers', this.checked)"> Voucher Totals</label>
+    <label class="section-chk-item"><input type="checkbox" id="chk-tax" checked onchange="toggleSection('sec-tax', this.checked)"> TDS &amp; GST Tax</label>
+    <label class="section-chk-item"><input type="checkbox" id="chk-funds" checked onchange="toggleSection('sec-funds', this.checked)"> Statutory Funds</label>
+    <label class="section-chk-item"><input type="checkbox" id="chk-rec" checked onchange="toggleSection('sec-rec', this.checked)"> Cross-Reconciliation</label>
+  </div>
+
+  <!-- ── Scrollable Report Body ─────────────────────────────────────────────── -->
+  <div class="multi-scroll-area">
+
+    <!-- ── Section 1: Society Details ───────────────────────────────────────── -->
+    <div class="soc-header-card">
+      <div class="soc-info">
+        <h2 id="soc-name">HENU CO-OPERATIVE HOUSING SOCIETY LTD.</h2>
+        <div class="soc-meta" id="soc-address">Plot 12, Sector 19, Seawoods, Navi Mumbai, Maharashtra - 400706</div>
+        <div class="soc-tax-badges">
+          <span class="tax-badge"><i class="bi bi-building"></i> PAN: <strong id="soc-pan">AAACH1234F</strong></span>
+          <span class="tax-badge"><i class="bi bi-file-earmark-text"></i> TAN: <strong id="soc-tan">MUMH01234F</strong></span>
+          <span class="tax-badge"><i class="bi bi-building-check"></i> GSTIN: <strong id="soc-gstin">27AAACH1234F1Z5</strong></span>
+          <span class="tax-badge"><i class="bi bi-calendar-event"></i> Period: <strong id="lbl-multi-period">FY 2026-2027</strong></span>
+        </div>
+      </div>
+      <div class="report-badge-legal">
+        <div><i class="bi bi-grid-3x3-gap-fill"></i> UNIFIED MULTI-REPORT</div>
+        <div style="font-size: 9.5px; color: #1e3a8a; font-weight: normal; margin-top: 2px;" id="lbl-gen-time">
+          Generated: Today
+        </div>
+      </div>
+    </div>
+
+    <!-- ── KPI Strip ────────────────────────────────────────────────────────── -->
+    <div class="multi-kpi-grid">
+      <div class="kpi-card">
+        <span class="kpi-label">Member Dues</span>
+        <span class="kpi-val" id="kpi-m-dues" style="color:#dc2626;">₹ 0.00</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-label">Total Receipts</span>
+        <span class="kpi-val" id="kpi-m-rv" style="color:#16a34a;">₹ 0.00</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-label">Total Payments</span>
+        <span class="kpi-val" id="kpi-m-pv">₹ 0.00</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-label">GST Total</span>
+        <span class="kpi-val" id="kpi-m-gst" style="color:#0284c7;">₹ 0.00</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-label">TDS Deducted</span>
+        <span class="kpi-val" id="kpi-m-tds" style="color:#7c3aed;">₹ 0.00</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-label">Statutory Funds</span>
+        <span class="kpi-val" id="kpi-m-funds" style="color:#0D47A1;">₹ 0.00</span>
+      </div>
+    </div>
+
+    <!-- ── Section 2: Member Summary Table ──────────────────────────────────── -->
+    <div class="multi-section-card" id="sec-members">
+      <div class="multi-card-header">
+        <h3><i class="bi bi-people-fill text-primary"></i> Section 2 — Member Billing &amp; Outstanding Dues Statement</h3>
+      </div>
+      <div class="table-responsive">
+        <table class="multi-table">
+          <thead>
+            <tr>
+              <th class="text-center" style="width: 40px;">Sr</th>
+              <th>Member Name</th>
+              <th>Unit / Flat</th>
+              <th class="text-right">Billed Charges (₹)</th>
+              <th class="text-right">Current Outstanding Dues (₹)</th>
+            </tr>
+          </thead>
+          <tbody id="tbl-multi-members-body">
+            <tr><td colspan="5" class="text-center" style="padding: 20px;">Loading members...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Section 3: Account Summary Table ─────────────────────────────────── -->
+    <div class="multi-section-card" id="sec-accounts">
+      <div class="multi-card-header">
+        <h3><i class="bi bi-book-fill text-primary"></i> Section 3 — Chart of Accounts &amp; Ledger Movement</h3>
+      </div>
+      <div class="table-responsive">
+        <table class="multi-table">
+          <thead>
+            <tr>
+              <th>Account Code</th>
+              <th>Account Name</th>
+              <th>Group Category</th>
+              <th class="text-right">Total Debit (₹)</th>
+              <th class="text-right">Total Credit (₹)</th>
+            </tr>
+          </thead>
+          <tbody id="tbl-multi-accounts-body">
+            <tr><td colspan="5" class="text-center" style="padding: 20px;">Loading accounts...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Section 4: Voucher Summary Table ─────────────────────────────────── -->
+    <div class="multi-section-card" id="sec-vouchers">
+      <div class="multi-card-header">
+        <h3><i class="bi bi-receipt text-primary"></i> Section 4 — Voucher Type Totals</h3>
+      </div>
+      <div class="table-responsive">
+        <table class="multi-table">
+          <thead>
+            <tr>
+              <th>Voucher Classification</th>
+              <th class="text-center">Count</th>
+              <th class="text-right">Cumulative Amount (₹)</th>
+            </tr>
+          </thead>
+          <tbody id="tbl-multi-vouchers-body">
+            <tr><td colspan="3" class="text-center" style="padding: 20px;">Loading vouchers...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Section 5: Tax Summary (TDS & GST) ────────────────────────────────── -->
+    <div class="multi-section-card" id="sec-tax">
+      <div class="multi-card-header">
+        <h3><i class="bi bi-shield-check text-primary"></i> Section 5 — TDS &amp; GST Statutory Tax Summary</h3>
+      </div>
+      <div class="table-responsive">
+        <table class="multi-table">
+          <thead>
+            <tr>
+              <th>Tax Domain</th>
+              <th>Statutory Act</th>
+              <th class="text-right">Gross Taxable Base (₹)</th>
+              <th class="text-right">Calculated Tax (₹)</th>
+            </tr>
+          </thead>
+          <tbody id="tbl-multi-tax-body">
+            <tr>
+              <td><strong>TDS Compliance</strong></td>
+              <td>Income Tax Act, 1961 (Sec 194C/J/I/H)</td>
+              <td class="text-right" id="row-tds-gross">₹ 0.00</td>
+              <td class="text-right" id="row-tds-ded" style="font-weight:700; color:#7c3aed;">₹ 0.00</td>
+            </tr>
+            <tr>
+              <td><strong>GST Outward Supplies</strong></td>
+              <td>CGST / SGST Act, 2017 (SAC 999598)</td>
+              <td class="text-right" id="row-gst-taxable">₹ 0.00</td>
+              <td class="text-right" id="row-gst-total" style="font-weight:700; color:#0284c7;">₹ 0.00</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Section 6: Statutory Funds ───────────────────────────────────────── -->
+    <div class="multi-section-card" id="sec-funds">
+      <div class="multi-card-header">
+        <h3><i class="bi bi-piggy-bank-fill text-primary"></i> Section 6 — Society Statutory Reserves &amp; Funds</h3>
+      </div>
+      <div style="padding: 12px 16px; font-size: 12px;">
+        Total Society Statutory Funds &amp; Reserves: <strong id="row-total-funds" style="font-size:14px; color:#0D47A1;">₹ 0.00</strong>
+      </div>
+    </div>
+
+    <!-- ── Section 7: Cross-Module Final Reconciliation ─────────────────────── -->
+    <div class="multi-section-card" id="sec-rec">
+      <div class="multi-card-header">
+        <h3><i class="bi bi-arrow-left-right text-primary"></i> Section 7 — Cross-Module Final Society Reconciliation</h3>
+      </div>
+      <div class="table-responsive">
+        <table class="multi-table">
+          <thead>
+            <tr>
+              <th>Module / Transaction Class</th>
+              <th class="text-right">Aggregate Total (₹)</th>
+              <th class="text-center">Integrity Status</th>
+            </tr>
+          </thead>
+          <tbody id="tbl-multi-rec-body">
+            <tr>
+              <td>Receipt Vouchers (RV)</td>
+              <td class="text-right" id="rec-tot-rv">₹ 0.00</td>
+              <td class="text-center"><span class="badge-stat">Posted</span></td>
+            </tr>
+            <tr>
+              <td>Payment Vouchers (PV)</td>
+              <td class="text-right" id="rec-tot-pv">₹ 0.00</td>
+              <td class="text-center"><span class="badge-stat">Posted</span></td>
+            </tr>
+            <tr>
+              <td>Journal Vouchers (JV)</td>
+              <td class="text-right" id="rec-tot-jv">₹ 0.00</td>
+              <td class="text-center"><span class="badge-stat">Posted</span></td>
+            </tr>
+            <tr>
+              <td>Contra Vouchers (CV)</td>
+              <td class="text-right" id="rec-tot-cv">₹ 0.00</td>
+              <td class="text-center"><span class="badge-stat">Posted</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── MODAL: Save Preset ─────────────────────────────────────────────────── -->
+  <div class="modal-overlay" id="modal-save-preset">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3><i class="bi bi-save text-primary"></i> Save Custom Report Preset</h3>
+        <button class="modal-close-btn" onclick="closeModal('modal-save-preset')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Preset Report Title</label>
+          <input type="text" id="preset-title" class="multi-input" placeholder="e.g. Monthly Executive Committee Summary">
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <input type="text" id="preset-desc" class="multi-input" placeholder="e.g. Combined member dues, cash flow, and tax report">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="multi-btn" onclick="closeModal('modal-save-preset')">Cancel</button>
+        <button class="multi-btn multi-btn-primary" onclick="submitSavePreset()">Save Preset</button>
+      </div>
+    </div>
+  </div>
+
   <script src="multi-report.js"></script>
 </body>
 </html>

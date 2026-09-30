@@ -3,41 +3,121 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Data Transfer Utility — JEEVIKA ERP</title>
+  <title>Account Ledger Transfer — JEEVIKA ERP</title>
   <script src="../../../config.js"></script>
+  <script src="../../../assets/js/utils.js"></script>
   <link rel="stylesheet" href="../../../assets/css/global.css">
   <link rel="stylesheet" href="../../../assets/css/components.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="transfer.css">
 </head>
 <body class="erp-module">
-  <div class="erp-module-header">
+
+  <!-- ── Top Module Bar ───────────────────────────────────────── -->
+  <div class="module-top-bar">
     <div>
-      <div class="erp-module-title">Data Transfer Utility</div>
-      
+      <div class="module-title">
+        <i class="bi bi-arrow-left-right"></i> Account Ledger Entry Transfer
+      </div>
+      <div class="module-subtitle">
+        <i class="bi bi-shield-check text-success"></i> Safely reassign voucher ledger line items with preview and atomic database safety
+      </div>
     </div>
-    <button class="erp-btn erp-btn-primary" onclick="refreshData()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+    <div class="top-actions">
+      <button type="button" class="btn-top" onclick="resetForm()">
+        <i class="bi bi-arrow-counterclockwise"></i> Reset
+      </button>
+      <button type="button" class="btn-top btn-top-primary" onclick="loadPreview()">
+        <i class="bi bi-eye"></i> Preview Transfer
+      </button>
+      <button type="button" class="btn-top btn-top-success" id="btnExecuteTransfer" style="display:none;" onclick="confirmExecuteTransfer()">
+        <i class="bi bi-check-circle-fill"></i> Execute Transfer
+      </button>
+    </div>
   </div>
 
-  <div class="erp-search-bar">
-    <input type="text" id="searchInput" class="erp-input erp-search-input" placeholder="🔍 Search..." onkeyup="filterTable()">
-    <div class="erp-record-count" id="recordCount">Total: 0</div>
+  <!-- ── Filter Ribbon ───────────────────────────────────────── -->
+  <div class="module-filter-bar">
+    <div class="filter-group" style="flex: 1; min-width: 220px;">
+      <label class="filter-label" for="fromAccount"><i class="bi bi-box-arrow-right"></i> Source Account (From) *</label>
+      <select id="fromAccount" class="filter-select" style="width: 100%;">
+        <option value="">-- Select Source Account --</option>
+      </select>
+    </div>
+
+    <div class="filter-group" style="flex: 1; min-width: 220px;">
+      <label class="filter-label" for="toAccount"><i class="bi bi-box-arrow-in-left"></i> Target Account (To) *</label>
+      <select id="toAccount" class="filter-select" style="width: 100%;">
+        <option value="">-- Select Target Account --</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label class="filter-label" for="fromDate"><i class="bi bi-calendar3"></i> From Date</label>
+      <input type="date" id="fromDate" class="filter-input" style="width: 130px;">
+    </div>
+
+    <div class="filter-group">
+      <label class="filter-label" for="toDate"><i class="bi bi-calendar3"></i> To Date</label>
+      <input type="date" id="toDate" class="filter-input" style="width: 130px;">
+    </div>
+
+    <div class="filter-group">
+      <label class="filter-label" for="voucherType"><i class="bi bi-tag"></i> Voucher Type</label>
+      <select id="voucherType" class="filter-select" style="width: 160px;">
+        <option value="ALL">All Voucher Types</option>
+        <option value="Payment">Payment (PV)</option>
+        <option value="Receipt">Receipt (RV)</option>
+        <option value="OtherReceipt">Other Receipt (ORV)</option>
+        <option value="Contra">Contra (CV)</option>
+        <option value="Journal">Journal (JV)</option>
+      </select>
+    </div>
   </div>
 
-  <div class="erp-module-body" style="padding:0;">
-    <div class="erp-table-container" style="height:100%;border:none;">
-      <table class="erp-table striped" id="mainTable">
+  <!-- ── Summary Stats Ribbon ─────────────────────────────────── -->
+  <div class="summary-strip">
+    <div class="summary-stats">
+      <div class="stat-item">
+        <span>Line Items:</span> <span id="metricRecords" class="stat-val-highlight">0</span>
+      </div>
+      <div class="stat-item">
+        <span>Vouchers:</span> <span id="metricVouchers" class="stat-val-highlight">0</span>
+      </div>
+      <div class="stat-item">
+        <span>Total Debit:</span> <span id="metricDebit" class="stat-val-dr">₹0.00</span>
+      </div>
+      <div class="stat-item">
+        <span>Total Credit:</span> <span id="metricCredit" class="stat-val-cr">₹0.00</span>
+      </div>
+    </div>
+    <div class="summary-count" id="recordCount">
+      Showing 0 transaction(s)
+    </div>
+  </div>
+
+  <!-- ── Main Content Area / Preview Table ─────────────────────── -->
+  <div class="module-content">
+    <div class="table-container">
+      <table class="erp-data-table" id="previewTable">
         <thead>
           <tr>
-            <th style="width:40px;" class="td-center">#</th>
-            <th>Particulars / Description</th>
-            <th style="width:120px;" class="td-center">Reference</th>
-            <th style="width:120px;" class="td-center">Status</th>
+            <th style="width:36px;" class="td-center"><input type="checkbox" id="selectAll" checked onchange="toggleSelectAll()"></th>
+            <th style="width:100px;">Date</th>
+            <th style="width:120px;">Voucher No</th>
+            <th style="width:110px;">Type</th>
+            <th style="width:180px;">Account Head</th>
+            <th style="width:120px;" class="td-right">Debit (₹)</th>
+            <th style="width:120px;" class="td-right">Credit (₹)</th>
+            <th>Narration / Particulars</th>
+            <th style="width:90px;" class="td-center">Status</th>
           </tr>
         </thead>
-        <tbody id="mainTableBody">
+        <tbody id="previewTableBody">
           <tr>
-            <td colspan="4" class="text-center text-muted" style="padding:30px;">
-              Module initialized. Live data will be loaded here.
+            <td colspan="9" class="empty-state">
+              <i class="bi bi-funnel" style="font-size: 24px; display: block; margin-bottom: 6px;"></i>
+              Select Source &amp; Target accounts and click <strong>Preview Transfer</strong> to view matching voucher line items.
             </td>
           </tr>
         </tbody>
@@ -45,9 +125,6 @@
     </div>
   </div>
 
-  <script src="../../../assets/js/api.js"></script>
-  <script src="../../../assets/js/auth.js"></script>
-  <script src="../../../assets/js/utils.js"></script>
   <script src="transfer.js"></script>
 </body>
 </html>

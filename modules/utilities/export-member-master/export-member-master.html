@@ -3,51 +3,136 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Export Member Master to Excel — JEEVIKA ERP</title>
+  <title>Export Member Master — JEEVIKA ERP</title>
   <script src="../../../config.js"></script>
+  <script src="../../../assets/js/utils.js"></script>
   <link rel="stylesheet" href="../../../assets/css/global.css">
   <link rel="stylesheet" href="../../../assets/css/components.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="export-member-master.css">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body class="erp-module">
-  <div class="erp-module-header">
+
+  <!-- ── Top Module Bar ───────────────────────────────────────── -->
+  <div class="module-top-bar no-print">
     <div>
-      <div class="erp-module-title">Export Member Master to Excel</div>
-      
+      <div class="module-title">
+        <i class="bi bi-people"></i> Member Master Directory &amp; Exporter
+      </div>
+      <div class="module-subtitle">
+        <i class="bi bi-shield-check text-success"></i> Comprehensive member records with multi-format export (Excel, CSV, Print) &amp; individual profile forms
+      </div>
     </div>
-    <button class="erp-btn erp-btn-primary" onclick="refreshData()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+    <div class="top-actions">
+      <!-- Mode Toggle -->
+      <div class="mode-btn-group">
+        <button type="button" class="mode-btn active" id="btnModeList" onclick="switchViewMode('list')">
+          <i class="bi bi-table"></i> Member List
+        </button>
+        <button type="button" class="mode-btn" id="btnModeForm" onclick="switchViewMode('form')">
+          <i class="bi bi-person-badge"></i> Member Profile Form
+        </button>
+      </div>
+
+      <button type="button" class="btn-top" onclick="exportToExcel()">
+        <i class="bi bi-file-earmark-excel"></i> Export Excel
+      </button>
+      <button type="button" class="btn-top" onclick="exportToCSV()">
+        <i class="bi bi-filetype-csv"></i> Export CSV
+      </button>
+      <button type="button" class="btn-top btn-top-primary" onclick="window.print()">
+        <i class="bi bi-printer"></i> Print
+      </button>
+    </div>
   </div>
 
-  <div class="erp-search-bar">
-    <input type="text" id="searchInput" class="erp-input erp-search-input" placeholder="🔍 Search..." onkeyup="filterTable()">
-    <div class="erp-record-count" id="recordCount">Total: 0</div>
+  <!-- ── Filter Ribbon ───────────────────────────────────────── -->
+  <div class="module-filter-bar no-print">
+    <div class="filter-group" id="groupWing" style="width: 140px;">
+      <label class="filter-label" for="filterWing"><i class="bi bi-building"></i> Wing / Block</label>
+      <select id="filterWing" class="filter-select" style="width: 100%;" onchange="applyMemberFilters()">
+        <option value="ALL">All Wings</option>
+      </select>
+    </div>
+
+    <div class="filter-group" id="groupStatus" style="width: 150px;">
+      <label class="filter-label" for="filterStatus"><i class="bi bi-activity"></i> Status</label>
+      <select id="filterStatus" class="filter-select" style="width: 100%;" onchange="applyMemberFilters()">
+        <option value="ALL">All Statuses</option>
+        <option value="Active">Active</option>
+        <option value="Inactive">Inactive</option>
+      </select>
+    </div>
+
+    <div class="filter-group" id="groupSingleMember" style="flex: 1; min-width: 250px; display: none;">
+      <label class="filter-label" for="selectSingleMember"><i class="bi bi-person-circle"></i> Select Member for Profile Form *</label>
+      <select id="selectSingleMember" class="filter-select" style="width: 100%;" onchange="renderMemberForm()">
+        <option value="">-- Choose Member --</option>
+      </select>
+    </div>
+
+    <div class="filter-group" id="groupSearch" style="flex: 1; min-width: 200px;">
+      <label class="filter-label" for="searchMember"><i class="bi bi-search"></i> Search Member / Flat / Mobile</label>
+      <input type="text" id="searchMember" class="filter-input" style="width: 100%;" placeholder="Type to filter..." onkeyup="applyMemberFilters()">
+    </div>
   </div>
 
-  <div class="erp-module-body" style="padding:0;">
-    <div class="erp-table-container" style="height:100%;border:none;">
-      <table class="erp-table striped" id="mainTable">
+  <!-- ── Summary Stats Ribbon ─────────────────────────────────── -->
+  <div class="summary-strip no-print">
+    <div class="summary-stats">
+      <div class="stat-item">
+        <span>Total Members:</span> <span id="metricCount" class="stat-val-highlight">0</span>
+      </div>
+      <div class="stat-item">
+        <span>Total Shares:</span> <span id="metricShares" class="stat-val-highlight">0</span>
+      </div>
+      <div class="stat-item">
+        <span>Opening Principal Dues:</span> <span id="metricDues" class="stat-val-dr">₹0.00</span>
+      </div>
+    </div>
+    <div class="summary-count" id="recordCount">
+      Showing 0 member(s)
+    </div>
+  </div>
+
+  <!-- ── Main Content Area ─────────────────────────────────────── -->
+  <div class="module-content">
+    <!-- View 1: Member List Table -->
+    <div class="table-container" id="listViewContainer">
+      <table class="erp-data-table" id="memberTable">
         <thead>
           <tr>
-            <th style="width:40px;" class="td-center">#</th>
-            <th>Particulars / Description</th>
-            <th style="width:120px;" class="td-center">Reference</th>
-            <th style="width:120px;" class="td-center">Status</th>
+            <th style="width:45px;" class="td-center">#</th>
+            <th style="width:95px;">Flat No</th>
+            <th style="width:70px;" class="td-center">Wing</th>
+            <th style="width:220px;">Primary Member Name</th>
+            <th style="width:160px;">Co-Member / Nominee</th>
+            <th style="width:120px;">Mobile No</th>
+            <th style="width:70px;" class="td-center">Shares</th>
+            <th style="width:110px;">Share Cert No</th>
+            <th style="width:120px;" class="td-right">Op Dues (₹)</th>
+            <th style="width:80px;" class="td-center">Status</th>
           </tr>
         </thead>
-        <tbody id="mainTableBody">
+        <tbody id="memberTableBody">
           <tr>
-            <td colspan="4" class="text-center text-muted" style="padding:30px;">
-              Module initialized. Live data will be loaded here.
+            <td colspan="10" class="empty-state">
+              <div class="erp-spinner"></div> Loading member master records...
             </td>
           </tr>
         </tbody>
       </table>
     </div>
+
+    <!-- View 2: Member Form Card -->
+    <div id="formViewContainer" style="display:none;">
+      <div class="member-form-card" id="memberFormCard">
+        <div class="empty-state">Select a member from the dropdown above to display the profile card.</div>
+      </div>
+    </div>
   </div>
 
-  <script src="../../../assets/js/api.js"></script>
-  <script src="../../../assets/js/auth.js"></script>
-  <script src="../../../assets/js/utils.js"></script>
   <script src="export-member-master.js"></script>
 </body>
 </html>

@@ -215,9 +215,14 @@ builder.Services.AddCors(options =>
     {
         policy.SetIsOriginAllowed(_ => true)
               .AllowAnyHeader()
-              .AllowAnyMethod();
+              .AllowAnyMethod()
+              .AllowCredentials();
     });
 });
+
+// ── Real-Time SignalR & Outbox Worker ────────────────────────
+builder.Services.AddSignalR();
+builder.Services.AddHostedService<JeevikaERP.Services.CommunicationOutboxWorker>();
 
 // ── 2. JWT Authentication ────────────────────────────────────
 var jwtSecret = builder.Configuration["JwtSettings:Secret"]
@@ -287,12 +292,9 @@ DbHelper.Initialize(builder.Configuration);
 // ── Build App ────────────────────────────────────────────────
 var app = builder.Build();
 
-// ── 5. Swagger in Development ────────────────────────────────
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "JEEVIKA ERP API v2"));
-}
+// ── 5. Swagger ──────────────────────────────────────────────
+app.UseSwagger();
+app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "JEEVIKA ERP API v2"));
 
 // ── 6. Middleware Pipeline ────────────────────────────────────
 app.UseCors("JeevikaPolicy");
@@ -307,9 +309,27 @@ if (Directory.Exists(rootPath))
     });
 }
 
+// ── Health Check Endpoint ────────────────────────────────────
+app.MapGet("/health", () =>
+{
+    var (dbOk, dbMsg) = DbHelper.TestConnection();
+    var status = dbOk ? "Healthy" : "Degraded";
+    var result = new
+    {
+        status,
+        database = dbOk ? "Connected" : "Disconnected",
+        databaseMessage = dbOk ? "Database connection verified." : dbMsg,
+        timestamp = DateTime.UtcNow.ToString("o"),
+        version = "2.0.0",
+        environment = app.Environment.EnvironmentName
+    };
+    return dbOk ? Results.Ok(result) : Results.Json(result, statusCode: 503);
+});
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<JeevikaERP.Hubs.CommunicationHub>("/hubs/communication");
 
 // ── 7. Ensure default admin user exists on startup ───────────
 var adminUser = builder.Configuration["AppSettings:DefaultAdminUser"] ?? "ADMIN";
@@ -327,7 +347,7 @@ else
     Console.WriteLine("[Startup] Make sure PostgreSQL is running and appsettings.json has correct credentials.");
 }
 
-Console.WriteLine($"[Startup] 🚀 JEEVIKA ERP v2 running at http://localhost:5002");
+Console.WriteLine($"[Startup] 🚀 HENU ERP v2 running at http://localhost:5002");
 Console.WriteLine($"[Startup] 📚 Swagger UI: http://localhost:5002/swagger");
 
 app.Run("http://*:5002");

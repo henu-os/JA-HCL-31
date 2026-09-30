@@ -807,7 +807,29 @@
               </div>
             </div>
 
-
+            <!-- SECTION 8: BALANCE SHEET EXCEL SIGNATORY BLOCK POSITION -->
+            <div
+              style="display:flex; align-items:flex-start; gap:12px; background:#f8f9fa; padding:12px 14px; border:1px solid #d0d7de; border-radius:4px;">
+              <label class="cnm-switch" style="margin-top:2px;">
+                <input type="checkbox" id="cnm-config-bs-signatory-right" onchange="cnmUpdateBsSignatoryLabel(this.checked)">
+                <span class="cnm-slider"></span>
+              </label>
+              <div style="flex:1;">
+                <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+                  <label for="cnm-config-bs-signatory-right"
+                    style="font-weight:700; color:#1565C0; font-size:12px; cursor:pointer;">
+                    8. BALANCE SHEET EXCEL SIGNATORY BLOCK POSITION (LEFT / RIGHT)
+                    <span
+                      style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-size:10px; font-weight:700; padding:1px 6px; border-radius:3px; margin-left:6px; font-family:'Segoe UI', sans-serif; letter-spacing:0.3px; vertical-align:middle;">[FINAL ACCOUNTS / BALANCE SHEET]</span>
+                  </label>
+                  <span id="cnm-bs-signatory-badge" style="font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:10px; background:#f1f5f9; color:#475569; border:1px solid #cbd5e1;">LEFT SIDE</span>
+                </div>
+                <div style="color:#666; font-size:11px; margin-top:4px; line-height:1.4;">
+                  Configure the placement of the statutory attestation signatory block (<em>For { Society name } / Chairman &mdash; Secretary &mdash; Treasurer</em>) in downloaded Balance Sheet Excel (.xlsx) workbooks.
+                  Toggle <strong>OFF</strong> for <strong>Left Side</strong> (under Liabilities) or <strong>ON</strong> for <strong>Right Side</strong> (under Assets).
+                </div>
+              </div>
+            </div>
 
           </div>
         </div>
@@ -1259,8 +1281,37 @@
           if (cfg.allowPoMode !== undefined) document.getElementById('cnm-config-allow-po-mode').checked = !!cfg.allowPoMode;
           if (cfg.allowCashBankJv !== undefined) document.getElementById('cnm-config-allow-cash-bank-jv').checked = !!cfg.allowCashBankJv;
           if (cfg.allowGridAccountSelect !== undefined) document.getElementById('cnm-config-allow-grid-account-select').checked = !!cfg.allowGridAccountSelect;
+          
+          if (cfg.bsSignatoryRight !== undefined) {
+            var bsRight = !!cfg.bsSignatoryRight;
+            var chkBs = document.getElementById('cnm-config-bs-signatory-right');
+            if (chkBs) chkBs.checked = bsRight;
+            cnmUpdateBsSignatoryLabel(bsRight);
+          } else if (cfg.bsSignatoryPosition) {
+            var bsRight2 = (cfg.bsSignatoryPosition === 'right');
+            var chkBs2 = document.getElementById('cnm-config-bs-signatory-right');
+            if (chkBs2) chkBs2.checked = bsRight2;
+            cnmUpdateBsSignatoryLabel(bsRight2);
+          }
         } catch (e) {
           console.warn("Failed loading saved config", e);
+        }
+      }
+
+      function cnmUpdateBsSignatoryLabel(checked) {
+        var badge = document.getElementById('cnm-bs-signatory-badge');
+        if (badge) {
+          if (checked) {
+            badge.textContent = 'RIGHT SIDE';
+            badge.style.background = '#e0f2fe';
+            badge.style.color = '#0369a1';
+            badge.style.borderColor = '#bae6fd';
+          } else {
+            badge.textContent = 'LEFT SIDE';
+            badge.style.background = '#f1f5f9';
+            badge.style.color = '#475569';
+            badge.style.borderColor = '#cbd5e1';
+          }
         }
       }
 
@@ -1298,7 +1349,9 @@
             allowMemberManualMode: getC('cnm-config-allow-member-manual-mode'),
             allowPoMode: getC('cnm-config-allow-po-mode'),
             allowCashBankJv: getC('cnm-config-allow-cash-bank-jv'),
-            allowGridAccountSelect: getC('cnm-config-allow-grid-account-select')
+            allowGridAccountSelect: getC('cnm-config-allow-grid-account-select'),
+            bsSignatoryRight: getC('cnm-config-bs-signatory-right'),
+            bsSignatoryPosition: getC('cnm-config-bs-signatory-right') ? 'right' : 'left'
           };
 
           var activeSid = getActiveSocietyId();
@@ -1433,6 +1486,7 @@
       window.closeAddVoucherModal = closeAddVoucherModal;
       window.confirmAddVoucherType = confirmAddVoucherType;
       window.cnmDeleteCustomSub = cnmDeleteCustomSub;
+      window.cnmUpdateBsSignatoryLabel = cnmUpdateBsSignatoryLabel;
 
       // Init context & load
       (function init() {

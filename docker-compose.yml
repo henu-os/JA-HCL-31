@@ -1,0 +1,48 @@
+services:
+
+  # PostgreSQL Database Container
+  postgres:
+    image: postgres:16-alpine
+    container_name: jeevika-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DATABASE:-jeevika_db_v2}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DATABASE:-jeevika_db_v2}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # JEEVIKA ERP ASP.NET Core 8 Web API & Frontend Container
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: jeevika-api
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - DatabaseProvider=PostgreSQL
+      - ConnectionStrings__Default=Host=postgres;Port=5432;Database=${POSTGRES_DATABASE:-jeevika_db_v2};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-postgres};SearchPath=jeevika_erp,public;
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-jeevika_erp_secure_master_key_2026_aes256}
+    ports:
+      - "${APP_PORT:-5002}:5002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - attachments_data:/app/Database/Attachments
+
+volumes:
+  postgres_data:
+    name: jeevika_postgres_data
+  attachments_data:
+    name: jeevika_attachments_data

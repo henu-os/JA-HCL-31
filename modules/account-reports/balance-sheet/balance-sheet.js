@@ -176,11 +176,82 @@
       printTitleEl.textContent = `Balance Sheet As On ${curAsOnStr || data.asOnDate || '—'}`;
     }
 
-    // Print Signatory Society Name
-    const signSocEl = document.getElementById('bsSignSocName');
-    if (signSocEl) {
-      signSocEl.textContent = `For ${activeSocName || 'Co-Operative Housing Society Ltd.'}`;
+    // Dynamic Footers Placement (Controlled by Configuration & Notes Master: Left / Right)
+    const cfg = getBsConfig();
+    const isRight = (getBsSignatoryPosition() === 'right');
+    const leftSignCell = document.querySelector('.bs-print-sign-row td:first-child');
+    const rightSignCell = document.querySelector('.bs-print-sign-row td:last-child');
+
+    let genLines = (cfg && Array.isArray(cfg.genFooters)) ? cfg.genFooters : [];
+    let audLines = (cfg && Array.isArray(cfg.audFooters)) ? cfg.audFooters : [];
+    const hasCustomGen = genLines.some(l => l && l.trim());
+
+    let mgmtHtml = '';
+    if (hasCustomGen) {
+      mgmtHtml = genLines.map(line => {
+        if (!line || !line.trim()) return '<div style="min-height:16px;">&nbsp;</div>';
+        return `<div style="font-weight:700; font-size:11px; line-height:1.5; color:#1e293b;">${escHtml(line)}</div>`;
+      }).join('');
+    } else {
+      mgmtHtml = `
+        <div class="bs-sign-society" id="bsSignSocName">For ${escHtml(activeSocName || 'Co-Operative Housing Society Ltd.')}</div>
+        <div class="bs-sign-officers">
+          <span>Chairman</span>
+          <span>Secretary</span>
+          <span>Treasurer</span>
+        </div>
+      `;
     }
+
+    let audHtml = '';
+    if (audLines.some(l => l && l.trim())) {
+      audHtml = audLines.map(line => {
+        if (!line || !line.trim()) return '';
+        return `<div style="font-size:10px; font-style:italic; line-height:1.4; color:#475569;">${escHtml(line)}</div>`;
+      }).join('');
+    }
+
+    if (leftSignCell && rightSignCell) {
+      if (isRight) {
+        leftSignCell.innerHTML = audHtml;
+        leftSignCell.className = audHtml ? 'bs-sign-cell' : 'bs-sign-cell bs-sign-blank';
+        rightSignCell.innerHTML = mgmtHtml;
+        rightSignCell.className = 'bs-sign-cell';
+      } else {
+        leftSignCell.innerHTML = mgmtHtml;
+        leftSignCell.className = 'bs-sign-cell';
+        rightSignCell.innerHTML = audHtml;
+        rightSignCell.className = audHtml ? 'bs-sign-cell' : 'bs-sign-cell bs-sign-blank';
+      }
+    }
+  }
+
+  function getBsConfig() {
+    try {
+      const sid = (window.Auth && Auth.getSocietyId && Auth.getSocietyId() !== '—')
+        ? Auth.getSocietyId()
+        : (sessionStorage.getItem('activeSocietyId') || localStorage.getItem('activeSocietyId') || '1');
+      const cfgRaw = localStorage.getItem('jeevika_config_notes_' + sid) || localStorage.getItem('jeevika_config_notes_global');
+      if (cfgRaw) {
+        return JSON.parse(cfgRaw);
+      }
+    } catch (e) {
+      console.warn('Could not read config:', e);
+    }
+    return null;
+  }
+
+  function getBsSignatoryPosition() {
+    const cfg = getBsConfig();
+    if (cfg) {
+      if (cfg.bsSignatoryRight !== undefined) {
+        return cfg.bsSignatoryRight ? 'right' : 'left';
+      }
+      if (cfg.bsSignatoryPosition) {
+        return cfg.bsSignatoryPosition;
+      }
+    }
+    return 'left';
   }
 
   // ── 4. T-FORMAT SIDE-BY-SIDE RENDERER ────────────────────────────────────
@@ -1232,23 +1303,64 @@
       border: getBorders(7, thinBorder, doubleBorder)
     }, '#,##0.00', assetTotFormula);
 
-    // Signatory Section
+    // Signatory / Footer Section (Controlled by Configuration & Notes Master: Left / Right & 6-Line Footers)
+    const cfg = getBsConfig();
+    const isSignatoryRight = (getBsSignatoryPosition() === 'right');
+    const signStartCol = isSignatoryRight ? 4 : 0;
+    const signEndCol = isSignatoryRight ? 7 : 3;
+    const otherStartCol = isSignatoryRight ? 0 : 4;
+    const otherEndCol = isSignatoryRight ? 3 : 7;
     const rSign = rTotal + 2;
-    setCell(rSign, 0, `For ${socName}`, 's', {
-      font: { name: 'Calibri', sz: 11, bold: true, color: { rgb: '000000' } },
-      alignment: { horizontal: 'left', vertical: 'center' }
-    });
-    merges.push({ s: { r: rSign, c: 0 }, e: { r: rSign, c: 2 } });
 
-    const rBoxes = rSign + 4;
-    setCell(rBoxes, 0, 'Chairman                        Secretary                        Treasurer', 's', {
-      font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: '000000' } },
-      alignment: { horizontal: 'left', vertical: 'center' }
-    });
-    merges.push({ s: { r: rBoxes, c: 0 }, e: { r: rBoxes, c: 2 } });
+    let genLines = (cfg && Array.isArray(cfg.genFooters)) ? cfg.genFooters : [];
+    let audLines = (cfg && Array.isArray(cfg.audFooters)) ? cfg.audFooters : [];
+    const hasCustomGen = genLines.some(l => l && l.trim());
+
+    if (!hasCustomGen) {
+      genLines = [
+        `For ${socName}`,
+        '',
+        '',
+        'Chairman                        Secretary                        Treasurer',
+        '',
+        ''
+      ];
+    }
+
+    const maxLineCount = 6;
+
+    // Clear and write cells for all 6 footer lines
+    for (let i = 0; i < maxLineCount; i++) {
+      const rowIdx = rSign + i;
+      for (let c = 0; c < 8; c++) {
+        setCell(rowIdx, c, '', 's', {});
+      }
+
+      // Management / General Footer (Placed at signStartCol..signEndCol)
+      const gText = genLines[i] || '';
+      if (gText) {
+        setCell(rowIdx, signStartCol, gText, 's', {
+          font: { name: 'Calibri', sz: (i === 0 ? 11 : 10), bold: true, color: { rgb: '000000' } },
+          alignment: { horizontal: 'left', vertical: 'center' }
+        });
+      }
+      merges.push({ s: { r: rowIdx, c: signStartCol }, e: { r: rowIdx, c: signEndCol } });
+
+      // Auditor Disclaimer / Footer (Placed at otherStartCol..otherEndCol if configured)
+      const aText = audLines[i] || '';
+      if (aText) {
+        setCell(rowIdx, otherStartCol, aText, 's', {
+          font: { name: 'Calibri', sz: 9.5, italic: true, color: { rgb: '333333' } },
+          alignment: { horizontal: 'left', vertical: 'center' }
+        });
+        merges.push({ s: { r: rowIdx, c: otherStartCol }, e: { r: rowIdx, c: otherEndCol } });
+      }
+    }
+
+    const lastFooterRow = rSign + maxLineCount - 1;
 
     // Set Ref & Merges
-    ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: rBoxes + 1, c: 7 } });
+    ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: lastFooterRow + 1, c: 7 } });
     ws['!merges'] = merges;
 
     // Column Widths

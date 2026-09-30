@@ -1,0 +1,727 @@
+/* ═════════════════════════════════════════════════════════════════════
+   JEEVIKA ERP v2 — ADDITIONAL REPORTS: VOUCHER PRINT COMMON CSS
+   Production-grade Statutory Accounting Voucher Print & Register Styles
+   ═════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --vp-primary: #0D47A1;
+  --vp-primary-hover: #0a3880;
+  --vp-primary-light: #eff6ff;
+  --vp-border-clr: #cbd5e1;
+  --vp-navy: #0f172a;
+  --vp-bg-page: #f8fafc;
+  --vp-text-dark: #1e293b;
+  --vp-text-muted: #64748b;
+  --vp-danger: #dc2626;
+  --vp-success: #16a34a;
+  --vp-warning: #d97706;
+}
+
+body.erp-module {
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--vp-bg-page);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  color: var(--vp-text-dark);
+  overflow: hidden;
+}
+
+/* ── Top Toolbar ─────────────────────────────────────────────────── */
+.vp-toolbar {
+  background: #ffffff;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--vp-border-clr);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+}
+
+.vp-filter-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.vp-filter-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.vp-filter-item label {
+  cursor: pointer;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.vp-input, .vp-select {
+  height: 28px;
+  padding: 2px 8px;
+  font-size: 11px;
+  border: 1px solid var(--vp-border-clr);
+  border-radius: 4px;
+  background: #ffffff;
+  color: var(--vp-text-dark);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.vp-input:focus, .vp-select:focus {
+  border-color: var(--vp-primary);
+  box-shadow: 0 0 0 2px rgba(13, 71, 161, 0.12);
+}
+
+/* Date Preset Buttons */
+.vp-preset-btn-group {
+  display: inline-flex;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid var(--vp-border-clr);
+}
+
+.vp-preset-btn {
+  background: #ffffff;
+  border: none;
+  border-right: 1px solid var(--vp-border-clr);
+  padding: 4px 8px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.vp-preset-btn:last-child {
+  border-right: none;
+}
+
+.vp-preset-btn:hover {
+  background: #f1f5f9;
+  color: var(--vp-navy);
+}
+
+.vp-preset-btn.active {
+  background: var(--vp-primary);
+  color: #ffffff;
+}
+
+/* Search Box */
+.vp-search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.vp-search-box i {
+  position: absolute;
+  left: 8px;
+  font-size: 11px;
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.vp-search-box input {
+  padding-left: 26px;
+  width: 170px;
+  height: 28px;
+  font-size: 11px;
+  border: 1px solid var(--vp-border-clr);
+  border-radius: 4px;
+  outline: none;
+}
+
+.vp-search-box input:focus {
+  border-color: var(--vp-primary);
+  width: 200px;
+  box-shadow: 0 0 0 2px rgba(13, 71, 161, 0.12);
+}
+
+/* Buttons */
+.vp-btn {
+  height: 28px;
+  padding: 0 10px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 4px;
+  border: 1px solid var(--vp-border-clr);
+  background: #ffffff;
+  color: #334155;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s;
+}
+
+.vp-btn:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  color: var(--vp-navy);
+}
+
+.vp-btn-primary {
+  background: var(--vp-primary);
+  border-color: var(--vp-primary);
+  color: #ffffff;
+}
+
+.vp-btn-primary:hover {
+  background: var(--vp-primary-hover);
+  border-color: var(--vp-primary-hover);
+  color: #ffffff;
+}
+
+.vp-btn-success {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: #ffffff;
+}
+
+.vp-btn-success:hover {
+  background: #15803d;
+  border-color: #15803d;
+  color: #ffffff;
+}
+
+.vp-btn-outline {
+  background: transparent;
+  border-color: var(--vp-primary);
+  color: var(--vp-primary);
+}
+
+.vp-btn-outline:hover {
+  background: var(--vp-primary-light);
+}
+
+/* ── Scrollable Body Area ────────────────────────────────────────── */
+.vp-scroll-wrapper {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 16px;
+}
+
+.vp-card {
+  background: #ffffff;
+  border-radius: 6px;
+  border: 1px solid var(--vp-border-clr);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Status / KPI summary bar */
+.vp-summary-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8fafc;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--vp-border-clr);
+  font-size: 11px;
+}
+
+.vp-kpi-chips {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.vp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #ffffff;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+  font-weight: 600;
+  color: #475569;
+}
+
+.vp-chip-val {
+  font-weight: 800;
+  color: var(--vp-navy);
+}
+
+/* ── Result Table ─────────────────────────────────────────────────── */
+.vp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  text-align: left;
+}
+
+.vp-table th {
+  background: #f1f5f9;
+  color: #334155;
+  font-weight: 700;
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--vp-border-clr);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.vp-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #1e293b;
+  vertical-align: middle;
+}
+
+.vp-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.vp-table tbody tr.selected {
+  background: #eff6ff !important;
+}
+
+.td-center { text-align: center; }
+.td-right { text-align: right; }
+.td-amt { font-family: 'Consolas', 'Courier New', monospace; font-weight: 700; text-align: right; }
+
+.badge-voucher {
+  background: #e0f2fe;
+  color: #0369a1;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.badge-balanced {
+  background: #dcfce7;
+  color: #15803d;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+}
+
+.badge-unbalanced {
+  background: #fee2e2;
+  color: #b91c1c;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+}
+
+.row-action-btn {
+  height: 22px;
+  padding: 0 6px;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 3px;
+  border: 1px solid var(--vp-border-clr);
+  background: #ffffff;
+  color: #475569;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  transition: all 0.12s;
+}
+
+.row-action-btn:hover {
+  background: var(--vp-primary-light);
+  border-color: var(--vp-primary);
+  color: var(--vp-primary);
+}
+
+.row-action-btn.btn-prt:hover {
+  background: #dcfce7;
+  border-color: #16a34a;
+  color: #16a34a;
+}
+
+/* ── Modal Dialog for Voucher Preview ────────────────────────────── */
+.vp-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(3px);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: vpFadeIn 0.15s ease-out;
+}
+
+@keyframes vpFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.vp-modal-card {
+  background: #e2e8f0;
+  width: 900px;
+  max-width: 95vw;
+  height: 94vh;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.35);
+  overflow: hidden;
+  border: 1px solid #cbd5e1;
+}
+
+.vp-modal-header {
+  background: #0D47A1;
+  color: #ffffff;
+  padding: 10px 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.vp-modal-title {
+  font-size: 13px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vp-modal-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vp-modal-close-btn {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 18px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.vp-modal-close-btn:hover {
+  background: rgba(255,255,255,0.2);
+}
+
+.vp-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  justify-content: center;
+  background: #64748b;
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   OFFICIAL STATUTORY VOUCHER PAPER FORMAT (A4 PORTRAIT SIMULATION)
+   ═════════════════════════════════════════════════════════════════════ */
+.voucher-paper {
+  background: #ffffff;
+  width: 790px;
+  min-height: 1050px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+  padding: 32px 36px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  color: #000000;
+  font-family: 'Times New Roman', Times, serif, 'Segoe UI', Arial;
+  position: relative;
+  margin-bottom: 24px;
+}
+
+.voucher-paper:last-child {
+  margin-bottom: 0;
+}
+
+/* Outer Border of Voucher */
+.voucher-border-frame {
+  border: 2px solid #000000;
+  padding: 18px 22px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  position: relative;
+}
+
+/* Inner Header Box */
+.v-header-box {
+  text-align: center;
+  border-bottom: 2px double #000000;
+  padding-bottom: 12px;
+  margin-bottom: 14px;
+}
+
+.v-soc-name {
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #000000;
+  margin-bottom: 3px;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.v-soc-address {
+  font-size: 11px;
+  color: #222;
+  margin-bottom: 2px;
+  line-height: 1.35;
+}
+
+.v-soc-meta {
+  font-size: 10.5px;
+  color: #333;
+  margin-top: 3px;
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* Voucher Title Ribbon */
+.v-title-ribbon {
+  text-align: center;
+  margin: 10px 0 14px 0;
+}
+
+.v-title-text {
+  display: inline-block;
+  font-size: 15px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-top: 1px solid #000;
+  border-bottom: 1px solid #000;
+  padding: 3px 24px;
+  background: #f8fafc;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Metadata Grid Box */
+.v-meta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 16px;
+  margin-bottom: 14px;
+  font-size: 11.5px;
+  border: 1px solid #000000;
+  padding: 8px 12px;
+  background: #ffffff;
+}
+
+.v-meta-row {
+  display: flex;
+  align-items: baseline;
+  line-height: 1.4;
+}
+
+.v-meta-lbl {
+  font-weight: 700;
+  width: 125px;
+  min-width: 125px;
+  color: #111;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 11px;
+}
+
+.v-meta-val {
+  flex: 1;
+  font-weight: 600;
+  color: #000;
+  border-bottom: 1px dotted #888;
+  padding-bottom: 1px;
+}
+
+/* Line Items Table */
+.v-particulars-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 14px;
+  font-size: 11px;
+}
+
+.v-particulars-table th {
+  border: 1px solid #000000;
+  background: #f1f5f9;
+  font-weight: 800;
+  padding: 6px 8px;
+  text-align: left;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 10.5px;
+  text-transform: uppercase;
+}
+
+.v-particulars-table td {
+  border: 1px solid #000000;
+  padding: 6px 8px;
+  vertical-align: top;
+  line-height: 1.35;
+}
+
+.v-particulars-table tfoot td {
+  border: 1px solid #000000;
+  font-weight: 800;
+  padding: 6px 8px;
+  background: #f8fafc;
+}
+
+/* Amount in Words Box */
+.v-words-box {
+  border: 1px solid #000000;
+  padding: 8px 12px;
+  margin-bottom: 16px;
+  font-size: 11px;
+  background: #ffffff;
+  display: flex;
+  align-items: baseline;
+  line-height: 1.4;
+}
+
+.v-words-lbl {
+  font-weight: 800;
+  font-family: Arial, Helvetica, sans-serif;
+  width: 130px;
+  min-width: 130px;
+  color: #111;
+  font-size: 11px;
+}
+
+.v-words-val {
+  flex: 1;
+  font-weight: 700;
+  font-style: italic;
+  color: #000;
+}
+
+/* Narration Master Box */
+.v-narr-box {
+  border: 1px solid #000000;
+  padding: 7px 12px;
+  margin-bottom: 24px;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.v-narr-lbl {
+  font-weight: 800;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 10.5px;
+  margin-right: 6px;
+}
+
+/* Signature Section */
+.v-signature-row {
+  margin-top: auto;
+  padding-top: 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  font-size: 11px;
+  text-align: center;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.v-sig-block {
+  width: 140px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.v-sig-line {
+  border-top: 1px solid #000000;
+  width: 100%;
+  margin-bottom: 4px;
+}
+
+.v-sig-title {
+  font-weight: 700;
+  color: #111;
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   PRINT ENGINE STYLES (@media print)
+   ═════════════════════════════════════════════════════════════════════ */
+@page {
+  size: A4 portrait;
+  margin: 10mm 12mm 12mm 12mm;
+}
+
+@media print {
+  html, body {
+    height: auto !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+  }
+
+  body.erp-module * {
+    visibility: hidden;
+  }
+
+  .voucher-print-zone,
+  .voucher-print-zone * {
+    visibility: visible;
+  }
+
+  .voucher-print-zone {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    background: #ffffff;
+  }
+
+  .voucher-paper {
+    width: 100% !important;
+    min-height: auto !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 0 20mm 0 !important;
+    page-break-after: always;
+  }
+
+  .voucher-paper:last-child {
+    page-break-after: avoid;
+    margin-bottom: 0 !important;
+  }
+
+  .voucher-border-frame {
+    border: 2px solid #000 !important;
+    padding: 14px 18px !important;
+  }
+
+  .no-print,
+  .vp-toolbar,
+  .vp-modal-backdrop,
+  .vp-scroll-wrapper,
+  .erp-header,
+  .erp-sidebar {
+    display: none !important;
+  }
+}

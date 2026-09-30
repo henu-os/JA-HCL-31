@@ -1,0 +1,399 @@
+/* ═══════════════════════════════════════════════════════════
+   JEEVIKA ERP v2 — UNIFIED MEMBER REPORTS DATA GRID CSS
+   Matches the exact UI/UX of Outstanding List
+   ═══════════════════════════════════════════════════════════ */
+
+:root {
+  --primary: #0D47A1;
+  --primary-hover: #0a3880;
+  --primary-light: #eff6ff;
+  --border-clr: #cbd5e1;
+  --bg-strip: #f8fafc;
+  --navy: #0f172a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body.erp-module {
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f1f5f9;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  color: #1e293b;
+  overflow: hidden;
+}
+
+/* Top Module Bar */
+.module-top-bar {
+  background: #ffffff;
+  padding: 8px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border-clr);
+  flex-shrink: 0;
+}
+.module-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-top {
+  background: #ffffff;
+  color: var(--primary);
+  border: 1px solid #bfdbfe;
+  padding: 5px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+}
+.btn-top:hover {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary-hover);
+}
+.btn-top.primary {
+  background: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+}
+.btn-top.primary:hover {
+  background: var(--primary-hover);
+}
+
+/* Filters Header Panel */
+.filter-bar {
+  background: #ffffff;
+  padding: 10px 16px 8px 16px;
+  border-bottom: 1px solid var(--border-clr);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.filter-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.filter-lbl {
+  font-size: 10px;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.filter-input {
+  height: 28px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  background: #ffffff;
+  color: #1e293b;
+  outline: none;
+  transition: all 0.15s;
+}
+.filter-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(13,71,161,0.12);
+}
+
+/* Summary Popover Dropdown */
+.summary-dropdown-wrap {
+  position: relative;
+  margin-left: auto;
+}
+.summary-dropdown-btn {
+  height: 28px;
+  padding: 2px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #f8fafc;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s;
+}
+.summary-dropdown-btn:hover {
+  background: #eff6ff;
+  border-color: #93c5fd;
+}
+.summary-popover {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: 34px;
+  width: 320px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.1);
+  padding: 12px;
+  z-index: 100;
+}
+.summary-popover.show {
+  display: block;
+}
+.summary-popover-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 8px;
+  margin-bottom: 10px;
+}
+.summary-popover-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.pop-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+}
+.pop-card.full-width {
+  grid-column: span 2;
+}
+.pop-lbl {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+}
+.pop-val {
+  font-size: 13px;
+  font-weight: 800;
+  color: #0f172a;
+  margin-top: 2px;
+  font-family: 'Consolas', monospace;
+}
+.pop-val.debit { color: #dc2626; }
+.pop-val.credit { color: #16a34a; }
+
+/* Data Table Container */
+.table-container {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: auto;
+  background: #ffffff;
+}
+
+table.ledger-grid {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11.5px;
+}
+table.ledger-grid thead th {
+  position: sticky;
+  top: 0;
+  background: #f1f5f9;
+  color: #0f172a;
+  font-weight: 800;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  padding: 6px 8px;
+  border-bottom: 1.5px solid #cbd5e1;
+  border-right: 1px solid #e2e8f0;
+  z-index: 10;
+  white-space: nowrap;
+  text-align: left;
+}
+table.ledger-grid thead th.text-center { text-align: center; }
+table.ledger-grid thead th.text-right { text-align: right; }
+
+table.ledger-grid tbody td {
+  padding: 5px 8px;
+  border-bottom: 1px solid #e2e8f0;
+  border-right: 1px solid #f1f5f9;
+  color: #334155;
+  vertical-align: middle;
+  font-size: 11px;
+  white-space: nowrap;
+}
+table.ledger-grid tbody tr:hover {
+  background: #f8fafc;
+}
+
+table.ledger-grid tfoot {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+}
+table.ledger-grid tfoot td {
+  background: #f1f5f9;
+  font-weight: 800;
+  font-size: 11.5px;
+  padding: 5px 8px;
+  border-right: 1px solid #e2e8f0;
+}
+table.ledger-grid tfoot tr.gt-row td {
+  border-top: 1.5px solid #94a3b8;
+}
+
+.td-num {
+  text-align: right;
+  font-family: 'Consolas', monospace;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.val-debit { color: #dc2626; }
+.val-credit { color: #16a34a; }
+
+.badge-status {
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  display: inline-block;
+}
+.badge-paid { background: #dcfce7; color: #166534; }
+.badge-partial { background: #fef3c7; color: #92400e; }
+.badge-unpaid { background: #fee2e2; color: #991b1b; }
+
+.badge-mode {
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  display: inline-block;
+}
+.badge-cheque { background: #e0e7ff; color: #3730a3; }
+.badge-neft { background: #dbeafe; color: #1e40af; }
+.badge-cash { background: #fef3c7; color: #92400e; }
+
+/* Format Sheets and Printable Document Previews */
+.format-preview-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.format-sheet {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  padding: 24px 28px;
+  margin-bottom: 20px;
+  width: 100%;
+  max-width: 820px;
+  box-sizing: border-box;
+  color: #0f172a;
+}
+
+.bill-page {
+  width: 210mm !important;
+  max-width: 100%;
+  min-height: 297mm;
+  margin: 0 auto 20px auto;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  padding: 12mm 10mm;
+  color: #000000;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  font-size: 11px;
+  box-sizing: border-box;
+  page-break-after: always;
+  break-after: page;
+}
+
+.slip-page {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto 16px auto;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  padding: 16px 20px;
+  color: #000000;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  font-size: 11px;
+  box-sizing: border-box;
+  page-break-after: always;
+}
+
+/* Print Styles */
+@media print {
+  body.erp-module {
+    height: auto;
+    overflow: visible;
+    background: #ffffff;
+  }
+  .module-top-bar, .filter-bar, .no-print {
+    display: none !important;
+  }
+  .table-container {
+    overflow: visible;
+    background: #ffffff !important;
+    padding: 0 !important;
+  }
+  .format-preview-area {
+    padding: 0 !important;
+  }
+  .format-sheet, .bill-page, .slip-page {
+    border: none !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    padding: 10mm !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    page-break-after: always !important;
+    break-after: page !important;
+  }
+  .print-header {
+    display: block !important;
+    padding-bottom: 8px;
+    margin-bottom: 10px;
+    border-bottom: 1.5px solid #0f172a;
+  }
+  table.ledger-grid th {
+    background: #f1f5f9 !important;
+    color: #0f172a !important;
+    border: 1px solid #94a3b8 !important;
+  }
+  table.ledger-grid td {
+    border: 1px solid #cbd5e1 !important;
+  }
+}
+.print-header { display: none; }
+

@@ -1,0 +1,55 @@
+/* ═══════════════════════════════════════════════════════════
+   JEEVIKA ERP v2 — BILL FORMAT CSS (A4 Print Engine)
+   G02. Full Page - GST1 with Receipt (A4 Format)
+   ═══════════════════════════════════════════════════════════ */
+
+@page {
+    size: A4 portrait;
+    margin: 0;
+}
+
+/* A4 Sheet Container */
+.bill-page {
+    width: 210mm !important;
+    max-width: 100%;
+    min-height: 297mm !important;
+    margin: 0 auto 20px auto !important;
+    background: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 4px;
+    box-sizing: border-box;
+    padding: 12mm 10mm;
+    color: #000000;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 11px;
+    page-break-after: always;
+    break-after: page;
+}
+
+/* Print Rules */
+@media print {
+    body, html {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #ffffff !important;
+    }
+    .module-top-bar, 
+    .filter-bar, 
+    .no-print {
+        display: none !important;
+    }
+    .table-container,
+    .format-preview-area {
+        padding: 0 !important;
+        background: #ffffff !important;
+        overflow: visible !important;
+    }
+    .bill-page {
+        box-shadow: none !important;
+        border: none !important;
+        margin: 0 !important;
+        page-break-after: always !important;
+        break-after: page !important;
+    }
+}

@@ -1,0 +1,174 @@
+/* ═══════════════════════════════════════════════════════════
+   JEEVIKA ERP v2 — MEMBER RECEIPT REPORT CSS
+   ═══════════════════════════════════════════════════════════ */
+
+@page {
+    size: A4 portrait;
+    margin: 0;
+}
+
+.receipt-page {
+    width: 210mm !important;
+    max-width: 100%;
+    margin: 0 auto 20px auto !important;
+    background: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 4px;
+    box-sizing: border-box;
+    padding: 10mm 12mm;
+    color: #000;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 11.5px;
+    page-break-after: always;
+    break-after: page;
+    display: flex;
+    flex-direction: column;
+    gap: 12mm;
+}
+
+.receipt-card {
+    border: 1.5px solid #000;
+    padding: 16px 18px;
+    background: #fff;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    border-radius: 3px;
+}
+
+.receipt-header {
+    text-align: center;
+    border-bottom: 1.5px solid #000;
+    padding-bottom: 8px;
+    margin-bottom: 10px;
+}
+
+.receipt-title {
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-decoration: underline;
+    margin-bottom: 4px;
+}
+
+.society-name {
+    font-size: 15px;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: #000;
+    line-height: 1.2;
+}
+
+.society-meta {
+    font-size: 10px;
+    color: #222;
+    margin-top: 2px;
+}
+
+.receipt-meta-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    font-size: 11px;
+}
+
+.underline-val {
+    border-bottom: 1px dotted #000;
+    padding: 0 6px;
+    font-weight: 700;
+}
+
+.receipt-line {
+    font-size: 11px;
+    line-height: 2;
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    margin-bottom: 3px;
+}
+
+.receipt-line .label {
+    white-space: nowrap;
+    margin-right: 6px;
+}
+
+.receipt-line .fill-line {
+    flex: 1;
+    border-bottom: 1px solid #000;
+    padding-left: 6px;
+    min-width: 120px;
+}
+
+.receipt-line .short-val {
+    border-bottom: 1px solid #000;
+    padding: 0 6px;
+    font-weight: 700;
+    min-width: 70px;
+    text-align: center;
+}
+
+.receipt-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-top: 16px;
+    padding-top: 6px;
+}
+
+.amount-badge {
+    border: 1.5px solid #000;
+    padding: 5px 12px;
+    font-size: 13px;
+    font-weight: 800;
+    background: #f8fafc;
+    display: inline-block;
+    letter-spacing: 0.5px;
+}
+
+.signatory-box {
+    text-align: right;
+    font-size: 10.5px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.signature-line {
+    margin-top: 35px;
+    border-top: 1px solid #000;
+    padding-top: 4px;
+    font-weight: 700;
+    min-width: 160px;
+    text-align: center;
+}
+
+/* Print Rules */
+@media print {
+    body, html {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+    }
+    .module-top-bar, 
+    .filter-bar, 
+    .no-print {
+        display: none !important;
+    }
+    .table-container,
+    .format-preview-area {
+        padding: 0 !important;
+        background: #fff !important;
+        overflow: visible !important;
+    }
+    .receipt-page {
+        box-shadow: none !important;
+        border: none !important;
+        margin: 0 !important;
+        padding: 5mm !important;
+        page-break-after: always !important;
+        break-after: page !important;
+    }
+}

@@ -3,8 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Multi Report (Unified Society Reporting) — JEEVIKA ERP</title>
+  <title>Multi Report Pack Builder &amp; Assembler — JEEVIKA ERP</title>
   <script src="../../../config.js"></script>
+  <script src="../../../assets/js/xlsx-js-style.bundle.js"></script>
+  <script src="../../../assets/js/pdf-lib.min.js"></script>
   <link rel="stylesheet" href="../../../assets/css/global.css">
   <link rel="stylesheet" href="../../../assets/css/components.css">
   <link rel="stylesheet" href="multi-report.css">
@@ -12,61 +14,56 @@
 </head>
 <body class="erp-module">
 
-  <!-- ── Top Action & Filter Toolbar ────────────────────────────────────────── -->
-  <div class="multi-toolbar">
-    <div class="multi-filter-group">
-      <div class="multi-filter-item">
-        <label for="multi-fy"><i class="bi bi-calendar3"></i> FY:</label>
-        <select id="multi-fy" class="multi-select" onchange="generateMultiReport()">
+  <!-- ── Top Global Toolbar ────────────────────────────────────────────────── -->
+  <div class="mr-toolbar">
+    <div class="mr-filter-group">
+      <div class="mr-filter-item">
+        <label for="mr-fy"><i class="bi bi-calendar3"></i> Financial Year:</label>
+        <select id="mr-fy" class="mr-select" onchange="onPeriodChanged()">
           <option value="2026-2027" selected>2026-2027</option>
           <option value="2025-2026">2025-2026</option>
           <option value="2024-2025">2024-2025</option>
         </select>
       </div>
 
-      <div class="multi-filter-item">
-        <label for="multi-preset"><i class="bi bi-bookmark-star"></i> Preset:</label>
-        <select id="multi-preset" class="multi-select" onchange="applyPreset(this.value)">
-          <option value="ALL" selected>Complete Comprehensive Multi Report</option>
-          <option value="MEMBER_DUES">Member Billing &amp; Outstanding</option>
-          <option value="ACCOUNTING_AUDIT">Chart of Accounts &amp; Voucher Summary</option>
-          <option value="TAX_COMPLIANCE">TDS &amp; GST Statutory Compliance</option>
-          <option value="FUNDS_RESERVES">Statutory Funds &amp; Reserves</option>
-        </select>
+      <div class="mr-filter-item">
+        <label for="mr-from-date"><i class="bi bi-calendar-event"></i> From Date:</label>
+        <input type="date" id="mr-from-date" class="mr-input" style="width: 130px;" onchange="onCustomDateChanged()">
+      </div>
+
+      <div class="mr-filter-item">
+        <label for="mr-to-date"><i class="bi bi-calendar-event"></i> To Date:</label>
+        <input type="date" id="mr-to-date" class="mr-input" style="width: 130px;" onchange="onCustomDateChanged()">
+      </div>
+
+      <div class="mr-filter-item">
+        <input type="text" id="mr-search" class="mr-input" placeholder="Search report name or category..." style="width: 220px;" onkeyup="filterReportsTable()">
       </div>
     </div>
 
-    <div class="multi-filter-group btn-no-print">
-      <button class="multi-btn multi-btn-primary" onclick="generateMultiReport()">
-        <i class="bi bi-play-circle"></i> Generate
+    <div class="mr-filter-group btn-no-print">
+      <button class="mr-btn mr-btn-primary" onclick="generateMultiReport('all')" title="Generate and assemble full Multi Report pack">
+        <i class="bi bi-play-circle-fill"></i> Generate Multi Report
       </button>
-      <button class="multi-btn" onclick="openSavePresetModal()">
-        <i class="bi bi-save"></i> Save Layout
+      <button class="mr-btn mr-btn-danger" onclick="generateMultiReport('pdf')" title="Assemble and download consolidated PDF document with dynamic index">
+        <i class="bi bi-file-earmark-pdf"></i> Generate PDF
       </button>
-      <button class="multi-btn multi-btn-success" onclick="exportMultiExcel()">
-        <i class="bi bi-file-earmark-excel"></i> Export Excel
+      <button class="mr-btn mr-btn-success" onclick="generateMultiReport('excel')" title="Assemble and download multi-sheet Excel workbook">
+        <i class="bi bi-file-earmark-excel"></i> Generate Excel
       </button>
-      <button class="multi-btn" onclick="window.print()">
-        <i class="bi bi-printer"></i> Print Report
+      <button class="mr-btn" onclick="saveSettings()" title="Persist the current order and ON/OFF settings to database">
+        <i class="bi bi-floppy"></i> Save Settings
+      </button>
+      <button class="mr-btn" onclick="resetToDefaultOrder()" title="Reset order to canonical 31-report sequence">
+        <i class="bi bi-arrow-counterclockwise"></i> Reset Order
       </button>
     </div>
   </div>
 
-  <!-- ── Section Selector Strip ─────────────────────────────────────────────── -->
-  <div class="section-toggle-strip btn-no-print">
-    <span style="font-weight:700; color:#475569;"><i class="bi bi-toggles"></i> Include Sections:</span>
-    <label class="section-chk-item"><input type="checkbox" id="chk-members" checked onchange="toggleSection('sec-members', this.checked)"> Members &amp; Dues</label>
-    <label class="section-chk-item"><input type="checkbox" id="chk-accounts" checked onchange="toggleSection('sec-accounts', this.checked)"> Accounts &amp; Ledgers</label>
-    <label class="section-chk-item"><input type="checkbox" id="chk-vouchers" checked onchange="toggleSection('sec-vouchers', this.checked)"> Voucher Totals</label>
-    <label class="section-chk-item"><input type="checkbox" id="chk-tax" checked onchange="toggleSection('sec-tax', this.checked)"> TDS &amp; GST Tax</label>
-    <label class="section-chk-item"><input type="checkbox" id="chk-funds" checked onchange="toggleSection('sec-funds', this.checked)"> Statutory Funds</label>
-    <label class="section-chk-item"><input type="checkbox" id="chk-rec" checked onchange="toggleSection('sec-rec', this.checked)"> Cross-Reconciliation</label>
-  </div>
+  <!-- ── Main Workspace Scrollable Container ────────────────────────────────── -->
+  <div class="mr-scroll-area">
 
-  <!-- ── Scrollable Report Body ─────────────────────────────────────────────── -->
-  <div class="multi-scroll-area">
-
-    <!-- ── Section 1: Society Details ───────────────────────────────────────── -->
+    <!-- ── Header Banner Card ───────────────────────────────────────────────── -->
     <div class="soc-header-card">
       <div class="soc-info">
         <h2 id="soc-name">HENU CO-OPERATIVE HOUSING SOCIETY LTD.</h2>
@@ -75,189 +72,123 @@
           <span class="tax-badge"><i class="bi bi-building"></i> PAN: <strong id="soc-pan">AAACH1234F</strong></span>
           <span class="tax-badge"><i class="bi bi-file-earmark-text"></i> TAN: <strong id="soc-tan">MUMH01234F</strong></span>
           <span class="tax-badge"><i class="bi bi-building-check"></i> GSTIN: <strong id="soc-gstin">27AAACH1234F1Z5</strong></span>
-          <span class="tax-badge"><i class="bi bi-calendar-event"></i> Period: <strong id="lbl-multi-period">FY 2026-2027</strong></span>
+          <span class="tax-badge"><i class="bi bi-calendar-event"></i> Period: <strong id="lbl-period-badge">FY 2026-2027</strong></span>
         </div>
       </div>
       <div class="report-badge-legal">
-        <div><i class="bi bi-grid-3x3-gap-fill"></i> UNIFIED MULTI-REPORT</div>
-        <div style="font-size: 9.5px; color: #1e3a8a; font-weight: normal; margin-top: 2px;" id="lbl-gen-time">
-          Generated: Today
+        <div><i class="bi bi-collection-fill"></i> MULTI-REPORT PACK ORCHESTRATOR</div>
+        <div style="font-size: 9.5px; color: #1e3a8a; font-weight: normal; margin-top: 2px;">
+          Unified Society Statutory &amp; Accounting Documentation Assembly
         </div>
       </div>
     </div>
 
-    <!-- ── KPI Strip ────────────────────────────────────────────────────────── -->
-    <div class="multi-kpi-grid">
-      <div class="kpi-card">
-        <span class="kpi-label">Member Dues</span>
-        <span class="kpi-val" id="kpi-m-dues" style="color:#dc2626;">₹ 0.00</span>
+    <!-- ── First Page / Index Template Upload Section ───────────────────────── -->
+    <div class="mr-template-grid">
+      <div class="template-card">
+        <div class="template-icon"><i class="bi bi-file-earmark-pdf-fill text-danger"></i></div>
+        <div class="template-info">
+          <h4>Custom First Page / Index PDF Template</h4>
+          <p>Upload a custom cover or index page (.pdf). It will automatically become the first section of the assembled PDF document.</p>
+          <div class="template-active" id="pdf-template-status">
+            <i class="bi bi-info-circle"></i> <span id="lbl-pdf-template-name">Using Standard Generated Dynamic Index Page</span>
+          </div>
+        </div>
+        <div class="template-actions">
+          <input type="file" id="file-pdf-template" accept=".pdf" style="display:none;" onchange="uploadTemplateFile('pdf', this.files[0])">
+          <button class="mr-btn mr-btn-sm" onclick="document.getElementById('file-pdf-template').click()">
+            <i class="bi bi-upload"></i> Upload PDF
+          </button>
+          <button class="mr-btn mr-btn-sm mr-btn-ghost" id="btn-clear-pdf" onclick="clearTemplate('pdf')" style="display:none;">
+            <i class="bi bi-x"></i> Clear
+          </button>
+        </div>
       </div>
-      <div class="kpi-card">
-        <span class="kpi-label">Total Receipts</span>
-        <span class="kpi-val" id="kpi-m-rv" style="color:#16a34a;">₹ 0.00</span>
-      </div>
-      <div class="kpi-card">
-        <span class="kpi-label">Total Payments</span>
-        <span class="kpi-val" id="kpi-m-pv">₹ 0.00</span>
-      </div>
-      <div class="kpi-card">
-        <span class="kpi-label">GST Total</span>
-        <span class="kpi-val" id="kpi-m-gst" style="color:#0284c7;">₹ 0.00</span>
-      </div>
-      <div class="kpi-card">
-        <span class="kpi-label">TDS Deducted</span>
-        <span class="kpi-val" id="kpi-m-tds" style="color:#7c3aed;">₹ 0.00</span>
-      </div>
-      <div class="kpi-card">
-        <span class="kpi-label">Statutory Funds</span>
-        <span class="kpi-val" id="kpi-m-funds" style="color:#0D47A1;">₹ 0.00</span>
+
+      <div class="template-card">
+        <div class="template-icon"><i class="bi bi-file-earmark-excel-fill text-success"></i></div>
+        <div class="template-info">
+          <h4>Custom First Page / Index Excel Template</h4>
+          <p>Upload a custom Excel index template (.xlsx). It will be prepended as the opening worksheet of the assembled multi-sheet workbook.</p>
+          <div class="template-active" id="excel-template-status">
+            <i class="bi bi-info-circle"></i> <span id="lbl-excel-template-name">Using Standard Generated Table of Contents Sheet</span>
+          </div>
+        </div>
+        <div class="template-actions">
+          <input type="file" id="file-excel-template" accept=".xlsx" style="display:none;" onchange="uploadTemplateFile('excel', this.files[0])">
+          <button class="mr-btn mr-btn-sm" onclick="document.getElementById('file-excel-template').click()">
+            <i class="bi bi-upload"></i> Upload Excel
+          </button>
+          <button class="mr-btn mr-btn-sm mr-btn-ghost" id="btn-clear-excel" onclick="clearTemplate('excel')" style="display:none;">
+            <i class="bi bi-x"></i> Clear
+          </button>
+        </div>
       </div>
     </div>
 
-    <!-- ── Section 2: Member Summary Table ──────────────────────────────────── -->
-    <div class="multi-section-card" id="sec-members">
-      <div class="multi-card-header">
-        <h3><i class="bi bi-people-fill text-primary"></i> Section 2 — Member Billing &amp; Outstanding Dues Statement</h3>
+    <!-- ── Summary Stats & Category Filter Strip ────────────────────────────── -->
+    <div class="mr-status-strip">
+      <div class="status-summary">
+        <span><i class="bi bi-check2-circle text-success"></i> Enabled: <strong id="cnt-enabled">31</strong> / <span id="cnt-total">31</span> Reports</span>
+        <span><i class="bi bi-files text-primary"></i> Estimated Pack Size: <strong id="est-pages">~45 Pages</strong></span>
       </div>
-      <div class="table-responsive">
-        <table class="multi-table">
-          <thead>
-            <tr>
-              <th class="text-center" style="width: 40px;">Sr</th>
-              <th>Member Name</th>
-              <th>Unit / Flat</th>
-              <th class="text-right">Billed Charges (₹)</th>
-              <th class="text-right">Current Outstanding Dues (₹)</th>
-            </tr>
-          </thead>
-          <tbody id="tbl-multi-members-body">
-            <tr><td colspan="5" class="text-center" style="padding: 20px;">Loading members...</td></tr>
-          </tbody>
-        </table>
+      <div class="category-tabs">
+        <button class="cat-tab-btn active" onclick="filterCategory('ALL', this)">All Reports (31)</button>
+        <button class="cat-tab-btn" onclick="filterCategory('Member Reports', this)">Member Reports (16)</button>
+        <button class="cat-tab-btn" onclick="filterCategory('Account Reports', this)">Account Reports (12)</button>
+        <button class="cat-tab-btn" onclick="filterCategory('Additional Reports', this)">Additional Reports (3)</button>
       </div>
     </div>
 
-    <!-- ── Section 3: Account Summary Table ─────────────────────────────────── -->
-    <div class="multi-section-card" id="sec-accounts">
-      <div class="multi-card-header">
-        <h3><i class="bi bi-book-fill text-primary"></i> Section 3 — Chart of Accounts &amp; Ledger Movement</h3>
+    <!-- ── Main Multi Report Settings Table ─────────────────────────────────── -->
+    <div class="mr-table-card">
+      <div class="mr-card-header">
+        <h3><i class="bi bi-list-ol text-primary"></i> Configured Report Assembly Sequence &amp; Controls</h3>
+        <span style="font-size:12px; color:#64748b;">Use ↑ / ↓ to adjust document assembly order. Click ON/OFF to include or exclude reports.</span>
       </div>
       <div class="table-responsive">
-        <table class="multi-table">
+        <table class="mr-table" id="tbl-mr-registry">
           <thead>
             <tr>
-              <th>Account Code</th>
-              <th>Account Name</th>
-              <th>Group Category</th>
-              <th class="text-right">Total Debit (₹)</th>
-              <th class="text-right">Total Credit (₹)</th>
+              <th class="text-center" style="width: 70px;">Sr. No.</th>
+              <th>Reports</th>
+              <th class="text-center" style="width: 140px;">Reorder</th>
+              <th class="text-center" style="width: 160px;">Action</th>
             </tr>
           </thead>
-          <tbody id="tbl-multi-accounts-body">
-            <tr><td colspan="5" class="text-center" style="padding: 20px;">Loading accounts...</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- ── Section 4: Voucher Summary Table ─────────────────────────────────── -->
-    <div class="multi-section-card" id="sec-vouchers">
-      <div class="multi-card-header">
-        <h3><i class="bi bi-receipt text-primary"></i> Section 4 — Voucher Type Totals</h3>
-      </div>
-      <div class="table-responsive">
-        <table class="multi-table">
-          <thead>
+          <tbody id="tbl-mr-body">
             <tr>
-              <th>Voucher Classification</th>
-              <th class="text-center">Count</th>
-              <th class="text-right">Cumulative Amount (₹)</th>
-            </tr>
-          </thead>
-          <tbody id="tbl-multi-vouchers-body">
-            <tr><td colspan="3" class="text-center" style="padding: 20px;">Loading vouchers...</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- ── Section 5: Tax Summary (TDS & GST) ────────────────────────────────── -->
-    <div class="multi-section-card" id="sec-tax">
-      <div class="multi-card-header">
-        <h3><i class="bi bi-shield-check text-primary"></i> Section 5 — TDS &amp; GST Statutory Tax Summary</h3>
-      </div>
-      <div class="table-responsive">
-        <table class="multi-table">
-          <thead>
-            <tr>
-              <th>Tax Domain</th>
-              <th>Statutory Act</th>
-              <th class="text-right">Gross Taxable Base (₹)</th>
-              <th class="text-right">Calculated Tax (₹)</th>
-            </tr>
-          </thead>
-          <tbody id="tbl-multi-tax-body">
-            <tr>
-              <td><strong>TDS Compliance</strong></td>
-              <td>Income Tax Act, 1961 (Sec 194C/J/I/H)</td>
-              <td class="text-right" id="row-tds-gross">₹ 0.00</td>
-              <td class="text-right" id="row-tds-ded" style="font-weight:700; color:#7c3aed;">₹ 0.00</td>
-            </tr>
-            <tr>
-              <td><strong>GST Outward Supplies</strong></td>
-              <td>CGST / SGST Act, 2017 (SAC 999598)</td>
-              <td class="text-right" id="row-gst-taxable">₹ 0.00</td>
-              <td class="text-right" id="row-gst-total" style="font-weight:700; color:#0284c7;">₹ 0.00</td>
+              <td colspan="4" class="text-center" style="padding: 28px; color: #94a3b8;">
+                <i class="bi bi-hourglass-split"></i> Loading Report Registry...
+              </td>
             </tr>
           </tbody>
         </table>
       </div>
     </div>
 
-    <!-- ── Section 6: Statutory Funds ───────────────────────────────────────── -->
-    <div class="multi-section-card" id="sec-funds">
-      <div class="multi-card-header">
-        <h3><i class="bi bi-piggy-bank-fill text-primary"></i> Section 6 — Society Statutory Reserves &amp; Funds</h3>
-      </div>
-      <div style="padding: 12px 16px; font-size: 12px;">
-        Total Society Statutory Funds &amp; Reserves: <strong id="row-total-funds" style="font-size:14px; color:#0D47A1;">₹ 0.00</strong>
-      </div>
-    </div>
-
-    <!-- ── Section 7: Cross-Module Final Reconciliation ─────────────────────── -->
-    <div class="multi-section-card" id="sec-rec">
-      <div class="multi-card-header">
-        <h3><i class="bi bi-arrow-left-right text-primary"></i> Section 7 — Cross-Module Final Society Reconciliation</h3>
+    <!-- ── Dynamic Table of Contents / Index Preview ────────────────────────── -->
+    <div class="mr-table-card" style="margin-top: 20px;">
+      <div class="mr-card-header">
+        <h3><i class="bi bi-journal-bookmark-fill text-primary"></i> Generated Pack Index / Table of Contents Preview</h3>
+        <span style="font-size:12px; color:#64748b;">Calculated dynamic page ranges for PDF and worksheet names for Excel</span>
       </div>
       <div class="table-responsive">
-        <table class="multi-table">
+        <table class="mr-table">
           <thead>
             <tr>
-              <th>Module / Transaction Class</th>
-              <th class="text-right">Aggregate Total (₹)</th>
-              <th class="text-center">Integrity Status</th>
+              <th class="text-center" style="width: 70px;">Sr No</th>
+              <th>Account Heads / Report Name</th>
+              <th>Category</th>
+              <th class="text-center" style="width: 140px;">Page No. (From To)</th>
+              <th class="text-center" style="width: 120px;">Reports Skip</th>
             </tr>
           </thead>
-          <tbody id="tbl-multi-rec-body">
+          <tbody id="tbl-index-preview-body">
             <tr>
-              <td>Receipt Vouchers (RV)</td>
-              <td class="text-right" id="rec-tot-rv">₹ 0.00</td>
-              <td class="text-center"><span class="badge-stat">Posted</span></td>
-            </tr>
-            <tr>
-              <td>Payment Vouchers (PV)</td>
-              <td class="text-right" id="rec-tot-pv">₹ 0.00</td>
-              <td class="text-center"><span class="badge-stat">Posted</span></td>
-            </tr>
-            <tr>
-              <td>Journal Vouchers (JV)</td>
-              <td class="text-right" id="rec-tot-jv">₹ 0.00</td>
-              <td class="text-center"><span class="badge-stat">Posted</span></td>
-            </tr>
-            <tr>
-              <td>Contra Vouchers (CV)</td>
-              <td class="text-right" id="rec-tot-cv">₹ 0.00</td>
-              <td class="text-center"><span class="badge-stat">Posted</span></td>
+              <td colspan="5" class="text-center" style="padding: 20px; color: #94a3b8;">
+                Index will compute automatically upon report configuration.
+              </td>
             </tr>
           </tbody>
         </table>
@@ -266,26 +197,57 @@
 
   </div>
 
-  <!-- ── MODAL: Save Preset ─────────────────────────────────────────────────── -->
-  <div class="modal-overlay" id="modal-save-preset">
-    <div class="modal-container">
-      <div class="modal-header">
-        <h3><i class="bi bi-save text-primary"></i> Save Custom Report Preset</h3>
-        <button class="modal-close-btn" onclick="closeModal('modal-save-preset')">&times;</button>
+  <!-- ── Report Settings / Edit Modal ─────────────────────────────────────── -->
+  <div class="mr-modal" id="modal-edit-settings">
+    <div class="mr-modal-content">
+      <div class="mr-modal-header">
+        <h3 id="modal-report-title"><i class="bi bi-sliders"></i> Edit Report Configuration</h3>
+        <button class="modal-close-btn" onclick="closeModal('modal-edit-settings')">&times;</button>
       </div>
-      <div class="modal-body">
+      <div class="mr-modal-body">
+        <input type="hidden" id="edit-report-id">
         <div class="form-group">
-          <label>Preset Report Title</label>
-          <input type="text" id="preset-title" class="multi-input" placeholder="e.g. Monthly Executive Committee Summary">
+          <label>Report Name</label>
+          <input type="text" id="edit-report-name" class="mr-input" readonly style="background:#f1f5f9;">
         </div>
         <div class="form-group">
-          <label>Description</label>
-          <input type="text" id="preset-desc" class="multi-input" placeholder="e.g. Combined member dues, cash flow, and tax report">
+          <label>Category &amp; Subgroup</label>
+          <input type="text" id="edit-report-cat" class="mr-input" readonly style="background:#f1f5f9;">
+        </div>
+        <div class="form-group">
+          <label>Participation in Multi Report</label>
+          <select id="edit-report-enabled" class="mr-select">
+            <option value="true">Included (ON)</option>
+            <option value="false">Skipped (OFF)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Specific Sub-Filter / Account Scope</label>
+          <input type="text" id="edit-report-scope" class="mr-input" placeholder="e.g. All Accounts, Specific Member / Group">
         </div>
       </div>
-      <div class="modal-footer">
-        <button class="multi-btn" onclick="closeModal('modal-save-preset')">Cancel</button>
-        <button class="multi-btn multi-btn-primary" onclick="submitSavePreset()">Save Preset</button>
+      <div class="mr-modal-footer" style="justify-content: space-between;">
+        <button class="mr-btn mr-btn-success" id="btn-goto-module" style="display:none;">
+          <i class="bi bi-box-arrow-up-right"></i> Open Live Report Screen
+        </button>
+        <div style="display:flex; gap:8px;">
+          <button class="mr-btn" onclick="closeModal('modal-edit-settings')">Cancel</button>
+          <button class="mr-btn mr-btn-primary" onclick="saveReportEdit()">Update Settings</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Generation Progress Overlay Modal ─────────────────────────────────── -->
+  <div class="mr-modal" id="modal-progress">
+    <div class="mr-modal-content" style="max-width: 480px; text-align: center;">
+      <div class="mr-modal-body" style="padding: 32px 20px;">
+        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem; margin-bottom: 16px;"></div>
+        <h3 id="progress-title" style="margin-bottom: 8px; color:#0f172a;">Assembling Multi Report Pack...</h3>
+        <p id="progress-desc" style="color:#64748b; font-size: 13px; margin-bottom: 20px;">Fetching and compiling reports from accounting engine...</p>
+        <div class="progress-bar-container">
+          <div class="progress-bar-fill" id="progress-bar" style="width: 10%;"></div>
+        </div>
       </div>
     </div>
   </div>

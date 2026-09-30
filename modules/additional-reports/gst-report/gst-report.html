@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GST Report &amp; Reconciliation — JEEVIKA ERP</title>
   <script src="../../../config.js"></script>
+  <script src="../../../assets/js/xlsx-js-style.bundle.js"></script>
   <link rel="stylesheet" href="../../../assets/css/global.css">
   <link rel="stylesheet" href="../../../assets/css/components.css">
   <link rel="stylesheet" href="gst-report.css">
@@ -17,7 +18,7 @@
     <div class="gst-filter-group">
       <div class="gst-filter-item">
         <label for="gst-fy"><i class="bi bi-calendar3"></i> FY:</label>
-        <select id="gst-fy" class="gst-select" onchange="loadGstData()">
+        <select id="gst-fy" class="gst-select" onchange="onGstFyChanged()">
           <option value="2026-2027" selected>2026-2027</option>
           <option value="2025-2026">2025-2026</option>
           <option value="2024-2025">2024-2025</option>
@@ -26,7 +27,7 @@
 
       <div class="gst-filter-item">
         <label for="gst-month"><i class="bi bi-calendar-month"></i> Month:</label>
-        <select id="gst-month" class="gst-select" onchange="loadGstData()">
+        <select id="gst-month" class="gst-select" onchange="onGstMonthChanged()">
           <option value="ALL" selected>All Months</option>
           <option value="04">April</option>
           <option value="05">May</option>
@@ -41,6 +42,16 @@
           <option value="02">February</option>
           <option value="03">March</option>
         </select>
+      </div>
+
+      <div class="gst-filter-item">
+        <label for="gst-from-date"><i class="bi bi-calendar-event"></i> From:</label>
+        <input type="date" id="gst-from-date" class="gst-input" style="width: 125px;" onchange="loadGstData()">
+      </div>
+
+      <div class="gst-filter-item">
+        <label for="gst-to-date"><i class="bi bi-calendar-event"></i> To:</label>
+        <input type="date" id="gst-to-date" class="gst-input" style="width: 125px;" onchange="loadGstData()">
       </div>
 
       <div class="gst-filter-item">
@@ -77,6 +88,9 @@
     </button>
     <button class="gst-tab-btn" onclick="switchGstTab('tab-member-wise', this)">
       <i class="bi bi-people"></i> Part D — Member-wise Invoices <span class="badge-cnt" id="cnt-member-bills" style="background:#e2e8f0; font-size:10px; padding:1px 6px; border-radius:10px;">0</span>
+    </button>
+    <button class="gst-tab-btn" onclick="switchGstTab('tab-purchases', this)">
+      <i class="bi bi-receipt"></i> Part G — Purchase / Input ITC Register <span class="badge-cnt" id="cnt-purchases" style="background:#e2e8f0; font-size:10px; padding:1px 6px; border-radius:10px;">0</span>
     </button>
     <button class="gst-tab-btn" onclick="switchGstTab('tab-monthly', this)">
       <i class="bi bi-calendar-check"></i> Part E — Monthly Breakdown
@@ -236,6 +250,47 @@
                 <td class="text-right">₹ 0.00</td>
                 <td class="text-right" id="tot-mem-gst" style="color:#16a34a;">₹ 0.00</td>
                 <td class="text-right" id="tot-mem-gross">₹ 0.00</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB 2B: Part G — Purchase / Input ITC Register ─────────────────────── -->
+    <div id="tab-purchases" class="gst-tab-content" style="display:none;">
+      <div class="gst-table-card">
+        <div class="gst-card-header">
+          <h3><i class="bi bi-receipt"></i> Part G — Purchase / Input Tax Credit (ITC) Statement</h3>
+          <span style="font-size:11px; color:#64748b;" id="lbl-purchase-count">0 records</span>
+        </div>
+        <div class="table-responsive">
+          <table class="gst-table">
+            <thead>
+              <tr>
+                <th class="text-center" style="width: 40px;">Sr</th>
+                <th>Bill Date</th>
+                <th>Bill No</th>
+                <th>Voucher No</th>
+                <th>Vendor / Party Name</th>
+                <th>GSTIN</th>
+                <th>Expense Head</th>
+                <th class="text-right">Taxable (₹)</th>
+                <th class="text-right">CGST (₹)</th>
+                <th class="text-right">SGST (₹)</th>
+                <th class="text-right">Total (₹)</th>
+              </tr>
+            </thead>
+            <tbody id="tbl-purchase-body">
+              <tr><td colspan="11" class="text-center" style="padding: 24px;">Loading purchase vouchers...</td></tr>
+            </tbody>
+            <tfoot>
+              <tr class="total-row" id="tbl-purchase-footer">
+                <td colspan="7" class="text-right">Total Input ITC:</td>
+                <td class="text-right" id="tot-pur-taxable">₹ 0.00</td>
+                <td class="text-right" id="tot-pur-cgst">₹ 0.00</td>
+                <td class="text-right" id="tot-pur-sgst">₹ 0.00</td>
+                <td class="text-right" id="tot-pur-gross" style="color:#16a34a; font-weight:700;">₹ 0.00</td>
               </tr>
             </tfoot>
           </table>

@@ -85,11 +85,13 @@ const WorkspaceManager = (() => {
       isGroup: true,
       children: [
         { id: 'mr-member-account-head-wise', label: 'Member Account | Head wise', path: 'modules/member-reports/member-account-head-wise/member-account-head-wise.html' },
-        { id: 'mr-member-register-dr-cr', label: 'Member Register [Dr/Cr]', path: 'modules/member-reports/member-register-drcr/member-register-drcr.html' }
+        { id: 'mr-member-register-dr-cr', label: 'Member Register [Dr/Cr]', path: 'modules/member-reports/member-register-dr-cr/member-register-dr-cr.html' }
       ]
     },
     { id: 'mr-member-control-account', label: 'Member Control Account', category: 'member-report', path: 'modules/member-reports/member-control-account/member-control-account.html' },
     { id: 'mr-balance-confirmation-letter', label: 'Balance Confirmation Letter', category: 'member-report', path: 'modules/member-reports/balance-confirmation-letter/balance-confirmation-letter.html' },
+    { id: 'mr-bank-deposit-list', label: 'Bank Deposit List', category: 'member-report', path: 'modules/member-reports/bank-deposit-list/bank-deposit-list.html' },
+    { id: 'mr-data-sheet', label: 'Data Sheet', category: 'member-report', path: 'modules/member-reports/data-sheet/data-sheet.html' },
     {
       id: 'bill-register-group',
       label: 'Bill Register',

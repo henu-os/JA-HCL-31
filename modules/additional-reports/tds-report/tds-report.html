@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TDS Report &amp; Compliance — JEEVIKA ERP</title>
   <script src="../../../config.js"></script>
+  <script src="../../../assets/js/xlsx-js-style.bundle.js"></script>
   <link rel="stylesheet" href="../../../assets/css/global.css">
   <link rel="stylesheet" href="../../../assets/css/components.css">
   <link rel="stylesheet" href="tds-report.css">
@@ -17,7 +18,7 @@
     <div class="tds-filter-group">
       <div class="tds-filter-item">
         <label for="tds-fy"><i class="bi bi-calendar3"></i> FY:</label>
-        <select id="tds-fy" class="tds-select" onchange="loadTdsData()">
+        <select id="tds-fy" class="tds-select" onchange="onFyChanged()">
           <option value="2026-2027" selected>2026-2027</option>
           <option value="2025-2026">2025-2026</option>
           <option value="2024-2025">2024-2025</option>
@@ -26,13 +27,23 @@
 
       <div class="tds-filter-item">
         <label for="tds-quarter"><i class="bi bi-pie-chart"></i> Quarter:</label>
-        <select id="tds-quarter" class="tds-select" onchange="loadTdsData()">
+        <select id="tds-quarter" class="tds-select" onchange="onQuarterChanged()">
           <option value="ALL">All Quarters</option>
           <option value="Q1" selected>Q1 (Apr-Jun)</option>
           <option value="Q2">Q2 (Jul-Sep)</option>
           <option value="Q3">Q3 (Oct-Dec)</option>
           <option value="Q4">Q4 (Jan-Mar)</option>
         </select>
+      </div>
+
+      <div class="tds-filter-item">
+        <label for="tds-from-date"><i class="bi bi-calendar-event"></i> From:</label>
+        <input type="date" id="tds-from-date" class="tds-input" style="width: 125px;" onchange="loadTdsData()">
+      </div>
+
+      <div class="tds-filter-item">
+        <label for="tds-to-date"><i class="bi bi-calendar-event"></i> To:</label>
+        <input type="date" id="tds-to-date" class="tds-input" style="width: 125px;" onchange="loadTdsData()">
       </div>
 
       <div class="tds-filter-item">

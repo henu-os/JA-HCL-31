@@ -1,0 +1,196 @@
+/* ═══════════════════════════════════════════════════════════
+   JEEVIKA ERP v2 — DEBIT NOTE REPORT CSS
+   Multi-Format Engine: Half Page, Full Page 14 Heads, Full Page 21 Heads
+   ═══════════════════════════════════════════════════════════ */
+
+@page {
+    size: A4 portrait;
+    margin: 0;
+}
+
+.debit-note-page {
+    background: #ffffff;
+    color: #000;
+    font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    box-sizing: border-box;
+    margin: 0 auto 20px auto;
+    position: relative;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    display: flex;
+    flex-direction: column;
+    max-width: 100%;
+}
+
+/* Full Page 14 Heads (Standard A4) */
+.debit-note-full-14 {
+    width: 210mm !important;
+    min-height: 290mm;
+    padding: 10mm 12mm;
+    page-break-after: always;
+    break-after: page;
+}
+
+/* Full Page 21 Heads (Condensed A4) */
+.debit-note-full-21 {
+    width: 210mm !important;
+    min-height: 290mm;
+    padding: 8mm 10mm;
+    page-break-after: always;
+    break-after: page;
+    font-size: 10px;
+}
+
+/* Half Page */
+.debit-note-half {
+    width: 210mm !important;
+    min-height: 140mm;
+    padding: 6mm 10mm;
+    margin-bottom: 12mm;
+    page-break-inside: avoid;
+    break-inside: avoid;
+}
+
+/* Header */
+.dn-header {
+    text-align: center;
+    border-bottom: 2px solid #000;
+    padding-bottom: 6px;
+    margin-bottom: 6px;
+}
+
+.dn-soc-name {
+    font-size: 15px;
+    font-weight: 800;
+    text-transform: uppercase;
+    line-height: 1.2;
+}
+
+.dn-soc-meta {
+    font-size: 9.5px;
+    color: #333;
+    margin-top: 2px;
+}
+
+.dn-title-box {
+    text-align: center;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    text-decoration: underline;
+    margin: 4px 0 6px 0;
+}
+
+/* Meta Information Grid */
+.dn-meta-grid {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    border: 1px solid #000;
+    margin-bottom: 6px;
+    font-size: 11px;
+}
+
+.dn-meta-col {
+    padding: 5px 8px;
+}
+
+.dn-meta-col:first-child {
+    border-right: 1px solid #000;
+}
+
+.dn-meta-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 3px;
+}
+
+/* Particulars Table */
+.dn-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+    margin-bottom: 6px;
+    flex: 1;
+}
+
+.dn-table th, .dn-table td {
+    border: 1px solid #000;
+    padding: 4px 6px;
+}
+
+.dn-table th {
+    background: #f1f5f9;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 10px;
+}
+
+.dn-table .col-sr { width: 35px; text-align: center; }
+.dn-table .col-desc { text-align: left; }
+.dn-table .col-amt { width: 100px; text-align: right; }
+
+.dn-table td.empty-cell {
+    height: 16px;
+    border-bottom: 1px solid #ddd;
+}
+
+/* Total & Words Block */
+.dn-total-row td {
+    font-weight: 800;
+    background: #f8fafc;
+}
+
+.dn-words-box {
+    border: 1px solid #000;
+    padding: 5px 8px;
+    font-size: 10.5px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    background: #fafafa;
+}
+
+/* Footer & Signatures */
+.dn-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-top: auto;
+    padding-top: 6px;
+}
+
+.dn-sign-box {
+    text-align: center;
+    width: 180px;
+    border-top: 1px solid #000;
+    padding-top: 4px;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+/* Print Rules */
+@media print {
+    body, html {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+    }
+    .module-top-bar, 
+    .filter-bar, 
+    .no-print {
+        display: none !important;
+    }
+    .table-container,
+    .format-preview-area {
+        padding: 0 !important;
+        background: #fff !important;
+        overflow: visible !important;
+    }
+    .debit-note-page {
+        box-shadow: none !important;
+        border: 1.5px solid #000 !important;
+        margin: 0 !important;
+        page-break-after: always !important;
+        break-after: page !important;
+    }
+}

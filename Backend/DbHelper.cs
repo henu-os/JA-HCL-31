@@ -367,6 +367,15 @@ namespace JeevikaERP
                         DELETE FROM jeevika_erp.SocMemberOpBalance WHERE MemberId IN (SELECT MemberId FROM jeevika_erp.SocMember WHERE IsDeleted = TRUE);
                         DELETE FROM jeevika_erp.SocBillingMatrix WHERE MemberId IN (SELECT MemberId FROM jeevika_erp.SocMember WHERE IsDeleted = TRUE);";
                     ensureTables.ExecuteNonQuery();
+
+                    try
+                    {
+                        Controllers.CommunicationController.EnsureCommunicationTables(targetConn);
+                    }
+                    catch (Exception exComm)
+                    {
+                        Console.WriteLine($"[DbHelper] Note ensuring communication tables: {exComm.Message}");
+                    }
                 }
             }
             catch (Exception ex)

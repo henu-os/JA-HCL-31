@@ -3245,7 +3245,6 @@ namespace JeevikaERP.Controllers
                     string smtpPass = Environment.GetEnvironmentVariable("SMTP_PASS") ?? "khcw oler xtix zmem";
                     string fromEmail = Environment.GetEnvironmentVariable("SMTP_FROM_EMAIL") ?? "henuospvtltd@gmail.com";
                     string fromName = Environment.GetEnvironmentVariable("SMTP_FROM_NAME") ?? "HENU OS PRIVATE LIMITED";
-                    bool emailActive = true;
 
                     string waPhoneId = Environment.GetEnvironmentVariable("META_PHONE_NUMBER_ID") ?? "1185567017980748";
                     string waToken = Environment.GetEnvironmentVariable("META_ACCESS_TOKEN") ?? "EAAPYNIdf3wIBSot66zRZBFoajCCYPf8ZBCo0b5IRT6rnwIsm8oVLISzlsFZCq0aB66SzZCt2obacSu8MsWveZAxuQB2ieRhqRDdl2Onl1HXO2ZCzuuZAQhAy00FQe6X8bAh2u3gyH3QlkvZCMwj8Iu6TRes3R1lbMOonV3nJMlaRZCMpFSbZCJMkfKdfRvZBTkOfCKiUgZDZD";

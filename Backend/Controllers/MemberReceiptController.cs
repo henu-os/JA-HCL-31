@@ -475,7 +475,7 @@ namespace JeevikaERP.Controllers
                 using var memCmd = conn.CreateCommand();
                 memCmd.Transaction = tx;
                 memCmd.CommandText = "SELECT MemCode, MemName, Wing, FlatNo FROM jeevika_erp.SocMember WHERE MemberId = @mid";
-                memCmd.Parameters.AddWithValue("@mid", model.MemberId);
+                memCmd.Parameters.AddWithValue("@mid", (object?)model.MemberId ?? DBNull.Value);
 
                 string memCode = "", memName = "", flat = "";
                 using (var rM = memCmd.ExecuteReader())
@@ -881,7 +881,7 @@ namespace JeevikaERP.Controllers
                             uRevCmd.Parameters.AddWithValue("@chqDate",model.ChqDate.HasValue ? model.ChqDate.Value : DBNull.Value);
                             uRevCmd.Parameters.AddWithValue("@bank",   (object?)model.BankName ?? DBNull.Value);
                             uRevCmd.Parameters.AddWithValue("@person", $"{memName} ({flat})");
-                            uRevCmd.Parameters.AddWithValue("@pcode",  !string.IsNullOrWhiteSpace(memCode) ? memCode : model.MemberId.ToString());
+                            uRevCmd.Parameters.AddWithValue("@pcode",  !string.IsNullOrWhiteSpace(memCode) ? memCode : (model.MemberId?.ToString() ?? ""));
                             uRevCmd.Parameters.AddWithValue("@rcptNo", receiptNo);
                             uRevCmd.Parameters.AddWithValue("@part1",  $"[BillType: {bType}] Reversal of Receipt {receiptNo}");
                             uRevCmd.Parameters.AddWithValue("@part2",  "Cheque Dishonoured by Bank");
@@ -909,8 +909,8 @@ namespace JeevikaERP.Controllers
                                     (@vid, 1, @aid, @code, @name, 0, @amt, @narr)";
                             dRev1.Parameters.AddWithValue("@vid",  revId);
                             dRev1.Parameters.AddWithValue("@aid",  cbAccId > 0 ? cbAccId : (object)DBNull.Value);
-                            dRev1.Parameters.AddWithValue("@code", cbCode);
-                            dRev1.Parameters.AddWithValue("@name", cbName);
+                            dRev1.Parameters.AddWithValue("@code", cbCode ?? "");
+                            dRev1.Parameters.AddWithValue("@name", cbName ?? "");
                             dRev1.Parameters.AddWithValue("@amt",  model.Amount);
                             dRev1.Parameters.AddWithValue("@narr", $"Receipt reversal from {cbName}");
                             dRev1.ExecuteNonQuery();

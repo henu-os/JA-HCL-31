@@ -267,10 +267,20 @@ namespace JeevikaERP.Database.Synchronization
             string executedBy = "System",
             string providerName = "PostgreSQL")
         {
+            if (package == null)
+            {
+                return new SyncExecutionResult
+                {
+                    Success = false,
+                    Message = "Sync package cannot be null.",
+                    Errors = new List<string> { "Null package supplied." }
+                };
+            }
+
             var sw = Stopwatch.StartNew();
             var res = new SyncExecutionResult
             {
-                BatchId = package?.BatchId ?? string.Empty
+                BatchId = package.BatchId ?? string.Empty
             };
 
             // 1. Run Pre-Validation

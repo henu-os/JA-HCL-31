@@ -1446,8 +1446,6 @@ namespace JeevikaERP.Controllers
 
                 int totalCount = req.Members.Count;
                 int insertedCount = 0;
-                int updatedCount = 0;
-                int unchangedCount = 0;
                 int errorCount = 0;
                 var details = new List<object>();
                 var seenCodesInBatch = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

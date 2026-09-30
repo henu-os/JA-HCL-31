@@ -30,6 +30,16 @@ namespace JeevikaERP.Services
         {
             _logger.LogInformation("[CommunicationOutboxWorker] Outbox background worker started.");
 
+            try
+            {
+                using var initConn = DbHelper.GetDbConnection();
+                Controllers.CommunicationController.EnsureCommunicationTables(initConn);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[CommunicationOutboxWorker] Could not ensure communication tables on startup.");
+            }
+
             while (!stoppingToken.IsCancellationRequested)
             {
                 try
@@ -48,43 +58,56 @@ namespace JeevikaERP.Services
 
         private async Task ProcessPendingOutboxAsync(CancellationToken cancellationToken)
         {
-            using var conn = DbHelper.GetConn();
+            using var conn = DbHelper.GetDbConnection();
             string prefix = GetSchemaPrefix(conn);
 
             var pendingJobs = new List<OutboxJob>();
 
-            using (var cmd = conn.CreateCommand())
+            try
             {
-                cmd.CommandText = $@"
-                    SELECT id, society_id, channel, recipient_type, recipient_id, recipient_name,
-                           recipient_address, subject, message_body, attachment_path, attachment_name,
-                           template_id, communication_type, attempt_count
-                    FROM {prefix}communication_outbox
-                    WHERE status IN ('QUEUED', 'RETRY') AND attempt_count < 5
-                    ORDER BY id ASC
-                    LIMIT 10";
-
-                using var r = await cmd.ExecuteReaderAsync(cancellationToken);
-                while (await r.ReadAsync(cancellationToken))
+                using (var cmd = conn.CreateCommand())
                 {
-                    pendingJobs.Add(new OutboxJob
+                    cmd.CommandText = $@"
+                        SELECT id, society_id, channel, recipient_type, recipient_id, recipient_name,
+                               recipient_address, subject, message_body, attachment_path, attachment_name,
+                               template_id, communication_type, attempt_count
+                        FROM {prefix}communication_outbox
+                        WHERE status IN ('QUEUED', 'RETRY') AND attempt_count < 5
+                        ORDER BY id ASC
+                        LIMIT 10";
+
+                    using var r = await cmd.ExecuteReaderAsync(cancellationToken);
+                    while (await r.ReadAsync(cancellationToken))
                     {
-                        Id = Convert.ToInt32(r["id"]),
-                        SocietyId = Convert.ToInt32(r["society_id"]),
-                        Channel = r["channel"]?.ToString() ?? "",
-                        RecipientType = r["recipient_type"]?.ToString() ?? "",
-                        RecipientId = Convert.ToInt32(r["recipient_id"]),
-                        RecipientName = r["recipient_name"]?.ToString() ?? "",
-                        RecipientAddress = r["recipient_address"]?.ToString() ?? "",
-                        Subject = r["subject"]?.ToString(),
-                        MessageBody = r["message_body"]?.ToString(),
-                        AttachmentPath = r["attachment_path"]?.ToString(),
-                        AttachmentName = r["attachment_name"]?.ToString(),
-                        TemplateId = Convert.ToInt32(r["template_id"]),
-                        CommunicationType = r["communication_type"]?.ToString(),
-                        AttemptCount = Convert.ToInt32(r["attempt_count"])
-                    });
+                        pendingJobs.Add(new OutboxJob
+                        {
+                            Id = Convert.ToInt32(r["id"]),
+                            SocietyId = Convert.ToInt32(r["society_id"]),
+                            Channel = r["channel"]?.ToString() ?? "",
+                            RecipientType = r["recipient_type"]?.ToString() ?? "",
+                            RecipientId = Convert.ToInt32(r["recipient_id"]),
+                            RecipientName = r["recipient_name"]?.ToString() ?? "",
+                            RecipientAddress = r["recipient_address"]?.ToString() ?? "",
+                            Subject = r["subject"]?.ToString(),
+                            MessageBody = r["message_body"]?.ToString(),
+                            AttachmentPath = r["attachment_path"]?.ToString(),
+                            AttachmentName = r["attachment_name"]?.ToString(),
+                            TemplateId = Convert.ToInt32(r["template_id"]),
+                            CommunicationType = r["communication_type"]?.ToString(),
+                            AttemptCount = Convert.ToInt32(r["attempt_count"])
+                        });
+                    }
                 }
+            }
+            catch (Exception ex) when (ex.Message.Contains("communication_outbox", StringComparison.OrdinalIgnoreCase) ||
+                                       (ex is Npgsql.PostgresException pg && pg.SqlState == "42P01"))
+            {
+                try
+                {
+                    Controllers.CommunicationController.EnsureCommunicationTables(conn);
+                }
+                catch { }
+                return;
             }
 
             foreach (var job in pendingJobs)
@@ -185,7 +208,7 @@ namespace JeevikaERP.Services
                     string mimeType = filename.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) ? "application/pdf" : "application/octet-stream";
 
                     // For Meta Cloud API: Upload media to obtain media_id
-                    string mediaId = await UploadMediaToMetaAsync(phoneNumId, token, fileBytes, filename, mimeType, cancellationToken);
+                    string? mediaId = await UploadMediaToMetaAsync(phoneNumId, token, fileBytes, filename, mimeType, cancellationToken);
 
                     if (!string.IsNullOrEmpty(mediaId))
                     {

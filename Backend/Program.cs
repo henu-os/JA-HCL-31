@@ -340,6 +340,15 @@ if (dbOk)
 {
     Console.WriteLine($"[Startup] ✅ Database connected.");
     DbHelper.EnsureDefaultAdmin(adminUser, adminPass);
+    try
+    {
+        using var initConn = DbHelper.GetDbConnection();
+        JeevikaERP.Controllers.CommunicationController.EnsureCommunicationTables(initConn);
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Startup] ⚠️ Note ensuring communication schema: {ex.Message}");
+    }
 }
 else
 {

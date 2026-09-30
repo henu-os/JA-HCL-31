@@ -55,13 +55,25 @@ namespace JeevikaERP.Database.ExportImport
             MergeOptions options,
             string providerName = "PostgreSQL")
         {
+            if (package == null)
+            {
+                return new MergeReport
+                {
+                    ImportMode = options.Mode.ToUpperInvariant(),
+                    ConflictPolicy = options.ConflictPolicy.ToUpperInvariant(),
+                    FinancialYearScope = (options.FinancialYearScope ?? "ALL_FYS").ToUpperInvariant(),
+                    Success = false,
+                    StatusMessage = "Merge package cannot be null."
+                };
+            }
+
             var sw = Stopwatch.StartNew();
             var report = new MergeReport
             {
                 ImportMode = options.Mode.ToUpperInvariant(),
                 ConflictPolicy = options.ConflictPolicy.ToUpperInvariant(),
                 FinancialYearScope = (options.FinancialYearScope ?? "ALL_FYS").ToUpperInvariant(),
-                ChecksumSha256 = package?.Metadata?.ChecksumSha256 ?? string.Empty
+                ChecksumSha256 = package.Metadata?.ChecksumSha256 ?? string.Empty
             };
 
             // 1. Pre-validation of package structure & double-entry invariants

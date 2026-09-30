@@ -952,7 +952,7 @@ namespace JeevikaERP.Controllers
 
                 // Fetch funds list with calculated movements
                 var fundList = new List<object>();
-                decimal totalOpening = 0, totalContributions = 0, totalUtilization = 0, totalInvestments = 0, totalTransfers = 0, totalClosing = 0;
+                decimal totalOpening = 0, totalContributions = 0, totalUtilization = 0, totalInvestments = 0, totalClosing = 0;
 
                 using (var cmd = conn.CreateCommand())
                 {

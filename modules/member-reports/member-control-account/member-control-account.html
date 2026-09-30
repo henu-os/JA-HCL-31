@@ -5,52 +5,115 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Member Control Account — JEEVIKA ERP</title>
   <script src="../../../config.js"></script>
+  <script src="../../../assets/js/xlsx-js-style.bundle.js"></script>
   <link rel="stylesheet" href="../../../assets/css/global.css">
   <link rel="stylesheet" href="../../../assets/css/components.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="../member-reports-grid.css">
 </head>
 <body class="erp-module">
-  <div class="erp-module-header">
-    <div>
-      <div class="erp-module-title">Member Control Account</div>
-      
-    </div>
-    <button class="erp-btn erp-btn-primary" onclick="refreshData()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
-  </div>
 
-  <div class="erp-search-bar">
-    <input type="text" id="searchInput" class="erp-input erp-search-input" placeholder="🔍 Search Member Control Account..." onkeyup="filterTable()">
-    <div class="erp-record-count" id="recordCount">Total: 0</div>
-  </div>
-
-  <div class="erp-module-body" style="padding:0;">
-    <div class="erp-table-container" style="height:100%;border:none;">
-      <table class="erp-table striped" id="mainTable">
-        <thead>
-          <tr>
-            <th style="width:40px;" class="td-center">#</th>
-            <th>Particulars / Description</th>
-            <th style="width:140px;" class="td-center">Voucher / Ref No</th>
-            <th style="width:120px;" class="td-center">Date</th>
-            <th style="width:120px;" class="td-right">Amount (₹)</th>
-            <th style="width:100px;" class="td-center">Status</th>
-          </tr>
-        </thead>
-        <tbody id="mainTableBody">
-          <tr>
-            <td colspan="6" class="text-center text-muted" style="padding:40px;">
-              <i class="bi bi-folder-check" style="font-size:24px;display:block;margin-bottom:8px;color:#94a3b8;"></i>
-              Member Control Account module initialized. Live records will be displayed here.
-            </td>
-          </tr>
-        </tbody>
-      </table>
+  <!-- PRINT ONLY HEADER -->
+  <div class="print-header">
+    <div style="text-align:center;">
+      <h2 style="margin:0; font-size:16px; font-weight:900; color:#0f172a;" id="prt-soc-name">SHREE SAI RESIDENCY CO-OP HSG SOC LTD</h2>
+      <div style="font-size:12px; font-weight:700; margin-top:2px;">MEMBER CONTROL ACCOUNT (SUNDRY DEBTORS) RECONCILIATION</div>
+      <div style="font-size:11px; color:#475569; margin-top:2px;">
+        Financial Year: <span id="prt-fy" style="font-weight:bold;">FY 2026-2027</span> | Date: <span id="prt-date-stamp" style="font-weight:bold;">30/09/2026</span>
+      </div>
     </div>
   </div>
 
-  <script src="../../../assets/js/api.js"></script>
-  <script src="../../../assets/js/auth.js"></script>
-  <script src="../../../assets/js/utils.js"></script>
+  <!-- TOP MODULE BAR -->
+  <div class="module-top-bar">
+    <div class="module-title">
+      <i class="bi bi-shield-check" style="color:var(--primary);"></i>
+      <span>Member Control Account (Sundry Debtors)</span>
+    </div>
+    <div class="d-flex gap-6" style="display:flex; gap:6px;">
+      <button class="btn-top" onclick="exportControlAccountExcel()"><i class="bi bi-file-earmark-spreadsheet"></i> Export Excel</button>
+      <button class="btn-top" onclick="window.print()"><i class="bi bi-printer"></i> Print Statement</button>
+      <button class="btn-top primary" onclick="loadControlAccount()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+    </div>
+  </div>
+
+  <!-- FILTERS PANEL -->
+  <div class="filter-bar">
+    <div class="filter-row">
+      <div class="filter-item" style="width:130px;">
+        <label class="filter-lbl">Financial Year</label>
+        <select id="flt-fy" class="filter-input" onchange="loadControlAccount()">
+          <option value="2026-2027" selected>FY 2026-2027</option>
+          <option value="2025-2026">FY 2025-2026</option>
+        </select>
+      </div>
+
+      <!-- Summary Pop-over -->
+      <div class="filter-item summary-dropdown-wrap">
+        <label class="filter-lbl">Reconciliation Summary</label>
+        <button type="button" class="summary-dropdown-btn" id="btnSummaryToggle" onclick="toggleSummaryPopover(event)">
+          <i class="bi bi-pie-chart-fill" style="color:var(--primary); font-size:11px;"></i>
+          <span>Summary</span>
+          <span style="font-size:10px; font-weight:700; color:#0369a1; background:#e0f2fe; padding:1px 6px; border-radius:10px;">12 Months</span>
+          <i class="bi bi-chevron-down" style="font-size:9.5px; color:#64748b;"></i>
+        </button>
+
+        <div class="summary-popover" id="summaryPopover">
+          <div class="summary-popover-head">
+            <div style="font-size:11.5px; font-weight:800; color:#0f172a; display:flex; align-items:center; gap:6px;">
+              <i class="bi bi-bar-chart-line-fill" style="color:var(--primary);"></i> Annual Control Summary
+            </div>
+            <span style="font-size:10px; font-weight:700; color:#0369a1; background:#e0f2fe; padding:1px 6px; border-radius:10px;">12 Months</span>
+          </div>
+
+          <div class="summary-popover-grid">
+            <div class="pop-card">
+              <span class="pop-lbl">Opening Balance (Dr)</span>
+              <span class="pop-val debit" id="stat-opening">₹0.00</span>
+            </div>
+            <div class="pop-card">
+              <span class="pop-lbl">Total Billed / Debits</span>
+              <span class="pop-val" id="stat-billed">₹0.00</span>
+            </div>
+            <div class="pop-card">
+              <span class="pop-lbl">Total Collections (Cr)</span>
+              <span class="pop-val credit" id="stat-collected">₹0.00</span>
+            </div>
+            <div class="pop-card full-width" style="background:#fef2f2;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span class="pop-lbl" style="color:#991b1b;">Closing Sundry Debtors</span>
+                <span class="pop-val debit" id="stat-closing" style="font-size:13px; margin:0;">₹0.00</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABLE CONTAINER -->
+  <div class="table-container">
+    <table class="ledger-grid" id="tbl-ctrl">
+      <thead>
+        <tr>
+          <th class="text-center" style="width:40px;">#</th>
+          <th>Month / Period</th>
+          <th class="text-right">Opening Dues (₹)</th>
+          <th class="text-right">Maintenance Billed (₹)</th>
+          <th class="text-right">Debit Notes (₹)</th>
+          <th class="text-right">Collections (₹)</th>
+          <th class="text-right">Credit Notes (₹)</th>
+          <th class="text-right">Adjustments (₹)</th>
+          <th class="text-right">Closing Balance (₹)</th>
+        </tr>
+      </thead>
+      <tbody id="tbl-ctrl-body">
+        <tr><td colspan="9" class="text-center" style="padding: 30px; color: #94a3b8;"><i class="bi bi-hourglass-split"></i> Loading Control Account Reconciliation...</td></tr>
+      </tbody>
+      <tfoot id="tbl-ctrl-foot"></tfoot>
+    </table>
+  </div>
+
   <script src="member-control-account.js"></script>
 </body>
 </html>

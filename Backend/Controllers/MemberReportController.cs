@@ -7,6 +7,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json.Serialization;
+using Npgsql;
 
 namespace JeevikaERP.Controllers
 {
@@ -1970,6 +1971,1241 @@ namespace JeevikaERP.Controllers
             {
                 return StatusCode(500, new { success = false, message = ex.Message });
             }
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // ── 1. BILL FORMAT — GST INVOICE (A4) ───────────────────────
+        // ═══════════════════════════════════════════════════════════
+        [HttpGet("bill-format/gst-a4")]
+        public IActionResult GetGstBillFormat(
+            [FromQuery] int societyId,
+            [FromQuery] int fyId,
+            [FromQuery] string? fromMemberCode,
+            [FromQuery] string? toMemberCode,
+            [FromQuery] string? billDateFrom,
+            [FromQuery] string? billDateTo,
+            [FromQuery] string? receiptDateFrom,
+            [FromQuery] string? receiptDateTo,
+            [FromQuery] string? emailFilter)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(emailFilter)) emailFilter = "all";
+                using var conn = DbHelper.GetConn();
+
+                if (societyId <= 0)
+                {
+                    using var cmdDefSoc = conn.CreateCommand();
+                    cmdDefSoc.CommandText = "SELECT SocietyId FROM jeevika_erp.SocietyInfo WHERE IsActive = TRUE ORDER BY SocietyId ASC LIMIT 1";
+                    var sRes = cmdDefSoc.ExecuteScalar();
+                    societyId = (sRes != null && sRes != DBNull.Value) ? Convert.ToInt32(sRes) : 1;
+                }
+
+                // Resolve Financial Year Bounds if not passed
+                DateTime? bFrom = null;
+                DateTime? bTo = null;
+                if (!string.IsNullOrWhiteSpace(billDateFrom) && DateTime.TryParse(billDateFrom, out var parsedFrom)) bFrom = parsedFrom;
+                if (!string.IsNullOrWhiteSpace(billDateTo) && DateTime.TryParse(billDateTo, out var parsedTo)) bTo = parsedTo;
+
+                if (!bFrom.HasValue || !bTo.HasValue)
+                {
+                    using var cmdFy = conn.CreateCommand();
+                    cmdFy.CommandText = @"
+                        SELECT FYStart, FYEnd FROM jeevika_erp.FinancialYear 
+                        WHERE (SocietyId = @sid OR @sid <= 0) AND (FYId = @fyid OR @fyid <= 0)
+                        ORDER BY FYStart DESC LIMIT 1";
+                    cmdFy.Parameters.AddWithValue("@sid", societyId);
+                    cmdFy.Parameters.AddWithValue("@fyid", fyId);
+                    using var rFy = cmdFy.ExecuteReader();
+                    if (rFy.Read())
+                    {
+                        if (!bFrom.HasValue && rFy["FYStart"] != DBNull.Value) bFrom = Convert.ToDateTime(rFy["FYStart"]);
+                        if (!bTo.HasValue && rFy["FYEnd"] != DBNull.Value) bTo = Convert.ToDateTime(rFy["FYEnd"]);
+                    }
+                }
+
+                // Society Meta
+                var societyObj = GetSocietyMetaDictionary(conn, societyId);
+                decimal cgstRate = Convert.ToDecimal(societyObj.GetValueOrDefault("cgstPct", 9m));
+                decimal sgstRate = Convert.ToDecimal(societyObj.GetValueOrDefault("sgstPct", 9m));
+                bool isGstApp = Convert.ToBoolean(societyObj.GetValueOrDefault("gstApplicable", true));
+
+                // Fetch Bills & Members
+                var billsList = new List<object>();
+                using (var cmd = conn.CreateCommand())
+                {
+                    var sql = @"
+                        SELECT b.BillId, b.BillNo, b.BillDate, b.DueDate, b.Period,
+                               b.PrincipalAmount, b.InterestAmount, b.TotalAmount, b.BalanceAmount,
+                               m.MemberId, m.MemCode, m.MemName, m.Wing, m.FlatNo, m.Floor, m.Building, m.AreaSqFt, m.Email
+                        FROM jeevika_erp.SocMemberBill b
+                        JOIN jeevika_erp.SocMember m ON b.MemberId = m.MemberId
+                        WHERE (b.SocietyId = @sid OR (@sid <= 0 AND b.SocietyId > 0))
+                          AND b.IsDeleted = FALSE";
+
+                    if (bFrom.HasValue)
+                    {
+                        sql += " AND b.BillDate >= @bFrom";
+                        cmd.Parameters.AddWithValue("@bFrom", bFrom.Value);
+                    }
+                    if (bTo.HasValue)
+                    {
+                        sql += " AND b.BillDate <= @bTo";
+                        cmd.Parameters.AddWithValue("@bTo", bTo.Value);
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(fromMemberCode) && !string.IsNullOrWhiteSpace(toMemberCode))
+                    {
+                        sql += " AND m.MemCode >= @fromMem AND m.MemCode <= @toMem";
+                        cmd.Parameters.AddWithValue("@fromMem", fromMemberCode.Trim());
+                        cmd.Parameters.AddWithValue("@toMem", toMemberCode.Trim());
+                    }
+                    else if (!string.IsNullOrWhiteSpace(fromMemberCode))
+                    {
+                        sql += " AND m.MemCode = @fromMem";
+                        cmd.Parameters.AddWithValue("@fromMem", fromMemberCode.Trim());
+                    }
+
+                    if (emailFilter?.ToLower() == "blank")
+                    {
+                        sql += " AND (m.Email IS NULL OR TRIM(m.Email) = '')";
+                    }
+                    else if (emailFilter?.ToLower() == "non-blank")
+                    {
+                        sql += " AND (m.Email IS NOT NULL AND TRIM(m.Email) <> '')";
+                    }
+
+                    sql += " ORDER BY m.Wing, m.FlatNo, m.MemCode, b.BillDate ASC, b.BillId ASC";
+                    cmd.CommandText = sql;
+                    cmd.Parameters.AddWithValue("@sid", societyId);
+
+                    using var r = cmd.ExecuteReader();
+                    var rawBills = new List<(int BillId, string BillNo, DateTime BillDate, DateTime? DueDate, string Period, decimal Principal, decimal Interest, decimal Total, int MemberId, string MemCode, string MemName, string Wing, string FlatNo, string Floor, string Building, decimal Area)>();
+
+                    while (r.Read())
+                    {
+                        rawBills.Add((
+                            Convert.ToInt32(r["BillId"]),
+                            r["BillNo"]?.ToString() ?? "",
+                            Convert.ToDateTime(r["BillDate"]),
+                            r["DueDate"] != DBNull.Value ? Convert.ToDateTime(r["DueDate"]) : null,
+                            r["Period"]?.ToString() ?? "",
+                            Convert.ToDecimal(r["PrincipalAmount"]),
+                            Convert.ToDecimal(r["InterestAmount"]),
+                            Convert.ToDecimal(r["TotalAmount"]),
+                            Convert.ToInt32(r["MemberId"]),
+                            r["MemCode"]?.ToString() ?? "",
+                            r["MemName"]?.ToString() ?? "",
+                            r["Wing"]?.ToString() ?? "",
+                            r["FlatNo"]?.ToString() ?? "",
+                            r["Floor"]?.ToString() ?? "FIRST",
+                            r["Building"]?.ToString() ?? "",
+                            r["AreaSqFt"] != DBNull.Value ? Convert.ToDecimal(r["AreaSqFt"]) : 0m
+                        ));
+                    }
+                    r.Close();
+
+                    foreach (var bill in rawBills)
+                    {
+                        var nonGstItems = new List<(string head, decimal amount)>();
+                        var exemptItems = new List<(string head, decimal amount)>();
+                        var taxableItems = new List<(string head, decimal amount)>();
+
+                        using (var itemCmd = conn.CreateCommand())
+                        {
+                            itemCmd.CommandText = @"
+                                SELECT ItemId, AccountCode, AccountName, Amount 
+                                FROM jeevika_erp.SocMemberBillItem 
+                                WHERE BillId = @bid 
+                                ORDER BY ItemId ASC";
+                            itemCmd.Parameters.AddWithValue("@bid", bill.BillId);
+                            using var rItem = itemCmd.ExecuteReader();
+                            while (rItem.Read())
+                            {
+                                var accName = rItem["AccountName"]?.ToString() ?? "Charge";
+                                var amt = Convert.ToDecimal(rItem["Amount"]);
+                                var accLower = accName.ToLower();
+
+                                if (accLower.Contains("sinking") || accLower.Contains("share capital") || accLower.Contains("interest") || accLower.Contains("reserve") || accLower.Contains("non-gst"))
+                                {
+                                    nonGstItems.Add((accName, amt));
+                                }
+                                else if (accLower.Contains("tax") || accLower.Contains("water") || accLower.Contains("insurance") || accLower.Contains("municipal") || accLower.Contains("exempt"))
+                                {
+                                    exemptItems.Add((accName, amt));
+                                }
+                                else
+                                {
+                                    if (isGstApp) taxableItems.Add((accName, amt));
+                                    else exemptItems.Add((accName, amt));
+                                }
+                            }
+                        }
+
+                        // Fallback if no itemized breakdown exists in database
+                        if (nonGstItems.Count == 0 && exemptItems.Count == 0 && taxableItems.Count == 0)
+                        {
+                            if (isGstApp)
+                            {
+                                taxableItems.Add(("Maintenance Charges", bill.Principal));
+                            }
+                            else
+                            {
+                                exemptItems.Add(("Maintenance Charges", bill.Principal));
+                            }
+                            if (bill.Interest > 0)
+                            {
+                                nonGstItems.Add(("Interest on Arrears", bill.Interest));
+                            }
+                        }
+
+                        decimal subNonGst = nonGstItems.Sum(x => x.amount);
+                        decimal subExempt = exemptItems.Sum(x => x.amount);
+                        decimal subTaxable = taxableItems.Sum(x => x.amount);
+
+                        decimal cgstAmt = isGstApp ? Math.Round(subTaxable * (cgstRate / 100m), 2) : 0m;
+                        decimal sgstAmt = isGstApp ? Math.Round(subTaxable * (sgstRate / 100m), 2) : 0m;
+                        decimal totGstPlusTax = subTaxable + cgstAmt + sgstAmt;
+                        decimal totNonGstPlusExempt = subNonGst + subExempt;
+                        decimal currentBillAmt = totGstPlusTax + totNonGstPlusExempt;
+                        if (currentBillAmt == 0m && bill.Total > 0m) currentBillAmt = bill.Total;
+
+                        // Calculate Arrears prior to this bill
+                        decimal arrPrin = 0m;
+                        decimal arrInt = 0m;
+                        using (var arrCmd = conn.CreateCommand())
+                        {
+                            arrCmd.CommandText = @"
+                                SELECT 
+                                    COALESCE(SUM(b2.PrincipalAmount), 0) - COALESCE((
+                                        SELECT SUM(vh.Amount) FROM jeevika_erp.SocVoucherHeader vh
+                                        WHERE vh.SocietyId = @sid AND vh.VoucherType IN ('MemberReceipt', 'Receipt')
+                                          AND (vh.PersonCode = @mcode OR vh.RefNo = @mcode)
+                                          AND vh.VoucherDate < @bdate AND vh.IsDeleted = FALSE
+                                    ), 0) AS NetPrinArrears,
+                                    COALESCE(SUM(b2.InterestAmount), 0) AS NetIntArrears
+                                FROM jeevika_erp.SocMemberBill b2
+                                WHERE b2.SocietyId = @sid AND b2.MemberId = @mid AND b2.BillDate < @bdate AND b2.IsDeleted = FALSE";
+                            arrCmd.Parameters.AddWithValue("@sid", societyId);
+                            arrCmd.Parameters.AddWithValue("@mid", bill.MemberId);
+                            arrCmd.Parameters.AddWithValue("@mcode", bill.MemCode);
+                            arrCmd.Parameters.AddWithValue("@bdate", bill.BillDate);
+                            using var rArr = arrCmd.ExecuteReader();
+                            if (rArr.Read())
+                            {
+                                arrPrin = Math.Max(0m, Convert.ToDecimal(rArr["NetPrinArrears"]));
+                                arrInt = Math.Max(0m, Convert.ToDecimal(rArr["NetIntArrears"]));
+                            }
+                        }
+
+                        decimal arrTotal = arrPrin + arrInt;
+                        decimal netPayable = currentBillAmt + arrTotal;
+
+                        billsList.Add(new
+                        {
+                            member = new
+                            {
+                                code = bill.MemCode,
+                                name = bill.MemName,
+                                flatNo = bill.FlatNo,
+                                floor = bill.Floor,
+                                building = bill.Building,
+                                wing = bill.Wing,
+                                area = bill.Area
+                            },
+                            bill = new
+                            {
+                                billNo = bill.BillNo,
+                                dueDate = bill.DueDate?.ToString("yyyy-MM-dd") ?? "",
+                                billDate = bill.BillDate.ToString("yyyy-MM-dd"),
+                                month = !string.IsNullOrWhiteSpace(bill.Period) ? bill.Period : bill.BillDate.ToString("MMM-yyyy").ToUpper()
+                            },
+                            nonGstItems = nonGstItems.Select(x => new { head = x.head, amount = x.amount }).ToList(),
+                            exemptItems = exemptItems.Select(x => new { head = x.head, amount = x.amount }).ToList(),
+                            taxableItems = taxableItems.Select(x => new { head = x.head, amount = x.amount }).ToList(),
+                            summary = new
+                            {
+                                subtotalNonGst = subNonGst,
+                                subtotalExempt = subExempt,
+                                subtotalTaxable = subTaxable,
+                                cgst = cgstAmt,
+                                sgst = sgstAmt,
+                                totalGstHeadPlusTax = totGstPlusTax,
+                                totalNonGstPlusExempt = totNonGstPlusExempt,
+                                currentBill = currentBillAmt,
+                                arrearsPrin = arrPrin,
+                                arrearsInt = arrInt,
+                                arrearsTotal = arrTotal,
+                                netPayable = netPayable
+                            }
+                        });
+                    }
+                }
+
+                return Ok(new
+                {
+                    success = true,
+                    society = societyObj,
+                    bills = billsList
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // ── 2. MEMBER RECEIPT REPORT ────────────────────────────────
+        // ═══════════════════════════════════════════════════════════
+        [HttpGet("receipt-number-bounds")]
+        public IActionResult GetReceiptNumberBounds([FromQuery] int societyId, [FromQuery] int fyId)
+        {
+            try
+            {
+                using var conn = DbHelper.GetConn();
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = @"
+                    SELECT 
+                        MIN(NULLIF(REGEXP_REPLACE(VoucherNo, '[^0-9]', '', 'g'), '')::BIGINT) AS MinNo,
+                        MAX(NULLIF(REGEXP_REPLACE(VoucherNo, '[^0-9]', '', 'g'), '')::BIGINT) AS MaxNo
+                    FROM jeevika_erp.SocVoucherHeader
+                    WHERE (SocietyId = @sid OR (@sid <= 0 AND SocietyId > 0))
+                      AND VoucherType IN ('MemberReceipt', 'Receipt')
+                      AND IsDeleted = FALSE";
+                cmd.Parameters.AddWithValue("@sid", societyId);
+                using var r = cmd.ExecuteReader();
+                long minNo = 1;
+                long maxNo = 999999;
+                if (r.Read())
+                {
+                    if (r["MinNo"] != DBNull.Value) minNo = Convert.ToInt64(r["MinNo"]);
+                    if (r["MaxNo"] != DBNull.Value) maxNo = Convert.ToInt64(r["MaxNo"]);
+                }
+                return Ok(new { success = true, minReceiptNo = minNo, maxReceiptNo = maxNo });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet("receipt-print")]
+        public IActionResult GetReceiptPrint(
+            [FromQuery] int societyId,
+            [FromQuery] int fyId,
+            [FromQuery] string? fromReceiptNo,
+            [FromQuery] string? toReceiptNo,
+            [FromQuery] string? fromDate,
+            [FromQuery] string? toDate,
+            [FromQuery] string? fromMemberCode,
+            [FromQuery] string? toMemberCode,
+            [FromQuery] string? indexBy,
+            [FromQuery] string? printBldgWing,
+            [FromQuery] string? newPageEach,
+            [FromQuery] string? emailFilter)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(indexBy)) indexBy = "Numberwise";
+                if (string.IsNullOrWhiteSpace(printBldgWing)) printBldgWing = "No";
+                if (string.IsNullOrWhiteSpace(newPageEach)) newPageEach = "No";
+                if (string.IsNullOrWhiteSpace(emailFilter)) emailFilter = "all";
+                using var conn = DbHelper.GetConn();
+
+                if (societyId <= 0)
+                {
+                    using var cmdDefSoc = conn.CreateCommand();
+                    cmdDefSoc.CommandText = "SELECT SocietyId FROM jeevika_erp.SocietyInfo WHERE IsActive = TRUE ORDER BY SocietyId ASC LIMIT 1";
+                    var sRes = cmdDefSoc.ExecuteScalar();
+                    societyId = (sRes != null && sRes != DBNull.Value) ? Convert.ToInt32(sRes) : 1;
+                }
+
+                var societyObj = GetSocietyMetaDictionary(conn, societyId);
+
+                DateTime? fDate = null;
+                DateTime? tDate = null;
+                if (!string.IsNullOrWhiteSpace(fromDate) && DateTime.TryParse(fromDate, out var pd1)) fDate = pd1;
+                if (!string.IsNullOrWhiteSpace(toDate) && DateTime.TryParse(toDate, out var pd2)) tDate = pd2;
+
+                long? fromNo = null;
+                long? toNo = null;
+                if (!string.IsNullOrWhiteSpace(fromReceiptNo) && long.TryParse(System.Text.RegularExpressions.Regex.Replace(fromReceiptNo, @"[^\d]", ""), out var fn)) fromNo = fn;
+                if (!string.IsNullOrWhiteSpace(toReceiptNo) && long.TryParse(System.Text.RegularExpressions.Regex.Replace(toReceiptNo, @"[^\d]", ""), out var tn)) toNo = tn;
+
+                var receipts = new List<object>();
+                using (var cmd = conn.CreateCommand())
+                {
+                    var sql = @"
+                        SELECT vh.VoucherId, vh.VoucherNo, vh.VoucherDate, vh.Amount, vh.CashBankCode, vh.CashBankName,
+                               vh.ChqNo, vh.ChqDate, vh.BankName, vh.PersonName, vh.PersonCode, vh.RefNo, vh.Narration, vh.Particular1, vh.Particular2,
+                               m.MemberId, m.MemCode, m.MemName, m.Building, m.Wing, m.FlatNo, m.Email
+                        FROM jeevika_erp.SocVoucherHeader vh
+                        LEFT JOIN jeevika_erp.SocMember m 
+                               ON (vh.PersonCode = m.MemCode OR vh.PersonCode = CAST(m.MemberId AS VARCHAR) OR vh.RefNo = m.MemCode OR vh.PersonName = m.MemName)
+                              AND (m.SocietyId = vh.SocietyId OR m.SocietyId = 1) AND m.IsDeleted = FALSE
+                        WHERE (vh.SocietyId = @sid OR (@sid <= 0 AND vh.SocietyId > 0))
+                          AND vh.VoucherType IN ('MemberReceipt', 'Receipt')
+                          AND vh.IsDeleted = FALSE";
+
+                    if (fDate.HasValue)
+                    {
+                        sql += " AND vh.VoucherDate >= @fDate";
+                        cmd.Parameters.AddWithValue("@fDate", fDate.Value);
+                    }
+                    if (tDate.HasValue)
+                    {
+                        sql += " AND vh.VoucherDate <= @tDate";
+                        cmd.Parameters.AddWithValue("@tDate", tDate.Value);
+                    }
+
+                    if (fromNo.HasValue && toNo.HasValue)
+                    {
+                        sql += " AND NULLIF(REGEXP_REPLACE(vh.VoucherNo, '[^0-9]', '', 'g'), '')::BIGINT >= @fromNo AND NULLIF(REGEXP_REPLACE(vh.VoucherNo, '[^0-9]', '', 'g'), '')::BIGINT <= @toNo";
+                        cmd.Parameters.AddWithValue("@fromNo", fromNo.Value);
+                        cmd.Parameters.AddWithValue("@toNo", toNo.Value);
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(fromMemberCode) && !string.IsNullOrWhiteSpace(toMemberCode))
+                    {
+                        sql += " AND COALESCE(m.MemCode, vh.PersonCode) >= @fromMem AND COALESCE(m.MemCode, vh.PersonCode) <= @toMem";
+                        cmd.Parameters.AddWithValue("@fromMem", fromMemberCode.Trim());
+                        cmd.Parameters.AddWithValue("@toMem", toMemberCode.Trim());
+                    }
+                    else if (!string.IsNullOrWhiteSpace(fromMemberCode))
+                    {
+                        sql += " AND COALESCE(m.MemCode, vh.PersonCode) = @fromMem";
+                        cmd.Parameters.AddWithValue("@fromMem", fromMemberCode.Trim());
+                    }
+
+                    if (emailFilter?.ToLower() == "blank")
+                    {
+                        sql += " AND (m.Email IS NULL OR TRIM(m.Email) = '')";
+                    }
+                    else if (emailFilter?.ToLower() == "non-blank")
+                    {
+                        sql += " AND (m.Email IS NOT NULL AND TRIM(m.Email) <> '')";
+                    }
+
+                    if (indexBy?.ToLower() == "memberwise")
+                    {
+                        sql += " ORDER BY m.MemCode ASC, vh.VoucherDate ASC, vh.VoucherId ASC";
+                    }
+                    else
+                    {
+                        sql += " ORDER BY NULLIF(REGEXP_REPLACE(vh.VoucherNo, '[^0-9]', '', 'g'), '')::BIGINT ASC, vh.VoucherDate ASC, vh.VoucherId ASC";
+                    }
+
+                    cmd.CommandText = sql;
+                    cmd.Parameters.AddWithValue("@sid", societyId);
+
+                    using var r = cmd.ExecuteReader();
+                    while (r.Read())
+                    {
+                        var chqNo = r["ChqNo"]?.ToString() ?? "";
+                        var cbName = r["CashBankName"]?.ToString() ?? "";
+                        var cbCode = r["CashBankCode"]?.ToString() ?? "";
+                        string paymentMode = "Cheque";
+                        if (!string.IsNullOrWhiteSpace(chqNo)) paymentMode = "Cheque";
+                        else if (cbName.ToLower().Contains("cash") || cbCode.ToLower().Contains("cash")) paymentMode = "Cash";
+                        else paymentMode = "Online Transfer";
+
+                        var vDate = Convert.ToDateTime(r["VoucherDate"]);
+                        var chqDate = r["ChqDate"] != DBNull.Value ? Convert.ToDateTime(r["ChqDate"]).ToString("yyyy-MM-dd") : "";
+                        var personName = r["MemName"]?.ToString();
+                        if (string.IsNullOrWhiteSpace(personName)) personName = r["PersonName"]?.ToString() ?? "";
+                        var personCode = r["MemCode"]?.ToString();
+                        if (string.IsNullOrWhiteSpace(personCode)) personCode = r["PersonCode"]?.ToString() ?? "";
+
+                        var refNo = r["RefNo"]?.ToString() ?? "";
+                        var part1 = r["Particular1"]?.ToString() ?? "";
+
+                        receipts.Add(new
+                        {
+                            receiptNo = r["VoucherNo"]?.ToString() ?? "",
+                            receiptDate = vDate.ToString("yyyy-MM-dd"),
+                            amount = Convert.ToDecimal(r["Amount"]),
+                            paymentMode = paymentMode,
+                            chequeNo = chqNo,
+                            chequeDate = chqDate,
+                            bankName = r["BankName"]?.ToString() ?? cbName,
+                            branchName = "",
+                            transactionRef = refNo,
+                            member = new
+                            {
+                                code = personCode,
+                                name = personName,
+                                building = r["Building"]?.ToString() ?? "",
+                                wing = r["Wing"]?.ToString() ?? "",
+                                flatNo = r["FlatNo"]?.ToString() ?? "",
+                                email = r["Email"]?.ToString() ?? ""
+                            },
+                            againstBill = new
+                            {
+                                billNo = !string.IsNullOrWhiteSpace(refNo) ? refNo : (part1.Contains("BILL") ? part1 : ""),
+                                billDate = ""
+                            }
+                        });
+                    }
+                }
+
+                return Ok(new
+                {
+                    success = true,
+                    society = societyObj,
+                    receipts
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // ── 3. DEBIT NOTE REPORT ────────────────────────────────────
+        // ═══════════════════════════════════════════════════════════
+        [HttpGet("debit-note-number-bounds")]
+        public IActionResult GetDebitNoteNumberBounds([FromQuery] int societyId, [FromQuery] int fyId)
+        {
+            try
+            {
+                using var conn = DbHelper.GetConn();
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = @"
+                    SELECT 
+                        MIN(NULLIF(REGEXP_REPLACE(VoucherNo, '[^0-9]', '', 'g'), '')::BIGINT) AS MinNo,
+                        MAX(NULLIF(REGEXP_REPLACE(VoucherNo, '[^0-9]', '', 'g'), '')::BIGINT) AS MaxNo
+                    FROM jeevika_erp.SocVoucherHeader
+                    WHERE (SocietyId = @sid OR (@sid <= 0 AND SocietyId > 0))
+                      AND VoucherType IN ('MemberDebitNote', 'DebitNote')
+                      AND IsDeleted = FALSE";
+                cmd.Parameters.AddWithValue("@sid", societyId);
+                using var r = cmd.ExecuteReader();
+                long minNo = 1;
+                long maxNo = 999999;
+                if (r.Read())
+                {
+                    if (r["MinNo"] != DBNull.Value) minNo = Convert.ToInt64(r["MinNo"]);
+                    if (r["MaxNo"] != DBNull.Value) maxNo = Convert.ToInt64(r["MaxNo"]);
+                }
+                return Ok(new { success = true, minNoteNo = minNo, maxNoteNo = maxNo });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet("debit-note-print")]
+        public IActionResult GetDebitNotePrint(
+            [FromQuery] int societyId,
+            [FromQuery] int fyId,
+            [FromQuery] string? formatType,
+            [FromQuery] string? fromNo,
+            [FromQuery] string? toNo,
+            [FromQuery] string? fromDate,
+            [FromQuery] string? toDate,
+            [FromQuery] string? fromMemberCode,
+            [FromQuery] string? toMemberCode,
+            [FromQuery] string? emailFilter)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(formatType)) formatType = "FullPage14";
+                if (string.IsNullOrWhiteSpace(emailFilter)) emailFilter = "all";
+                using var conn = DbHelper.GetConn();
+
+                if (societyId <= 0)
+                {
+                    using var cmdDefSoc = conn.CreateCommand();
+                    cmdDefSoc.CommandText = "SELECT SocietyId FROM jeevika_erp.SocietyInfo WHERE IsActive = TRUE ORDER BY SocietyId ASC LIMIT 1";
+                    var sRes = cmdDefSoc.ExecuteScalar();
+                    societyId = (sRes != null && sRes != DBNull.Value) ? Convert.ToInt32(sRes) : 1;
+                }
+
+                var societyObj = GetSocietyMetaDictionary(conn, societyId);
+
+                DateTime? fDate = null;
+                DateTime? tDate = null;
+                if (!string.IsNullOrWhiteSpace(fromDate) && DateTime.TryParse(fromDate, out var pd1)) fDate = pd1;
+                if (!string.IsNullOrWhiteSpace(toDate) && DateTime.TryParse(toDate, out var pd2)) tDate = pd2;
+
+                long? nFrom = null;
+                long? nTo = null;
+                if (!string.IsNullOrWhiteSpace(fromNo) && long.TryParse(System.Text.RegularExpressions.Regex.Replace(fromNo, @"[^\d]", ""), out var fn)) nFrom = fn;
+                if (!string.IsNullOrWhiteSpace(toNo) && long.TryParse(System.Text.RegularExpressions.Regex.Replace(toNo, @"[^\d]", ""), out var tn)) nTo = tn;
+
+                var notes = new List<object>();
+                using (var cmd = conn.CreateCommand())
+                {
+                    var sql = @"
+                        SELECT vh.VoucherId, vh.VoucherNo, vh.VoucherDate, vh.Amount,
+                               vh.PersonName, vh.PersonCode, vh.RefNo, vh.Narration, vh.Particular1, vh.Particular2,
+                               m.MemberId, m.MemCode, m.MemName, m.Building, m.Wing, m.FlatNo, m.AreaSqFt, m.Email
+                        FROM jeevika_erp.SocVoucherHeader vh
+                        LEFT JOIN jeevika_erp.SocMember m 
+                               ON (vh.PersonCode = m.MemCode OR vh.PersonCode = CAST(m.MemberId AS VARCHAR) OR vh.RefNo = m.MemCode OR vh.PersonName = m.MemName)
+                              AND (m.SocietyId = vh.SocietyId OR m.SocietyId = 1) AND m.IsDeleted = FALSE
+                        WHERE (vh.SocietyId = @sid OR (@sid <= 0 AND vh.SocietyId > 0))
+                          AND vh.VoucherType IN ('MemberDebitNote', 'DebitNote')
+                          AND vh.IsDeleted = FALSE";
+
+                    if (fDate.HasValue)
+                    {
+                        sql += " AND vh.VoucherDate >= @fDate";
+                        cmd.Parameters.AddWithValue("@fDate", fDate.Value);
+                    }
+                    if (tDate.HasValue)
+                    {
+                        sql += " AND vh.VoucherDate <= @tDate";
+                        cmd.Parameters.AddWithValue("@tDate", tDate.Value);
+                    }
+
+                    if (nFrom.HasValue && nTo.HasValue)
+                    {
+                        sql += " AND NULLIF(REGEXP_REPLACE(vh.VoucherNo, '[^0-9]', '', 'g'), '')::BIGINT >= @nFrom AND NULLIF(REGEXP_REPLACE(vh.VoucherNo, '[^0-9]', '', 'g'), '')::BIGINT <= @nTo";
+                        cmd.Parameters.AddWithValue("@nFrom", nFrom.Value);
+                        cmd.Parameters.AddWithValue("@nTo", nTo.Value);
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(fromMemberCode) && !string.IsNullOrWhiteSpace(toMemberCode))
+                    {
+                        sql += " AND COALESCE(m.MemCode, vh.PersonCode) >= @fromMem AND COALESCE(m.MemCode, vh.PersonCode) <= @toMem";
+                        cmd.Parameters.AddWithValue("@fromMem", fromMemberCode.Trim());
+                        cmd.Parameters.AddWithValue("@toMem", toMemberCode.Trim());
+                    }
+                    else if (!string.IsNullOrWhiteSpace(fromMemberCode))
+                    {
+                        sql += " AND COALESCE(m.MemCode, vh.PersonCode) = @fromMem";
+                        cmd.Parameters.AddWithValue("@fromMem", fromMemberCode.Trim());
+                    }
+
+                    if (emailFilter?.ToLower() == "blank")
+                    {
+                        sql += " AND (m.Email IS NULL OR TRIM(m.Email) = '')";
+                    }
+                    else if (emailFilter?.ToLower() == "non-blank")
+                    {
+                        sql += " AND (m.Email IS NOT NULL AND TRIM(m.Email) <> '')";
+                    }
+
+                    sql += " ORDER BY NULLIF(REGEXP_REPLACE(vh.VoucherNo, '[^0-9]', '', 'g'), '')::BIGINT ASC, vh.VoucherDate ASC, vh.VoucherId ASC";
+                    cmd.CommandText = sql;
+                    cmd.Parameters.AddWithValue("@sid", societyId);
+
+                    using var r = cmd.ExecuteReader();
+                    var rawNotes = new List<(int VoucherId, string VoucherNo, DateTime Date, decimal Amount, string PersonCode, string PersonName, string RefNo, string Narration, string Part1, string MemCode, string MemName, string Building, string Wing, string FlatNo, decimal Area)>();
+
+                    while (r.Read())
+                    {
+                        rawNotes.Add((
+                            Convert.ToInt32(r["VoucherId"]),
+                            r["VoucherNo"]?.ToString() ?? "",
+                            Convert.ToDateTime(r["VoucherDate"]),
+                            Convert.ToDecimal(r["Amount"]),
+                            r["PersonCode"]?.ToString() ?? "",
+                            r["PersonName"]?.ToString() ?? "",
+                            r["RefNo"]?.ToString() ?? "",
+                            r["Narration"]?.ToString() ?? "",
+                            r["Particular1"]?.ToString() ?? "",
+                            r["MemCode"]?.ToString() ?? r["PersonCode"]?.ToString() ?? "",
+                            r["MemName"]?.ToString() ?? r["PersonName"]?.ToString() ?? "",
+                            r["Building"]?.ToString() ?? "",
+                            r["Wing"]?.ToString() ?? "",
+                            r["FlatNo"]?.ToString() ?? "",
+                            r["AreaSqFt"] != DBNull.Value ? Convert.ToDecimal(r["AreaSqFt"]) : 0m
+                        ));
+                    }
+                    r.Close();
+
+                    foreach (var n in rawNotes)
+                    {
+                        var items = new List<object>();
+                        using (var dtCmd = conn.CreateCommand())
+                        {
+                            dtCmd.CommandText = @"
+                                SELECT DetailId, AccountCode, AccountName, Narration, Debit, Credit 
+                                FROM jeevika_erp.SocVoucherDetail 
+                                WHERE VoucherId = @vid AND Debit > 0
+                                ORDER BY DetailId ASC";
+                            dtCmd.Parameters.AddWithValue("@vid", n.VoucherId);
+                            using var rDt = dtCmd.ExecuteReader();
+                            int sr = 1;
+                            while (rDt.Read())
+                            {
+                                items.Add(new
+                                {
+                                    srNo = sr++,
+                                    particulars = rDt["AccountName"]?.ToString() ?? "Debit Particulars",
+                                    narration = rDt["Narration"]?.ToString() ?? n.Narration,
+                                    amount = Convert.ToDecimal(rDt["Debit"])
+                                });
+                            }
+                        }
+
+                        if (items.Count == 0)
+                        {
+                            items.Add(new
+                            {
+                                srNo = 1,
+                                particulars = !string.IsNullOrWhiteSpace(n.Part1) ? n.Part1 : (!string.IsNullOrWhiteSpace(n.Narration) ? n.Narration : "Debit Note"),
+                                narration = n.Narration,
+                                amount = n.Amount
+                            });
+                        }
+
+                        notes.Add(new
+                        {
+                            member = new
+                            {
+                                code = n.MemCode,
+                                name = n.MemName,
+                                building = n.Building,
+                                wing = n.Wing,
+                                flatNo = n.FlatNo,
+                                area = n.Area
+                            },
+                            note = new
+                            {
+                                noteNo = n.VoucherNo,
+                                noteDate = n.Date.ToString("yyyy-MM-dd"),
+                                refBillNo = n.RefNo,
+                                totalAmount = n.Amount
+                            },
+                            items
+                        });
+                    }
+                }
+
+                return Ok(new
+                {
+                    success = true,
+                    society = societyObj,
+                    notes
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // ── 4. CREDIT NOTE REPORT ───────────────────────────────────
+        // ═══════════════════════════════════════════════════════════
+        [HttpGet("credit-note-number-bounds")]
+        public IActionResult GetCreditNoteNumberBounds([FromQuery] int societyId, [FromQuery] int fyId)
+        {
+            try
+            {
+                using var conn = DbHelper.GetConn();
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = @"
+                    SELECT 
+                        MIN(NULLIF(REGEXP_REPLACE(VoucherNo, '[^0-9]', '', 'g'), '')::BIGINT) AS MinNo,
+                        MAX(NULLIF(REGEXP_REPLACE(VoucherNo, '[^0-9]', '', 'g'), '')::BIGINT) AS MaxNo
+                    FROM jeevika_erp.SocVoucherHeader
+                    WHERE (SocietyId = @sid OR (@sid <= 0 AND SocietyId > 0))
+                      AND VoucherType IN ('MemberCreditNote', 'CreditNote')
+                      AND IsDeleted = FALSE";
+                cmd.Parameters.AddWithValue("@sid", societyId);
+                using var r = cmd.ExecuteReader();
+                long minNo = 1;
+                long maxNo = 999999;
+                if (r.Read())
+                {
+                    if (r["MinNo"] != DBNull.Value) minNo = Convert.ToInt64(r["MinNo"]);
+                    if (r["MaxNo"] != DBNull.Value) maxNo = Convert.ToInt64(r["MaxNo"]);
+                }
+                return Ok(new { success = true, minNoteNo = minNo, maxNoteNo = maxNo });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet("credit-note-print")]
+        public IActionResult GetCreditNotePrint(
+            [FromQuery] int societyId,
+            [FromQuery] int fyId,
+            [FromQuery] string? formatType,
+            [FromQuery] string? fromNo,
+            [FromQuery] string? toNo,
+            [FromQuery] string? fromDate,
+            [FromQuery] string? toDate,
+            [FromQuery] string? fromMemberCode,
+            [FromQuery] string? toMemberCode,
+            [FromQuery] string? emailFilter)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(formatType)) formatType = "FullPage14";
+                if (string.IsNullOrWhiteSpace(emailFilter)) emailFilter = "all";
+                using var conn = DbHelper.GetConn();
+
+                if (societyId <= 0)
+                {
+                    using var cmdDefSoc = conn.CreateCommand();
+                    cmdDefSoc.CommandText = "SELECT SocietyId FROM jeevika_erp.SocietyInfo WHERE IsActive = TRUE ORDER BY SocietyId ASC LIMIT 1";
+                    var sRes = cmdDefSoc.ExecuteScalar();
+                    societyId = (sRes != null && sRes != DBNull.Value) ? Convert.ToInt32(sRes) : 1;
+                }
+
+                var societyObj = GetSocietyMetaDictionary(conn, societyId);
+
+                DateTime? fDate = null;
+                DateTime? tDate = null;
+                if (!string.IsNullOrWhiteSpace(fromDate) && DateTime.TryParse(fromDate, out var pd1)) fDate = pd1;
+                if (!string.IsNullOrWhiteSpace(toDate) && DateTime.TryParse(toDate, out var pd2)) tDate = pd2;
+
+                long? nFrom = null;
+                long? nTo = null;
+                if (!string.IsNullOrWhiteSpace(fromNo) && long.TryParse(System.Text.RegularExpressions.Regex.Replace(fromNo, @"[^\d]", ""), out var fn)) nFrom = fn;
+                if (!string.IsNullOrWhiteSpace(toNo) && long.TryParse(System.Text.RegularExpressions.Regex.Replace(toNo, @"[^\d]", ""), out var tn)) nTo = tn;
+
+                var notes = new List<object>();
+                using (var cmd = conn.CreateCommand())
+                {
+                    var sql = @"
+                        SELECT vh.VoucherId, vh.VoucherNo, vh.VoucherDate, vh.Amount,
+                               vh.PersonName, vh.PersonCode, vh.RefNo, vh.Narration, vh.Particular1, vh.Particular2,
+                               m.MemberId, m.MemCode, m.MemName, m.Building, m.Wing, m.FlatNo, m.AreaSqFt, m.Email
+                        FROM jeevika_erp.SocVoucherHeader vh
+                        LEFT JOIN jeevika_erp.SocMember m 
+                               ON (vh.PersonCode = m.MemCode OR vh.PersonCode = CAST(m.MemberId AS VARCHAR) OR vh.RefNo = m.MemCode OR vh.PersonName = m.MemName)
+                              AND (m.SocietyId = vh.SocietyId OR m.SocietyId = 1) AND m.IsDeleted = FALSE
+                        WHERE (vh.SocietyId = @sid OR (@sid <= 0 AND vh.SocietyId > 0))
+                          AND vh.VoucherType IN ('MemberCreditNote', 'CreditNote')
+                          AND vh.IsDeleted = FALSE";
+
+                    if (fDate.HasValue)
+                    {
+                        sql += " AND vh.VoucherDate >= @fDate";
+                        cmd.Parameters.AddWithValue("@fDate", fDate.Value);
+                    }
+                    if (tDate.HasValue)
+                    {
+                        sql += " AND vh.VoucherDate <= @tDate";
+                        cmd.Parameters.AddWithValue("@tDate", tDate.Value);
+                    }
+
+                    if (nFrom.HasValue && nTo.HasValue)
+                    {
+                        sql += " AND NULLIF(REGEXP_REPLACE(vh.VoucherNo, '[^0-9]', '', 'g'), '')::BIGINT >= @nFrom AND NULLIF(REGEXP_REPLACE(vh.VoucherNo, '[^0-9]', '', 'g'), '')::BIGINT <= @nTo";
+                        cmd.Parameters.AddWithValue("@nFrom", nFrom.Value);
+                        cmd.Parameters.AddWithValue("@nTo", nTo.Value);
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(fromMemberCode) && !string.IsNullOrWhiteSpace(toMemberCode))
+                    {
+                        sql += " AND COALESCE(m.MemCode, vh.PersonCode) >= @fromMem AND COALESCE(m.MemCode, vh.PersonCode) <= @toMem";
+                        cmd.Parameters.AddWithValue("@fromMem", fromMemberCode.Trim());
+                        cmd.Parameters.AddWithValue("@toMem", toMemberCode.Trim());
+                    }
+                    else if (!string.IsNullOrWhiteSpace(fromMemberCode))
+                    {
+                        sql += " AND COALESCE(m.MemCode, vh.PersonCode) = @fromMem";
+                        cmd.Parameters.AddWithValue("@fromMem", fromMemberCode.Trim());
+                    }
+
+                    if (emailFilter?.ToLower() == "blank")
+                    {
+                        sql += " AND (m.Email IS NULL OR TRIM(m.Email) = '')";
+                    }
+                    else if (emailFilter?.ToLower() == "non-blank")
+                    {
+                        sql += " AND (m.Email IS NOT NULL AND TRIM(m.Email) <> '')";
+                    }
+
+                    sql += " ORDER BY NULLIF(REGEXP_REPLACE(vh.VoucherNo, '[^0-9]', '', 'g'), '')::BIGINT ASC, vh.VoucherDate ASC, vh.VoucherId ASC";
+                    cmd.CommandText = sql;
+                    cmd.Parameters.AddWithValue("@sid", societyId);
+
+                    using var r = cmd.ExecuteReader();
+                    var rawNotes = new List<(int VoucherId, string VoucherNo, DateTime Date, decimal Amount, int MemberId, string PersonCode, string PersonName, string RefNo, string Narration, string Part1, string MemCode, string MemName, string Building, string Wing, string FlatNo, decimal Area)>();
+
+                    while (r.Read())
+                    {
+                        rawNotes.Add((
+                            Convert.ToInt32(r["VoucherId"]),
+                            r["VoucherNo"]?.ToString() ?? "",
+                            Convert.ToDateTime(r["VoucherDate"]),
+                            Convert.ToDecimal(r["Amount"]),
+                            r["MemberId"] != DBNull.Value ? Convert.ToInt32(r["MemberId"]) : 0,
+                            r["PersonCode"]?.ToString() ?? "",
+                            r["PersonName"]?.ToString() ?? "",
+                            r["RefNo"]?.ToString() ?? "",
+                            r["Narration"]?.ToString() ?? "",
+                            r["Particular1"]?.ToString() ?? "",
+                            r["MemCode"]?.ToString() ?? r["PersonCode"]?.ToString() ?? "",
+                            r["MemName"]?.ToString() ?? r["PersonName"]?.ToString() ?? "",
+                            r["Building"]?.ToString() ?? "",
+                            r["Wing"]?.ToString() ?? "",
+                            r["FlatNo"]?.ToString() ?? "",
+                            r["AreaSqFt"] != DBNull.Value ? Convert.ToDecimal(r["AreaSqFt"]) : 0m
+                        ));
+                    }
+                    r.Close();
+
+                    foreach (var n in rawNotes)
+                    {
+                        var items = new List<object>();
+                        using (var dtCmd = conn.CreateCommand())
+                        {
+                            dtCmd.CommandText = @"
+                                SELECT DetailId, AccountCode, AccountName, Narration, Debit, Credit 
+                                FROM jeevika_erp.SocVoucherDetail 
+                                WHERE VoucherId = @vid AND Credit > 0
+                                ORDER BY DetailId ASC";
+                            dtCmd.Parameters.AddWithValue("@vid", n.VoucherId);
+                            using var rDt = dtCmd.ExecuteReader();
+                            int sr = 1;
+                            while (rDt.Read())
+                            {
+                                items.Add(new
+                                {
+                                    srNo = sr++,
+                                    particulars = rDt["AccountName"]?.ToString() ?? "Credit / Allowance",
+                                    narration = rDt["Narration"]?.ToString() ?? n.Narration,
+                                    amount = Convert.ToDecimal(rDt["Credit"])
+                                });
+                            }
+                        }
+
+                        if (items.Count == 0)
+                        {
+                            items.Add(new
+                            {
+                                srNo = 1,
+                                particulars = !string.IsNullOrWhiteSpace(n.Part1) ? n.Part1 : (!string.IsNullOrWhiteSpace(n.Narration) ? n.Narration : "Credit Note / Allowance"),
+                                narration = n.Narration,
+                                amount = n.Amount
+                            });
+                        }
+
+                        // Outstanding Dues / Arrears for credit note
+                        decimal arrPrin = 0m;
+                        decimal arrInt = 0m;
+                        if (n.MemberId > 0)
+                        {
+                            using var arrCmd = conn.CreateCommand();
+                            arrCmd.CommandText = @"
+                                SELECT 
+                                    COALESCE(SUM(PrincipalAmount), 0) AS DuePrin,
+                                    COALESCE(SUM(InterestAmount), 0) AS DueInt
+                                FROM jeevika_erp.SocMemberBill
+                                WHERE SocietyId = @sid AND MemberId = @mid AND IsDeleted = FALSE";
+                            arrCmd.Parameters.AddWithValue("@sid", societyId);
+                            arrCmd.Parameters.AddWithValue("@mid", n.MemberId);
+                            using var rArr = arrCmd.ExecuteReader();
+                            if (rArr.Read())
+                            {
+                                arrPrin = Convert.ToDecimal(rArr["DuePrin"]);
+                                arrInt = Convert.ToDecimal(rArr["DueInt"]);
+                            }
+                        }
+
+                        notes.Add(new
+                        {
+                            member = new
+                            {
+                                code = n.MemCode,
+                                name = n.MemName,
+                                building = n.Building,
+                                wing = n.Wing,
+                                flatNo = n.FlatNo,
+                                area = n.Area
+                            },
+                            note = new
+                            {
+                                noteNo = n.VoucherNo,
+                                noteDate = n.Date.ToString("yyyy-MM-dd"),
+                                refBillNo = n.RefNo,
+                                totalAmount = n.Amount
+                            },
+                            items,
+                            arrears = new
+                            {
+                                principal = arrPrin,
+                                interest = arrInt,
+                                total = arrPrin + arrInt
+                            }
+                        });
+                    }
+                }
+
+                return Ok(new
+                {
+                    success = true,
+                    society = societyObj,
+                    notes
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // ── 5. MEMBER ADJUSTMENT / PAYMENT REPORT ───────────────────
+        // ═══════════════════════════════════════════════════════════
+        [HttpGet("adjustment-number-bounds")]
+        public IActionResult GetAdjustmentNumberBounds([FromQuery] int societyId, [FromQuery] int fyId)
+        {
+            try
+            {
+                using var conn = DbHelper.GetConn();
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = @"
+                    SELECT 
+                        MIN(NULLIF(REGEXP_REPLACE(VoucherNo, '[^0-9]', '', 'g'), '')::BIGINT) AS MinNo,
+                        MAX(NULLIF(REGEXP_REPLACE(VoucherNo, '[^0-9]', '', 'g'), '')::BIGINT) AS MaxNo
+                    FROM jeevika_erp.SocVoucherHeader
+                    WHERE (SocietyId = @sid OR (@sid <= 0 AND SocietyId > 0))
+                      AND VoucherType IN ('MemberAdjustment', 'Adjustment', 'MemberJV', 'Journal', 'JV', 'MemberPayment')
+                      AND IsDeleted = FALSE";
+                cmd.Parameters.AddWithValue("@sid", societyId);
+                using var r = cmd.ExecuteReader();
+                long minNo = 1;
+                long maxNo = 999999;
+                if (r.Read())
+                {
+                    if (r["MinNo"] != DBNull.Value) minNo = Convert.ToInt64(r["MinNo"]);
+                    if (r["MaxNo"] != DBNull.Value) maxNo = Convert.ToInt64(r["MaxNo"]);
+                }
+                return Ok(new { success = true, minAdjustmentNo = minNo, maxAdjustmentNo = maxNo });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet("adjustment-print")]
+        public IActionResult GetAdjustmentPrint(
+            [FromQuery] int societyId,
+            [FromQuery] int fyId,
+            [FromQuery] string? formatStyle,
+            [FromQuery] string? fromNo,
+            [FromQuery] string? toNo,
+            [FromQuery] string? fromDate,
+            [FromQuery] string? toDate,
+            [FromQuery] string? fromMemberCode,
+            [FromQuery] string? toMemberCode,
+            [FromQuery] string? emailFilter)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(formatStyle)) formatStyle = "Slip";
+                if (string.IsNullOrWhiteSpace(emailFilter)) emailFilter = "all";
+                using var conn = DbHelper.GetConn();
+
+                if (societyId <= 0)
+                {
+                    using var cmdDefSoc = conn.CreateCommand();
+                    cmdDefSoc.CommandText = "SELECT SocietyId FROM jeevika_erp.SocietyInfo WHERE IsActive = TRUE ORDER BY SocietyId ASC LIMIT 1";
+                    var sRes = cmdDefSoc.ExecuteScalar();
+                    societyId = (sRes != null && sRes != DBNull.Value) ? Convert.ToInt32(sRes) : 1;
+                }
+
+                var societyObj = GetSocietyMetaDictionary(conn, societyId);
+
+                DateTime? fDate = null;
+                DateTime? tDate = null;
+                if (!string.IsNullOrWhiteSpace(fromDate) && DateTime.TryParse(fromDate, out var pd1)) fDate = pd1;
+                if (!string.IsNullOrWhiteSpace(toDate) && DateTime.TryParse(toDate, out var pd2)) tDate = pd2;
+
+                long? nFrom = null;
+                long? nTo = null;
+                if (!string.IsNullOrWhiteSpace(fromNo) && long.TryParse(System.Text.RegularExpressions.Regex.Replace(fromNo, @"[^\d]", ""), out var fn)) nFrom = fn;
+                if (!string.IsNullOrWhiteSpace(toNo) && long.TryParse(System.Text.RegularExpressions.Regex.Replace(toNo, @"[^\d]", ""), out var tn)) nTo = tn;
+
+                var adjustments = new List<object>();
+                using (var cmd = conn.CreateCommand())
+                {
+                    var sql = @"
+                        SELECT vh.VoucherId, vh.VoucherNo, vh.VoucherType, vh.VoucherDate, vh.Amount,
+                               vh.CashBankName, vh.BankName, vh.PersonName, vh.PersonCode, vh.RefNo, vh.Narration, vh.Particular1, vh.Particular2,
+                               m.MemberId, m.MemCode, m.MemName, m.Building, m.Wing, m.FlatNo, m.Email
+                        FROM jeevika_erp.SocVoucherHeader vh
+                        LEFT JOIN jeevika_erp.SocMember m 
+                               ON (vh.PersonCode = m.MemCode OR vh.PersonCode = CAST(m.MemberId AS VARCHAR) OR vh.RefNo = m.MemCode OR vh.PersonName = m.MemName)
+                              AND (m.SocietyId = vh.SocietyId OR m.SocietyId = 1) AND m.IsDeleted = FALSE
+                        WHERE (vh.SocietyId = @sid OR (@sid <= 0 AND vh.SocietyId > 0))
+                          AND vh.VoucherType IN ('MemberAdjustment', 'Adjustment', 'MemberJV', 'Journal', 'JV', 'MemberPayment')
+                          AND vh.IsDeleted = FALSE";
+
+                    if (fDate.HasValue)
+                    {
+                        sql += " AND vh.VoucherDate >= @fDate";
+                        cmd.Parameters.AddWithValue("@fDate", fDate.Value);
+                    }
+                    if (tDate.HasValue)
+                    {
+                        sql += " AND vh.VoucherDate <= @tDate";
+                        cmd.Parameters.AddWithValue("@tDate", tDate.Value);
+                    }
+
+                    if (nFrom.HasValue && nTo.HasValue)
+                    {
+                        sql += " AND NULLIF(REGEXP_REPLACE(vh.VoucherNo, '[^0-9]', '', 'g'), '')::BIGINT >= @nFrom AND NULLIF(REGEXP_REPLACE(vh.VoucherNo, '[^0-9]', '', 'g'), '')::BIGINT <= @nTo";
+                        cmd.Parameters.AddWithValue("@nFrom", nFrom.Value);
+                        cmd.Parameters.AddWithValue("@nTo", nTo.Value);
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(fromMemberCode) && !string.IsNullOrWhiteSpace(toMemberCode))
+                    {
+                        sql += " AND COALESCE(m.MemCode, vh.PersonCode) >= @fromMem AND COALESCE(m.MemCode, vh.PersonCode) <= @toMem";
+                        cmd.Parameters.AddWithValue("@fromMem", fromMemberCode.Trim());
+                        cmd.Parameters.AddWithValue("@toMem", toMemberCode.Trim());
+                    }
+                    else if (!string.IsNullOrWhiteSpace(fromMemberCode))
+                    {
+                        sql += " AND COALESCE(m.MemCode, vh.PersonCode) = @fromMem";
+                        cmd.Parameters.AddWithValue("@fromMem", fromMemberCode.Trim());
+                    }
+
+                    if (emailFilter?.ToLower() == "blank")
+                    {
+                        sql += " AND (m.Email IS NULL OR TRIM(m.Email) = '')";
+                    }
+                    else if (emailFilter?.ToLower() == "non-blank")
+                    {
+                        sql += " AND (m.Email IS NOT NULL AND TRIM(m.Email) <> '')";
+                    }
+
+                    sql += " ORDER BY NULLIF(REGEXP_REPLACE(vh.VoucherNo, '[^0-9]', '', 'g'), '')::BIGINT ASC, vh.VoucherDate ASC, vh.VoucherId ASC";
+                    cmd.CommandText = sql;
+                    cmd.Parameters.AddWithValue("@sid", societyId);
+
+                    using var r = cmd.ExecuteReader();
+                    while (r.Read())
+                    {
+                        var vType = r["VoucherType"]?.ToString() ?? "Journal";
+                        var paymentMode = vType == "MemberPayment" ? "Payment" : "Journal / Adjustment";
+                        var drawnOn = r["CashBankName"]?.ToString();
+                        if (string.IsNullOrWhiteSpace(drawnOn)) drawnOn = r["BankName"]?.ToString() ?? "Adjustment / Internal Transfer";
+
+                        var vDate = Convert.ToDateTime(r["VoucherDate"]);
+                        var personCode = r["MemCode"]?.ToString();
+                        if (string.IsNullOrWhiteSpace(personCode)) personCode = r["PersonCode"]?.ToString() ?? "";
+                        var personName = r["MemName"]?.ToString();
+                        if (string.IsNullOrWhiteSpace(personName)) personName = r["PersonName"]?.ToString() ?? "";
+
+                        adjustments.Add(new
+                        {
+                            adjustmentNo = r["VoucherNo"]?.ToString() ?? "",
+                            date = vDate.ToString("yyyy-MM-dd"),
+                            amount = Convert.ToDecimal(r["Amount"]),
+                            paymentMode,
+                            drawnOn,
+                            refNo = r["RefNo"]?.ToString() ?? "",
+                            narration = r["Narration"]?.ToString() ?? r["Particular1"]?.ToString() ?? "Member adjustment",
+                            member = new
+                            {
+                                code = personCode,
+                                name = personName,
+                                building = r["Building"]?.ToString() ?? "",
+                                wing = r["Wing"]?.ToString() ?? "",
+                                flatNo = r["FlatNo"]?.ToString() ?? ""
+                            }
+                        });
+                    }
+                }
+
+                return Ok(new
+                {
+                    success = true,
+                    society = societyObj,
+                    adjustments
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        private static Dictionary<string, object> GetSocietyMetaDictionary(NpgsqlConnection conn, int societyId)
+        {
+            var dict = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = @"
+                SELECT SocietyId, SocietyName, Address, City, Pincode, Phone, Email,
+                       RegistrationNo, PANNumber, GSTNumber, HSNCode,
+                       BankName, BankAccountNo, IFSCCode,
+                       GSTApplicable, CGSTPct, SGSTPct, ExemptLimit
+                FROM jeevika_erp.SocietyInfo
+                WHERE (SocietyId = @sid OR (@sid <= 0 AND SocietyId > 0) OR NOT EXISTS (SELECT 1 FROM jeevika_erp.SocietyInfo WHERE SocietyId = @sid AND IsActive = TRUE))
+                  AND IsActive = TRUE
+                ORDER BY CASE WHEN SocietyId = @sid THEN 0 ELSE 1 END, SocietyId ASC
+                LIMIT 1";
+            cmd.Parameters.AddWithValue("@sid", societyId > 0 ? societyId : 1);
+
+            using var r = cmd.ExecuteReader();
+            if (r.Read())
+            {
+                var addressParts = new List<string>();
+                var addr = r["Address"]?.ToString()?.Trim();
+                if (!string.IsNullOrEmpty(addr)) addressParts.Add(addr);
+                var city = r["City"]?.ToString()?.Trim();
+                var pin = r["Pincode"]?.ToString()?.Trim();
+                if (!string.IsNullOrEmpty(city) && !string.IsNullOrEmpty(pin)) addressParts.Add($"{city} - {pin}");
+                else if (!string.IsNullOrEmpty(city)) addressParts.Add(city);
+                else if (!string.IsNullOrEmpty(pin)) addressParts.Add(pin);
+
+                bool gstApp = false;
+                var gObj = r["GSTApplicable"];
+                if (gObj != null && gObj != DBNull.Value)
+                {
+                    if (gObj is bool b) gstApp = b;
+                    else if (bool.TryParse(gObj.ToString(), out bool pb)) gstApp = pb;
+                    else
+                    {
+                        var s = gObj.ToString()?.Trim().ToUpper();
+                        gstApp = (s == "Y" || s == "YES" || s == "TRUE" || s == "1");
+                    }
+                }
+
+                dict["id"] = Convert.ToInt32(r["SocietyId"]);
+                dict["name"] = r["SocietyName"]?.ToString() ?? "";
+                dict["registrationNo"] = r["RegistrationNo"]?.ToString() ?? "";
+                dict["address"] = addressParts.Count > 0 ? string.Join(", ", addressParts) : "";
+                dict["phone"] = r["Phone"]?.ToString() ?? "";
+                dict["email"] = r["Email"]?.ToString() ?? "";
+                dict["pan"] = r["PANNumber"]?.ToString() ?? "";
+                dict["gstin"] = r["GSTNumber"]?.ToString() ?? "";
+                dict["sacCode"] = r["HSNCode"]?.ToString() ?? "999598";
+                dict["bankName"] = r["BankName"]?.ToString() ?? "";
+                dict["accountNo"] = r["BankAccountNo"]?.ToString() ?? "";
+                dict["ifsc"] = r["IFSCCode"]?.ToString() ?? "";
+                dict["gstApplicable"] = gstApp;
+                dict["cgstPct"] = r["CGSTPct"] != DBNull.Value ? Convert.ToDecimal(r["CGSTPct"]) : 9m;
+                dict["sgstPct"] = r["SGSTPct"] != DBNull.Value ? Convert.ToDecimal(r["SGSTPct"]) : 9m;
+            }
+            else
+            {
+                dict["id"] = 1;
+                dict["name"] = "Co-Operative Housing Society Ltd.";
+                dict["registrationNo"] = "";
+                dict["address"] = "";
+                dict["phone"] = "";
+                dict["email"] = "";
+                dict["pan"] = "";
+                dict["gstin"] = "";
+                dict["sacCode"] = "999598";
+                dict["bankName"] = "";
+                dict["accountNo"] = "";
+                dict["ifsc"] = "";
+                dict["gstApplicable"] = false;
+                dict["cgstPct"] = 9m;
+                dict["sgstPct"] = 9m;
+            }
+
+            return dict;
         }
     }
 }

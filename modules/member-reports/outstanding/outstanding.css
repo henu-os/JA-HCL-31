@@ -1,0 +1,333 @@
+/* ═══════════════════════════════════════════════════════════
+   JEEVIKA ERP v2 — MEMBER OUTSTANDING REPORT CSS
+   Split Screen: Filter Parameters + Dual Mode Workspace
+   Mode 1: Interactive DataGrid Ledger
+   Mode 2: Crystal Report A4 Print Preview
+   ═══════════════════════════════════════════════════════════ */
+
+@page {
+    size: A4 portrait;
+    margin: 0;
+}
+
+/* Main Split Screen Workspace */
+.bill-format-workspace {
+    display: flex;
+    height: 100vh;
+    width: 100%;
+    overflow: hidden;
+    background: var(--bg-main, #f1f5f9);
+    box-sizing: border-box;
+}
+
+/* Left Filter & Generation Sidebar */
+.bill-filter-sidebar {
+    width: 380px;
+    min-width: 340px;
+    max-width: 420px;
+    height: 100%;
+    overflow-y: auto;
+    background: #ffffff;
+    border-right: 1px solid var(--border-color, #cbd5e1);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-sizing: border-box;
+}
+
+.filter-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.filter-group label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #475569;
+}
+
+.filter-group select,
+.filter-group input {
+    height: 32px;
+    font-size: 12px;
+    padding: 4px 8px;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    background: #fff;
+    color: #1e293b;
+    box-sizing: border-box;
+}
+
+.filter-group select:focus,
+.filter-group input:focus {
+    border-color: #0284c7;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15);
+}
+
+.sidebar-actions {
+    position: sticky;
+    bottom: -16px;
+    background: #ffffff;
+    padding: 12px 0;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    gap: 8px;
+    z-index: 10;
+    margin-top: auto;
+}
+
+/* Right Preview Workspace */
+.bill-preview-workspace {
+    flex: 1;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: auto;
+    background: #525659; /* Charcoal viewer background */
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-sizing: border-box;
+}
+
+/* Tab Switch Buttons */
+.tab-btn {
+    background: #334155;
+    color: #e2e8f0;
+    border: none;
+    padding: 7px 16px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+}
+
+.tab-btn:hover {
+    background: #475569;
+    color: #fff;
+}
+
+.tab-btn.active {
+    background: #0284c7;
+    color: #fff;
+    box-shadow: 0 2px 6px rgba(2, 132, 199, 0.4);
+}
+
+/* Interactive Grid Table */
+.grid-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.grid-table th {
+    background: #f1f5f9;
+    color: #334155;
+    font-weight: 700;
+    padding: 8px 10px;
+    border-bottom: 2px solid #cbd5e1;
+    border-right: 1px solid #e2e8f0;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    text-align: left;
+}
+
+.grid-table td {
+    padding: 6px 10px;
+    border-bottom: 1px solid #e2e8f0;
+    border-right: 1px solid #f1f5f9;
+    color: #1e293b;
+}
+
+.grid-table tbody tr:hover {
+    background-color: #f8fafc;
+}
+
+.grid-table tbody tr.selected {
+    background-color: #0284c7 !important;
+    color: #fff !important;
+}
+
+.grid-table tbody tr.selected td {
+    color: #fff !important;
+}
+
+/* Crystal Report A4 Styles (Exact Match to Requirement) */
+.cr-balance-page {
+    width: 210mm !important;
+    min-height: 297mm !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-family: Arial, Helvetica, sans-serif !important;
+    font-size: 11px !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.45);
+    padding: 12mm 15mm !important;
+    margin-bottom: 24px !important;
+    box-sizing: border-box !important;
+    position: relative;
+    page-break-after: always !important;
+    break-after: page !important;
+}
+
+.cr-soc-heading {
+    text-align: center;
+    font-size: 15px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+}
+
+.cr-soc-sub {
+    text-align: center;
+    font-size: 10px;
+    color: #333;
+    margin-bottom: 4px;
+}
+
+.cr-report-subheading {
+    text-align: center;
+    font-size: 13px;
+    font-weight: bold;
+    margin-top: 2px;
+    margin-bottom: 14px;
+}
+
+.cr-meta-strip {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    margin-bottom: 6px;
+    font-weight: bold;
+}
+
+.cr-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.cr-table th {
+    border-top: 1.5px solid #000;
+    border-bottom: 1.5px solid #000;
+    padding: 4px 6px;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+.cr-table td {
+    padding: 3px 6px;
+    font-size: 10.5px;
+}
+
+.cr-table tfoot td {
+    border-top: 1.5px solid #000;
+    border-bottom: 1.5px solid #000;
+    font-weight: bold;
+    font-size: 11px;
+}
+
+/* Button variants matching ERP styling */
+.btn {
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.15s ease;
+}
+
+.btn-primary {
+    background: #0284c7;
+    color: #fff;
+}
+.btn-primary:hover {
+    background: #0369a1;
+}
+
+.btn-dark {
+    background: #1e293b;
+    color: #fff;
+}
+.btn-dark:hover {
+    background: #0f172a;
+}
+
+.btn-success {
+    background: #10b981;
+    color: #fff;
+}
+.btn-success:hover {
+    background: #059669;
+}
+
+.btn-outline-secondary {
+    background: transparent;
+    border: 1px solid #cbd5e1;
+    color: #475569;
+}
+.btn-outline-secondary:hover {
+    background: #f1f5f9;
+    color: #1e293b;
+}
+
+/* Print Overrides */
+@media print {
+    body, html {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+    }
+    .bill-filter-sidebar, 
+    .no-print, 
+    .mode-tabs, 
+    .top-bar, 
+    .workspace-sidebar,
+    .tab-header {
+        display: none !important;
+    }
+    .bill-format-workspace {
+        display: block !important;
+        height: auto !important;
+        overflow: visible !important;
+        background: #fff !important;
+    }
+    .bill-preview-workspace {
+        padding: 0 !important;
+        background: #fff !important;
+        height: auto !important;
+        overflow: visible !important;
+        display: block !important;
+    }
+    #grid-view-container {
+        display: none !important;
+    }
+    #report-view-container {
+        display: block !important;
+        width: 100% !important;
+    }
+    .cr-balance-page {
+        box-shadow: none !important;
+        margin: 0 !important;
+        border: none !important;
+        padding: 10mm 12mm !important;
+        page-break-after: always !important;
+        break-after: page !important;
+    }
+}

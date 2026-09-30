@@ -1,5 +1,5 @@
 // ═════════════════════════════════════════════════════════════════════
-// JEEVIKA ERP v2 — TDS REPORT & COMPLIANCE LOGIC
+// HENU ERP — TDS REPORT & COMPLIANCE LOGIC
 // ═════════════════════════════════════════════════════════════════════
 
 let currentTransactions = [];
@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const chDate = document.getElementById('ch-date');
   if (chDate) chDate.value = today;
 
+  onQuarterChanged(); // initializes From & To date according to FY and quarter
   loadTdsData();
   recalcTdsModal();
 });
@@ -23,40 +24,80 @@ function getApiUrl(endpoint) {
   return `${base}/additional-reports/${endpoint}`;
 }
 
+function onFyChanged() {
+  onQuarterChanged();
+}
+
+function onQuarterChanged() {
+  const fy = document.getElementById('tds-fy').value || '2026-2027';
+  const q = document.getElementById('tds-quarter').value || 'ALL';
+  const startYear = parseInt(fy.split('-')[0]) || 2026;
+  const endYear = startYear + 1;
+
+  let fromDate = `${startYear}-04-01`;
+  let toDate = `${endYear}-03-31`;
+
+  if (q === 'Q1') {
+    fromDate = `${startYear}-04-01`;
+    toDate = `${startYear}-06-30`;
+  } else if (q === 'Q2') {
+    fromDate = `${startYear}-07-01`;
+    toDate = `${startYear}-09-30`;
+  } else if (q === 'Q3') {
+    fromDate = `${startYear}-10-01`;
+    toDate = `${startYear}-12-31`;
+  } else if (q === 'Q4') {
+    fromDate = `${endYear}-01-01`;
+    toDate = `${endYear}-03-31`;
+  }
+
+  const fromEl = document.getElementById('tds-from-date');
+  const toEl = document.getElementById('tds-to-date');
+  if (fromEl) fromEl.value = fromDate;
+  if (toEl) toEl.value = toDate;
+
+  loadTdsData();
+}
+
 async function loadTdsData() {
   const fy = document.getElementById('tds-fy').value;
   const quarter = document.getElementById('tds-quarter').value;
+  const fromDate = document.getElementById('tds-from-date') ? document.getElementById('tds-from-date').value : '';
+  const toDate = document.getElementById('tds-to-date') ? document.getElementById('tds-to-date').value : '';
   const section = document.getElementById('tds-section-filter').value;
   const status = document.getElementById('tds-status-filter').value;
   const search = document.getElementById('tds-search').value.trim();
 
   // Update Period Label
   const lblPeriod = document.getElementById('lbl-period');
-  if (lblPeriod) lblPeriod.textContent = `FY ${fy} (${quarter === 'ALL' ? 'Full Year' : quarter})`;
+  if (lblPeriod) {
+    lblPeriod.textContent = `FY ${fy} (${quarter === 'ALL' ? `${fromDate} to ${toDate}` : quarter})`;
+  }
 
   try {
-    // 1. Fetch Summary
-    const sumRes = await fetch(getApiUrl(`tds/summary?quarter=${encodeURIComponent(quarter)}`));
-    const sumData = await sumRes.json();
-    if (sumData.success) {
-      currentSummary = sumData;
-      renderSocietyHeader(sumData.society);
-      renderKpiCards(sumData.summary);
-      renderSectionSummary(sumData.sectionSummary);
-    }
+    // 1. Fetch Primary Verified TDS Report Dataset
+    let reportUrl = `tds/report?fy=${encodeURIComponent(fy)}&fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}&section=${encodeURIComponent(section)}&status=${encodeURIComponent(status)}`;
+    if (search) reportUrl += `&search=${encodeURIComponent(search)}`;
 
-    // 2. Fetch Transactions
-    let txnUrl = `tds/transactions?quarter=${encodeURIComponent(quarter)}&section=${encodeURIComponent(section)}&status=${encodeURIComponent(status)}`;
-    if (search) txnUrl += `&search=${encodeURIComponent(search)}`;
-    const txnRes = await fetch(getApiUrl(txnUrl));
-    const txnData = await txnRes.json();
-    if (txnData.success) {
-      currentTransactions = txnData.data || [];
+    const rRes = await fetch(getApiUrl(reportUrl));
+    const rData = await rRes.json();
+
+    if (rData.success) {
+      currentSummary = {
+        society: rData.society,
+        summary: rData.summary,
+        sectionSummary: rData.sectionSummary
+      };
+      currentTransactions = rData.data || [];
+
+      renderSocietyHeader(rData.society);
+      renderKpiCards(rData.summary);
       renderTransactionsTable(currentTransactions);
+      renderSectionSummary(rData.sectionSummary);
       renderDeducteesSummary(currentTransactions);
     }
 
-    // 3. Fetch Challans
+    // 2. Fetch Challans
     const chRes = await fetch(getApiUrl('tds/challans'));
     const chData = await chRes.json();
     if (chData.success) {
@@ -66,11 +107,11 @@ async function loadTdsData() {
       if (cntCh) cntCh.textContent = currentChallans.length;
     }
 
-    // 4. Fetch Rules
-    const rRes = await fetch(getApiUrl('tds/rules'));
-    const rData = await rRes.json();
-    if (rData.success) {
-      currentRules = rData.data || [];
+    // 3. Fetch Rules
+    const rulesRes = await fetch(getApiUrl('tds/rules'));
+    const rulesData = await rulesRes.json();
+    if (rulesData.success) {
+      currentRules = rulesData.data || [];
       renderRulesTable(currentRules);
     }
   } catch (err) {
@@ -149,11 +190,11 @@ function renderTransactionsTable(list) {
         <td class="text-right" style="font-weight:700; color:#0D47A1;">₹ ${(t.tdsAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
         <td>${t.challanNo || '-'}</td>
         <td>${t.challanDate || '-'}</td>
-        <td class="text-right" style="color:#16a34a;">₹ ${depAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-        <td class="text-right" style="color:#dc2626; font-weight:600;">₹ ${outAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+        <td class="text-right">₹ ${depAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+        <td class="text-right" style="color: #dc2626; font-weight:600;">₹ ${outAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
         <td class="text-center"><span class="status-tag ${stClass}">${t.status}</span></td>
         <td class="text-center btn-no-print">
-          <button class="tds-btn" style="height:22px; padding:0 6px;" onclick="viewTxnDetails(${t.id})" title="View / Drilldown"><i class="bi bi-eye"></i></button>
+          <button class="tds-btn-action" title="View details" onclick="viewTxnDetails(${t.id})"><i class="bi bi-eye"></i></button>
         </td>
       </tr>
     `;
@@ -163,16 +204,16 @@ function renderTransactionsTable(list) {
   updateTotals(totGross, totTaxable, totTds, totDep, totOut);
 }
 
-function updateTotals(gross, taxable, tds, dep, out) {
-  const fmt = (n) => '₹ ' + n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function updateTotals(gross, tax, tds, dep, out) {
+  const fmt = (n) => '₹ ' + (parseFloat(n) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const tg = document.getElementById('tot-gross');
   if (tg) tg.textContent = fmt(gross);
   const tt = document.getElementById('tot-taxable');
-  if (tt) tt.textContent = fmt(taxable);
-  const ttds = document.getElementById('tot-tds');
-  if (ttds) ttds.textContent = fmt(tds);
-  const td = document.getElementById('tot-dep');
-  if (td) td.textContent = fmt(dep);
+  if (tt) tt.textContent = fmt(tax);
+  const td = document.getElementById('tot-tds');
+  if (td) td.textContent = fmt(tds);
+  const tdp = document.getElementById('tot-dep');
+  if (tdp) tdp.textContent = fmt(dep);
   const to = document.getElementById('tot-out');
   if (to) to.textContent = fmt(out);
 }
@@ -182,65 +223,68 @@ function renderSectionSummary(sections) {
   if (!tbody) return;
 
   if (!sections || sections.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" class="text-center" style="padding: 20px; color: #64748b;">No section-wise data available.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="text-center" style="padding: 20px;">No section summary available.</td></tr>`;
     return;
   }
 
   let html = '';
   sections.forEach(s => {
-    const out = Math.max(0, (parseFloat(s.tdsAmount) || 0) - (parseFloat(s.depositedAmount) || 0));
     html += `
       <tr>
-        <td><strong>Sec ${s.section}</strong></td>
-        <td>${escapeHtml(s.natureOfPayment)}</td>
-        <td class="text-center">${s.count}</td>
-        <td class="text-right">₹ ${(parseFloat(s.grossAmount) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-        <td class="text-right" style="font-weight:700; color:#0D47A1;">₹ ${(parseFloat(s.tdsAmount) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-        <td class="text-right" style="color:#16a34a;">₹ ${(parseFloat(s.depositedAmount) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-        <td class="text-right" style="color:#dc2626; font-weight:600;">₹ ${out.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+        <td><strong>Section ${s.section}</strong></td>
+        <td>${escapeHtml(s.nature)}</td>
+        <td class="text-center">${s.transactionsCount}</td>
+        <td class="text-right">₹ ${(s.totalGross || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+        <td class="text-right" style="font-weight:700; color:#0D47A1;">₹ ${(s.totalTds || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+        <td class="text-right">₹ ${(s.totalDeposited || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+        <td class="text-right" style="color: #dc2626; font-weight:600;">₹ ${(s.totalOutstanding || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
       </tr>
     `;
   });
   tbody.innerHTML = html;
 }
 
-function renderDeducteesSummary(txns) {
-  const tbody = document.getElementById('tbl-deductees-summary-body');
+function renderDeducteesSummary(list) {
+  const tbody = document.getElementById('tbl-ded-summary-body');
   if (!tbody) return;
 
+  if (!list || list.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8" class="text-center" style="padding: 20px;">No deductee summary available.</td></tr>`;
+    return;
+  }
+
   const map = {};
-  txns.forEach(t => {
+  list.forEach(t => {
     const key = t.deducteeName || 'Unknown';
     if (!map[key]) {
-      map[key] = { name: key, pan: t.pan, count: 0, gross: 0, tds: 0, dep: 0, out: 0 };
+      map[key] = {
+        name: key,
+        pan: t.pan || '-',
+        section: t.section,
+        rate: t.tdsRate,
+        count: 0,
+        gross: 0,
+        tds: 0,
+        status: t.status
+      };
     }
     map[key].count++;
     map[key].gross += parseFloat(t.grossAmount) || 0;
     map[key].tds += parseFloat(t.tdsAmount) || 0;
-    if (t.status === 'Deposited') {
-      map[key].dep += parseFloat(t.tdsAmount) || 0;
-    } else {
-      map[key].out += parseFloat(t.tdsAmount) || 0;
-    }
   });
 
-  const list = Object.values(map);
-  if (list.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" class="text-center" style="padding: 20px; color: #64748b;">No deductee transactions available.</td></tr>`;
-    return;
-  }
-
   let html = '';
-  list.forEach(d => {
+  Object.values(map).forEach(d => {
     html += `
       <tr>
         <td><strong>${escapeHtml(d.name)}</strong></td>
-        <td><code>${d.pan || '-'}</code></td>
+        <td><code>${d.pan}</code></td>
+        <td class="text-center"><span class="badge-stat">${d.section}</span></td>
+        <td class="text-center">${d.rate}%</td>
         <td class="text-center">${d.count}</td>
         <td class="text-right">₹ ${d.gross.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
         <td class="text-right" style="font-weight:700; color:#0D47A1;">₹ ${d.tds.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-        <td class="text-right" style="color:#16a34a;">₹ ${d.dep.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-        <td class="text-right" style="color:#dc2626; font-weight:600;">₹ ${d.out.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+        <td class="text-center"><span class="status-tag status-confirmed">Valid PAN</span></td>
       </tr>
     `;
   });
@@ -252,26 +296,23 @@ function renderChallansTable(challans) {
   if (!tbody) return;
 
   if (!challans || challans.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="12" class="text-center" style="padding: 20px; color: #64748b;">No TDS Challans deposited yet. Click "Record Challan Deposit" to add ITNS 281 records.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" class="text-center" style="padding: 20px;">No TDS challan deposits recorded. Click "Add Challan" to record Bank OLTAS/ITNS-281 payments.</td></tr>`;
     return;
   }
 
   let html = '';
-  challans.forEach(c => {
+  challans.forEach((c, i) => {
     html += `
       <tr>
+        <td class="text-center">${i + 1}</td>
         <td><strong>${c.challanNo}</strong></td>
-        <td><code>${c.bsrCode}</code></td>
+        <td><code>${c.bsrCode || '-'}</code></td>
         <td>${c.challanDate}</td>
-        <td>${c.paymentDate}</td>
+        <td class="text-center">${c.quarter || '-'}</td>
         <td class="text-right">₹ ${(c.tdsAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
         <td class="text-right">₹ ${(c.interest || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-        <td class="text-right">₹ ${(c.fee || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-        <td class="text-right" style="font-weight:700; color:#16a34a;">₹ ${(c.totalDeposited || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-        <td class="text-right" style="color:#0D47A1;">₹ ${(c.allocatedTds || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-        <td class="text-right" style="color:#d97706;">₹ ${(c.unallocatedAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-        <td class="text-center"><span class="badge-stat">${c.quarter}</span></td>
-        <td class="text-center"><span class="status-tag status-matched">${c.status}</span></td>
+        <td class="text-right" style="font-weight:700; color:#16a34a;">₹ ${(c.totalPaid || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+        <td class="text-center"><span class="status-tag status-deposited">Deposited</span></td>
       </tr>
     `;
   });
@@ -283,7 +324,7 @@ function renderRulesTable(rules) {
   if (!tbody) return;
 
   if (!rules || rules.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" class="text-center" style="padding: 20px;">No tax rules configured.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="text-center" style="padding: 20px;">No TDS threshold rules found.</td></tr>`;
     return;
   }
 
@@ -291,20 +332,19 @@ function renderRulesTable(rules) {
   rules.forEach(r => {
     html += `
       <tr>
-        <td><strong>Sec ${r.section}</strong></td>
+        <td><strong>${r.section}</strong></td>
         <td>${escapeHtml(r.natureOfPayment)}</td>
-        <td>${r.deducteeType}</td>
-        <td class="text-center" style="font-weight:700; color:#0D47A1;">${r.rate}%</td>
-        <td class="text-right">₹ ${(r.threshold || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-        <td>${r.effectiveFrom}</td>
-        <td>${r.applicableAct}</td>
+        <td class="text-center" style="font-weight:600;">${r.rateIndividual}%</td>
+        <td class="text-center" style="font-weight:600;">${r.rateOthers}%</td>
+        <td class="text-right">₹ ${(r.singleThreshold || 0).toLocaleString('en-IN')}</td>
+        <td class="text-right">₹ ${(r.aggregateThreshold || 0).toLocaleString('en-IN')}</td>
+        <td class="text-center">${r.rateWithoutPan}%</td>
       </tr>
     `;
   });
   tbody.innerHTML = html;
 }
 
-// ── Tab Switching ──────────────────────────────────────────────
 function switchTab(tabId, btn) {
   document.querySelectorAll('.tds-tab-content').forEach(el => el.style.display = 'none');
   const target = document.getElementById(tabId);
@@ -314,36 +354,17 @@ function switchTab(tabId, btn) {
   if (btn) btn.classList.add('active');
 }
 
-// ── Auto-Detect TDS ───────────────────────────────────────────
-async function detectTdsTransactions() {
-  try {
-    const res = await fetch(getApiUrl('tds/detect'), { method: 'POST' });
-    const data = await res.json();
-    if (data.success) {
-      alert(`Auto-Detection Complete: ${data.detectedCount} new TDS eligible transaction(s) identified and marked as 'Suggested'.`);
-      loadTdsData();
-    } else {
-      alert('Detection note: ' + (data.message || 'No new transactions found.'));
-    }
-  } catch (err) {
-    alert('Failed to run TDS scanner: ' + err.message);
-  }
-}
-
-// ── Modal Operations ──────────────────────────────────────────
 function openModal(id) {
-  const m = document.getElementById(id);
-  if (m) m.classList.add('open');
+  const el = document.getElementById(id);
+  if (el) el.classList.add('show');
 }
 
 function closeModal(id) {
-  const m = document.getElementById(id);
-  if (m) m.classList.remove('open');
+  const el = document.getElementById(id);
+  if (el) el.classList.remove('show');
 }
 
 function openNewTransactionModal() {
-  document.getElementById('txn-vno').value = 'PV-2026-' + Math.floor(100 + Math.random() * 900);
-  recalcTdsModal();
   openModal('modal-new-txn');
 }
 
@@ -521,30 +542,252 @@ async function submitDeductee() {
   }
 }
 
+async function detectTdsTransactions() {
+  try {
+    const res = await fetch(getApiUrl('tds/detect'), { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      alert(`TDS auto-detection complete: ${data.detectedCount || 0} candidate transactions detected.`);
+      loadTdsData();
+    } else {
+      alert('Auto-detection notice: ' + (data.message || 'Complete'));
+    }
+  } catch (err) {
+    console.error(err);
+  }
+}
+
 function viewTxnDetails(id) {
   const t = currentTransactions.find(x => x.id === id);
   if (!t) return;
   alert(`TDS Transaction Details:\n\nVoucher: ${t.voucherNo} (${t.voucherDate})\nDeductee: ${t.deducteeName} (PAN: ${t.pan})\nSection: ${t.section} (${t.tdsRate}%)\nGross Amount: ₹ ${t.grossAmount}\nTDS Deducted: ₹ ${t.tdsAmount}\nNet Payable: ₹ ${t.netPayable}\nStatus: ${t.status}\nRemarks: ${t.remarks}`);
 }
 
+// ═════════════════════════════════════════════════════════════════════
+// EXACT 20-COLUMN TDS EXCEL REPORT EXPORT (XLSX ONLY)
+// ═════════════════════════════════════════════════════════════════════
+
 function exportToExcel() {
-  if (!currentTransactions || currentTransactions.length === 0) {
-    alert('No data to export.');
+  if (typeof XLSX === 'undefined') {
+    alert('Excel export engine is loading. Please try again in a moment.');
     return;
   }
 
-  let csv = 'Sr No,Voucher No,Voucher Date,Deductee Name,PAN,Section,Nature of Payment,Gross Amount,Taxable Amount,TDS Rate,TDS Amount,Net Payable,Challan No,Challan Date,Status\n';
-  currentTransactions.forEach((t, i) => {
-    csv += `"${i + 1}","${t.voucherNo}","${t.voucherDate}","${t.deducteeName}","${t.pan}","${t.section}","${t.natureOfPayment}","${t.grossAmount}","${t.taxableAmount}","${t.tdsRate}%","${t.tdsAmount}","${t.netPayable}","${t.challanNo}","${t.challanDate}","${t.status}"\n`;
-  });
+  const fy = document.getElementById('tds-fy').value || '2026-2027';
+  const fromDate = document.getElementById('tds-from-date') ? document.getElementById('tds-from-date').value : '';
+  const toDate = document.getElementById('tds-to-date') ? document.getElementById('tds-to-date').value : '';
+  const soc = (currentSummary && currentSummary.society) || {};
+  const socName = soc.societyName || 'HENU CO-OPERATIVE HOUSING SOCIETY LTD.';
+  const pan = soc.pan || '-';
+  const tan = soc.tan || '-';
+  const gstin = soc.gstin || '-';
+  const address = soc.address || '';
 
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `TDS_Report_${document.getElementById('tds-quarter').value}_${document.getElementById('tds-fy').value}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+  const wb = XLSX.utils.book_new();
+  const wsData = [];
+
+  // 1. Report Header Rows
+  wsData.push([socName.toUpperCase()]);
+  wsData.push([`TAX DEDUCTED AT SOURCE (TDS) REGISTER — FY ${fy}`]);
+  wsData.push([`Period: ${fromDate} to ${toDate} | PAN: ${pan} | TAN: ${tan} | GSTIN: ${gstin}`]);
+  if (address) wsData.push([`Address: ${address}`]);
+  wsData.push([]); // blank row
+
+  // 2. Exact 20-Column Table Header
+  const headers = [
+    'Date of Payment',
+    'Voucher No.',
+    'Invoice/Bill Date',
+    'Vendor/Party Invoice No.',
+    'Vendor/Party Name',
+    'Vendor/Party PAN No.',
+    'Account Head',
+    'Particulars',
+    'Section Code (New)',
+    'Section Code (Old)',
+    'Bill/Invoice Amount',
+    'CGST',
+    'SGST',
+    'Less TDS %',
+    'TDS Amount',
+    'Net Paid',
+    'BSR Code',
+    'Challan Date',
+    'Challan No.',
+    'TDS Payment Status'
+  ];
+  wsData.push(headers);
+
+  // 3. Data Rows
+  let totBill = 0, totCgst = 0, totSgst = 0, totTds = 0, totNet = 0;
+
+  if (currentTransactions && currentTransactions.length > 0) {
+    currentTransactions.forEach(t => {
+      const billAmt = parseFloat(t.grossAmount) || 0;
+      const cgstAmt = parseFloat(t.cgst) || 0;
+      const sgstAmt = parseFloat(t.sgst) || 0;
+      const tdsAmt = parseFloat(t.tdsAmount) || 0;
+      const netPaid = parseFloat(t.netPayable) || (billAmt - tdsAmt);
+
+      totBill += billAmt;
+      totCgst += cgstAmt;
+      totSgst += sgstAmt;
+      totTds += tdsAmt;
+      totNet += netPaid;
+
+      wsData.push([
+        t.voucherDate || '',
+        t.voucherNo || '',
+        t.billDate || t.voucherDate || '',
+        t.billNo || t.invoiceNo || '',
+        t.deducteeName || '',
+        t.pan || '',
+        t.accountHead || t.natureOfPayment || 'Contract / Professional Charges',
+        t.natureOfPayment || t.remarks || '',
+        t.section || '194C',
+        t.oldSection || t.section || '194C',
+        billAmt,
+        cgstAmt,
+        sgstAmt,
+        parseFloat(t.tdsRate) || 0,
+        tdsAmt,
+        netPaid,
+        t.bsrCode || '',
+        t.challanDate || '',
+        t.challanNo || '',
+        t.status || 'Confirmed'
+      ]);
+    });
+  }
+
+  // 4. Totals Row
+  wsData.push([
+    'TOTAL',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    totBill,
+    totCgst,
+    totSgst,
+    '',
+    totTds,
+    totNet,
+    '',
+    '',
+    '',
+    ''
+  ]);
+
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+  // 5. Column Widths
+  ws['!cols'] = [
+    { wch: 14 }, // Date of Payment
+    { wch: 14 }, // Voucher No
+    { wch: 14 }, // Invoice Date
+    { wch: 18 }, // Party Invoice No
+    { wch: 28 }, // Vendor Name
+    { wch: 14 }, // PAN
+    { wch: 22 }, // Account Head
+    { wch: 26 }, // Particulars
+    { wch: 16 }, // Section New
+    { wch: 16 }, // Section Old
+    { wch: 16 }, // Bill Amount
+    { wch: 12 }, // CGST
+    { wch: 12 }, // SGST
+    { wch: 12 }, // TDS %
+    { wch: 14 }, // TDS Amount
+    { wch: 16 }, // Net Paid
+    { wch: 12 }, // BSR Code
+    { wch: 14 }, // Challan Date
+    { wch: 16 }, // Challan No
+    { wch: 16 }  // Status
+  ];
+
+  // 6. Style Cells (Header, Colors, Borders, Number Formats)
+  const headerRowIdx = address ? 5 : 4;
+  const range = XLSX.utils.decode_range(ws['!ref']);
+
+  for (let R = range.s.r; R <= range.e.r; ++R) {
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+      const cellRef = XLSX.utils.encode_cell({ r: R, c: C });
+      if (!ws[cellRef]) continue;
+
+      // Title rows
+      if (R === 0) {
+        ws[cellRef].s = {
+          font: { bold: true, sz: 14, color: { rgb: "0D47A1" } },
+          alignment: { horizontal: "left" }
+        };
+      } else if (R === 1 || R === 2 || (address && R === 3)) {
+        ws[cellRef].s = {
+          font: { bold: true, sz: 10, color: { rgb: "333333" } },
+          alignment: { horizontal: "left" }
+        };
+      }
+      // Table Header Row
+      else if (R === headerRowIdx) {
+        ws[cellRef].s = {
+          fill: { fgColor: { rgb: "1565C0" } },
+          font: { bold: true, color: { rgb: "FFFFFF" }, sz: 10 },
+          alignment: { horizontal: "center", vertical: "center", wrapText: true },
+          border: {
+            top: { style: "thin", color: { rgb: "CCCCCC" } },
+            bottom: { style: "medium", color: { rgb: "0D47A1" } },
+            left: { style: "thin", color: { rgb: "CCCCCC" } },
+            right: { style: "thin", color: { rgb: "CCCCCC" } }
+          }
+        };
+      }
+      // Total Row
+      else if (R === range.e.r) {
+        const isNum = (C === 10 || C === 11 || C === 12 || C === 14 || C === 15);
+        ws[cellRef].s = {
+          fill: { fgColor: { rgb: "E3F2FD" } },
+          font: { bold: true, sz: 10, color: { rgb: "0D47A1" } },
+          alignment: { horizontal: isNum ? "right" : (C === 0 ? "center" : "left") },
+          border: {
+            top: { style: "thin", color: { rgb: "000000" } },
+            bottom: { style: "double", color: { rgb: "000000" } }
+          }
+        };
+        if (isNum && typeof ws[cellRef].v === 'number') {
+          ws[cellRef].z = '#,##0.00';
+        }
+      }
+      // Data Rows
+      else if (R > headerRowIdx && R < range.e.r) {
+        const isNum = (C === 10 || C === 11 || C === 12 || C === 14 || C === 15);
+        const isCenter = (C === 0 || C === 1 || C === 2 || C === 5 || C === 8 || C === 9 || C === 13 || C === 16 || C === 17 || C === 18 || C === 19);
+        
+        ws[cellRef].s = {
+          font: { sz: 9.5 },
+          alignment: { horizontal: isNum ? "right" : (isCenter ? "center" : "left") },
+          border: {
+            top: { style: "thin", color: { rgb: "E2E8F0" } },
+            bottom: { style: "thin", color: { rgb: "E2E8F0" } },
+            left: { style: "thin", color: { rgb: "E2E8F0" } },
+            right: { style: "thin", color: { rgb: "E2E8F0" } }
+          }
+        };
+        if (isNum && typeof ws[cellRef].v === 'number') {
+          ws[cellRef].z = '#,##0.00';
+        } else if (C === 13 && typeof ws[cellRef].v === 'number') {
+          ws[cellRef].z = '0.0%';
+        }
+      }
+    }
+  }
+
+  XLSX.utils.book_append_sheet(wb, ws, 'TDS Register');
+  const filename = `TDS_Report_FY_${fy}_${fromDate}_to_${toDate}.xlsx`;
+  XLSX.writeFile(wb, filename);
 }
 
 function escapeHtml(text) {

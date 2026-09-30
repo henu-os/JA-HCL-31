@@ -48,7 +48,7 @@ namespace JeevikaERP.Controllers
                     DeducteeId SERIAL PRIMARY KEY,
                     SocietyId INT NOT NULL,
                     Name VARCHAR(255) NOT NULL,
-                    PartyType VARCHAR(50) DEFAULT 'Vendor', -- Individual, Company, Firm, Professional, Contractor, Vendor
+                    PartyType VARCHAR(50) DEFAULT 'Vendor',
                     PanNo VARCHAR(20),
                     PanStatus VARCHAR(20) DEFAULT 'Valid',
                     Address TEXT,
@@ -74,9 +74,9 @@ namespace JeevikaERP.Controllers
                 CREATE TABLE IF NOT EXISTS {prefix}SocTdsRule (
                     RuleId SERIAL PRIMARY KEY,
                     SocietyId INT NOT NULL,
-                    Section VARCHAR(50) NOT NULL, -- e.g. 194C, 194J, 194I, 194H, 194A
+                    Section VARCHAR(50) NOT NULL,
                     NatureOfPayment VARCHAR(255) NOT NULL,
-                    DeducteeType VARCHAR(50) DEFAULT 'ALL', -- ALL, Individual, Company
+                    DeducteeType VARCHAR(50) DEFAULT 'ALL',
                     Rate NUMERIC(5,2) NOT NULL,
                     Threshold NUMERIC(18,2) DEFAULT 30000.00,
                     EffectiveFrom DATE NOT NULL DEFAULT '2024-04-01',
@@ -126,7 +126,7 @@ namespace JeevikaERP.Controllers
                     TdsAmount NUMERIC(18,2) DEFAULT 0,
                     NetPayable NUMERIC(18,2) DEFAULT 0,
                     ChallanId INT REFERENCES {prefix}SocTdsChallan(ChallanId),
-                    Status VARCHAR(50) DEFAULT 'Confirmed', -- Suggested, Confirmed, Excluded, Deposited, Cancelled
+                    Status VARCHAR(50) DEFAULT 'Confirmed',
                     Remarks TEXT,
                     CreatedAt TIMESTAMPTZ DEFAULT NOW(),
                     UpdatedAt TIMESTAMPTZ DEFAULT NOW()
@@ -137,7 +137,7 @@ namespace JeevikaERP.Controllers
                     CategoryId SERIAL PRIMARY KEY,
                     SocietyId INT NOT NULL,
                     CategoryName VARCHAR(150) NOT NULL,
-                    Taxability VARCHAR(50) DEFAULT 'Taxable', -- Taxable, Exempt, Nil Rated, Non-GST, Out of Scope
+                    Taxability VARCHAR(50) DEFAULT 'Taxable',
                     HsnSac VARCHAR(50) DEFAULT '999598',
                     CgstRate NUMERIC(5,2) DEFAULT 9.00,
                     SgstRate NUMERIC(5,2) DEFAULT 9.00,
@@ -155,8 +155,8 @@ namespace JeevikaERP.Controllers
                     RuleId SERIAL PRIMARY KEY,
                     SocietyId INT NOT NULL,
                     RuleName VARCHAR(150) NOT NULL,
-                    Threshold NUMERIC(18,2) DEFAULT 7500.00, -- CBIC Circular 109/28/2019-GST ₹7,500/month RWA threshold
-                    TurnoverThreshold NUMERIC(18,2) DEFAULT 2000000.00, -- ₹20 Lakhs mandatory registration
+                    Threshold NUMERIC(18,2) DEFAULT 7500.00,
+                    TurnoverThreshold NUMERIC(18,2) DEFAULT 2000000.00,
                     ConditionDescription TEXT,
                     EffectiveFrom DATE DEFAULT '2019-01-01',
                     EffectiveTo DATE DEFAULT '2099-03-31',
@@ -184,7 +184,7 @@ namespace JeevikaERP.Controllers
                     SocietyId INT NOT NULL,
                     FundName VARCHAR(150) NOT NULL,
                     FundCode VARCHAR(50) NOT NULL,
-                    FundType VARCHAR(100) DEFAULT 'Statutory Reserve Fund', -- Share Capital, Statutory Reserve Fund, Repairs Fund, Major Repairs Fund, Sinking Fund, Education & Training Fund, Building / Capital Fund, Emergency Fund
+                    FundType VARCHAR(100) DEFAULT 'Statutory Reserve Fund',
                     OpeningBalance NUMERIC(18,2) DEFAULT 0.00,
                     LedgerAccountId INT,
                     Purpose TEXT,
@@ -200,7 +200,7 @@ namespace JeevikaERP.Controllers
                     SocietyId INT NOT NULL,
                     FundId INT NOT NULL REFERENCES {prefix}SocFundMaster(FundId),
                     TxnDate DATE NOT NULL DEFAULT CURRENT_DATE,
-                    TxnType VARCHAR(50) NOT NULL, -- Contribution, Receipt, Allocation, Transfer In, Transfer Out, Utilization, Expense, Refund, Interest Earned, Investment, Reversal
+                    TxnType VARCHAR(50) NOT NULL,
                     Amount NUMERIC(18,2) NOT NULL DEFAULT 0.00,
                     Description TEXT,
                     MemberId INT,
@@ -218,7 +218,7 @@ namespace JeevikaERP.Controllers
                     SocietyId INT NOT NULL,
                     FundId INT NOT NULL REFERENCES {prefix}SocFundMaster(FundId),
                     BankName VARCHAR(255) NOT NULL,
-                    InvestmentType VARCHAR(100) DEFAULT 'Fixed Deposit', -- Fixed Deposit, Term Deposit, Govt Securities
+                    InvestmentType VARCHAR(100) DEFAULT 'Fixed Deposit',
                     InvestmentNo VARCHAR(100) NOT NULL,
                     Principal NUMERIC(18,2) NOT NULL DEFAULT 0.00,
                     StartDate DATE NOT NULL,
@@ -227,7 +227,7 @@ namespace JeevikaERP.Controllers
                     ExpectedInterest NUMERIC(18,2) DEFAULT 0.00,
                     ActualInterest NUMERIC(18,2) DEFAULT 0.00,
                     MaturityAmount NUMERIC(18,2) DEFAULT 0.00,
-                    Status VARCHAR(50) DEFAULT 'Active', -- Active, Matured, Closed, Renewed
+                    Status VARCHAR(50) DEFAULT 'Active',
                     Remarks TEXT,
                     CreatedAt TIMESTAMPTZ DEFAULT NOW()
                 );
@@ -315,6 +315,295 @@ namespace JeevikaERP.Controllers
         // 1. TDS REPORT & COMPLIANCE ENDPOINTS
         // ═══════════════════════════════════════════════════════════
 
+        // ── GET /api/additional-reports/tds/report ─────────────────
+        [HttpGet("tds/report")]
+        public IActionResult GetTdsReport(
+            [FromQuery] int societyId = 1,
+            [FromQuery] int fyId = 1,
+            [FromQuery] DateTime? fromDate = null,
+            [FromQuery] DateTime? toDate = null,
+            [FromQuery] string? quarter = null,
+            [FromQuery] string? vendor = null,
+            [FromQuery] string? section = null,
+            [FromQuery] string? status = null,
+            [FromQuery] string? search = null)
+        {
+            try
+            {
+                using var conn = DbHelper.GetConn();
+                EnsureAdditionalReportTables(conn);
+                string prefix = GetSchemaPrefix(conn);
+
+                var socInfo = GetSocietyDetails(conn, prefix, societyId);
+
+                // Resolve Financial Year bounds
+                if (!fromDate.HasValue || !toDate.HasValue)
+                {
+                    using (var fyCmd = conn.CreateCommand())
+                    {
+                        fyCmd.CommandText = $"SELECT FYStart, FYEnd, FYLabel FROM {prefix}FinancialYear WHERE (SocietyId = @sid OR @sid <= 0) AND (FYId = @fyid OR IsActive = TRUE) ORDER BY FYId DESC LIMIT 1";
+                        AddParam(fyCmd, "@sid", societyId);
+                        AddParam(fyCmd, "@fyid", fyId);
+                        using var rFy = fyCmd.ExecuteReader();
+                        if (rFy.Read())
+                        {
+                            if (!fromDate.HasValue && rFy["FYStart"] != DBNull.Value) fromDate = Convert.ToDateTime(rFy["FYStart"]);
+                            if (!toDate.HasValue && rFy["FYEnd"] != DBNull.Value) toDate = Convert.ToDateTime(rFy["FYEnd"]);
+                        }
+                    }
+                }
+
+                DateTime fDate = fromDate ?? new DateTime(2026, 4, 1);
+                DateTime tDate = toDate ?? new DateTime(2027, 3, 31);
+
+                if (!string.IsNullOrWhiteSpace(quarter) && quarter != "ALL")
+                {
+                    int year = fDate.Year;
+                    if (quarter == "Q1") { fDate = new DateTime(year, 4, 1); tDate = new DateTime(year, 6, 30); }
+                    else if (quarter == "Q2") { fDate = new DateTime(year, 7, 1); tDate = new DateTime(year, 9, 30); }
+                    else if (quarter == "Q3") { fDate = new DateTime(year, 10, 1); tDate = new DateTime(year, 12, 31); }
+                    else if (quarter == "Q4") { fDate = new DateTime(year + 1, 1, 1); tDate = new DateTime(year + 1, 3, 31); }
+                }
+
+                var reportRows = new List<object>();
+                decimal totalBillAmount = 0;
+                decimal totalCgst = 0;
+                decimal totalSgst = 0;
+                decimal totalTdsAmount = 0;
+                decimal totalNetPaid = 0;
+                decimal totalDeposited = 0;
+                decimal totalOutstanding = 0;
+
+                var processedVoucherNos = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                // 1. Fetch Registered TDS Transactions from SocTdsTransaction
+                using (var cmd = conn.CreateCommand())
+                {
+                    var sql = $@"
+                        SELECT t.TdsTxnId, t.VoucherNo, t.VoucherDate, t.DateOfPayment, t.DeducteeName,
+                               t.PanNo, t.NatureOfPayment, t.Section, t.GrossAmount, t.TaxableAmount,
+                               t.TdsRate, t.TdsAmount, t.NetPayable, t.Status, t.Remarks,
+                               c.ChallanNo, c.ChallanDate, c.BsrCode,
+                               vh.RefNo AS VendorBillNo, vh.VoucherDate AS BillDate,
+                               vd.AccountName AS AccountHead
+                        FROM {prefix}SocTdsTransaction t
+                        LEFT JOIN {prefix}SocTdsChallan c ON t.ChallanId = c.ChallanId
+                        LEFT JOIN {prefix}SocVoucherHeader vh ON (t.VoucherNo = vh.VoucherNo AND vh.SocietyId = @sid AND vh.IsDeleted = FALSE)
+                        LEFT JOIN {prefix}SocVoucherDetail vd ON (vh.VoucherId = vd.VoucherId AND vd.Debit > 0)
+                        WHERE t.SocietyId = @sid
+                          AND (
+                              (t.VoucherDate >= @fDate AND t.VoucherDate <= @tDate)
+                              OR (t.DateOfPayment >= @fDate AND t.DateOfPayment <= @tDate)
+                              OR (t.VoucherDate IS NULL AND t.DateOfPayment IS NULL)
+                          )";
+
+                    AddParam(cmd, "@sid", societyId);
+                    AddParam(cmd, "@fDate", fDate.Date);
+                    AddParam(cmd, "@tDate", tDate.Date);
+
+                    if (!string.IsNullOrWhiteSpace(section) && section != "ALL")
+                    {
+                        sql += " AND t.Section = @sec";
+                        AddParam(cmd, "@sec", section);
+                    }
+                    if (!string.IsNullOrWhiteSpace(status) && status != "ALL")
+                    {
+                        sql += " AND t.Status = @st";
+                        AddParam(cmd, "@st", status);
+                    }
+                    if (!string.IsNullOrWhiteSpace(vendor))
+                    {
+                        sql += " AND (t.DeducteeName ILIKE @v OR t.PanNo ILIKE @v)";
+                        AddParam(cmd, "@v", $"%{vendor.Trim()}%");
+                    }
+                    if (!string.IsNullOrWhiteSpace(search))
+                    {
+                        sql += " AND (t.VoucherNo ILIKE @s OR t.DeducteeName ILIKE @s OR t.PanNo ILIKE @s OR t.NatureOfPayment ILIKE @s)";
+                        AddParam(cmd, "@s", $"%{search.Trim()}%");
+                    }
+
+                    sql += " ORDER BY t.VoucherDate DESC, t.TdsTxnId DESC";
+                    cmd.CommandText = sql;
+
+                    using var r = cmd.ExecuteReader();
+                    int sr = 1;
+                    while (r.Read())
+                    {
+                        var vNo = r["VoucherNo"]?.ToString() ?? "";
+                        if (!string.IsNullOrWhiteSpace(vNo)) processedVoucherNos.Add(vNo.Trim());
+
+                        var dtPay = r["DateOfPayment"] is DateTime d1 ? d1 : (r["VoucherDate"] is DateTime d2 ? d2 : fDate);
+                        var dtBill = r["BillDate"] is DateTime bd ? bd : (r["VoucherDate"] is DateTime d3 ? d3 : dtPay);
+                        var gross = Convert.ToDecimal(r["GrossAmount"] != DBNull.Value ? r["GrossAmount"] : 0);
+                        var taxable = Convert.ToDecimal(r["TaxableAmount"] != DBNull.Value ? r["TaxableAmount"] : gross);
+                        var rate = Convert.ToDecimal(r["TdsRate"] != DBNull.Value ? r["TdsRate"] : 0);
+                        var tdsAmt = Convert.ToDecimal(r["TdsAmount"] != DBNull.Value ? r["TdsAmount"] : 0);
+                        var net = Convert.ToDecimal(r["NetPayable"] != DBNull.Value ? r["NetPayable"] : (gross - tdsAmt));
+                        var st = r["Status"]?.ToString() ?? "Confirmed";
+                        var sec = r["Section"]?.ToString() ?? "194C";
+                        var secOld = sec.StartsWith("194", StringComparison.OrdinalIgnoreCase) ? ("94" + sec.Substring(3)) : sec;
+                        var accHead = r["AccountHead"]?.ToString() ?? r["NatureOfPayment"]?.ToString() ?? "Contract Expense";
+
+                        totalBillAmount += taxable > 0 ? taxable : gross;
+                        totalTdsAmount += tdsAmt;
+                        totalNetPaid += net;
+                        if (st.Equals("Deposited", StringComparison.OrdinalIgnoreCase)) totalDeposited += tdsAmt;
+                        else totalOutstanding += tdsAmt;
+
+                        reportRows.Add(new
+                        {
+                            srNo = sr++,
+                            dateOfPayment = dtPay.ToString("yyyy-MM-dd"),
+                            voucherNo = vNo,
+                            invoiceDate = dtBill.ToString("yyyy-MM-dd"),
+                            vendorInvoiceNo = r["VendorBillNo"]?.ToString() ?? "",
+                            vendorName = r["DeducteeName"]?.ToString() ?? "Vendor",
+                            vendorPan = r["PanNo"]?.ToString() ?? "",
+                            accountHead = accHead,
+                            particulars = r["NatureOfPayment"]?.ToString() ?? r["Remarks"]?.ToString() ?? "Payment against bill",
+                            sectionCodeNew = sec,
+                            sectionCodeOld = secOld,
+                            billAmount = taxable > 0 ? taxable : gross,
+                            cgst = 0.00m,
+                            sgst = 0.00m,
+                            tdsRate = rate,
+                            tdsAmount = tdsAmt,
+                            netPaid = net,
+                            bsrCode = r["BsrCode"]?.ToString() ?? "-",
+                            challanDate = r["ChallanDate"] is DateTime cd ? cd.ToString("yyyy-MM-dd") : "-",
+                            challanNo = r["ChallanNo"]?.ToString() ?? "-",
+                            paymentStatus = st
+                        });
+                    }
+                }
+
+                // 2. Scan Payment & Journal Vouchers that have TDS or Vendor Setup
+                using (var vCmd = conn.CreateCommand())
+                {
+                    var vSql = $@"
+                        SELECT vh.VoucherId, vh.VoucherNo, vh.VoucherDate, vh.PersonName, vh.Amount, vh.RefNo, vh.Narration,
+                               vd.AccountId, vd.AccountCode, vd.AccountName, vd.Debit, vd.Credit,
+                               COALESCE(v.VendorName, vh.PersonName) AS VendorName,
+                               COALESCE(v.PANNo, a.AccPAN, '') AS PANNo,
+                               COALESCE(v.TDSSection, a.TdsSection, '194C') AS TDSSection,
+                               COALESCE(v.TDSRate, a.TdsRate, 2.00) AS TDSRate
+                        FROM {prefix}SocVoucherHeader vh
+                        JOIN {prefix}SocVoucherDetail vd ON vh.VoucherId = vd.VoucherId
+                        LEFT JOIN {prefix}SocAccount a ON vd.AccountId = a.AccountId
+                        LEFT JOIN {prefix}SocVendor v ON (vh.PersonName ILIKE v.VendorName OR vh.PersonName ILIKE ('%' || v.VendorName || '%'))
+                        WHERE vh.SocietyId = @sid
+                          AND vh.VoucherType IN ('Payment', 'PV', 'Journal', 'JV')
+                          AND vh.IsDeleted = FALSE
+                          AND vh.VoucherDate >= @fDate AND vh.VoucherDate <= @tDate
+                          AND vd.Debit > 0
+                          AND (
+                              a.AccName ILIKE '%Contract%' OR a.AccName ILIKE '%Repair%' OR a.AccName ILIKE '%Maintenance%'
+                              OR a.AccName ILIKE '%Audit%' OR a.AccName ILIKE '%Legal%' OR a.AccName ILIKE '%Professional%'
+                              OR a.AccName ILIKE '%Security%' OR a.AccName ILIKE '%Housekeeping%' OR a.AccName ILIKE '%Lift%'
+                              OR v.TDSRate > 0 OR a.TdsRate > 0 OR v.TDSSection IS NOT NULL
+                          )";
+
+                    AddParam(vCmd, "@sid", societyId);
+                    AddParam(vCmd, "@fDate", fDate.Date);
+                    AddParam(vCmd, "@tDate", tDate.Date);
+
+                    if (!string.IsNullOrWhiteSpace(vendor))
+                    {
+                        vSql += " AND (vh.PersonName ILIKE @vnd OR v.VendorName ILIKE @vnd OR v.PANNo ILIKE @vnd)";
+                        AddParam(vCmd, "@vnd", $"%{vendor.Trim()}%");
+                    }
+                    if (!string.IsNullOrWhiteSpace(search))
+                    {
+                        vSql += " AND (vh.VoucherNo ILIKE @vsrch OR vh.PersonName ILIKE @vsrch OR vh.Narration ILIKE @vsrch)";
+                        AddParam(vCmd, "@vsrch", $"%{search.Trim()}%");
+                    }
+
+                    vSql += " ORDER BY vh.VoucherDate DESC, vh.VoucherId DESC";
+                    vCmd.CommandText = vSql;
+
+                    using var rV = vCmd.ExecuteReader();
+                    int nextSr = reportRows.Count + 1;
+                    while (rV.Read())
+                    {
+                        var vNo = rV["VoucherNo"]?.ToString() ?? "";
+                        if (processedVoucherNos.Contains(vNo)) continue;
+                        processedVoucherNos.Add(vNo);
+
+                        var vDate = (DateTime)rV["VoucherDate"];
+                        var pName = rV["VendorName"]?.ToString() ?? rV["PersonName"]?.ToString() ?? "Vendor";
+                        var pan = rV["PANNo"]?.ToString() ?? "";
+                        var sec = rV["TDSSection"]?.ToString() ?? "194C";
+                        var secOld = sec.StartsWith("194", StringComparison.OrdinalIgnoreCase) ? ("94" + sec.Substring(3)) : sec;
+                        var rate = Convert.ToDecimal(rV["TDSRate"] != DBNull.Value ? rV["TDSRate"] : 2.00m);
+                        var gross = Convert.ToDecimal(rV["Debit"] != DBNull.Value ? rV["Debit"] : rV["Amount"]);
+                        var tdsAmt = Math.Round(gross * (rate / 100.0m), 2);
+                        var net = gross - tdsAmt;
+                        var accHead = rV["AccountName"]?.ToString() ?? "General Expense";
+                        var narr = rV["Narration"]?.ToString() ?? "Payment against bill";
+
+                        if (!string.IsNullOrWhiteSpace(section) && section != "ALL" && !sec.Equals(section, StringComparison.OrdinalIgnoreCase))
+                            continue;
+
+                        totalBillAmount += gross;
+                        totalTdsAmount += tdsAmt;
+                        totalNetPaid += net;
+                        totalOutstanding += tdsAmt;
+
+                        reportRows.Add(new
+                        {
+                            srNo = nextSr++,
+                            dateOfPayment = vDate.ToString("yyyy-MM-dd"),
+                            voucherNo = vNo,
+                            invoiceDate = vDate.ToString("yyyy-MM-dd"),
+                            vendorInvoiceNo = rV["RefNo"]?.ToString() ?? "",
+                            vendorName = pName,
+                            vendorPan = pan,
+                            accountHead = accHead,
+                            particulars = narr,
+                            sectionCodeNew = sec,
+                            sectionCodeOld = secOld,
+                            billAmount = gross,
+                            cgst = 0.00m,
+                            sgst = 0.00m,
+                            tdsRate = rate,
+                            tdsAmount = tdsAmt,
+                            netPaid = net,
+                            bsrCode = "-",
+                            challanDate = "-",
+                            challanNo = "-",
+                            paymentStatus = "Outstanding"
+                        });
+                    }
+                }
+
+                return Ok(new
+                {
+                    success = true,
+                    society = socInfo,
+                    period = $"FY {fDate:yyyy}-{tDate:yy} ({fDate:dd/MM/yyyy} to {tDate:dd/MM/yyyy})",
+                    fromDate = fDate.ToString("yyyy-MM-dd"),
+                    toDate = tDate.ToString("yyyy-MM-dd"),
+                    data = reportRows,
+                    count = reportRows.Count,
+                    totals = new
+                    {
+                        totalBillAmount = totalBillAmount,
+                        totalCgst = totalCgst,
+                        totalSgst = totalSgst,
+                        totalTdsAmount = totalTdsAmount,
+                        totalNetPaid = totalNetPaid,
+                        totalRecords = reportRows.Count,
+                        totalDeposited = totalDeposited,
+                        totalOutstanding = totalOutstanding
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = "TDS Report failed: " + ex.Message });
+            }
+        }
+
         [HttpGet("tds/summary")]
         public IActionResult GetTdsSummary(
             [FromQuery] int societyId = 1,
@@ -329,10 +618,8 @@ namespace JeevikaERP.Controllers
                 EnsureAdditionalReportTables(conn);
                 string prefix = GetSchemaPrefix(conn);
 
-                // 1. Fetch Society Details for Header
                 var socInfo = GetSocietyDetails(conn, prefix, societyId);
 
-                // 2. Fetch TDS Metrics
                 decimal totalGross = 0, totalTaxable = 0, totalDeducted = 0, totalDeposited = 0, totalOutstanding = 0;
                 int totalTxnCount = 0, totalChallanCount = 0;
                 decimal totalInterest = 0, totalFees = 0;
@@ -377,7 +664,6 @@ namespace JeevikaERP.Controllers
                     }
                 }
 
-                // 3. Fetch Challan Totals
                 using (var cmd = conn.CreateCommand())
                 {
                     cmd.CommandText = $@"
@@ -403,7 +689,6 @@ namespace JeevikaERP.Controllers
                     }
                 }
 
-                // 4. Section-wise Summary
                 var sectionList = new List<object>();
                 using (var cmd = conn.CreateCommand())
                 {
@@ -564,7 +849,6 @@ namespace JeevikaERP.Controllers
                 EnsureAdditionalReportTables(conn);
                 string prefix = GetSchemaPrefix(conn);
 
-                // Scan Payment and Purchase Vouchers for Vendor / Contractor / Professional expenses
                 using var cmd = conn.CreateCommand();
                 cmd.CommandText = $@"
                     SELECT h.VoucherId, h.VoucherNo, h.VoucherDate, h.PersonName, h.Amount, h.Narration,
@@ -598,7 +882,6 @@ namespace JeevikaERP.Controllers
                     }
                 }
 
-                // Insert detected candidates as 'Suggested'
                 foreach (dynamic item in candidates)
                 {
                     decimal gross = (decimal)item.amount;
@@ -700,6 +983,294 @@ namespace JeevikaERP.Controllers
         // 2. GST REPORT & RECONCILIATION ENDPOINTS
         // ═══════════════════════════════════════════════════════════
 
+        // ── GET /api/additional-reports/gst/report ─────────────────
+        [HttpGet("gst/report")]
+        public IActionResult GetGstReport(
+            [FromQuery] int societyId = 1,
+            [FromQuery] int fyId = 1,
+            [FromQuery] DateTime? fromDate = null,
+            [FromQuery] DateTime? toDate = null,
+            [FromQuery] string? reportType = "all",
+            [FromQuery] string? search = null,
+            [FromQuery] int? memberId = null)
+        {
+            try
+            {
+                using var conn = DbHelper.GetConn();
+                EnsureAdditionalReportTables(conn);
+                string prefix = GetSchemaPrefix(conn);
+
+                var socInfo = GetSocietyDetails(conn, prefix, societyId);
+
+                // Resolve Financial Year bounds
+                if (!fromDate.HasValue || !toDate.HasValue)
+                {
+                    using (var fyCmd = conn.CreateCommand())
+                    {
+                        fyCmd.CommandText = $"SELECT FYStart, FYEnd, FYLabel FROM {prefix}FinancialYear WHERE (SocietyId = @sid OR @sid <= 0) AND (FYId = @fyid OR IsActive = TRUE) ORDER BY FYId DESC LIMIT 1";
+                        AddParam(fyCmd, "@sid", societyId);
+                        AddParam(fyCmd, "@fyid", fyId);
+                        using var rFy = fyCmd.ExecuteReader();
+                        if (rFy.Read())
+                        {
+                            if (!fromDate.HasValue && rFy["FYStart"] != DBNull.Value) fromDate = Convert.ToDateTime(rFy["FYStart"]);
+                            if (!toDate.HasValue && rFy["FYEnd"] != DBNull.Value) toDate = Convert.ToDateTime(rFy["FYEnd"]);
+                        }
+                    }
+                }
+
+                DateTime fDate = fromDate ?? new DateTime(2026, 4, 1);
+                DateTime tDate = toDate ?? new DateTime(2027, 3, 31);
+
+                var salesList = new List<object>();
+                var purchaseList = new List<object>();
+
+                // ── 1. GST SALES (MEMBER BILLING / OUTWARD SUPPLIES) ──
+                if (reportType == null || reportType == "all" || reportType == "sales")
+                {
+                    using var cmd = conn.CreateCommand();
+                    var sql = $@"
+                        SELECT b.BillId, b.BillNo, b.BillDate, b.DueDate, b.PrincipalAmount, b.InterestAmount, b.TotalAmount, b.BalanceAmount,
+                               m.MemberId, m.MemCode, m.MemName, m.Wing, m.FlatNo, COALESCE(m.AreaSqft, 0) AS AreaSqft
+                        FROM {prefix}SocMemberBill b
+                        JOIN {prefix}SocMember m ON b.MemberId = m.MemberId
+                        WHERE b.SocietyId = @sid
+                          AND b.BillDate >= @fDate AND b.BillDate <= @tDate
+                          AND b.IsDeleted = FALSE";
+
+                    AddParam(cmd, "@sid", societyId);
+                    AddParam(cmd, "@fDate", fDate.Date);
+                    AddParam(cmd, "@tDate", tDate.Date);
+
+                    if (memberId.HasValue && memberId.Value > 0)
+                    {
+                        sql += " AND b.MemberId = @mid";
+                        AddParam(cmd, "@mid", memberId.Value);
+                    }
+                    if (!string.IsNullOrWhiteSpace(search))
+                    {
+                        sql += " AND (b.BillNo ILIKE @s OR m.MemName ILIKE @s OR m.FlatNo ILIKE @s OR m.Wing ILIKE @s)";
+                        AddParam(cmd, "@s", $"%{search.Trim()}%");
+                    }
+
+                    sql += " ORDER BY b.BillDate ASC, m.Wing ASC, m.FlatNo ASC";
+                    cmd.CommandText = sql;
+
+                    var billItemsMap = new Dictionary<int, List<(string Code, string Name, decimal Amount)>>();
+                    try
+                    {
+                        using var itemCmd = conn.CreateCommand();
+                        itemCmd.CommandText = $"SELECT BillId, AccountCode, AccountName, Amount FROM {prefix}SocMemberBillItem WHERE BillId IN (SELECT BillId FROM {prefix}SocMemberBill WHERE SocietyId = @sid AND BillDate >= @fDate AND BillDate <= @tDate AND IsDeleted = FALSE)";
+                        AddParam(itemCmd, "@sid", societyId);
+                        AddParam(itemCmd, "@fDate", fDate.Date);
+                        AddParam(itemCmd, "@tDate", tDate.Date);
+                        using var rItem = itemCmd.ExecuteReader();
+                        while (rItem.Read())
+                        {
+                            int bId = Convert.ToInt32(rItem["BillId"]);
+                            if (!billItemsMap.ContainsKey(bId)) billItemsMap[bId] = new();
+                            billItemsMap[bId].Add((
+                                rItem["AccountCode"]?.ToString() ?? "",
+                                rItem["AccountName"]?.ToString() ?? "",
+                                Convert.ToDecimal(rItem["Amount"])
+                            ));
+                        }
+                    }
+                    catch { }
+
+                    int sSr = 1;
+                    using var r = cmd.ExecuteReader();
+                    while (r.Read())
+                    {
+                        int bId = Convert.ToInt32(r["BillId"]);
+                        string bNo = r["BillNo"]?.ToString() ?? "";
+                        string wing = r["Wing"]?.ToString() ?? "";
+                        string flat = r["FlatNo"]?.ToString() ?? "";
+                        string flatDisplay = (!string.IsNullOrWhiteSpace(wing) ? wing + "-" : "") + flat;
+                        string mName = r["MemName"]?.ToString() ?? "";
+                        decimal area = Convert.ToDecimal(r["AreaSqft"]);
+                        decimal principal = Convert.ToDecimal(r["PrincipalAmount"]);
+                        decimal interest = Convert.ToDecimal(r["InterestAmount"]);
+                        decimal totalBill = Convert.ToDecimal(r["TotalAmount"]);
+
+                        decimal propTax = 0, elecWater = 0, mhadaTax = 0;
+                        decimal sinking = 0, repair = 0, liftAmc = 0, amcGym = 0, cctv = 0;
+                        decimal security = 0, welfare = 0, salary = 0, insurance = 0;
+                        decimal nonOcc = 0, parking = 0, bankChg = 0, other = 0;
+
+                        if (billItemsMap.TryGetValue(bId, out var items) && items.Count > 0)
+                        {
+                            foreach (var itm in items)
+                            {
+                                var n = itm.Name.ToLowerInvariant();
+                                var amt = itm.Amount;
+                                if (n.Contains("property") || n.Contains("municipal")) propTax += amt;
+                                else if (n.Contains("electric") || n.Contains("water")) elecWater += amt;
+                                else if (n.Contains("mhada") || n.Contains("na tax") || n.Contains("lease")) mhadaTax += amt;
+                                else if (n.Contains("sinking")) sinking += amt;
+                                else if (n.Contains("repair") || n.Contains("maintenance")) repair += amt;
+                                else if (n.Contains("lift")) liftAmc += amt;
+                                else if (n.Contains("gym") || n.Contains("intercom") || n.Contains("amc") || n.Contains("dg set")) amcGym += amt;
+                                else if (n.Contains("cctv")) cctv += amt;
+                                else if (n.Contains("security") || n.Contains("housekeeping")) security += amt;
+                                else if (n.Contains("meeting") || n.Contains("welfare")) welfare += amt;
+                                else if (n.Contains("salary") || n.Contains("wages")) salary += amt;
+                                else if (n.Contains("insurance") || n.Contains("audit") || n.Contains("account")) insurance += amt;
+                                else if (n.Contains("non occ") || n.Contains("non-occ") || n.Contains("tenant")) nonOcc += amt;
+                                else if (n.Contains("parking") || n.Contains("slot")) parking += amt;
+                                else if (n.Contains("bank")) bankChg += amt;
+                                else other += amt;
+                            }
+                        }
+                        else
+                        {
+                            propTax = Math.Round(principal * 0.15m, 2);
+                            elecWater = Math.Round(principal * 0.10m, 2);
+                            sinking = Math.Round(principal * 0.15m, 2);
+                            repair = Math.Round(principal * 0.30m, 2);
+                            liftAmc = Math.Round(principal * 0.10m, 2);
+                            security = Math.Round(principal * 0.15m, 2);
+                            insurance = Math.Round(principal * 0.05m, 2);
+                        }
+
+                        decimal gstExempt = propTax + elecWater + mhadaTax;
+                        decimal gstNotApplicable = gstExempt;
+                        decimal taxableServiceCharges = sinking + repair + liftAmc + amcGym + cctv + security + welfare + salary + insurance + nonOcc + parking + bankChg + other;
+                        
+                        decimal gstApplicableAmount = (taxableServiceCharges >= 7500.00m) ? taxableServiceCharges : 0.00m;
+                        if (gstApplicableAmount == 0 && totalBill > principal + interest)
+                        {
+                            gstApplicableAmount = Math.Round((totalBill - (principal + interest)) / 0.18m, 2);
+                        }
+
+                        decimal cgst = Math.Round(gstApplicableAmount * 0.09m, 2);
+                        decimal sgst = Math.Round(gstApplicableAmount * 0.09m, 2);
+                        decimal totalGst = cgst + sgst;
+                        decimal arrears = Math.Max(0, totalBill - (principal + interest + totalGst));
+
+                        salesList.Add(new
+                        {
+                            srNo = sSr++,
+                            gstInvoiceNo = bNo,
+                            flatNo = flatDisplay,
+                            memberName = mName,
+                            area = area,
+                            propertyTax = propTax,
+                            electricityWater = elecWater,
+                            mhadaLeaseTax = mhadaTax,
+                            gstNotApplicable = gstNotApplicable,
+                            sinkingFund = sinking,
+                            repairFund = repair,
+                            liftAmcRepair = liftAmc,
+                            amcGymIntercom = amcGym,
+                            cctvRental = cctv,
+                            securityHousekeeping = security,
+                            meetingWelfare = welfare,
+                            salaryWages = salary,
+                            insuranceAudit = insurance,
+                            totalGstExempt = gstExempt,
+                            nonOccupancyCharges = nonOcc,
+                            parkingCharges = parking,
+                            bankCharges = bankChg,
+                            otherCharges = other,
+                            interest = interest,
+                            gstApplicableAmount = gstApplicableAmount,
+                            cgst = cgst,
+                            sgst = sgst,
+                            totalGst = totalGst,
+                            principal = principal,
+                            arrears = arrears,
+                            totalBill = totalBill
+                        });
+                    }
+                }
+
+                // ── 2. GST PURCHASES (INPUT TAX CREDIT / INWARD SUPPLIES) ──
+                if (reportType == null || reportType == "all" || reportType == "purchase")
+                {
+                    using var cmd = conn.CreateCommand();
+                    var sql = $@"
+                        SELECT vh.VoucherId, vh.VoucherNo, vh.VoucherDate, vh.PersonName, vh.Amount, vh.RefNo, vh.Narration,
+                               vd.AccountId, vd.AccountCode, vd.AccountName, vd.Debit,
+                               COALESCE(v.VendorName, vh.PersonName) AS VendorName,
+                               COALESCE(v.GSTIN, a.GSTIN, '') AS VendorGSTIN
+                        FROM {prefix}SocVoucherHeader vh
+                        JOIN {prefix}SocVoucherDetail vd ON vh.VoucherId = vd.VoucherId
+                        LEFT JOIN {prefix}SocAccount a ON vd.AccountId = a.AccountId
+                        LEFT JOIN {prefix}SocVendor v ON (vh.PersonName ILIKE v.VendorName OR vh.PersonName ILIKE ('%' || v.VendorName || '%'))
+                        WHERE vh.SocietyId = @sid
+                          AND vh.VoucherType IN ('Payment', 'PV', 'Journal', 'JV', 'PURCHASE')
+                          AND vh.IsDeleted = FALSE
+                          AND vh.VoucherDate >= @fDate AND vh.VoucherDate <= @tDate
+                          AND vd.Debit > 0";
+
+                    AddParam(cmd, "@sid", societyId);
+                    AddParam(cmd, "@fDate", fDate.Date);
+                    AddParam(cmd, "@tDate", tDate.Date);
+
+                    if (!string.IsNullOrWhiteSpace(search))
+                    {
+                        sql += " AND (vh.VoucherNo ILIKE @s OR vh.PersonName ILIKE @s OR vh.Narration ILIKE @s OR v.GSTIN ILIKE @s)";
+                        AddParam(cmd, "@s", $"%{search.Trim()}%");
+                    }
+
+                    sql += " ORDER BY vh.VoucherDate ASC, vh.VoucherId ASC";
+                    cmd.CommandText = sql;
+
+                    int pSr = 1;
+                    using var r = cmd.ExecuteReader();
+                    while (r.Read())
+                    {
+                        var dt = (DateTime)r["VoucherDate"];
+                        var bNo = r["RefNo"]?.ToString();
+                        if (string.IsNullOrWhiteSpace(bNo)) bNo = r["VoucherNo"]?.ToString() ?? "";
+                        var vName = r["VendorName"]?.ToString() ?? "Vendor";
+                        var gstin = r["VendorGSTIN"]?.ToString() ?? "";
+                        var accHead = r["AccountName"]?.ToString() ?? "Expense";
+                        var narr = r["Narration"]?.ToString() ?? "";
+                        decimal gross = Convert.ToDecimal(r["Debit"]);
+                        decimal rate = 18.00m;
+                        decimal taxable = Math.Round(gross / 1.18m, 2);
+                        decimal gstTotal = gross - taxable;
+                        decimal cgst = Math.Round(gstTotal / 2.0m, 2);
+                        decimal sgst = gstTotal - cgst;
+
+                        purchaseList.Add(new
+                        {
+                            srNo = pSr++,
+                            billDate = dt.ToString("yyyy-MM-dd"),
+                            billNo = bNo,
+                            vendorName = vName,
+                            vendorGstin = gstin,
+                            accountHead = accHead,
+                            particulars = narr,
+                            type = "Input Tax Credit (ITC)",
+                            rate = rate,
+                            billAmount = taxable,
+                            cgst = cgst,
+                            sgst = sgst,
+                            totalAmount = gross
+                        });
+                    }
+                }
+
+                return Ok(new
+                {
+                    success = true,
+                    society = socInfo,
+                    period = $"FY {fDate:yyyy}-{tDate:yy} ({fDate:dd/MM/yyyy} to {tDate:dd/MM/yyyy})",
+                    fromDate = fDate.ToString("yyyy-MM-dd"),
+                    toDate = tDate.ToString("yyyy-MM-dd"),
+                    sales = salesList,
+                    purchases = purchaseList
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = "GST Report failed: " + ex.Message });
+            }
+        }
+
         [HttpGet("gst/summary")]
         public IActionResult GetGstSummary(
             [FromQuery] int societyId = 1,
@@ -715,7 +1286,6 @@ namespace JeevikaERP.Controllers
 
                 var socInfo = GetSocietyDetails(conn, prefix, societyId);
 
-                // Aggregate Member Bills for GST Outward Supplies
                 decimal totalTaxable = 0, totalCgst = 0, totalSgst = 0, totalIgst = 0, totalGst = 0, totalExempt = 0, totalGross = 0;
                 int totalInvoices = 0;
 
@@ -724,8 +1294,7 @@ namespace JeevikaERP.Controllers
                     cmd.CommandText = $@"
                         SELECT COUNT(*) AS inv_count,
                                COALESCE(SUM(TotalAmount), 0) AS total_gross,
-                               COALESCE(SUM(PrincipalAmount), 0) AS total_taxable,
-                               COALESCE(SUM(GstAmount), 0) AS total_gst
+                               COALESCE(SUM(PrincipalAmount), 0) AS total_taxable
                         FROM {prefix}SocMemberBill
                         WHERE SocietyId = @sid";
                     AddParam(cmd, "@sid", societyId);
@@ -746,22 +1315,12 @@ namespace JeevikaERP.Controllers
                         totalInvoices = Convert.ToInt32(r["inv_count"]);
                         totalGross = Convert.ToDecimal(r["total_gross"]);
                         totalTaxable = Convert.ToDecimal(r["total_taxable"]);
-                        totalGst = Convert.ToDecimal(r["total_gst"]);
-                        totalCgst = Math.Round(totalGst / 2.0m, 2);
-                        totalSgst = totalGst - totalCgst;
+                        totalCgst = Math.Round(totalTaxable * 0.09m, 2);
+                        totalSgst = Math.Round(totalTaxable * 0.09m, 2);
+                        totalGst = totalCgst + totalSgst;
                     }
                 }
 
-                // If billing has 0 GST recorded, calculate standard 18% on maintenance over threshold
-                if (totalGst == 0 && totalGross > 0)
-                {
-                    totalTaxable = totalGross;
-                    totalCgst = Math.Round(totalTaxable * 0.09m, 2);
-                    totalSgst = Math.Round(totalTaxable * 0.09m, 2);
-                    totalGst = totalCgst + totalSgst;
-                }
-
-                // Charge-wise summary
                 var chargeList = new List<object>
                 {
                     new { chargeName = "Regular Maintenance (SAC 999598)", taxability = "Taxable", taxableValue = totalTaxable * 0.65m, cgstRate = 9.00, cgst = Math.Round(totalCgst * 0.65m, 2), sgstRate = 9.00, sgst = Math.Round(totalSgst * 0.65m, 2), totalGst = Math.Round(totalGst * 0.65m, 2) },
@@ -819,7 +1378,6 @@ namespace JeevikaERP.Controllers
                 var sql = $@"
                     SELECT b.BillId, b.BillNo, b.BillDate, b.MemberId, m.MemName, m.FlatNo, m.Wing,
                            COALESCE(b.PrincipalAmount, b.TotalAmount) AS TaxableValue,
-                           COALESCE(b.GstAmount, 0) AS GstAmount,
                            b.TotalAmount
                     FROM {prefix}SocMemberBill b
                     LEFT JOIN {prefix}SocMember m ON b.MemberId = m.MemberId
@@ -850,11 +1408,7 @@ namespace JeevikaERP.Controllers
                 while (r.Read())
                 {
                     decimal taxable = Convert.ToDecimal(r["TaxableValue"]);
-                    decimal totalGst = Convert.ToDecimal(r["GstAmount"]);
-                    if (totalGst == 0 && taxable > 0)
-                    {
-                        totalGst = Math.Round(taxable * 0.18m, 2);
-                    }
+                    decimal totalGst = Math.Round(taxable * 0.18m, 2);
                     decimal cgst = Math.Round(totalGst / 2.0m, 2);
                     decimal sgst = totalGst - cgst;
 
@@ -891,12 +1445,11 @@ namespace JeevikaERP.Controllers
                 EnsureAdditionalReportTables(conn);
                 string prefix = GetSchemaPrefix(conn);
 
-                // Fetch Billing Totals vs Receipt Totals vs Output Ledger
                 decimal billedGst = 0, collectedGst = 0, ledgerGst = 0;
 
                 using (var cmd = conn.CreateCommand())
                 {
-                    cmd.CommandText = $"SELECT COALESCE(SUM(GstAmount), 0) FROM {prefix}SocMemberBill WHERE SocietyId = @sid";
+                    cmd.CommandText = $"SELECT COALESCE(SUM(PrincipalAmount), 0) * 0.18 FROM {prefix}SocMemberBill WHERE SocietyId = @sid";
                     AddParam(cmd, "@sid", societyId);
                     billedGst = Convert.ToDecimal(cmd.ExecuteScalar() ?? 0);
                 }
@@ -939,6 +1492,232 @@ namespace JeevikaERP.Controllers
         // 3. FUND REPORTS & INVESTMENTS ENDPOINTS
         // ═══════════════════════════════════════════════════════════
 
+        // ── GET /api/additional-reports/funds/report ───────────────
+        [HttpGet("funds/report")]
+        public IActionResult GetFundReport(
+            [FromQuery] int societyId = 1,
+            [FromQuery] int fyId = 1,
+            [FromQuery] DateTime? fromDate = null,
+            [FromQuery] DateTime? toDate = null,
+            [FromQuery] string? fundId = "ALL")
+        {
+            try
+            {
+                using var conn = DbHelper.GetConn();
+                EnsureAdditionalReportTables(conn);
+                string prefix = GetSchemaPrefix(conn);
+
+                var socInfo = GetSocietyDetails(conn, prefix, societyId);
+
+                string fyLabel = "2026-2027";
+                if (!fromDate.HasValue || !toDate.HasValue)
+                {
+                    using (var fyCmd = conn.CreateCommand())
+                    {
+                        fyCmd.CommandText = $"SELECT FYStart, FYEnd, FYLabel FROM {prefix}FinancialYear WHERE (SocietyId = @sid OR @sid <= 0) AND (FYId = @fyid OR IsActive = TRUE) ORDER BY FYId DESC LIMIT 1";
+                        AddParam(fyCmd, "@sid", societyId);
+                        AddParam(fyCmd, "@fyid", fyId);
+                        using var rFy = fyCmd.ExecuteReader();
+                        if (rFy.Read())
+                        {
+                            if (!fromDate.HasValue && rFy["FYStart"] != DBNull.Value) fromDate = Convert.ToDateTime(rFy["FYStart"]);
+                            if (!toDate.HasValue && rFy["FYEnd"] != DBNull.Value) toDate = Convert.ToDateTime(rFy["FYEnd"]);
+                            if (rFy["FYLabel"] != DBNull.Value) fyLabel = rFy["FYLabel"].ToString() ?? fyLabel;
+                        }
+                    }
+                }
+
+                DateTime fDate = fromDate ?? new DateTime(2026, 4, 1);
+                DateTime tDate = toDate ?? new DateTime(2027, 3, 31);
+
+                // 1. Identify all eligible Fund / Reserve accounts
+                var fundAccounts = new List<(int AccountId, string Code, string Name, decimal InitialBal)>();
+                using (var fCmd = conn.CreateCommand())
+                {
+                    var fSql = $@"
+                        SELECT a.AccountId, a.AccCode, a.AccName, COALESCE(ob.OpenBal, a.OpBal, 0) AS OpBal, COALESCE(ob.DrCr, a.OpDrCr, 'Cr') AS DrCr
+                        FROM {prefix}SocAccount a
+                        LEFT JOIN {prefix}SocGroup g ON a.GroupId = g.GroupId
+                        LEFT JOIN {prefix}SocOpeningBalance ob ON a.AccountId = ob.AccountId AND ob.FYId = @fyid
+                        WHERE a.SocietyId = @sid
+                          AND a.IsDeleted = FALSE
+                          AND (
+                              a.GrpMainId = 2
+                              OR g.GrpName ILIKE '%Fund%' OR g.GrpName ILIKE '%Reserve%' OR g.GrpName ILIKE '%Capital%'
+                              OR a.AccName ILIKE '%Fund%' OR a.AccName ILIKE '%Reserve%' OR a.AccName ILIKE '%Capital%'
+                              OR a.AccCode ILIKE '%FND%' OR a.AccCode ILIKE '%RES%' OR a.AccCode ILIKE '%307%' OR a.AccCode ILIKE '%308%' OR a.AccCode ILIKE '%309%'
+                          )";
+
+                    AddParam(fCmd, "@sid", societyId);
+                    AddParam(fCmd, "@fyid", fyId);
+
+                    if (!string.IsNullOrWhiteSpace(fundId) && fundId != "ALL" && int.TryParse(fundId, out int targetAccId) && targetAccId > 0)
+                    {
+                        fSql += " AND a.AccountId = @targetAccId";
+                        AddParam(fCmd, "@targetAccId", targetAccId);
+                    }
+
+                    fSql += " ORDER BY a.AccCode ASC, a.AccName ASC";
+                    fCmd.CommandText = fSql;
+
+                    using var rF = fCmd.ExecuteReader();
+                    while (rF.Read())
+                    {
+                        int aid = Convert.ToInt32(rF["AccountId"]);
+                        string code = rF["AccCode"]?.ToString() ?? "";
+                        string name = rF["AccName"]?.ToString() ?? "";
+                        decimal op = Convert.ToDecimal(rF["OpBal"]);
+                        string drcr = rF["DrCr"]?.ToString() ?? "Cr";
+                        decimal signOp = drcr.Equals("Dr", StringComparison.OrdinalIgnoreCase) ? -op : op;
+                        fundAccounts.Add((aid, code, name, signOp));
+                    }
+                }
+
+                if (fundAccounts.Count == 0)
+                {
+                    using var fmCmd = conn.CreateCommand();
+                    fmCmd.CommandText = $"SELECT FundId, FundCode, FundName, OpeningBalance FROM {prefix}SocFundMaster WHERE SocietyId = @sid AND IsActive = TRUE ORDER BY FundId";
+                    AddParam(fmCmd, "@sid", societyId);
+                    using var rFm = fmCmd.ExecuteReader();
+                    while (rFm.Read())
+                    {
+                        fundAccounts.Add((
+                            Convert.ToInt32(rFm["FundId"]),
+                            rFm["FundCode"]?.ToString() ?? "309",
+                            rFm["FundName"]?.ToString() ?? "Fund Account",
+                            Convert.ToDecimal(rFm["OpeningBalance"])
+                        ));
+                    }
+                }
+
+                var fundSections = new List<object>();
+                decimal grandOpening = 0, grandDebits = 0, grandCredits = 0, grandClosing = 0;
+
+                foreach (var fa in fundAccounts)
+                {
+                    decimal priorCredits = 0, priorDebits = 0;
+                    using (var pCmd = conn.CreateCommand())
+                    {
+                        pCmd.CommandText = $@"
+                            SELECT COALESCE(SUM(vd.Credit), 0) AS PriorCr, COALESCE(SUM(vd.Debit), 0) AS PriorDr
+                            FROM {prefix}SocVoucherDetail vd
+                            JOIN {prefix}SocVoucherHeader vh ON vd.VoucherId = vh.VoucherId
+                            WHERE vh.SocietyId = @sid AND vd.AccountId = @aid
+                              AND vh.IsDeleted = FALSE
+                              AND vh.VoucherDate < @fDate";
+                        AddParam(pCmd, "@sid", societyId);
+                        AddParam(pCmd, "@aid", fa.AccountId);
+                        AddParam(pCmd, "@fDate", fDate.Date);
+                        using var rP = pCmd.ExecuteReader();
+                        if (rP.Read())
+                        {
+                            priorCredits = Convert.ToDecimal(rP["PriorCr"]);
+                            priorDebits = Convert.ToDecimal(rP["PriorDr"]);
+                        }
+                    }
+
+                    decimal openingBalance = fa.InitialBal + (priorCredits - priorDebits);
+                    grandOpening += openingBalance;
+
+                    var txRows = new List<object>();
+                    decimal fundDebits = 0, fundCredits = 0;
+                    decimal runningBal = openingBalance;
+
+                    using (var tCmd = conn.CreateCommand())
+                    {
+                        tCmd.CommandText = $@"
+                            SELECT vh.VoucherDate, vh.VoucherType, vh.VoucherNo, vh.PersonName, vh.RefNo, vh.Narration,
+                                   vd.AccountCode, vd.Debit, vd.Credit, vd.Narration AS LineNarration
+                            FROM {prefix}SocVoucherDetail vd
+                            JOIN {prefix}SocVoucherHeader vh ON vd.VoucherId = vh.VoucherId
+                            WHERE vh.SocietyId = @sid AND vd.AccountId = @aid
+                              AND vh.IsDeleted = FALSE
+                              AND vh.VoucherDate >= @fDate AND vh.VoucherDate <= @tDate
+                            ORDER BY vh.VoucherDate ASC, vh.VoucherId ASC, vd.DetailId ASC";
+
+                        AddParam(tCmd, "@sid", societyId);
+                        AddParam(tCmd, "@aid", fa.AccountId);
+                        AddParam(tCmd, "@fDate", fDate.Date);
+                        AddParam(tCmd, "@tDate", tDate.Date);
+
+                        int tSr = 1;
+                        using var rT = tCmd.ExecuteReader();
+                        while (rT.Read())
+                        {
+                            var dt = (DateTime)rT["VoucherDate"];
+                            var vType = rT["VoucherType"]?.ToString() ?? "Voucher";
+                            var vNo = rT["VoucherNo"]?.ToString() ?? "";
+                            var typeNo = $"{vType} - {vNo}";
+                            var code = rT["AccountCode"]?.ToString() ?? rT["RefNo"]?.ToString() ?? "";
+                            var pName = rT["PersonName"]?.ToString() ?? "";
+                            var narr = rT["LineNarration"]?.ToString() ?? rT["Narration"]?.ToString() ?? "";
+                            var particular = !string.IsNullOrWhiteSpace(pName) ? pName : narr;
+
+                            decimal dr = Convert.ToDecimal(rT["Debit"]);
+                            decimal cr = Convert.ToDecimal(rT["Credit"]);
+
+                            runningBal = runningBal + cr - dr;
+                            fundDebits += dr;
+                            fundCredits += cr;
+
+                            txRows.Add(new
+                            {
+                                srNo = tSr++,
+                                date = dt.ToString("yyyy-MM-dd"),
+                                voucherTypeNo = typeNo,
+                                code = code,
+                                particular = particular,
+                                debit = dr,
+                                credit = cr,
+                                balance = runningBal
+                            });
+                        }
+                    }
+
+                    decimal closingBalance = openingBalance + fundCredits - fundDebits;
+                    grandDebits += fundDebits;
+                    grandCredits += fundCredits;
+                    grandClosing += closingBalance;
+
+                    fundSections.Add(new
+                    {
+                        fundId = fa.AccountId,
+                        fundCode = fa.Code,
+                        fundName = fa.Name,
+                        sectionTitle = $"[ {fa.Code}-{fa.Name.ToUpperInvariant()} ]",
+                        openingBalance = openingBalance,
+                        transactions = txRows,
+                        totalDebit = fundDebits,
+                        totalCredit = fundCredits,
+                        netMovement = fundCredits - fundDebits,
+                        closingBalance = closingBalance
+                    });
+                }
+
+                return Ok(new
+                {
+                    success = true,
+                    society = socInfo,
+                    fyLabel = fyLabel,
+                    period = $"Fund Details From {fDate:dd/MM/yyyy} To {tDate:dd/MM/yyyy}",
+                    fromDate = fDate.ToString("yyyy-MM-dd"),
+                    toDate = tDate.ToString("yyyy-MM-dd"),
+                    funds = fundSections,
+                    grandTotals = new
+                    {
+                        totalOpeningBalance = grandOpening,
+                        totalDebits = grandDebits,
+                        totalCredits = grandCredits,
+                        totalClosingBalance = grandClosing
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = "Fund Report failed: " + ex.Message });
+            }
+        }
+
         [HttpGet("funds/summary")]
         public IActionResult GetFundsSummary([FromQuery] int societyId = 1)
         {
@@ -950,7 +1729,6 @@ namespace JeevikaERP.Controllers
 
                 var socInfo = GetSocietyDetails(conn, prefix, societyId);
 
-                // Fetch funds list with calculated movements
                 var fundList = new List<object>();
                 decimal totalOpening = 0, totalContributions = 0, totalUtilization = 0, totalInvestments = 0, totalClosing = 0;
 
@@ -995,7 +1773,6 @@ namespace JeevikaERP.Controllers
                     }
                 }
 
-                // Fetch Investment Totals
                 using (var cmd = conn.CreateCommand())
                 {
                     cmd.CommandText = $"SELECT COALESCE(SUM(Principal), 0) FROM {prefix}SocFundInvestment WHERE SocietyId = @sid AND Status = 'Active'";
@@ -1119,175 +1896,117 @@ namespace JeevikaERP.Controllers
             }
         }
 
-        // ═══════════════════════════════════════════════════════════
-        // 4. MULTI REPORT CONSOLIDATED ENGINE
-        // ═══════════════════════════════════════════════════════════
-
-        [HttpPost("multi/generate")]
-        public IActionResult GenerateMultiReport([FromBody] JsonElement body, [FromQuery] int societyId = 1)
+        // ── DROPDOWN FILTER HELPERS ───────────────────────────────
+        [HttpGet("funds/accounts")]
+        public IActionResult GetFundAccountsList([FromQuery] int societyId = 1)
         {
             try
             {
                 using var conn = DbHelper.GetConn();
                 EnsureAdditionalReportTables(conn);
                 string prefix = GetSchemaPrefix(conn);
-
-                var socInfo = GetSocietyDetails(conn, prefix, societyId);
-
-                // 1. Member Summary
-                var memberSummary = new List<object>();
-                using (var cmd = conn.CreateCommand())
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = $@"
+                    SELECT AccountId, AccCode, AccName
+                    FROM {prefix}SocAccount
+                    WHERE SocietyId = @sid AND IsDeleted = FALSE
+                      AND (
+                          GrpMainId = 2
+                          OR AccName ILIKE '%Fund%' OR AccName ILIKE '%Reserve%' OR AccName ILIKE '%Capital%'
+                          OR AccCode ILIKE '%FND%' OR AccCode ILIKE '%RES%' OR AccCode ILIKE '%307%' OR AccCode ILIKE '%308%' OR AccCode ILIKE '%309%'
+                      )
+                    ORDER BY AccCode, AccName";
+                AddParam(cmd, "@sid", societyId);
+                var list = new List<object>();
+                using var r = cmd.ExecuteReader();
+                while (r.Read())
                 {
-                    cmd.CommandText = $@"
-                        SELECT m.MemberId, m.MemName, m.FlatNo, m.Wing,
-                               COALESCE(b.PrincipalAmount, 0) AS CurrentCharges,
-                               COALESCE(m.Balance, 0) AS Outstanding
-                        FROM {prefix}SocMember m
-                        LEFT JOIN (
-                            SELECT MemberId, SUM(PrincipalAmount) AS PrincipalAmount
-                            FROM {prefix}SocMemberBill
-                            WHERE SocietyId = @sid
-                            GROUP BY MemberId
-                        ) b ON m.MemberId = b.MemberId
-                        WHERE m.SocietyId = @sid AND (m.IsDeleted = FALSE OR m.IsDeleted IS NULL)
-                        ORDER BY m.Wing, m.FlatNo
-                        LIMIT 50";
-                    AddParam(cmd, "@sid", societyId);
-                    using var r = cmd.ExecuteReader();
-                    while (r.Read())
+                    list.Add(new
                     {
-                        memberSummary.Add(new
-                        {
-                            memberId = Convert.ToInt32(r["MemberId"]),
-                            name = r["MemName"]?.ToString() ?? "",
-                            flatNo = (r["Wing"]?.ToString() != "" ? r["Wing"]?.ToString() + "-" : "") + (r["FlatNo"]?.ToString() ?? ""),
-                            currentCharges = Convert.ToDecimal(r["CurrentCharges"]),
-                            outstanding = Convert.ToDecimal(r["Outstanding"])
-                        });
-                    }
+                        accountId = Convert.ToInt32(r["AccountId"]),
+                        accCode = r["AccCode"]?.ToString() ?? "",
+                        accName = r["AccName"]?.ToString() ?? ""
+                    });
                 }
-
-                // 2. Account Group Summary
-                var accountSummary = new List<object>();
-                using (var cmd = conn.CreateCommand())
-                {
-                    cmd.CommandText = $@"
-                        SELECT a.AccountId, a.AccCode, a.AccName, g.GrpName,
-                               COALESCE(SUM(vd.Debit), 0) AS TotalDebit,
-                               COALESCE(SUM(vd.Credit), 0) AS TotalCredit
-                        FROM {prefix}SocAccount a
-                        LEFT JOIN {prefix}SocGroup g ON a.GroupId = g.GroupId
-                        LEFT JOIN {prefix}SocVoucherDetail vd ON a.AccountId = vd.AccountId
-                        WHERE a.SocietyId = @sid
-                        GROUP BY a.AccountId, a.AccCode, a.AccName, g.GrpName
-                        ORDER BY a.AccCode
-                        LIMIT 30";
-                    AddParam(cmd, "@sid", societyId);
-                    using var r = cmd.ExecuteReader();
-                    while (r.Read())
-                    {
-                        accountSummary.Add(new
-                        {
-                            accountId = Convert.ToInt32(r["AccountId"]),
-                            code = r["AccCode"]?.ToString() ?? "",
-                            name = r["AccName"]?.ToString() ?? "",
-                            group = r["GrpName"]?.ToString() ?? "General",
-                            debit = Convert.ToDecimal(r["TotalDebit"]),
-                            credit = Convert.ToDecimal(r["TotalCredit"])
-                        });
-                    }
-                }
-
-                // 3. Voucher Count Summary
-                var voucherSummary = new List<object>();
-                using (var cmd = conn.CreateCommand())
-                {
-                    cmd.CommandText = $@"
-                        SELECT VoucherType, COUNT(*) AS cnt, COALESCE(SUM(Amount), 0) AS tot_amount
-                        FROM {prefix}SocVoucherHeader
-                        WHERE SocietyId = @sid
-                        GROUP BY VoucherType";
-                    AddParam(cmd, "@sid", societyId);
-                    using var r = cmd.ExecuteReader();
-                    while (r.Read())
-                    {
-                        voucherSummary.Add(new
-                        {
-                            voucherType = r["VoucherType"]?.ToString() ?? "Voucher",
-                            count = Convert.ToInt32(r["cnt"]),
-                            totalAmount = Convert.ToDecimal(r["tot_amount"])
-                        });
-                    }
-                }
-
-                // 4. TDS Summary for Multi
-                decimal tdsGross = 0, tdsDeducted = 0;
-                using (var cmd = conn.CreateCommand())
-                {
-                    cmd.CommandText = $"SELECT COALESCE(SUM(GrossAmount),0), COALESCE(SUM(TdsAmount),0) FROM {prefix}SocTdsTransaction WHERE SocietyId = @sid";
-                    AddParam(cmd, "@sid", societyId);
-                    using var r = cmd.ExecuteReader();
-                    if (r.Read())
-                    {
-                        tdsGross = Convert.ToDecimal(r[0]);
-                        tdsDeducted = Convert.ToDecimal(r[1]);
-                    }
-                }
-
-                // 5. GST Summary for Multi
-                decimal gstTaxable = 0, gstTotal = 0;
-                using (var cmd = conn.CreateCommand())
-                {
-                    cmd.CommandText = $"SELECT COALESCE(SUM(PrincipalAmount),0), COALESCE(SUM(GstAmount),0) FROM {prefix}SocMemberBill WHERE SocietyId = @sid";
-                    AddParam(cmd, "@sid", societyId);
-                    using var r = cmd.ExecuteReader();
-                    if (r.Read())
-                    {
-                        gstTaxable = Convert.ToDecimal(r[0]);
-                        gstTotal = Convert.ToDecimal(r[1]);
-                    }
-                }
-
-                // 6. Fund Summary for Multi
-                decimal totalFunds = 0;
-                using (var cmd = conn.CreateCommand())
-                {
-                    cmd.CommandText = $"SELECT COALESCE(SUM(OpeningBalance),0) FROM {prefix}SocFundMaster WHERE SocietyId = @sid";
-                    AddParam(cmd, "@sid", societyId);
-                    totalFunds = Convert.ToDecimal(cmd.ExecuteScalar() ?? 0);
-                }
-
-                return Ok(new
-                {
-                    success = true,
-                    society = socInfo,
-                    generatedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                    memberSummary = memberSummary,
-                    accountSummary = accountSummary,
-                    voucherSummary = voucherSummary,
-                    taxSummary = new
-                    {
-                        tdsGross = tdsGross,
-                        tdsDeducted = tdsDeducted,
-                        gstTaxable = gstTaxable,
-                        gstTotal = gstTotal
-                    },
-                    fundsSummary = new
-                    {
-                        totalFunds = totalFunds
-                    },
-                    reconciliation = new
-                    {
-                        totalReceipts = voucherSummary.Where(v => ((dynamic)v).voucherType == "RV").Sum(v => (decimal)((dynamic)v).totalAmount),
-                        totalPayments = voucherSummary.Where(v => ((dynamic)v).voucherType == "PV").Sum(v => (decimal)((dynamic)v).totalAmount),
-                        totalJournals = voucherSummary.Where(v => ((dynamic)v).voucherType == "JV").Sum(v => (decimal)((dynamic)v).totalAmount),
-                        totalContras = voucherSummary.Where(v => ((dynamic)v).voucherType == "CV").Sum(v => (decimal)((dynamic)v).totalAmount)
-                    }
-                });
+                return Ok(new { success = true, data = list });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { success = false, message = "Multi report generation failed: " + ex.Message });
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet("tds/parties")]
+        public IActionResult GetTdsPartiesList([FromQuery] int societyId = 1)
+        {
+            try
+            {
+                using var conn = DbHelper.GetConn();
+                EnsureAdditionalReportTables(conn);
+                string prefix = GetSchemaPrefix(conn);
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = $@"
+                    SELECT DISTINCT VendorName AS Name, PANNo, TDSSection
+                    FROM {prefix}SocVendor
+                    WHERE SocietyId = @sid AND IsDeleted = FALSE
+                    UNION
+                    SELECT DISTINCT Name, PanNo AS PANNo, TdsSection AS TDSSection
+                    FROM {prefix}SocTdsDeductee
+                    WHERE SocietyId = @sid AND IsActive = TRUE
+                    ORDER BY Name";
+                AddParam(cmd, "@sid", societyId);
+                var list = new List<object>();
+                using var r = cmd.ExecuteReader();
+                while (r.Read())
+                {
+                    list.Add(new
+                    {
+                        name = r["Name"]?.ToString() ?? "",
+                        pan = r["PANNo"]?.ToString() ?? "",
+                        section = r["TDSSection"]?.ToString() ?? "194C"
+                    });
+                }
+                return Ok(new { success = true, data = list });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet("gst/parties")]
+        public IActionResult GetGstPartiesList([FromQuery] int societyId = 1)
+        {
+            try
+            {
+                using var conn = DbHelper.GetConn();
+                string prefix = GetSchemaPrefix(conn);
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = $@"
+                    SELECT MemberId, MemCode, MemName, Wing, FlatNo
+                    FROM {prefix}SocMember
+                    WHERE SocietyId = @sid AND IsDeleted = FALSE
+                    ORDER BY Wing, FlatNo";
+                AddParam(cmd, "@sid", societyId);
+                var list = new List<object>();
+                using var r = cmd.ExecuteReader();
+                while (r.Read())
+                {
+                    string wing = r["Wing"]?.ToString() ?? "";
+                    string flat = r["FlatNo"]?.ToString() ?? "";
+                    list.Add(new
+                    {
+                        memberId = Convert.ToInt32(r["MemberId"]),
+                        memberCode = r["MemCode"]?.ToString() ?? "",
+                        memberName = r["MemName"]?.ToString() ?? "",
+                        flatNo = (!string.IsNullOrWhiteSpace(wing) ? wing + "-" : "") + flat
+                    });
+                }
+                return Ok(new { success = true, data = list });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
             }
         }
 
@@ -1618,7 +2337,7 @@ namespace JeevikaERP.Controllers
                     FROM {prefix}SocFundInvestment i
                     JOIN {prefix}SocFundMaster f ON i.FundId = f.FundId
                     WHERE i.SocietyId = @sid
-                    ORDER BY i.MaturityDate ASC";
+                    ORDER BY i.StartDate DESC";
                 AddParam(cmd, "@sid", societyId);
                 var list = new List<object>();
                 using var r = cmd.ExecuteReader();
@@ -1640,8 +2359,7 @@ namespace JeevikaERP.Controllers
                         expectedInterest = Convert.ToDecimal(r["ExpectedInterest"]),
                         actualInterest = Convert.ToDecimal(r["ActualInterest"]),
                         maturityAmount = Convert.ToDecimal(r["MaturityAmount"]),
-                        status = r["Status"]?.ToString() ?? "Active",
-                        remarks = r["Remarks"]?.ToString() ?? ""
+                        status = r["Status"]?.ToString() ?? "Active"
                     });
                 }
                 return Ok(new { success = true, count = list.Count, data = list });
@@ -1662,34 +2380,36 @@ namespace JeevikaERP.Controllers
                 string prefix = GetSchemaPrefix(conn);
 
                 int fundId = body.TryGetProperty("fundId", out var f) ? f.GetInt32() : 1;
-                string bank = body.TryGetProperty("bankName", out var b) ? b.GetString() ?? "State Bank of India" : "State Bank of India";
-                string invNo = body.TryGetProperty("investmentNo", out var inv) ? inv.GetString() ?? "" : "";
+                string bank = body.TryGetProperty("bankName", out var b) ? b.GetString() ?? "State Co-op Bank" : "State Co-op Bank";
+                string invType = body.TryGetProperty("investmentType", out var it) ? it.GetString() ?? "Fixed Deposit" : "Fixed Deposit";
+                string invNo = body.TryGetProperty("investmentNo", out var inum) ? inum.GetString() ?? "INV-001" : "INV-001";
                 decimal principal = body.TryGetProperty("principal", out var p) ? p.GetDecimal() : 0;
-                string sDate = body.TryGetProperty("startDate", out var sd) ? sd.GetString() ?? DateTime.Today.ToString("yyyy-MM-dd") : DateTime.Today.ToString("yyyy-MM-dd");
-                string mDate = body.TryGetProperty("maturityDate", out var md) ? md.GetString() ?? DateTime.Today.AddYears(1).ToString("yyyy-MM-dd") : DateTime.Today.AddYears(1).ToString("yyyy-MM-dd");
-                decimal rate = body.TryGetProperty("interestRate", out var r) ? r.GetDecimal() : 6.75m;
+                string start = body.TryGetProperty("startDate", out var s) ? s.GetString() ?? DateTime.Today.ToString("yyyy-MM-dd") : DateTime.Today.ToString("yyyy-MM-dd");
+                string mat = body.TryGetProperty("maturityDate", out var m) ? m.GetString() ?? DateTime.Today.AddYears(1).ToString("yyyy-MM-dd") : DateTime.Today.AddYears(1).ToString("yyyy-MM-dd");
+                decimal rate = body.TryGetProperty("interestRate", out var r) ? r.GetDecimal() : 6.50m;
                 decimal expInt = Math.Round(principal * (rate / 100m), 2);
                 decimal matAmt = principal + expInt;
 
                 using var cmd = conn.CreateCommand();
                 cmd.CommandText = $@"
                     INSERT INTO {prefix}SocFundInvestment
-                        (SocietyId, FundId, BankName, InvestmentType, InvestmentNo, Principal, StartDate, MaturityDate, InterestRate, ExpectedInterest, MaturityAmount, Status, Remarks)
+                        (SocietyId, FundId, BankName, InvestmentType, InvestmentNo, Principal, StartDate, MaturityDate, InterestRate, ExpectedInterest, MaturityAmount, Status)
                     VALUES
-                        (@sid, @fid, @bank, 'Fixed Deposit', @ino, @princ, @sdt, @mdt, @rate, @exp, @mat, 'Active', 'Statutory Co-op Society Term Investment')";
+                        (@sid, @fid, @bank, @itype, @ino, @princ, @sdate, @mdate, @rate, @exp, @mat, 'Active')";
                 AddParam(cmd, "@sid", societyId);
                 AddParam(cmd, "@fid", fundId);
                 AddParam(cmd, "@bank", bank);
+                AddParam(cmd, "@itype", invType);
                 AddParam(cmd, "@ino", invNo);
                 AddParam(cmd, "@princ", principal);
-                AddParam(cmd, "@sdt", DateTime.Parse(sDate));
-                AddParam(cmd, "@mdt", DateTime.Parse(mDate));
+                AddParam(cmd, "@sdate", DateTime.Parse(start));
+                AddParam(cmd, "@mdate", DateTime.Parse(mat));
                 AddParam(cmd, "@rate", rate);
                 AddParam(cmd, "@exp", expInt);
                 AddParam(cmd, "@mat", matAmt);
                 cmd.ExecuteNonQuery();
 
-                return Ok(new { success = true, message = "Fund investment recorded successfully." });
+                return Ok(new { success = true, message = "Fund Investment registered successfully." });
             }
             catch (Exception ex)
             {
@@ -1706,125 +2426,56 @@ namespace JeevikaERP.Controllers
                 EnsureAdditionalReportTables(conn);
                 string prefix = GetSchemaPrefix(conn);
 
-                int sourceId = body.TryGetProperty("sourceFundId", out var s) ? s.GetInt32() : 0;
-                int destId = body.TryGetProperty("destFundId", out var d) ? d.GetInt32() : 0;
+                int sourceId = body.TryGetProperty("sourceFundId", out var sf) ? sf.GetInt32() : 0;
+                int destId = body.TryGetProperty("destFundId", out var df) ? df.GetInt32() : 0;
                 decimal amount = body.TryGetProperty("amount", out var a) ? a.GetDecimal() : 0;
                 string reason = body.TryGetProperty("reason", out var r) ? r.GetString() ?? "Inter-fund statutory allocation" : "Inter-fund statutory allocation";
 
-                if (sourceId == destId || sourceId <= 0 || destId <= 0 || amount <= 0)
-                {
-                    return BadRequest(new { success = false, message = "Invalid source, destination, or transfer amount." });
-                }
+                if (sourceId <= 0 || destId <= 0 || amount <= 0 || sourceId == destId)
+                    return BadRequest(new { success = false, message = "Invalid source, destination fund or transfer amount." });
 
-                // Deduct from Source
-                using (var cmd1 = conn.CreateCommand())
+                using var tx = conn.BeginTransaction();
+
+                // 1. Debit Source Fund (Transfer Out)
+                using (var cmdOut = conn.CreateCommand())
                 {
-                    cmd1.CommandText = $@"
+                    cmdOut.Transaction = tx;
+                    cmdOut.CommandText = $@"
                         INSERT INTO {prefix}SocFundTransaction
                             (SocietyId, FundId, TxnDate, TxnType, Amount, Description, DestFundId, VoucherRef, ApprovalStatus)
                         VALUES
-                            (@sid, @fid, CURRENT_DATE, 'Transfer Out', @amt, @desc, @dfid, 'FND-TRF', 'Approved')";
-                    AddParam(cmd1, "@sid", societyId);
-                    AddParam(cmd1, "@fid", sourceId);
-                    AddParam(cmd1, "@amt", amount);
-                    AddParam(cmd1, "@desc", $"Transferred to Fund #{destId}: {reason}");
-                    AddParam(cmd1, "@dfid", destId);
-                    cmd1.ExecuteNonQuery();
+                            (@sid, @fid, CURRENT_DATE, 'Transfer Out', @amt, @desc, @dest, 'TRANSFER-OUT', 'Approved')";
+                    AddParam(cmdOut, "@sid", societyId);
+                    AddParam(cmdOut, "@fid", sourceId);
+                    AddParam(cmdOut, "@amt", amount);
+                    AddParam(cmdOut, "@desc", $"Transferred to Fund #{destId}: {reason}");
+                    AddParam(cmdOut, "@dest", destId);
+                    cmdOut.ExecuteNonQuery();
                 }
 
-                // Add to Destination
-                using (var cmd2 = conn.CreateCommand())
+                // 2. Credit Destination Fund (Transfer In)
+                using (var cmdIn = conn.CreateCommand())
                 {
-                    cmd2.CommandText = $@"
+                    cmdIn.Transaction = tx;
+                    cmdIn.CommandText = $@"
                         INSERT INTO {prefix}SocFundTransaction
                             (SocietyId, FundId, TxnDate, TxnType, Amount, Description, SourceFundId, VoucherRef, ApprovalStatus)
                         VALUES
-                            (@sid, @fid, CURRENT_DATE, 'Transfer In', @amt, @desc, @sfid, 'FND-TRF', 'Approved')";
-                    AddParam(cmd2, "@sid", societyId);
-                    AddParam(cmd2, "@fid", destId);
-                    AddParam(cmd2, "@amt", amount);
-                    AddParam(cmd2, "@desc", $"Transferred from Fund #{sourceId}: {reason}");
-                    AddParam(cmd2, "@sfid", sourceId);
-                    cmd2.ExecuteNonQuery();
+                            (@sid, @fid, CURRENT_DATE, 'Transfer In', @amt, @desc, @src, 'TRANSFER-IN', 'Approved')";
+                    AddParam(cmdIn, "@sid", societyId);
+                    AddParam(cmdIn, "@fid", destId);
+                    AddParam(cmdIn, "@amt", amount);
+                    AddParam(cmdIn, "@desc", $"Transferred from Fund #{sourceId}: {reason}");
+                    AddParam(cmdIn, "@src", sourceId);
+                    cmdIn.ExecuteNonQuery();
                 }
 
-                return Ok(new { success = true, message = $"Rs {amount:N2} transferred successfully." });
+                tx.Commit();
+                return Ok(new { success = true, message = "Inter-fund statutory transfer executed successfully." });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { success = false, message = ex.Message });
-            }
-        }
-
-        // ── MULTI REPORT SAVED CONFIGURATIONS ──────────────────────
-        [HttpGet("multi/saved-configs")]
-        public IActionResult GetSavedReportConfigs([FromQuery] int societyId = 1)
-        {
-            try
-            {
-                using var conn = DbHelper.GetConn();
-                EnsureAdditionalReportTables(conn);
-                string prefix = GetSchemaPrefix(conn);
-                using var cmd = conn.CreateCommand();
-                cmd.CommandText = $"SELECT * FROM {prefix}SocSavedReportConfig WHERE SocietyId = @sid ORDER BY ConfigId DESC";
-                AddParam(cmd, "@sid", societyId);
-                var list = new List<object>();
-                using var r = cmd.ExecuteReader();
-                while (r.Read())
-                {
-                    list.Add(new
-                    {
-                        configId = Convert.ToInt32(r["ConfigId"]),
-                        reportName = r["ReportName"]?.ToString(),
-                        description = r["Description"]?.ToString(),
-                        sections = r["SelectedSectionsJson"]?.ToString(),
-                        groupBy = r["GroupBy"]?.ToString(),
-                        sortBy = r["SortBy"]?.ToString(),
-                        createdAt = r["CreatedAt"] is DateTime dt ? dt.ToString("yyyy-MM-dd HH:mm") : ""
-                    });
-                }
-                return Ok(new { success = true, count = list.Count, data = list });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { success = false, message = ex.Message });
-            }
-        }
-
-        [HttpPost("multi/saved-configs")]
-        public IActionResult SaveReportConfig([FromBody] JsonElement body, [FromQuery] int societyId = 1)
-        {
-            try
-            {
-                using var conn = DbHelper.GetConn();
-                EnsureAdditionalReportTables(conn);
-                string prefix = GetSchemaPrefix(conn);
-
-                string name = body.TryGetProperty("reportName", out var n) ? n.GetString() ?? "Custom Saved Report" : "Custom Saved Report";
-                string desc = body.TryGetProperty("description", out var d) ? d.GetString() ?? "" : "";
-                string sections = body.TryGetProperty("selectedSections", out var sec) ? sec.ToString() : "[\"members\",\"accounts\",\"vouchers\",\"tds\",\"gst\",\"funds\"]";
-                string grp = body.TryGetProperty("groupBy", out var g) ? g.GetString() ?? "Wing" : "Wing";
-                string srt = body.TryGetProperty("sortBy", out var s) ? s.GetString() ?? "Date" : "Date";
-
-                using var cmd = conn.CreateCommand();
-                cmd.CommandText = $@"
-                    INSERT INTO {prefix}SocSavedReportConfig
-                        (SocietyId, ReportName, Description, SelectedSectionsJson, GroupBy, SortBy, CreatedBy)
-                    VALUES
-                        (@sid, @name, @desc, @sec, @grp, @srt, 'ADMIN')";
-                AddParam(cmd, "@sid", societyId);
-                AddParam(cmd, "@name", name);
-                AddParam(cmd, "@desc", desc);
-                AddParam(cmd, "@sec", sections);
-                AddParam(cmd, "@grp", grp);
-                AddParam(cmd, "@srt", srt);
-                cmd.ExecuteNonQuery();
-
-                return Ok(new { success = true, message = "Report layout configuration saved successfully." });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { success = false, message = ex.Message });
+                return StatusCode(500, new { success = false, message = "Fund transfer failed: " + ex.Message });
             }
         }
 
@@ -1842,10 +2493,11 @@ namespace JeevikaERP.Controllers
             {
                 using var cmd = conn.CreateCommand();
                 cmd.CommandText = $@"
-                    SELECT SocietyName, Address, PANNo, TANNo, GSTNo, City, State, Pin
+                    SELECT SocietyName, Address, PANNumber, TAN, GSTNumber, City, Pincode
                     FROM {prefix}SocietyInfo
-                    WHERE SocietyId = @sid LIMIT 1";
-                AddParam(cmd, "@sid", societyId);
+                    WHERE SocietyId = @sid OR (@sid <= 0 AND IsActive = TRUE)
+                    LIMIT 1";
+                AddParam(cmd, "@sid", societyId > 0 ? societyId : 1);
                 using var r = cmd.ExecuteReader();
                 if (r.Read())
                 {
@@ -1853,14 +2505,17 @@ namespace JeevikaERP.Controllers
                         name = r["SocietyName"]?.ToString() ?? name;
                     if (r["Address"] != DBNull.Value && !string.IsNullOrWhiteSpace(r["Address"]?.ToString()))
                         address = r["Address"]?.ToString() ?? address;
-                    if (r["PANNo"] != DBNull.Value && !string.IsNullOrWhiteSpace(r["PANNo"]?.ToString()))
-                        pan = r["PANNo"]?.ToString() ?? pan;
-                    if (r["TANNo"] != DBNull.Value && !string.IsNullOrWhiteSpace(r["TANNo"]?.ToString()))
-                        tan = r["TANNo"]?.ToString() ?? tan;
-                    if (r["GSTNo"] != DBNull.Value && !string.IsNullOrWhiteSpace(r["GSTNo"]?.ToString()))
-                        gstin = r["GSTNo"]?.ToString() ?? gstin;
-                    if (r["Pin"] != DBNull.Value && !string.IsNullOrWhiteSpace(r["Pin"]?.ToString()))
-                        pincode = r["Pin"]?.ToString() ?? pincode;
+                    if (r["PANNumber"] != DBNull.Value && !string.IsNullOrWhiteSpace(r["PANNumber"]?.ToString()))
+                        pan = r["PANNumber"]?.ToString() ?? pan;
+                    if (r["TAN"] != DBNull.Value && !string.IsNullOrWhiteSpace(r["TAN"]?.ToString()))
+                        tan = r["TAN"]?.ToString() ?? tan;
+                    if (r["GSTNumber"] != DBNull.Value && !string.IsNullOrWhiteSpace(r["GSTNumber"]?.ToString()))
+                        gstin = r["GSTNumber"]?.ToString() ?? gstin;
+                    if (r["Pincode"] != DBNull.Value && !string.IsNullOrWhiteSpace(r["Pincode"]?.ToString()))
+                        pincode = r["Pincode"]?.ToString() ?? pincode;
+                    var city = r["City"]?.ToString() ?? "";
+                    if (!string.IsNullOrWhiteSpace(city) && !address.Contains(city))
+                        address += (address.Length > 0 ? ", " : "") + city;
                 }
             }
             catch { }

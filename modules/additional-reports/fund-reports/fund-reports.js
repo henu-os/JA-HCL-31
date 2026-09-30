@@ -1,11 +1,13 @@
 // ═════════════════════════════════════════════════════════════════════
-// JEEVIKA ERP v2 — FUND REPORTS & INVESTMENTS LOGIC
+// HENU ERP — FUND REPORTS & INVESTMENTS LOGIC
 // ═════════════════════════════════════════════════════════════════════
 
 let currentFunds = [];
+let currentReportFunds = [];
 let currentLedger = [];
 let currentInvestments = [];
 let currentSummary = null;
+let currentSociety = null;
 
 document.addEventListener('DOMContentLoaded', () => {
   const today = new Date().toISOString().split('T')[0];
@@ -16,6 +18,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const invMat = document.getElementById('inv-mat-date');
   if (invMat) invMat.value = nextYear;
 
+  onFundFyChanged(); // Initializes From & To date
+  loadFundAccounts();
   loadFundData();
 });
 
@@ -24,43 +28,80 @@ function getApiUrl(endpoint) {
   return `${base}/additional-reports/${endpoint}`;
 }
 
+function onFundFyChanged() {
+  const fy = document.getElementById('fnd-fy').value || '2026-2027';
+  const startYear = parseInt(fy.split('-')[0]) || 2026;
+  const endYear = startYear + 1;
+
+  const fromDate = `${startYear}-04-01`;
+  const toDate = `${endYear}-03-31`;
+
+  const fromEl = document.getElementById('fnd-from-date');
+  const toEl = document.getElementById('fnd-to-date');
+  if (fromEl) fromEl.value = fromDate;
+  if (toEl) toEl.value = toDate;
+
+  loadFundData();
+}
+
+async function loadFundAccounts() {
+  try {
+    const res = await fetch(getApiUrl('funds/accounts'));
+    const data = await res.json();
+    if (data.success && data.data) {
+      const sel = document.getElementById('fnd-select-fund');
+      if (sel) {
+        const cur = sel.value || 'ALL';
+        sel.innerHTML = '<option value="ALL">All Society Funds</option>';
+        data.data.forEach(acc => {
+          const opt = document.createElement('option');
+          opt.value = acc.code;
+          opt.textContent = `${acc.code} - ${acc.name}`;
+          sel.appendChild(opt);
+        });
+        sel.value = cur;
+      }
+    }
+  } catch (err) {
+    console.error('Failed to load fund accounts:', err);
+  }
+}
+
 async function loadFundData() {
   const fy = document.getElementById('fnd-fy').value;
+  const fromDate = document.getElementById('fnd-from-date') ? document.getElementById('fnd-from-date').value : '';
+  const toDate = document.getElementById('fnd-to-date') ? document.getElementById('fnd-to-date').value : '';
   const selFund = document.getElementById('fnd-select-fund').value;
 
   const lblPeriod = document.getElementById('lbl-fnd-period');
-  if (lblPeriod) lblPeriod.textContent = `FY ${fy}`;
+  if (lblPeriod) {
+    lblPeriod.textContent = `FY ${fy} (${fromDate} to ${toDate})`;
+  }
 
   try {
-    // 1. Fetch Summary & Fund Balances
-    const sumRes = await fetch(getApiUrl('funds/summary'));
-    const sumData = await sumRes.json();
-    if (sumData.success) {
-      currentSummary = sumData;
-      currentFunds = sumData.funds || [];
-      renderSocietyHeader(sumData.society);
-      renderKpiCards(sumData.summary);
+    // 1. Fetch Primary Master Fund Report
+    let repUrl = `funds/report?fy=${encodeURIComponent(fy)}&fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}`;
+    if (selFund && selFund !== 'ALL') repUrl += `&fundAccount=${encodeURIComponent(selFund)}`;
+
+    const repRes = await fetch(getApiUrl(repUrl));
+    const repData = await repRes.json();
+
+    if (repData.success) {
+      currentSummary = repData.summary;
+      currentSociety = repData.society;
+      currentFunds = repData.funds || [];
+      currentReportFunds = repData.reportFunds || [];
+      currentLedger = repData.ledger || [];
+      currentInvestments = repData.investments || [];
+
+      renderSocietyHeader(repData.society);
+      renderKpiCards(repData.summary);
       renderFundsTable(currentFunds);
+      renderLedgerTable(currentLedger);
+      renderInvestmentsTable(currentInvestments);
       renderFormN(currentFunds);
       populateFundDropdowns(currentFunds);
-    }
 
-    // 2. Fetch Ledger
-    let ledUrl = 'funds/ledger';
-    if (selFund && selFund !== 'ALL') ledUrl += `?fundId=${selFund}`;
-    const ledRes = await fetch(getApiUrl(ledUrl));
-    const ledData = await ledRes.json();
-    if (ledData.success) {
-      currentLedger = ledData.data || [];
-      renderLedgerTable(currentLedger);
-    }
-
-    // 3. Fetch Investments
-    const invRes = await fetch(getApiUrl('funds/investments'));
-    const invData = await invRes.json();
-    if (invData.success) {
-      currentInvestments = invData.data || [];
-      renderInvestmentsTable(currentInvestments);
       const cntInv = document.getElementById('cnt-investments');
       if (cntInv) cntInv.textContent = currentInvestments.length;
     }
@@ -148,18 +189,22 @@ function renderLedgerTable(list) {
   }
 
   let html = '';
-  list.forEach((t, i) => {
+  list.forEach((l, i) => {
+    const isAdd = l.transactionType === 'Contribution' || l.transactionType === 'Addition' || (parseFloat(l.amount) > 0 && l.debitCredit === 'Credit');
+    const color = isAdd ? '#16a34a' : '#dc2626';
+    const sign = isAdd ? '+' : '-';
+
     html += `
       <tr>
         <td class="text-center">${i + 1}</td>
-        <td>${t.txnDate}</td>
-        <td><strong>${escapeHtml(t.fundName)}</strong></td>
-        <td><span class="badge-stat">${t.txnType}</span></td>
-        <td>${escapeHtml(t.description || '-')}</td>
-        <td>${escapeHtml(t.partyName || '-')}</td>
-        <td>${t.voucherRef || '-'}</td>
-        <td class="text-right" style="font-weight:700;">₹ ${(parseFloat(t.amount) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-        <td class="text-center"><span class="status-tag status-confirmed">${t.approvalStatus}</span></td>
+        <td>${l.transactionDate || '-'}</td>
+        <td><strong>${escapeHtml(l.fundName || '-')}</strong></td>
+        <td><span class="badge-stat">${l.transactionType || '-'}</span></td>
+        <td>${escapeHtml(l.description || '-')}</td>
+        <td>${escapeHtml(l.sourceDestination || '-')}</td>
+        <td><code>${l.voucherNo || '-'}</code></td>
+        <td class="text-right" style="font-weight:700; color:${color};">${sign} ₹ ${(parseFloat(l.amount) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+        <td class="text-center"><span class="status-tag status-confirmed">${l.approvalStatus || 'Approved'}</span></td>
       </tr>
     `;
   });
@@ -171,7 +216,7 @@ function renderInvestmentsTable(list) {
   if (!tbody) return;
 
   if (!list || list.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="10" class="text-center" style="padding: 20px; color: #64748b;">No Fixed Deposits or Term Investments recorded yet.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" class="text-center" style="padding: 24px;">No Fixed Deposits or investments registered.</td></tr>`;
     return;
   }
 
@@ -180,15 +225,15 @@ function renderInvestmentsTable(list) {
     html += `
       <tr>
         <td><strong>${escapeHtml(inv.bankName)}</strong></td>
-        <td>${escapeHtml(inv.fundName)}</td>
+        <td><span class="badge-stat">${escapeHtml(inv.fundName)}</span></td>
         <td><code>${inv.investmentNo}</code></td>
-        <td class="text-right" style="font-weight:700;">₹ ${(parseFloat(inv.principal) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-        <td>${inv.startDate}</td>
-        <td>${inv.maturityDate}</td>
+        <td class="text-right">₹ ${(parseFloat(inv.principalAmount) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+        <td>${inv.startDate || '-'}</td>
+        <td>${inv.maturityDate || '-'}</td>
         <td class="text-center">${inv.interestRate}%</td>
         <td class="text-right" style="color:#16a34a;">₹ ${(parseFloat(inv.expectedInterest) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
         <td class="text-right" style="font-weight:700; color:#0D47A1;">₹ ${(parseFloat(inv.maturityAmount) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-        <td class="text-center"><span class="status-tag status-confirmed">${inv.status}</span></td>
+        <td class="text-center"><span class="status-tag status-deposited">${inv.status}</span></td>
       </tr>
     `;
   });
@@ -199,47 +244,41 @@ function renderFormN(funds) {
   const tbody = document.getElementById('tbl-form-n-body');
   if (!tbody) return;
 
+  if (!funds || funds.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" class="text-center" style="padding: 20px;">No Form N schedule data.</td></tr>`;
+    return;
+  }
+
   let html = '';
-  let tot = 0;
-  funds.forEach(f => {
-    const amt = parseFloat(f.closingBalance) || 0;
-    tot += amt;
+  funds.forEach((f, i) => {
     html += `
       <tr>
-        <td><strong>${escapeHtml(f.fundName)}</strong> (${f.fundType})</td>
-        <td class="text-right" style="font-weight:600;">₹ ${amt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+        <td class="text-center">${i + 1}</td>
+        <td><strong>Schedule III — ${escapeHtml(f.fundName)}</strong></td>
+        <td><code>${f.fundCode}</code></td>
+        <td class="text-right">₹ ${(parseFloat(f.openingBalance) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+        <td class="text-right" style="color:#16a34a;">₹ ${(parseFloat(f.additions) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+        <td class="text-right" style="color:#dc2626;">₹ ${(parseFloat(f.deductions) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+        <td class="text-right" style="font-weight:700; color:#0D47A1;">₹ ${(parseFloat(f.closingBalance) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
       </tr>
     `;
   });
-  html += `
-    <tr class="total-row">
-      <td class="text-right"><strong>Total Statutory Funds (Form N Schedule):</strong></td>
-      <td class="text-right" style="font-weight:700; color:#0D47A1;">₹ ${tot.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-    </tr>
-  `;
   tbody.innerHTML = html;
 }
 
 function populateFundDropdowns(funds) {
-  const selTop = document.getElementById('fnd-select-fund');
-  const selTxn = document.getElementById('txn-fund-id');
-  const selTrfSrc = document.getElementById('trf-src');
-  const selTrfDest = document.getElementById('trf-dest');
-  const selInv = document.getElementById('inv-fund-id');
+  const src = document.getElementById('trf-src');
+  const dest = document.getElementById('trf-dest');
+  const invF = document.getElementById('inv-fund-id');
+  const txnF = document.getElementById('ftxn-fund-id');
 
-  let opts = '<option value="ALL">All Society Funds</option>';
-  let modalOpts = '';
+  if (!funds || funds.length === 0) return;
 
-  funds.forEach(f => {
-    opts += `<option value="${f.fundId}">${escapeHtml(f.fundName)} (${f.fundCode})</option>`;
-    modalOpts += `<option value="${f.fundId}">${escapeHtml(f.fundName)} (${f.fundCode})</option>`;
-  });
-
-  if (selTop) selTop.innerHTML = opts;
-  if (selTxn) selTxn.innerHTML = modalOpts;
-  if (selTrfSrc) selTrfSrc.innerHTML = modalOpts;
-  if (selTrfDest) selTrfDest.innerHTML = modalOpts;
-  if (selInv) selInv.innerHTML = modalOpts;
+  const buildOpts = () => funds.map(f => `<option value="${f.id || f.fundCode}">${escapeHtml(f.fundName)} (${f.fundCode})</option>`).join('');
+  if (src && src.options.length <= 1) src.innerHTML = buildOpts();
+  if (dest && dest.options.length <= 1) dest.innerHTML = buildOpts();
+  if (invF && invF.options.length <= 1) invF.innerHTML = buildOpts();
+  if (txnF && txnF.options.length <= 1) txnF.innerHTML = buildOpts();
 }
 
 function switchFundTab(tabId, btn) {
@@ -251,15 +290,14 @@ function switchFundTab(tabId, btn) {
   if (btn) btn.classList.add('active');
 }
 
-// ── Modals ─────────────────────────────────────────────────────
 function openModal(id) {
-  const m = document.getElementById(id);
-  if (m) m.classList.add('open');
+  const el = document.getElementById(id);
+  if (el) el.classList.add('show');
 }
 
 function closeModal(id) {
-  const m = document.getElementById(id);
-  if (m) m.classList.remove('open');
+  const el = document.getElementById(id);
+  if (el) el.classList.remove('show');
 }
 
 function openAddTxnModal() {
@@ -271,30 +309,31 @@ function openTransferModal() {
 }
 
 function openInvestmentModal() {
-  document.getElementById('inv-no').value = 'FD-' + Math.floor(100000 + Math.random() * 900000);
   openModal('modal-investment');
 }
 
 async function submitFundTxn() {
-  const fundId = parseInt(document.getElementById('txn-fund-id').value);
-  const type = document.getElementById('txn-type').value;
-  const amount = parseFloat(document.getElementById('txn-amount').value) || 0;
-  const desc = document.getElementById('txn-desc').value.trim();
-  const party = document.getElementById('txn-party').value.trim();
-  const vref = document.getElementById('txn-vref').value.trim();
+  const fundId = parseInt(document.getElementById('ftxn-fund-id').value);
+  const date = document.getElementById('ftxn-date').value;
+  const type = document.getElementById('ftxn-type').value;
+  const desc = document.getElementById('ftxn-desc').value.trim();
+  const source = document.getElementById('ftxn-source').value.trim();
+  const vno = document.getElementById('ftxn-vno').value.trim();
+  const amount = parseFloat(document.getElementById('ftxn-amount').value) || 0;
 
-  if (amount <= 0 || !fundId) {
-    alert('Please enter a valid amount and select a fund.');
+  if (amount <= 0 || !desc) {
+    alert('Please enter a valid description and positive amount.');
     return;
   }
 
   const payload = {
     fundId: fundId,
-    txnType: type,
-    amount: amount,
+    transactionDate: date,
+    transactionType: type,
     description: desc,
-    partyName: party,
-    voucherRef: vref
+    sourceDestination: source,
+    voucherNo: vno,
+    amount: amount
   };
 
   try {
@@ -400,24 +439,252 @@ async function submitInvestment() {
   }
 }
 
+// ═════════════════════════════════════════════════════════════════════
+// EXACT MULTI-FUND LEDGER EXCEL REPORT EXPORT (XLSX ONLY)
+// ═════════════════════════════════════════════════════════════════════
+
 function exportFundExcel() {
-  if (!currentFunds || currentFunds.length === 0) {
-    alert('No data to export.');
+  if (typeof XLSX === 'undefined') {
+    alert('Excel export engine is loading. Please try again in a moment.');
     return;
   }
 
-  let csv = 'Sr No,Fund Name,Code,Type,Opening Balance,Additions / Receipts,Utilization / Deductions,Closing Balance\n';
-  currentFunds.forEach((f, i) => {
-    csv += `"${i + 1}","${f.fundName}","${f.fundCode}","${f.fundType}","${f.openingBalance}","${f.additions}","${f.deductions}","${f.closingBalance}"\n`;
-  });
+  const fy = document.getElementById('fnd-fy').value || '2026-2027';
+  const fromDate = document.getElementById('fnd-from-date') ? document.getElementById('fnd-from-date').value : '';
+  const toDate = document.getElementById('fnd-to-date') ? document.getElementById('fnd-to-date').value : '';
+  const soc = currentSociety || {};
+  const socName = soc.societyName || 'HENU CO-OPERATIVE HOUSING SOCIETY LTD.';
+  const address = soc.address || '';
+  const pan = soc.pan || '-';
+  const tan = soc.tan || '-';
 
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `Fund_Accounting_Report_${document.getElementById('fnd-fy').value}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+  const wb = XLSX.utils.book_new();
+  const wsData = [];
+  const merges = [];
+  const sectionHeaderRowIdxs = [];
+  const tableHeaderRowIdxs = [];
+  const opRowIdxs = [];
+  const clRowIdxs = [];
+
+  // 1. Report Main Header Banner
+  wsData.push([socName.toUpperCase()]);
+  wsData.push([`STATUTORY FUND ACCOUNTING & LEDGER STATEMENT — FY ${fy}`]);
+  wsData.push([`Fund Details From: ${fromDate} To: ${toDate} | PAN: ${pan} | TAN: ${tan}`]);
+  if (address) wsData.push([`Address: ${address}`]);
+  wsData.push([]); // spacer
+
+  const headers = ['Date', 'Type - No', 'Code', 'Particular', 'Debit', 'Credit', 'Balance'];
+
+  if (currentReportFunds && currentReportFunds.length > 0) {
+    currentReportFunds.forEach(fund => {
+      const curRow = wsData.length;
+
+      // Section Banner: [ 309 - SINKING FUND ]
+      wsData.push([`[ ${fund.accountCode} - ${fund.accountName.toUpperCase()} ]`, '', '', '', '', '', '']);
+      merges.push({ s: { r: curRow, c: 0 }, e: { r: curRow, c: 6 } });
+      sectionHeaderRowIdxs.push(curRow);
+
+      // Table Column Header Row
+      const tblHdrRow = wsData.length;
+      wsData.push(headers);
+      tableHeaderRowIdxs.push(tblHdrRow);
+
+      // Opening Balance Row
+      const opRow = wsData.length;
+      wsData.push([
+        fromDate,
+        '-',
+        fund.accountCode,
+        'Opening Balance b/f',
+        0,
+        0,
+        parseFloat(fund.openingBalance) || 0
+      ]);
+      opRowIdxs.push(opRow);
+
+      // Transaction Rows
+      if (fund.transactions && fund.transactions.length > 0) {
+        fund.transactions.forEach(t => {
+          wsData.push([
+            t.date || '',
+            t.typeNo || '',
+            t.code || fund.accountCode,
+            t.particular || '',
+            parseFloat(t.debit) || 0,
+            parseFloat(t.credit) || 0,
+            parseFloat(t.balance) || 0
+          ]);
+        });
+      }
+
+      // Closing Balance Row
+      const clRow = wsData.length;
+      wsData.push([
+        toDate,
+        '-',
+        fund.accountCode,
+        'Closing Balance c/f',
+        parseFloat(fund.totalDebits) || 0,
+        parseFloat(fund.totalCredits) || 0,
+        parseFloat(fund.closingBalance) || 0
+      ]);
+      clRowIdxs.push(clRow);
+
+      // Blank spacer row between fund sections
+      wsData.push([]);
+    });
+  } else {
+    // If no transactions found, show empty structure
+    wsData.push(headers);
+    tableHeaderRowIdxs.push(wsData.length - 1);
+    wsData.push(['-', '-', '-', 'No fund movements found for selected criteria', 0, 0, 0]);
+  }
+
+  // Summary Table of All Funds
+  const sumHdrRow = wsData.length;
+  wsData.push(['SUMMARY OF ALL STATUTORY FUNDS', '', '', '', '', '', '']);
+  merges.push({ s: { r: sumHdrRow, c: 0 }, e: { r: sumHdrRow, c: 6 } });
+  sectionHeaderRowIdxs.push(sumHdrRow);
+
+  const sumTblHdr = wsData.length;
+  wsData.push(['Sr', 'Fund Name', 'Fund Code', 'Opening Balance', 'Contributions / Additions', 'Utilization / Deductions', 'Closing Balance']);
+  tableHeaderRowIdxs.push(sumTblHdr);
+
+  let gOp = 0, gAdd = 0, gDed = 0, gCl = 0;
+  if (currentFunds && currentFunds.length > 0) {
+    currentFunds.forEach((f, i) => {
+      const op = parseFloat(f.openingBalance) || 0;
+      const add = parseFloat(f.additions) || 0;
+      const ded = parseFloat(f.deductions) || 0;
+      const cl = parseFloat(f.closingBalance) || 0;
+
+      gOp += op;
+      gAdd += add;
+      gDed += ded;
+      gCl += cl;
+
+      wsData.push([
+        i + 1,
+        f.fundName,
+        f.fundCode,
+        op,
+        add,
+        ded,
+        cl
+      ]);
+    });
+  }
+
+  const grandTotRow = wsData.length;
+  wsData.push(['TOTAL', '', '', gOp, gAdd, gDed, gCl]);
+  clRowIdxs.push(grandTotRow);
+
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  ws['!merges'] = merges;
+
+  // Column Widths
+  ws['!cols'] = [
+    { wch: 14 }, // Date / Sr
+    { wch: 18 }, // Type - No / Fund Name
+    { wch: 14 }, // Code
+    { wch: 38 }, // Particular / Opening
+    { wch: 16 }, // Debit / Additions
+    { wch: 16 }, // Credit / Deductions
+    { wch: 18 }  // Balance / Closing
+  ];
+
+  // Apply Styles to Fund Sheet
+  const range = XLSX.utils.decode_range(ws['!ref']);
+
+  for (let R = range.s.r; R <= range.e.r; ++R) {
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+      const cellRef = XLSX.utils.encode_cell({ r: R, c: C });
+      if (!ws[cellRef]) continue;
+
+      // Title rows
+      if (R === 0) {
+        ws[cellRef].s = {
+          font: { bold: true, sz: 14, color: { rgb: "0D47A1" } },
+          alignment: { horizontal: "left" }
+        };
+      } else if (R === 1 || R === 2 || (address && R === 3)) {
+        ws[cellRef].s = {
+          font: { bold: true, sz: 10, color: { rgb: "333333" } },
+          alignment: { horizontal: "left" }
+        };
+      }
+      // Section Banners: [ 309 - SINKING FUND ]
+      else if (sectionHeaderRowIdxs.includes(R)) {
+        ws[cellRef].s = {
+          fill: { fgColor: { rgb: "1E3A8A" } },
+          font: { bold: true, color: { rgb: "FFFFFF" }, sz: 11 },
+          alignment: { horizontal: "left", vertical: "center" }
+        };
+      }
+      // Table Header Rows
+      else if (tableHeaderRowIdxs.includes(R)) {
+        ws[cellRef].s = {
+          fill: { fgColor: { rgb: "2563EB" } },
+          font: { bold: true, color: { rgb: "FFFFFF" }, sz: 10 },
+          alignment: { horizontal: "center", vertical: "center" },
+          border: {
+            top: { style: "thin", color: { rgb: "CCCCCC" } },
+            bottom: { style: "medium", color: { rgb: "1E3A8A" } },
+            left: { style: "thin", color: { rgb: "CCCCCC" } },
+            right: { style: "thin", color: { rgb: "CCCCCC" } }
+          }
+        };
+      }
+      // Opening Balance Row
+      else if (opRowIdxs.includes(R)) {
+        const isNum = (C >= 4);
+        ws[cellRef].s = {
+          fill: { fgColor: { rgb: "F8FAFC" } },
+          font: { bold: true, sz: 9.5, color: { rgb: "334155" } },
+          alignment: { horizontal: isNum ? "right" : (C === 0 || C === 1 || C === 2 ? "center" : "left") },
+          border: {
+            top: { style: "thin", color: { rgb: "E2E8F0" } },
+            bottom: { style: "thin", color: { rgb: "E2E8F0" } }
+          }
+        };
+        if (isNum && typeof ws[cellRef].v === 'number') ws[cellRef].z = '#,##0.00';
+      }
+      // Closing Balance / Grand Total Rows
+      else if (clRowIdxs.includes(R)) {
+        const isNum = (C >= 3);
+        ws[cellRef].s = {
+          fill: { fgColor: { rgb: "EFF6FF" } },
+          font: { bold: true, sz: 10, color: { rgb: "0D47A1" } },
+          alignment: { horizontal: isNum ? "right" : (C === 0 ? "center" : "left") },
+          border: {
+            top: { style: "thin", color: { rgb: "000000" } },
+            bottom: { style: "double", color: { rgb: "000000" } }
+          }
+        };
+        if (isNum && typeof ws[cellRef].v === 'number') ws[cellRef].z = '#,##0.00';
+      }
+      // Regular Data Rows
+      else {
+        const isNum = (typeof ws[cellRef].v === 'number');
+        const isCenter = (C === 0 || C === 1 || C === 2);
+        ws[cellRef].s = {
+          font: { sz: 9.5 },
+          alignment: { horizontal: isNum ? "right" : (isCenter ? "center" : "left") },
+          border: {
+            top: { style: "thin", color: { rgb: "E2E8F0" } },
+            bottom: { style: "thin", color: { rgb: "E2E8F0" } },
+            left: { style: "thin", color: { rgb: "E2E8F0" } },
+            right: { style: "thin", color: { rgb: "E2E8F0" } }
+          }
+        };
+        if (isNum) ws[cellRef].z = '#,##0.00';
+      }
+    }
+  }
+
+  XLSX.utils.book_append_sheet(wb, ws, 'Fund Statement & Ledger');
+  const filename = `Fund_Report_FY_${fy}_${fromDate}_to_${toDate}.xlsx`;
+  XLSX.writeFile(wb, filename);
 }
 
 function escapeHtml(text) {

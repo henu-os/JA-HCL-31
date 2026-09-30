@@ -3,54 +3,162 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Member Receipt Report — JEEVIKA ERP</title>
+  <title>Member Receipt Format — JEEVIKA ERP</title>
   <script src="../../../config.js"></script>
+  <script src="../../../assets/js/xlsx-js-style.bundle.js"></script>
   <link rel="stylesheet" href="../../../assets/css/global.css">
   <link rel="stylesheet" href="../../../assets/css/components.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="../member-reports-grid.css">
+  <style>
+    .receipt-page {
+      width: 210mm !important;
+      max-width: 100%;
+      margin: 0 auto 20px auto;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      padding: 10mm 12mm;
+      box-sizing: border-box;
+      page-break-after: always;
+      break-after: page;
+    }
+    .receipt-card {
+      border: 1.5px solid #0f172a;
+      border-radius: 4px;
+      padding: 14px 18px;
+      margin-bottom: 16px;
+      background: #ffffff;
+      font-size: 11.5px;
+      color: #0f172a;
+      position: relative;
+    }
+    .receipt-card:last-child {
+      margin-bottom: 0;
+    }
+    @media print {
+      body.erp-module { overflow: visible; height: auto; }
+      .receipt-page { border: none !important; box-shadow: none !important; margin: 0 !important; padding: 5mm !important; width: 100% !important; }
+    }
+  </style>
 </head>
 <body class="erp-module">
-  <div class="erp-module-header">
-    <div>
-      <div class="erp-module-title">Member Receipt Report</div>
-      
+
+  <!-- TOP MODULE BAR -->
+  <div class="module-top-bar">
+    <div class="module-title">
+      <i class="bi bi-receipt" style="color:var(--primary);"></i>
+      <span>Member Receipt Format (Printable Slips)</span>
     </div>
-    <button class="erp-btn erp-btn-primary" onclick="refreshData()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
-  </div>
-
-  <div class="erp-search-bar">
-    <input type="text" id="searchInput" class="erp-input erp-search-input" placeholder="🔍 Search Member Receipt Report..." onkeyup="filterTable()">
-    <div class="erp-record-count" id="recordCount">Total: 0</div>
-  </div>
-
-  <div class="erp-module-body" style="padding:0;">
-    <div class="erp-table-container" style="height:100%;border:none;">
-      <table class="erp-table striped" id="mainTable">
-        <thead>
-          <tr>
-            <th style="width:40px;" class="td-center">#</th>
-            <th>Particulars / Description</th>
-            <th style="width:140px;" class="td-center">Voucher / Ref No</th>
-            <th style="width:120px;" class="td-center">Date</th>
-            <th style="width:120px;" class="td-right">Amount (₹)</th>
-            <th style="width:100px;" class="td-center">Status</th>
-          </tr>
-        </thead>
-        <tbody id="mainTableBody">
-          <tr>
-            <td colspan="6" class="text-center text-muted" style="padding:40px;">
-              <i class="bi bi-folder-check" style="font-size:24px;display:block;margin-bottom:8px;color:#94a3b8;"></i>
-              Member Receipt Report module initialized. Live records will be displayed here.
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <div style="display:flex; gap:6px; align-items:center;">
+      <button class="btn-top" onclick="triggerPrint()"><i class="bi bi-printer"></i> Print / PDF Receipts</button>
+      <button class="btn-top primary" id="btn-preview" onclick="loadReceiptsPreview()"><i class="bi bi-eye"></i> Preview Receipts</button>
+      <button class="btn-top" id="btn-reset" onclick="resetForm()"><i class="bi bi-arrow-counterclockwise"></i> Reset</button>
     </div>
   </div>
 
-  <script src="../../../assets/js/api.js"></script>
-  <script src="../../../assets/js/auth.js"></script>
-  <script src="../../../assets/js/utils.js"></script>
-  <script src="receipt.js"></script>
+  <!-- FILTERS PANEL -->
+  <div class="filter-bar">
+    <div class="filter-row">
+      <div class="filter-item" style="width:100px;">
+        <label class="filter-lbl">From Rcpt No</label>
+        <input type="number" id="fromReceiptNo" class="filter-input" value="1" min="1">
+      </div>
+
+      <div class="filter-item" style="width:100px;">
+        <label class="filter-lbl">To Rcpt No</label>
+        <input type="number" id="toReceiptNo" class="filter-input" value="999999999" min="1">
+      </div>
+
+      <div class="filter-item" style="width:130px;">
+        <label class="filter-lbl">From Date</label>
+        <input type="date" id="fromDate" class="filter-input">
+      </div>
+
+      <div class="filter-item" style="width:130px;">
+        <label class="filter-lbl">To Date</label>
+        <input type="date" id="toDate" class="filter-input">
+      </div>
+
+      <div class="filter-item" style="min-width:180px; flex:1; max-width:240px;">
+        <label class="filter-lbl">From Member</label>
+        <select id="fromMember" class="filter-input"></select>
+      </div>
+
+      <div class="filter-item" style="min-width:180px; flex:1; max-width:240px;">
+        <label class="filter-lbl">To Member</label>
+        <select id="toMember" class="filter-input"></select>
+      </div>
+
+      <div class="filter-item" style="width:150px;">
+        <label class="filter-lbl">Page Layout</label>
+        <select id="newPageEach" class="filter-input">
+          <option value="No" selected>2 Receipts / Page (Half)</option>
+          <option value="Yes">1 Receipt / Page (Full)</option>
+        </select>
+      </div>
+
+      <div class="filter-item" style="width:110px;">
+        <label class="filter-lbl">Bldg / Wing</label>
+        <select id="printBldgWing" class="filter-input">
+          <option value="No" selected>No</option>
+          <option value="Yes">Yes</option>
+        </select>
+      </div>
+
+      <div class="filter-item" style="width:110px;">
+        <label class="filter-lbl">Index By</label>
+        <select id="indexBy" class="filter-input">
+          <option value="Numberwise" selected>Numberwise</option>
+          <option value="Memberwise">Memberwise</option>
+        </select>
+      </div>
+
+      <!-- Summary Popover -->
+      <div class="filter-item summary-dropdown-wrap">
+        <label class="filter-lbl">Receipt Summary</label>
+        <button type="button" class="summary-dropdown-btn" id="btnSummaryToggle" onclick="toggleSummaryPopover(event)">
+          <i class="bi bi-pie-chart-fill" style="color:var(--primary); font-size:11px;"></i>
+          <span>Summary</span>
+          <span style="font-size:10px; font-weight:700; color:#0369a1; background:#e0f2fe; padding:1px 6px; border-radius:10px;" id="badgeRcptCount">0 Receipts</span>
+          <i class="bi bi-chevron-down" style="font-size:9.5px; color:#64748b;"></i>
+        </button>
+
+        <div class="summary-popover" id="summaryPopover">
+          <div class="summary-popover-head">
+            <div style="font-size:11.5px; font-weight:800; color:#0f172a; display:flex; align-items:center; gap:6px;">
+              <i class="bi bi-bar-chart-line-fill" style="color:var(--primary);"></i> Batch Receipts Summary
+            </div>
+            <span style="font-size:10px; font-weight:700; color:#0369a1; background:#e0f2fe; padding:1px 6px; border-radius:10px;" id="kpiRcptCount">0 Receipts</span>
+          </div>
+
+          <div class="summary-popover-grid">
+            <div class="pop-card full-width">
+              <span class="pop-lbl">Total Receipts Collected</span>
+              <span class="pop-val credit" id="kpiTotalAmount">₹0.00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PREVIEW CONTAINER -->
+  <div class="table-container" id="preview-viewport" style="background:#f8fafc;">
+    <div id="preview-render-area" class="format-preview-area">
+      <div class="preview-placeholder" style="color: #94a3b8; text-align: center; margin-top: 100px;">
+        <i class="bi bi-receipt" style="font-size: 44px; color: var(--primary); display: block; margin-bottom: 8px;"></i>
+        <div style="font-size: 14px; font-weight: 700; color: #334155;">Member Receipt Preview</div>
+        <div style="font-size: 11.5px; color: #64748b; margin-top: 4px;">Click <strong>Preview Receipts</strong> above to render printable voucher slips.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="../../../assets/js/api.js?v=20260831_0200"></script>
+  <script src="../../../assets/js/auth.js?v=20260831_0200"></script>
+  <script src="../../../assets/js/utils.js?v=20260831_0200"></script>
+  <script src="receipt.js?v=20260831_0200"></script>
 </body>
 </html>

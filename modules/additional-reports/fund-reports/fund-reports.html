@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Fund Reports &amp; Investments — JEEVIKA ERP</title>
   <script src="../../../config.js"></script>
+  <script src="../../../assets/js/xlsx-js-style.bundle.js"></script>
   <link rel="stylesheet" href="../../../assets/css/global.css">
   <link rel="stylesheet" href="../../../assets/css/components.css">
   <link rel="stylesheet" href="fund-reports.css">
@@ -17,11 +18,21 @@
     <div class="fnd-filter-group">
       <div class="fnd-filter-item">
         <label for="fnd-fy"><i class="bi bi-calendar3"></i> FY:</label>
-        <select id="fnd-fy" class="fnd-select" onchange="loadFundData()">
+        <select id="fnd-fy" class="fnd-select" onchange="onFundFyChanged()">
           <option value="2026-2027" selected>2026-2027</option>
           <option value="2025-2026">2025-2026</option>
           <option value="2024-2025">2024-2025</option>
         </select>
+      </div>
+
+      <div class="fnd-filter-item">
+        <label for="fnd-from-date"><i class="bi bi-calendar-event"></i> From:</label>
+        <input type="date" id="fnd-from-date" class="fnd-input" style="width: 125px;" onchange="loadFundData()">
+      </div>
+
+      <div class="fnd-filter-item">
+        <label for="fnd-to-date"><i class="bi bi-calendar-event"></i> To:</label>
+        <input type="date" id="fnd-to-date" class="fnd-input" style="width: 125px;" onchange="loadFundData()">
       </div>
 
       <div class="fnd-filter-item">

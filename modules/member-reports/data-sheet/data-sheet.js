@@ -1,254 +1,188 @@
-// ═══════════════════════════════════════════════════════════
-// JEEVIKA ERP v2 — Member Data Sheet & Directory Controller
-// ═══════════════════════════════════════════════════════════
+/**
+ * data-sheet.js — Member Master DATA SHEET Engine (Landscape A4)
+ * Connects 100% to Live ERP Database & Active HENU OS Design
+ */
 
-let allMembers = [];
-let filteredMembers = [];
-let currentSocietyName = 'SHREE SAI RESIDENCY CO-OP HSG SOC LTD';
+(function () {
+  'use strict';
 
-document.addEventListener('DOMContentLoaded', () => {
-  initSocietyInfo();
-  loadMembers();
-});
+  const REPORT_KEY = 'MEMBER_DATA_SHEET';
+  let activeDesign = null;
 
-function getApiUrl(endpoint) {
-  const base = (window.APP_CONFIG && window.APP_CONFIG.API_BASE) || 'http://localhost:5002/api';
-  return `${base}/${endpoint}`;
-}
-
-async function initSocietyInfo() {
-  try {
-    const activeSoc = sessionStorage.getItem('activeSocietyName') || localStorage.getItem('activeSocietyName');
-    if (activeSoc) {
-      currentSocietyName = activeSoc;
-    }
-    const lbl = document.getElementById('lbl-society-period');
-    if (lbl) lbl.innerHTML = `<i class="bi bi-building"></i> ${currentSocietyName} — Complete Member Master Directory`;
-    const prtSoc = document.getElementById('prt-soc-name');
-    if (prtSoc) prtSoc.innerText = currentSocietyName;
-  } catch (e) {}
-}
-
-async function loadMembers() {
-  const tbody = document.getElementById('tbl-data-sheet-body');
-  if (tbody) tbody.innerHTML = `<tr><td colspan="10" class="col-center" style="padding:30px; color:#94a3b8;"><i class="bi bi-hourglass-split"></i> Loading Member Data Sheet...</td></tr>`;
-
-  try {
-    const res = await fetch(getApiUrl('members?societyId=1'));
-    const data = await res.json();
-
-    if (data.success && Array.isArray(data.data)) {
-      allMembers = data.data;
-    } else if (Array.isArray(data)) {
-      allMembers = data;
-    } else {
-      allMembers = [];
-    }
-
-    populateWings();
-    applyFilters();
-  } catch (err) {
-    console.error('Failed to load member data sheet:', err);
-    if (tbody) tbody.innerHTML = `<tr><td colspan="10" class="col-center" style="padding:30px; color:#dc2626;">Error loading member data: ${err.message}</td></tr>`;
-  }
-}
-
-function populateWings() {
-  const wingSet = new Set();
-  allMembers.forEach(m => {
-    if (m.wing) wingSet.add(m.wing.trim());
+  document.addEventListener('DOMContentLoaded', async () => {
+    setupEventListeners();
+    activeDesign = await HenuOsReportEngine.loadActiveDesign(REPORT_KEY);
+    loadDataSheet();
   });
 
-  const selWing = document.getElementById('flt-wing');
-  if (selWing) {
-    const cur = selWing.value;
-    selWing.innerHTML = `<option value="ALL">-- All Wings --</option>` +
-      Array.from(wingSet).sort().map(w => `<option value="${w}">${w}</option>`).join('');
-    if (wingSet.has(cur)) selWing.value = cur;
+  function setupEventListeners() {
+    document.getElementById('btnRefresh')?.addEventListener('click', () => loadDataSheet());
+    document.getElementById('btnApplyFilters')?.addEventListener('click', () => loadDataSheet());
+    document.getElementById('btnReset')?.addEventListener('click', () => resetFilters());
+    document.getElementById('btnPrint')?.addEventListener('click', () => window.print());
+    document.getElementById('btnPdf')?.addEventListener('click', () => window.print());
   }
-}
 
-function applyFilters() {
-  const wing = document.getElementById('flt-wing')?.value || 'ALL';
-  const search = (document.getElementById('flt-search')?.value || '').toLowerCase().trim();
+  function resetFilters() {
+    document.getElementById('filterWing').value = '';
+    document.getElementById('filterFlatType').value = '';
+    document.getElementById('filterSearch').value = '';
+    loadDataSheet();
+  }
 
-  filteredMembers = allMembers.filter(m => {
-    if (wing !== 'ALL' && (m.wing || '').trim() !== wing) return false;
+  async function loadDataSheet() {
+    const container = document.getElementById('dataSheetContainer');
+    const kpiStrip = document.getElementById('kpiStrip');
+    if (!container) return;
 
-    if (search) {
-      const match = (m.memCode || m.memberCode || '').toLowerCase().includes(search) ||
-                    (m.memName || m.memberName || '').toLowerCase().includes(search) ||
-                    (m.flatNo || '').toLowerCase().includes(search) ||
-                    (m.contactNo || m.mobile || '').toLowerCase().includes(search) ||
-                    (m.email || '').toLowerCase().includes(search);
-      if (!match) return false;
+    HenuOsReportEngine.renderLoading(container, 'Loading member master directory from HENU ERP database...');
+
+    const ctx = HenuOsReportEngine.getSystemContext();
+    const wing = document.getElementById('filterWing')?.value?.trim() || '';
+    const flatType = document.getElementById('filterFlatType')?.value?.trim() || '';
+    const search = document.getElementById('filterSearch')?.value?.trim() || '';
+
+    try {
+      const params = new URLSearchParams();
+      params.append('societyId', ctx.societyId);
+      if (wing) params.append('wing', wing);
+      if (flatType) params.append('flatType', flatType);
+      if (search) params.append('searchText', search);
+
+      const res = await fetch(`${HenuOsReportEngine.API_BASE}/reports/member/data-sheet?${params.toString()}`);
+      if (!res.ok) {
+        throw new Error(`Server returned HTTP ${res.status}`);
+      }
+
+      const data = await res.json();
+      const members = data.members || data.items || [];
+      const society = data.society || {};
+
+      if (members.length === 0) {
+        HenuOsReportEngine.renderEmpty(container, 'No member records found for the selected filter criteria.');
+        if (kpiStrip) kpiStrip.style.display = 'none';
+        return;
+      }
+
+      // Update KPI strip
+      if (kpiStrip) {
+        let totalArea = 0;
+        let totalOp = 0;
+
+        members.forEach(m => {
+          totalArea += (m.areaSqft || m.area || 0);
+          totalOp += (m.totalOpening || (m.opPrincipal || 0) + (m.opInterest || 0));
+        });
+
+        document.getElementById('kpiTotalMembers').textContent = members.length;
+        document.getElementById('kpiTotalArea').textContent = `${totalArea.toLocaleString('en-IN')} Sq.Ft`;
+        document.getElementById('kpiTotalOpening').textContent = HenuOsReportEngine.formatINR(totalOp);
+        kpiStrip.style.display = 'flex';
+      }
+
+      renderDataSheetHTML(society, members, container);
+      HenuOsReportEngine.applyDesignToDOM(activeDesign);
+    } catch (err) {
+      console.error('[Data Sheet] Error loading data sheet:', err);
+      HenuOsReportEngine.renderError(container, 'Unable to load member master data sheet from server.', () => loadDataSheet());
+      if (kpiStrip) kpiStrip.style.display = 'none';
     }
-    return true;
-  });
-
-  renderSummary();
-  renderTable();
-}
-
-function resetFilters() {
-  if (document.getElementById('flt-wing')) document.getElementById('flt-wing').value = 'ALL';
-  if (document.getElementById('flt-search')) document.getElementById('flt-search').value = '';
-  applyFilters();
-}
-
-function toggleSummaryPopover(e) {
-  if (e) e.stopPropagation();
-  const p = document.getElementById('summaryPopover');
-  if (p) p.classList.toggle('show');
-}
-
-document.addEventListener('click', (e) => {
-  const p = document.getElementById('summaryPopover');
-  if (p && p.classList.contains('show') && !e.target.closest('.summary-dropdown-wrap')) {
-    p.classList.remove('show');
-  }
-});
-
-function renderSummary() {
-  let count = filteredMembers.length;
-  let totArea = 0;
-  let totOpening = 0;
-
-  filteredMembers.forEach(m => {
-    totArea += parseFloat(m.areaSqFt || m.carpetArea) || 0;
-    totOpening += parseFloat(m.openingBalance || m.openBal) || 0;
-  });
-
-  const sCount = document.getElementById('stat-count');
-  if (sCount) sCount.innerText = `${count} Members`;
-  const pCount = document.getElementById('pop-count');
-  if (pCount) pCount.innerText = `${count} Members`;
-
-  if (document.getElementById('stat-area')) document.getElementById('stat-area').innerText = formatCurrency(totArea) + ' Sq.Ft';
-  if (document.getElementById('stat-opening')) document.getElementById('stat-opening').innerText = '₹' + formatCurrency(totOpening);
-}
-
-function renderTable() {
-  const tbody = document.getElementById('tbl-data-sheet-body');
-  const tfoot = document.getElementById('tbl-data-sheet-foot');
-  const prtTbody = document.getElementById('prt-tbody');
-  const prtTfoot = document.getElementById('prt-tfoot');
-  if (!tbody) return;
-
-  if (filteredMembers.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="10" class="col-center" style="padding:30px; color:#64748b;">No member records found.</td></tr>`;
-    if (tfoot) tfoot.innerHTML = '';
-    if (prtTbody) prtTbody.innerHTML = `<tr><td colspan="10" class="col-center">No records found.</td></tr>`;
-    return;
   }
 
-  let html = '';
-  let prtHtml = '';
-  let totArea = 0, totOpening = 0;
+  function renderDataSheetHTML(soc, members, container) {
+    const socName = soc.SocietyName || soc.societyname || soc.name || 'CO-OPERATIVE HOUSING SOCIETY LTD.';
+    const regNo = soc.RegistrationNo || soc.registrationno || '';
+    const pan = soc.PANNumber || soc.pannumber || soc.pan || '';
+    const addr = soc.Address || soc.address || '';
 
-  filteredMembers.forEach((m, idx) => {
-    const area = parseFloat(m.areaSqFt || m.carpetArea) || 0;
-    const openBal = parseFloat(m.openingBalance || m.openBal) || 0;
-    totArea += area;
-    totOpening += openBal;
+    let totalArea = 0;
+    let totalOpening = 0;
+    let trRows = '';
 
-    const memCode = m.memCode || m.memberCode || '-';
-    const memName = m.memName || m.memberName || '-';
-    const wing = m.wing || '-';
-    const flat = m.flatNo || '-';
-    const certNo = m.shareCertNo || m.certificateNo || '-';
-    const phone = m.contactNo || m.mobile || '-';
-    const email = m.email || '-';
+    members.forEach((m, idx) => {
+      const area = m.areaSqft || m.area || 0;
+      const op = m.totalOpening || (m.opPrincipal || 0) + (m.opInterest || 0);
+      totalArea += area;
+      totalOpening += op;
 
-    html += `
-      <tr>
-        <td class="col-center">${idx + 1}</td>
-        <td class="col-center"><strong>${escapeHtml(memCode)}</strong></td>
-        <td><strong>${escapeHtml(memName)}</strong></td>
-        <td class="col-center">${escapeHtml(wing)}</td>
-        <td class="col-center"><strong>${escapeHtml(flat)}</strong></td>
-        <td class="col-right">${area ? formatCurrency(area) : '-'}</td>
-        <td class="col-center">${escapeHtml(certNo)}</td>
-        <td class="col-center">${escapeHtml(phone)}</td>
-        <td>${escapeHtml(email)}</td>
-        <td class="col-right" style="color:${openBal > 0 ? '#dc2626' : (openBal < 0 ? '#16a34a' : '#64748b')}; font-weight:700;">${formatCurrency(openBal)}</td>
-      </tr>
+      trRows += `
+        <tr>
+          <td class="center">${idx + 1}</td>
+          <td class="center" style="font-weight:700;">${HenuOsReportEngine.escapeHtml(m.memberCode || m.code || '-')}</td>
+          <td><strong>${HenuOsReportEngine.escapeHtml(m.memberName || m.name || '-')}</strong></td>
+          <td>${HenuOsReportEngine.escapeHtml(m.coOwner || '-')}</td>
+          <td class="center">${HenuOsReportEngine.escapeHtml(m.wing || '-')}</td>
+          <td class="center">${HenuOsReportEngine.escapeHtml(m.flat || m.flatNo || '-')}</td>
+          <td class="center">${HenuOsReportEngine.escapeHtml(m.flatType || m.ownership || '-')}</td>
+          <td class="right">${area > 0 ? area.toLocaleString('en-IN') : '-'}</td>
+          <td class="center">${HenuOsReportEngine.escapeHtml(m.mobile || m.contactNo || '-')}</td>
+          <td>${HenuOsReportEngine.escapeHtml(m.email || '-')}</td>
+          <td class="center">${HenuOsReportEngine.escapeHtml(m.pan || '-')}</td>
+          <td class="right" style="font-weight:700;">${HenuOsReportEngine.formatINR(op)}</td>
+        </tr>
+      `;
+    });
+
+    container.innerHTML = `
+      <div class="ds-report-page">
+        <!-- Header -->
+        <header class="ds-header">
+          <div class="ds-soc-name">${HenuOsReportEngine.escapeHtml(socName)}</div>
+          <div style="font-size:8pt; color:#64748b; margin-top:2px;">
+            ${regNo ? `Reg No: <strong>${HenuOsReportEngine.escapeHtml(regNo)}</strong> | ` : ''}
+            ${pan ? `PAN: <strong>${HenuOsReportEngine.escapeHtml(pan)}</strong> | ` : ''}
+            ${addr ? HenuOsReportEngine.escapeHtml(addr) : ''}
+          </div>
+        </header>
+
+        <!-- Title Bar -->
+        <div class="ds-title-bar">
+          <div class="ds-doc-title">MEMBER MASTER DATA SHEET</div>
+          <div>Total Listed Units: <strong>${members.length}</strong></div>
+        </div>
+
+        <!-- Master Table (Landscape) -->
+        <table class="ds-table">
+          <thead>
+            <tr>
+              <th class="center" style="width:30px;">Sr</th>
+              <th class="center" style="width:70px;">Mem Code</th>
+              <th style="width:160px;">Primary Member Name</th>
+              <th style="width:130px;">Associate / Co-Owner</th>
+              <th class="center" style="width:45px;">Wing</th>
+              <th class="center" style="width:50px;">Flat</th>
+              <th class="center" style="width:75px;">Type</th>
+              <th class="right" style="width:65px;">Area (SqFt)</th>
+              <th class="center" style="width:90px;">Contact No</th>
+              <th style="width:140px;">Email Address</th>
+              <th class="center" style="width:85px;">PAN</th>
+              <th class="right" style="width:95px;">Opening (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${trRows}
+            <tr style="background:#e2e8f0; font-weight:800; border-top:2px solid var(--ds-primary);">
+              <td colspan="7" class="right">TOTALS:</td>
+              <td class="right">${totalArea.toLocaleString('en-IN')}</td>
+              <td colspan="3" class="center">-</td>
+              <td class="right" style="color:var(--ds-primary);">${HenuOsReportEngine.formatINR(totalOpening)}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Stats Bar -->
+        <div class="ds-stats-bar">
+          <div>Total Registered Flats: <strong>${members.length}</strong></div>
+          <div>Cumulative Area: <strong>${totalArea.toLocaleString('en-IN')} Sq.Ft</strong></div>
+          <div>Total Opening Debtors: <strong>${HenuOsReportEngine.formatINR(totalOpening)}</strong></div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="ds-footer">
+          <div>Generated by HENU ERP on ${new Date().toLocaleString()}</div>
+          <div>Page 1 of 1</div>
+        </footer>
+      </div>
     `;
-
-    prtHtml += `
-      <tr>
-        <td class="col-center">${idx + 1}</td>
-        <td class="col-center">${escapeHtml(memCode)}</td>
-        <td>${escapeHtml(memName)}</td>
-        <td class="col-center">${escapeHtml(wing)}</td>
-        <td class="col-center">${escapeHtml(flat)}</td>
-        <td class="col-right">${area ? formatCurrency(area) : '-'}</td>
-        <td class="col-center">${escapeHtml(certNo)}</td>
-        <td class="col-center">${escapeHtml(phone)}</td>
-        <td>${escapeHtml(email)}</td>
-        <td class="col-right"><strong>${formatCurrency(openBal)}</strong></td>
-      </tr>
-    `;
-  });
-
-  tbody.innerHTML = html;
-  if (prtTbody) prtTbody.innerHTML = prtHtml;
-
-  const footHtml = `
-    <tr>
-      <td colspan="5" class="col-left" style="font-weight:800; text-transform:uppercase;">Total Members (${filteredMembers.length})</td>
-      <td class="col-right" style="color:#2563eb;">${formatCurrency(totArea)} Sq.Ft</td>
-      <td colspan="3"></td>
-      <td class="col-right" style="color:#0f172a; font-size:12px;">₹ ${formatCurrency(totOpening)}</td>
-    </tr>
-  `;
-  if (tfoot) tfoot.innerHTML = footHtml;
-  if (prtTfoot) prtTfoot.innerHTML = footHtml;
-}
-
-function exportDataSheetExcel() {
-  if (typeof XLSX === 'undefined') {
-    alert('Excel library not loaded.');
-    return;
   }
-
-  const wsData = [
-    [currentSocietyName],
-    ['MEMBER MASTER DIRECTORY & DATA SHEET'],
-    [`Generated on: ${new Date().toLocaleDateString('en-IN')}`],
-    [],
-    ['Sr No', 'Member Code', 'Member Name', 'Wing', 'Flat No', 'Area (Sq.Ft)', 'Share Certificate No', 'Mobile / Contact', 'Email Address', 'Opening Balance (₹)']
-  ];
-
-  filteredMembers.forEach((m, idx) => {
-    const area = parseFloat(m.areaSqFt || m.carpetArea) || 0;
-    const openBal = parseFloat(m.openingBalance || m.openBal) || 0;
-
-    wsData.push([
-      idx + 1,
-      m.memCode || m.memberCode || '',
-      m.memName || m.memberName || '',
-      m.wing || '',
-      m.flatNo || '',
-      area,
-      m.shareCertNo || m.certificateNo || '',
-      m.contactNo || m.mobile || '',
-      m.email || '',
-      openBal
-    ]);
-  });
-
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet(wsData);
-  XLSX.utils.book_append_sheet(wb, ws, 'Member Directory');
-  XLSX.writeFile(wb, `Member_Data_Sheet_${new Date().toISOString().split('T')[0]}.xlsx`);
-}
-
-function formatCurrency(val) {
-  return (parseFloat(val) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-function escapeHtml(text) {
-  if (!text) return '';
-  return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
+})();

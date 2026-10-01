@@ -1,0 +1,229 @@
+/**
+ * adjustment-register.css — Member Adjustment Register (Landscape A4)
+ * Identity: Vault Navy (#1E293B) & Indigo (#4F46E5)
+ */
+
+:root {
+  --ar-primary: #1e293b;
+  --ar-accent: #4f46e5;
+  --ar-border: #cbd5e1;
+  --ar-border-dark: #334155;
+  --ar-text: #0f172a;
+  --ar-text-muted: #64748b;
+  --ar-bg: #ffffff;
+}
+
+@page {
+  size: A4 landscape;
+  margin: 0;
+}
+
+.ar-module-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+  background: #f1f5f9;
+  min-height: calc(100vh - 120px);
+  overflow-x: auto;
+}
+
+.ar-report-page {
+  width: 297mm;
+  min-height: 210mm;
+  background: var(--ar-bg);
+  color: var(--ar-text);
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+  font-size: 9.5px;
+  padding: 12mm 14mm 10mm 14mm;
+  box-sizing: border-box;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--ar-border);
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.sample-preview-badge {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px dashed #d97706;
+  padding: 4px 12px;
+  font-size: 8pt;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 8px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
+.ar-header {
+  border-bottom: 2px solid var(--ar-primary);
+  padding-bottom: 6px;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.ar-soc-name {
+  font-size: 13pt;
+  font-weight: 800;
+  color: var(--ar-primary);
+  text-transform: uppercase;
+}
+
+.ar-soc-sub {
+  font-size: 8pt;
+  color: var(--ar-text-muted);
+  margin-top: 2px;
+}
+
+.ar-title-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--ar-primary);
+  color: #ffffff;
+  padding: 4px 10px;
+  border-radius: 3px;
+  margin-bottom: 8px;
+}
+
+.ar-doc-title {
+  font-size: 10pt;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.ar-period-tag {
+  font-size: 8pt;
+  font-weight: 600;
+}
+
+.ar-table-wrapper {
+  flex: 1;
+  margin-bottom: 8px;
+}
+
+.ar-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 8pt;
+  border: 1px solid var(--ar-border-dark);
+  margin-bottom: 8px;
+}
+
+.ar-table th {
+  background: var(--ar-primary);
+  color: #ffffff;
+  padding: 4px 6px;
+  font-weight: 700;
+  text-align: left;
+  border: 1px solid var(--ar-border-dark);
+  text-transform: uppercase;
+  font-size: 7.5pt;
+  white-space: nowrap;
+}
+
+.ar-table td {
+  padding: 4px 6px;
+  border: 1px solid var(--ar-border);
+}
+
+.ar-table td.center, .ar-table th.center { text-align: center; }
+.ar-table td.right, .ar-table th.right { text-align: right; }
+
+.ar-table tbody tr:nth-child(even) {
+  background: #f8fafc;
+}
+
+.ar-table tr.total-row {
+  background: #e2e8f0;
+  font-weight: 800;
+  border-top: 2px solid var(--ar-primary);
+  border-bottom: 2px solid var(--ar-primary);
+}
+
+.ar-table tr.total-row td {
+  font-size: 8.5pt;
+}
+
+.ar-status-tag {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 7pt;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.ar-status-tag.posted { background: #dcfce7; color: #15803d; }
+.ar-status-tag.draft { background: #fef3c7; color: #b45309; }
+
+.ar-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  background: #f8fafc;
+  border: 1.5px solid var(--ar-primary);
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+}
+
+.ar-summary-item {
+  border-right: 1px solid #cbd5e1;
+  padding-right: 6px;
+}
+
+.ar-summary-item:last-child {
+  border-right: none;
+}
+
+.ar-summary-item .lbl {
+  font-size: 7.5pt;
+  color: var(--ar-text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.ar-summary-item .val {
+  font-size: 10pt;
+  font-weight: 800;
+  color: var(--ar-primary);
+  margin-top: 2px;
+}
+
+.ar-footer {
+  margin-top: auto;
+  border-top: 1px solid var(--ar-border);
+  padding-top: 6px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 7.5pt;
+  color: var(--ar-text-muted);
+}
+
+@media print {
+  body, html {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+  .module-top-bar, .filter-bar, .no-print, .sample-preview-badge {
+    display: none !important;
+  }
+  .ar-module-wrapper {
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+  .ar-report-page {
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 10mm 12mm !important;
+    width: 297mm !important;
+    min-height: 210mm !important;
+    page-break-after: always !important;
+    break-after: page !important;
+  }
+}

@@ -3,238 +3,101 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bill Format (A4 GST Invoice) — JEEVIKA ERP</title>
+  <title>Bill Format — HENU ERP</title>
   <script src="../../../config.js"></script>
-  <script src="../../../assets/js/xlsx-js-style.bundle.js"></script>
-  <link rel="stylesheet" href="../../../assets/css/global.css">
-  <link rel="stylesheet" href="../../../assets/css/components.css">
+  <link rel="stylesheet" href="../../../assets/vendor/bootstrap-icons/bootstrap-icons.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-  <link rel="stylesheet" href="../member-reports-grid.css">
-  <style>
-    .options-dropdown-wrap {
-      position: relative;
-    }
-    .options-popover {
-      display: none;
-      position: absolute;
-      left: 0;
-      top: 34px;
-      width: 380px;
-      background: #ffffff;
-      border: 1px solid #cbd5e1;
-      border-radius: 6px;
-      box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.1);
-      padding: 12px 14px;
-      z-index: 100;
-    }
-    .options-popover.show {
-      display: block;
-    }
-    .options-popover-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-  </style>
+  <link rel="stylesheet" href="../henu-os-report-engine.css">
+  <link rel="stylesheet" href="bill-format.css">
 </head>
 <body class="erp-module">
 
-  <!-- TOP MODULE BAR -->
-  <div class="module-top-bar">
+  <!-- Top Header Bar -->
+  <header class="module-top-bar">
     <div class="module-title">
-      <i class="bi bi-file-earmark-text-fill" style="color:var(--primary);"></i>
-      <span>Member Bill Format (A4 GST Invoice)</span>
+      <i class="bi bi-file-earmark-text text-primary"></i>
+      <span>Member Reports ➔ Bill Format (A4 Tax Invoice / Bill of Supply)</span>
     </div>
-    <div style="display:flex; gap:6px; align-items:center;">
-      <button class="btn-top" onclick="window.print()"><i class="bi bi-printer"></i> Print / PDF Bills</button>
-      <button class="btn-top primary" id="btn-preview" onclick="loadPreview()"><i class="bi bi-eye"></i> Preview Bills</button>
-      <button class="btn-top" id="btn-reset" onclick="resetForm()"><i class="bi bi-arrow-counterclockwise"></i> Reset</button>
+    <div class="top-actions">
+      <button class="btn-top" id="btnRefresh" title="Reload from Server">
+        <i class="bi bi-arrow-clockwise"></i> Refresh
+      </button>
+      <button class="btn-top" id="btnReset" title="Reset Filters">
+        <i class="bi bi-x-circle"></i> Reset
+      </button>
+      <button class="btn-top btn-top-primary" id="btnPrint" title="Print Current Document">
+        <i class="bi bi-printer"></i> Print
+      </button>
+      <button class="btn-top btn-top-success" id="btnPdf" title="Export PDF">
+        <i class="bi bi-file-earmark-pdf"></i> Export PDF
+      </button>
     </div>
-  </div>
+  </header>
 
-  <!-- FILTERS PANEL -->
-  <div class="filter-bar">
-    <!-- Filter Row 1 -->
-    <div class="filter-row">
-      <div class="filter-item" style="min-width:180px; flex:1; max-width:240px;">
-        <label class="filter-lbl">From Member</label>
-        <select id="fromMember" class="filter-input"></select>
-      </div>
+  <!-- Filter Strip -->
+  <div class="filter-strip">
+    <div class="filter-group" style="width:140px;">
+      <label class="filter-label">Bill Number:</label>
+      <input type="text" class="filter-input" id="filterBillNo" placeholder="All Bills">
+    </div>
 
-      <div class="filter-item" style="min-width:180px; flex:1; max-width:240px;">
-        <label class="filter-lbl">To Member</label>
-        <select id="toMember" class="filter-input"></select>
-      </div>
+    <div class="filter-group" style="width:100px;">
+      <label class="filter-label">Wing / Block:</label>
+      <input type="text" class="filter-input" id="filterWing" placeholder="All Wings">
+    </div>
 
-      <div class="filter-item" style="width:130px;">
-        <label class="filter-lbl">Bill From Date</label>
-        <input type="date" id="billFrom" class="filter-input">
-      </div>
+    <div class="filter-group" style="min-width:200px; flex:1; max-width:300px;">
+      <label class="filter-label">Select Member:</label>
+      <select class="filter-select" id="filterMember">
+        <option value="">-- All Members --</option>
+      </select>
+    </div>
 
-      <div class="filter-item" style="width:130px;">
-        <label class="filter-lbl">Bill To Date</label>
-        <input type="date" id="billTo" class="filter-input">
-      </div>
+    <div class="filter-group" style="width:130px;">
+      <label class="filter-label">From Date:</label>
+      <input type="date" class="filter-input" id="filterBillFrom">
+    </div>
 
-      <div class="filter-item" style="width:130px;">
-        <label class="filter-lbl">Rcpt From Date</label>
-        <input type="date" id="rcptFrom" class="filter-input">
-      </div>
+    <div class="filter-group" style="width:130px;">
+      <label class="filter-label">To Date:</label>
+      <input type="date" class="filter-input" id="filterBillTo">
+    </div>
 
-      <div class="filter-item" style="width:130px;">
-        <label class="filter-lbl">Rcpt To Date</label>
-        <input type="date" id="rcptTo" class="filter-input">
-      </div>
-
-      <!-- More Options Popover Trigger -->
-      <div class="filter-item options-dropdown-wrap">
-        <label class="filter-lbl">Bill Options</label>
-        <button type="button" class="summary-dropdown-btn" onclick="toggleOptionsPopover(event)">
-          <i class="bi bi-gear-fill" style="color:var(--primary); font-size:11px;"></i>
-          <span>Invoice Settings</span>
-          <i class="bi bi-chevron-down" style="font-size:9.5px; color:#64748b;"></i>
-        </button>
-
-        <div class="options-popover" id="optionsPopover">
-          <div style="font-size:11.5px; font-weight:800; color:#0f172a; border-bottom:1px solid #e2e8f0; padding-bottom:6px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
-            <span><i class="bi bi-sliders"></i> Print &amp; Display Options</span>
-            <i class="bi bi-x-lg" style="cursor:pointer; font-size:10px;" onclick="closeOptionsPopover()"></i>
-          </div>
-          <div class="options-popover-grid">
-            <div class="filter-item">
-              <label class="filter-lbl">Blank A/c No</label>
-              <select id="blankAcNo" class="filter-input">
-                <option value="No" selected>No</option>
-                <option value="Yes">Yes</option>
-              </select>
-            </div>
-            <div class="filter-item">
-              <label class="filter-lbl">Bldg / Wing</label>
-              <select id="showBldgWing" class="filter-input">
-                <option value="Yes" selected>Yes</option>
-                <option value="No">No</option>
-              </select>
-            </div>
-            <div class="filter-item">
-              <label class="filter-lbl">Show Arrears</label>
-              <select id="showArrears" class="filter-input">
-                <option value="Yes" selected>Yes</option>
-                <option value="No">No</option>
-              </select>
-            </div>
-            <div class="filter-item">
-              <label class="filter-lbl">Arrears Split</label>
-              <select id="arrearsBifurcation" class="filter-input">
-                <option value="Yes" selected>Yes</option>
-                <option value="No">No</option>
-              </select>
-            </div>
-            <div class="filter-item">
-              <label class="filter-lbl">Blank Receipt</label>
-              <select id="blankReceipt" class="filter-input">
-                <option value="Yes" selected>Yes</option>
-                <option value="No">No</option>
-              </select>
-            </div>
-            <div class="filter-item">
-              <label class="filter-lbl">Print Sign</label>
-              <select id="printSign" class="filter-input">
-                <option value="Yes" selected>Yes</option>
-                <option value="No">No</option>
-              </select>
-            </div>
-            <div class="filter-item">
-              <label class="filter-lbl">Print QR Code</label>
-              <select id="printQr" class="filter-input">
-                <option value="Yes" selected>Yes</option>
-                <option value="No">No</option>
-              </select>
-            </div>
-            <div class="filter-item">
-              <label class="filter-lbl">Email Filter</label>
-              <select id="emailFilterSelect" class="filter-input">
-                <option value="all" selected>All</option>
-                <option value="blank">Blank Email</option>
-                <option value="non-blank">Non-Blank Email</option>
-              </select>
-            </div>
-          </div>
-          <div style="display:flex; gap:12px; font-size:11px; margin-top:8px; border-top:1px solid #f1f5f9; padding-top:6px;">
-            <label style="display:flex; align-items:center; gap:4px; cursor:pointer;">
-              <input type="checkbox" id="printPan" checked> Print PAN
-            </label>
-            <label style="display:flex; align-items:center; gap:4px; cursor:pointer;">
-              <input type="checkbox" id="printGst" checked> Print GSTIN
-            </label>
-          </div>
-        </div>
-      </div>
-
-      <!-- Heading & Prefix in main row -->
-      <div class="filter-item" style="width:130px;">
-        <label class="filter-lbl">Heading Title</label>
-        <input type="text" id="headingTitle" class="filter-input" value="GST INVOICE">
-      </div>
-
-      <div class="filter-item" style="width:120px;">
-        <label class="filter-lbl">Prefix Bill No</label>
-        <input type="text" id="prefixBillNo" class="filter-input" placeholder="BILL/26-27/">
-      </div>
-
-      <!-- Summary Popover -->
-      <div class="filter-item summary-dropdown-wrap">
-        <label class="filter-lbl">Invoice Summary</label>
-        <button type="button" class="summary-dropdown-btn" id="btnSummaryToggle" onclick="toggleSummaryPopover(event)">
-          <i class="bi bi-pie-chart-fill" style="color:var(--primary); font-size:11px;"></i>
-          <span>Summary</span>
-          <span style="font-size:10px; font-weight:700; color:#0369a1; background:#e0f2fe; padding:1px 6px; border-radius:10px;" id="badgeBillCount">0 Bills</span>
-          <i class="bi bi-chevron-down" style="font-size:9.5px; color:#64748b;"></i>
-        </button>
-
-        <div class="summary-popover" id="summaryPopover">
-          <div class="summary-popover-head">
-            <div style="font-size:11.5px; font-weight:800; color:#0f172a; display:flex; align-items:center; gap:6px;">
-              <i class="bi bi-bar-chart-line-fill" style="color:var(--primary);"></i> Invoice Batch Summary
-            </div>
-            <span style="font-size:10px; font-weight:700; color:#0369a1; background:#e0f2fe; padding:1px 6px; border-radius:10px;" id="kpiBillCount">0 Bills</span>
-          </div>
-
-          <div class="summary-popover-grid">
-            <div class="pop-card">
-              <span class="pop-lbl">Total Current Bill</span>
-              <span class="pop-val debit" id="kpiCurrentBill">₹0.00</span>
-            </div>
-            <div class="pop-card">
-              <span class="pop-lbl">Total Arrears</span>
-              <span class="pop-val debit" id="kpiArrears">₹0.00</span>
-            </div>
-            <div class="pop-card full-width" style="background:#eff6ff;">
-              <div style="display:flex; justify-content:space-between; align-items:center;">
-                <span class="pop-lbl" style="color:#1e40af;">Gross Total Payable</span>
-                <span class="pop-val debit" id="kpiTotalPayable" style="font-size:13px; margin:0; color:#1e40af;">₹0.00</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div class="filter-group" style="align-self:flex-end;">
+      <button class="btn-top btn-top-primary" id="btnApplyFilters">
+        <i class="bi bi-funnel"></i> Apply
+      </button>
     </div>
   </div>
 
-  <!-- PREVIEW CONTAINER -->
-  <div class="table-container" id="preview-viewport" style="background:#f8fafc;">
-    <div id="preview-render-area" class="format-preview-area">
-      <div class="preview-placeholder" style="color: #94a3b8; text-align: center; margin-top: 100px;">
-        <i class="bi bi-file-earmark-pdf" style="font-size: 44px; color: var(--primary); display: block; margin-bottom: 8px;"></i>
-        <div style="font-size: 14px; font-weight: 700; color: #334155;">A4 GST Invoice Preview</div>
-        <div style="font-size: 11.5px; color: #64748b; margin-top: 4px;">Click <strong>Preview Bills</strong> above to render bills for the selected member range.</div>
-      </div>
+  <!-- KPI / Summary Strip -->
+  <div class="kpi-summary-strip" id="kpiStrip" style="display:none;">
+    <div class="kpi-pill">
+      <span class="kpi-lbl">Total Bills:</span>
+      <span class="kpi-val" id="kpiTotalBills">0</span>
+    </div>
+    <div class="kpi-pill">
+      <span class="kpi-lbl">Total Taxable:</span>
+      <span class="kpi-val" id="kpiTotalTaxable">₹0.00</span>
+    </div>
+    <div class="kpi-pill">
+      <span class="kpi-lbl">Total Tax:</span>
+      <span class="kpi-val" id="kpiTotalTax">₹0.00</span>
+    </div>
+    <div class="kpi-pill">
+      <span class="kpi-lbl">Net Payable:</span>
+      <span class="kpi-val" id="kpiNetPayable" style="color:var(--erp-primary);">₹0.00</span>
     </div>
   </div>
 
-  <!-- Scripts -->
-  <script src="../../../assets/js/api.js?v=20260831_0200"></script>
-  <script src="../../../assets/js/auth.js?v=20260831_0200"></script>
-  <script src="../../../assets/js/utils.js?v=20260831_0200"></script>
-  <script src="bill-format.js?v=20260831_0200"></script>
+  <!-- Main Viewport -->
+  <main class="report-viewport">
+    <div id="billContainer" style="width:100%; display:flex; flex-direction:column; align-items:center;">
+      <!-- Dynamic Bill Document rendered here -->
+    </div>
+  </main>
+
+  <script src="../henu-os-report-engine.js"></script>
+  <script src="bill-format.js"></script>
 </body>
 </html>

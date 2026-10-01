@@ -1,226 +1,209 @@
-// ═══════════════════════════════════════════════════════════
-// JEEVIKA ERP v2 — Member Adjustment Register Controller
-// ═══════════════════════════════════════════════════════════
+/**
+ * adjustment-register.js — Member Adjustment Register Engine (Landscape A4)
+ * Architecture: Real ERP Backend Data + Active Published HENU OS DESIGN + Mail to Committee UX
+ */
 
-let allAdjustments = [];
-let filteredAdjustments = [];
-let currentSocietyName = 'SHREE SAI RESIDENCY CO-OP HSG SOC LTD';
+(function () {
+  'use strict';
 
-document.addEventListener('DOMContentLoaded', () => {
-  initSocietyInfo();
-  loadAdjustments();
-});
+  const REPORT_KEY = 'adjustment-register';
+  let activeDesign = null;
+  let currentReportData = null;
 
-function getApiUrl(endpoint) {
-  const base = (window.APP_CONFIG && window.APP_CONFIG.API_BASE) || 'http://localhost:5002/api';
-  return `${base}/${endpoint}`;
-}
-
-async function initSocietyInfo() {
-  try {
-    const activeSoc = sessionStorage.getItem('activeSocietyName') || localStorage.getItem('activeSocietyName');
-    if (activeSoc) {
-      currentSocietyName = activeSoc;
-    }
-    const lbl = document.getElementById('lbl-society-period');
-    if (lbl) lbl.innerHTML = `<i class="bi bi-building"></i> ${currentSocietyName} — Member Dues & Inter-Head Adjustments`;
-    const prtSoc = document.getElementById('prt-soc-name');
-    if (prtSoc) prtSoc.innerText = currentSocietyName;
-  } catch (e) {}
-}
-
-async function loadAdjustments() {
-  const tbody = document.getElementById('tbl-adj-body');
-  if (tbody) tbody.innerHTML = `<tr><td colspan="8" class="col-center" style="padding:30px; color:#94a3b8;"><i class="bi bi-hourglass-split"></i> Loading Adjustments...</td></tr>`;
-
-  try {
-    const res = await fetch(getApiUrl('vouchers/register?societyId=1&fyId=1&type=Adjustment'));
-    const data = await res.json();
-
-    if (data.success && Array.isArray(data.data)) {
-      allAdjustments = data.data;
-    } else if (Array.isArray(data)) {
-      allAdjustments = data;
-    } else {
-      allAdjustments = [];
-    }
-
-    applyFilters();
-  } catch (err) {
-    console.error('Failed to load adjustments:', err);
-    if (tbody) tbody.innerHTML = `<tr><td colspan="8" class="col-center" style="padding:30px; color:#dc2626;">Error loading adjustments: ${err.message}</td></tr>`;
-  }
-}
-
-function applyFilters() {
-  const search = (document.getElementById('flt-search')?.value || '').toLowerCase().trim();
-
-  filteredAdjustments = allAdjustments.filter(a => {
-    if (search) {
-      const match = (a.voucherNo || '').toLowerCase().includes(search) ||
-                    (a.personName || a.memName || '').toLowerCase().includes(search) ||
-                    (a.personCode || a.memCode || '').toLowerCase().includes(search) ||
-                    (a.narration || '').toLowerCase().includes(search) ||
-                    (a.particular1 || '').toLowerCase().includes(search);
-      if (!match) return false;
-    }
-    return true;
-  });
-
-  renderSummary();
-  renderTable();
-}
-
-function resetFilters() {
-  if (document.getElementById('flt-search')) document.getElementById('flt-search').value = '';
-  applyFilters();
-}
-
-function toggleSummaryPopover(e) {
-  if (e) e.stopPropagation();
-  const p = document.getElementById('summaryPopover');
-  if (p) p.classList.toggle('show');
-}
-
-document.addEventListener('click', (e) => {
-  const p = document.getElementById('summaryPopover');
-  if (p && p.classList.contains('show') && !e.target.closest('.summary-dropdown-wrap')) {
-    p.classList.remove('show');
-  }
-});
-
-function renderSummary() {
-  let count = filteredAdjustments.length;
-  let tot = 0;
-
-  filteredAdjustments.forEach(a => {
-    tot += parseFloat(a.amount) || 0;
-  });
-
-  const sCount = document.getElementById('stat-count');
-  if (sCount) sCount.innerText = `${count} Vouchers`;
-  const pCount = document.getElementById('pop-count');
-  if (pCount) pCount.innerText = `${count} Vouchers`;
-
-  if (document.getElementById('stat-total')) document.getElementById('stat-total').innerText = '₹' + formatCurrency(tot);
-}
-
-function renderTable() {
-  const tbody = document.getElementById('tbl-adj-body');
-  const tfoot = document.getElementById('tbl-adj-foot');
-  const prtTbody = document.getElementById('prt-tbody');
-  const prtTfoot = document.getElementById('prt-tfoot');
-  if (!tbody) return;
-
-  if (filteredAdjustments.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" class="col-center" style="padding:30px; color:#64748b;">No adjustment entries match selected criteria.</td></tr>`;
-    if (tfoot) tfoot.innerHTML = '';
-    if (prtTbody) prtTbody.innerHTML = `<tr><td colspan="8" class="col-center">No records found.</td></tr>`;
-    return;
+  async function init() {
+    initDateFilters();
+    activeDesign = await HenuOsReportEngine.loadActiveDesign(REPORT_KEY);
+    HenuOsReportEngine.applyDesignToDOM(activeDesign);
+    await loadAdjustmentRegister();
   }
 
-  let html = '';
-  let prtHtml = '';
-  let totAmt = 0;
+  function initDateFilters() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    
+    const fromEl = document.getElementById('fromDate');
+    const toEl = document.getElementById('toDate');
+    
+    if (fromEl && !fromEl.value) fromEl.value = `${y}-04-01`;
+    if (toEl && !toEl.value) toEl.value = `${y}-${m}-${d}`;
+  }
 
-  filteredAdjustments.forEach((a, idx) => {
-    const amt = parseFloat(a.amount) || 0;
-    totAmt += amt;
+  async function loadAdjustmentRegister() {
+    const container = document.getElementById('arContainer') || document.getElementById('reportOutputArea');
+    if (!container) return;
 
-    const aDate = a.voucherDate ? a.voucherDate.split('T')[0] : '-';
-    const vNo = a.voucherNo || ('ADJ-' + (a.voucherId || idx + 1));
-    const memCode = a.personCode || a.memCode || '-';
-    const memName = a.personName || a.memName || 'Member Adjustment';
-    const part = a.particular1 || a.cashBankName || 'Member Ledger Adjustment';
-    const narr = a.narration || 'Inter-head transfer / dues set-off';
+    HenuOsReportEngine.renderLoading(container, 'Loading Adjustment Register from ERP database...');
 
-    html += `
-      <tr>
-        <td class="col-center">${idx + 1}</td>
-        <td><strong>${escapeHtml(vNo)}</strong></td>
-        <td class="col-center">${aDate}</td>
-        <td class="col-center"><strong>${escapeHtml(memCode)}</strong></td>
-        <td>${escapeHtml(memName)}</td>
-        <td>${escapeHtml(part)}</td>
-        <td class="col-right" style="color:#d97706; font-weight:700;">${formatCurrency(amt)}</td>
-        <td><span style="color:#64748b; font-size:10.5px;">${escapeHtml(narr)}</span></td>
-      </tr>
+    const ctx = HenuOsReportEngine.getSystemContext();
+    const fromDate = document.getElementById('fromDate')?.value || '';
+    const toDate = document.getElementById('toDate')?.value || '';
+    const wing = document.getElementById('wing')?.value?.trim() || '';
+    const member = document.getElementById('fromMember')?.value?.trim() || '';
+
+    let url = `${ctx.apiBase}/reports/member/adjustment-register?societyId=${ctx.societyId}&fyId=${ctx.fyId}`;
+    if (fromDate) url += `&fromDate=${encodeURIComponent(fromDate)}`;
+    if (toDate) url += `&toDate=${encodeURIComponent(toDate)}`;
+    if (wing) url += `&wing=${encodeURIComponent(wing)}`;
+    if (member) url += `&fromMember=${encodeURIComponent(member)}`;
+
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP Error ${res.status}: ${res.statusText}`);
+      const data = await res.json();
+
+      if (!data || !data.success) {
+        throw new Error(data?.message || 'Failed to fetch adjustment register data.');
+      }
+
+      currentReportData = data;
+      const items = data.adjustments || data.items || [];
+      updateKpis(items);
+
+      if (items.length === 0) {
+        HenuOsReportEngine.renderEmpty(
+          container,
+          'No adjustment records found for the selected criteria.',
+          'Try adjusting your Date, Wing, or Member filters.'
+        );
+        return;
+      }
+
+      renderAdjustmentRegister(data);
+    } catch (err) {
+      console.error('[AdjustmentRegister] Load error:', err);
+      HenuOsReportEngine.renderError(
+        container,
+        'Unable to load Adjustment Register data from ERP server.',
+        err.message || 'Network request failed.',
+        loadAdjustmentRegister
+      );
+    }
+  }
+
+  function updateKpis(items) {
+    const totalAmount = items.reduce((acc, row) => acc + Number(row.amount || 0), 0);
+    const countEl = document.getElementById('kpiTotalCount');
+    const amtEl = document.getElementById('kpiTotalAmount');
+
+    if (countEl) countEl.textContent = items.length;
+    if (amtEl) amtEl.textContent = `₹ ${HenuOsReportEngine.formatINR(totalAmount)}`;
+  }
+
+  function renderAdjustmentRegister(data) {
+    const container = document.getElementById('arContainer') || document.getElementById('reportOutputArea');
+    if (!container) return;
+
+    const soc = data.society || {};
+    const items = data.adjustments || data.items || [];
+    const totalAmount = items.reduce((acc, row) => acc + Number(row.amount || 0), 0);
+
+    const fromDate = document.getElementById('fromDate')?.value || '';
+    const toDate = document.getElementById('toDate')?.value || '';
+
+    const rowsHtml = items.map((row, idx) => {
+      const statusClass = (row.status || 'Posted').toLowerCase() === 'posted' ? 'posted' : 'draft';
+      return `
+        <tr>
+          <td class="center">${idx + 1}</td>
+          <td class="center" style="font-weight:700;">${HenuOsReportEngine.escapeHtml(row.adjustmentNumber || row.adjNo || '-')}</td>
+          <td class="center">${HenuOsReportEngine.formatDate(row.date || row.adjustmentDate)}</td>
+          <td><strong>${HenuOsReportEngine.escapeHtml(row.memberName || row.residentName || '-')}</strong></td>
+          <td class="center">${HenuOsReportEngine.escapeHtml(row.wing || '-')}</td>
+          <td class="center">${HenuOsReportEngine.escapeHtml(row.flatNo || row.unit || '-')}</td>
+          <td>${HenuOsReportEngine.escapeHtml(row.sourceHead || row.source || 'Advance Maintenance')}</td>
+          <td>${HenuOsReportEngine.escapeHtml(row.destHead || row.destination || 'Current Dues')}</td>
+          <td class="center">${HenuOsReportEngine.escapeHtml(row.adjustmentType || row.adjType || 'Adjustment')}</td>
+          <td class="right" style="font-weight:700; color:var(--ar-primary);">${HenuOsReportEngine.formatINR(row.amount || 0)}</td>
+          <td>${HenuOsReportEngine.escapeHtml(row.narration || '-')}</td>
+          <td class="center"><span class="ar-status-tag ${statusClass}">${HenuOsReportEngine.escapeHtml(row.status || 'Posted')}</span></td>
+        </tr>
+      `;
+    }).join('');
+
+    const html = `
+      <div class="ar-report-page henu-dynamic-document">
+        <header class="ar-header">
+          <div class="ar-soc-name">${HenuOsReportEngine.escapeHtml(soc.SocietyName || soc.name || 'CO-OPERATIVE HOUSING SOCIETY LTD.')}</div>
+          <div class="ar-soc-sub">
+            ${soc.RegistrationNo ? 'Reg. No: ' + HenuOsReportEngine.escapeHtml(soc.RegistrationNo) + ' | ' : ''}
+            ${soc.Address || soc.address || 'Registered Society Premises'}
+          </div>
+        </header>
+
+        <div class="ar-title-bar">
+          <div class="ar-doc-title">MEMBER ADJUSTMENT REGISTER</div>
+          <div class="ar-period-tag">Period: ${HenuOsReportEngine.formatDate(fromDate)} to ${HenuOsReportEngine.formatDate(toDate)}</div>
+        </div>
+
+        <div class="ar-table-wrapper">
+          <table class="ar-table">
+            <thead>
+              <tr>
+                <th class="center" style="width:30px;">Sr</th>
+                <th class="center" style="width:75px;">Adj No</th>
+                <th class="center" style="width:70px;">Date</th>
+                <th style="width:140px;">Member Name</th>
+                <th class="center" style="width:40px;">Wing</th>
+                <th class="center" style="width:40px;">Flat</th>
+                <th style="width:120px;">Source Head</th>
+                <th style="width:120px;">Destination Head</th>
+                <th class="center" style="width:85px;">Type</th>
+                <th class="right" style="width:75px;">Amount (₹)</th>
+                <th>Narration</th>
+                <th class="center" style="width:60px;">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+              <tr class="total-row">
+                <td colspan="9" class="right" style="font-weight:700;">TOTAL ADJUSTMENT AMOUNT:</td>
+                <td class="right" style="color:var(--ar-primary); font-weight:800;">₹ ${HenuOsReportEngine.formatINR(totalAmount)}</td>
+                <td colspan="2" class="center">-</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="ar-summary-grid">
+          <div class="ar-summary-item">
+            <div class="lbl">Total Adjustments</div>
+            <div class="val">${items.length}</div>
+          </div>
+          <div class="ar-summary-item">
+            <div class="lbl">Total Adjusted Amount</div>
+            <div class="val" style="color:var(--ar-primary); font-weight:800;">₹ ${HenuOsReportEngine.formatINR(totalAmount)}</div>
+          </div>
+        </div>
+
+        <footer class="ar-footer">
+          <div>Generated by JEEVIKA ERP on ${new Date().toLocaleString('en-IN')}</div>
+          <div>Page 1 of 1</div>
+        </footer>
+      </div>
     `;
 
-    prtHtml += `
-      <tr>
-        <td class="col-center">${idx + 1}</td>
-        <td>${escapeHtml(vNo)}</td>
-        <td class="col-center">${aDate}</td>
-        <td class="col-center">${escapeHtml(memCode)}</td>
-        <td>${escapeHtml(memName)}</td>
-        <td>${escapeHtml(part)}</td>
-        <td class="col-right"><strong>${formatCurrency(amt)}</strong></td>
-        <td>${escapeHtml(narr)}</td>
-      </tr>
-    `;
-  });
-
-  tbody.innerHTML = html;
-  if (prtTbody) prtTbody.innerHTML = prtHtml;
-
-  const footHtml = `
-    <tr>
-      <td colspan="6" class="col-left" style="font-weight:800; text-transform:uppercase;">Total Adjustments (${filteredAdjustments.length})</td>
-      <td class="col-right" style="color:#d97706; font-size:12px;">₹ ${formatCurrency(totAmt)}</td>
-      <td></td>
-    </tr>
-  `;
-  if (tfoot) tfoot.innerHTML = footHtml;
-  if (prtTfoot) prtTfoot.innerHTML = footHtml;
-}
-
-function exportAdjustmentRegisterExcel() {
-  if (typeof XLSX === 'undefined') {
-    alert('Excel library not loaded.');
-    return;
+    container.innerHTML = html;
   }
 
-  const wsData = [
-    [currentSocietyName],
-    ['MEMBER ADJUSTMENT REGISTER'],
-    [`Generated on: ${new Date().toLocaleDateString('en-IN')}`],
-    [],
-    ['Sr No', 'Voucher No', 'Date', 'Member Code', 'Member Name', 'Particular / Account', 'Adjusted Amount (₹)', 'Narration']
-  ];
+  function resetFilters() {
+    const wing = document.getElementById('wing');
+    const member = document.getElementById('fromMember');
+    if (wing) wing.value = '';
+    if (member) member.value = '';
+    initDateFilters();
+    loadAdjustmentRegister();
+  }
 
-  filteredAdjustments.forEach((a, idx) => {
-    const amt = parseFloat(a.amount) || 0;
-    const aDate = a.voucherDate ? a.voucherDate.split('T')[0] : '';
-    const vNo = a.voucherNo || ('ADJ-' + (a.voucherId || idx + 1));
-    const memCode = a.personCode || a.memCode || '';
-    const memName = a.personName || a.memName || '';
-    const part = a.particular1 || a.cashBankName || '';
-    const narr = a.narration || '';
+  window.loadAdjustmentRegister = loadAdjustmentRegister;
+  window.resetFilters = resetFilters;
+  window.printReport = () => window.print();
+  window.exportPdf = () => window.print();
 
-    wsData.push([
-      idx + 1,
-      vNo,
-      aDate,
-      memCode,
-      memName,
-      part,
-      amt,
-      narr
-    ]);
-  });
-
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet(wsData);
-  XLSX.utils.book_append_sheet(wb, ws, 'Adjustments');
-  XLSX.writeFile(wb, `Member_Adjustment_Register_${new Date().toISOString().split('T')[0]}.xlsx`);
-}
-
-function formatCurrency(val) {
-  return (parseFloat(val) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-function escapeHtml(text) {
-  if (!text) return '';
-  return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();

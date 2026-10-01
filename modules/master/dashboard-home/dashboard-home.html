@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard Home — JEEVIKA ERP</title>
+  <title>Dashboard Home — HENU ERP</title>
   <script src="../../../config.js"></script>
   <link rel="stylesheet" href="../../../assets/css/global.css">
   <link rel="stylesheet" href="../../../assets/css/components.css">
@@ -15,6 +16,7 @@
       gap: 12px;
       margin-bottom: 16px;
     }
+
     .dash-card {
       background: var(--clr-face);
       border-top: 2px solid var(--brd-light);
@@ -26,6 +28,7 @@
       align-items: center;
       gap: 12px;
     }
+
     .dash-card-icon {
       width: 42px;
       height: 42px;
@@ -38,12 +41,14 @@
       font-size: 20px;
       flex-shrink: 0;
     }
+
     .dash-card-val {
       font-size: 18px;
       font-weight: 700;
       color: var(--clr-navy);
       font-family: 'Courier New', monospace;
     }
+
     .dash-card-lbl {
       font-size: 11px;
       color: var(--txt-secondary);
@@ -51,11 +56,12 @@
     }
   </style>
 </head>
+
 <body class="erp-module">
   <div class="erp-module-header">
     <div>
       <div class="erp-module-title">Dashboard Overview</div>
-      
+
     </div>
     <button class="erp-btn" onclick="loadDashboardData()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
   </div>
@@ -97,11 +103,16 @@
     <div class="erp-panel">
       <div class="erp-panel-title">Quick Actions</div>
       <div class="d-flex gap-8" style="flex-wrap:wrap;">
-        <button class="erp-btn erp-btn-primary" onclick="openNav('member-master')"><i class="bi bi-person-plus"></i> Member Master</button>
-        <button class="erp-btn erp-btn-primary" onclick="openNav('account-master')"><i class="bi bi-folder-plus"></i> Account Master</button>
-        <button class="erp-btn erp-btn-primary" onclick="openNav('journal-voucher')"><i class="bi bi-file-earmark-plus"></i> Journal Voucher</button>
-        <button class="erp-btn erp-btn-primary" onclick="openNav('payment-entry')"><i class="bi bi-cash-stack"></i> Payment Entry</button>
-        <button class="erp-btn erp-btn-primary" onclick="openNav('member-bill')"><i class="bi bi-receipt-cutoff"></i> Generate Bills</button>
+        <button class="erp-btn erp-btn-primary" onclick="openNav('member-master')"><i class="bi bi-person-plus"></i>
+          Member Master</button>
+        <button class="erp-btn erp-btn-primary" onclick="openNav('account-master')"><i class="bi bi-folder-plus"></i>
+          Account Master</button>
+        <button class="erp-btn erp-btn-primary" onclick="openNav('journal-voucher')"><i
+            class="bi bi-file-earmark-plus"></i> Journal Voucher</button>
+        <button class="erp-btn erp-btn-primary" onclick="openNav('payment-entry')"><i class="bi bi-cash-stack"></i>
+          Payment Entry</button>
+        <button class="erp-btn erp-btn-primary" onclick="openNav('member-bill')"><i class="bi bi-receipt-cutoff"></i>
+          Generate Bills</button>
       </div>
     </div>
 
@@ -110,13 +121,34 @@
       <div class="erp-panel-title">Society Information</div>
       <table class="erp-table striped" id="socDetailTable">
         <tbody>
-          <tr><th style="width:200px;">Society Code:</th><td id="infoCode">—</td></tr>
-          <tr><th>Society Name:</th><td id="infoName" class="text-bold text-navy">—</td></tr>
-          <tr><th>Registration No:</th><td id="infoReg">—</td></tr>
-          <tr><th>Address:</th><td id="infoAddr">—</td></tr>
-          <tr><th>City / Pincode:</th><td id="infoCity">—</td></tr>
-          <tr><th>PAN / GSTIN:</th><td id="infoTax">—</td></tr>
-          <tr><th>Bank Account:</th><td id="infoBank">—</td></tr>
+          <tr>
+            <th style="width:200px;">Society Code:</th>
+            <td id="infoCode">—</td>
+          </tr>
+          <tr>
+            <th>Society Name:</th>
+            <td id="infoName" class="text-bold text-navy">—</td>
+          </tr>
+          <tr>
+            <th>Registration No:</th>
+            <td id="infoReg">—</td>
+          </tr>
+          <tr>
+            <th>Address:</th>
+            <td id="infoAddr">—</td>
+          </tr>
+          <tr>
+            <th>City / Pincode:</th>
+            <td id="infoCity">—</td>
+          </tr>
+          <tr>
+            <th>PAN / GSTIN:</th>
+            <td id="infoTax">—</td>
+          </tr>
+          <tr>
+            <th>Bank Account:</th>
+            <td id="infoBank">—</td>
+          </tr>
         </tbody>
       </table>
     </div>
@@ -127,4 +159,5 @@
   <script src="../../../assets/js/utils.js"></script>
   <script src="dashboard-home.js"></script>
 </body>
+
 </html>

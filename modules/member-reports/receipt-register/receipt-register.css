@@ -1,0 +1,178 @@
+/**
+ * receipt-register.css — Member Receipt Register (Landscape A4)
+ * Identity: Modern Slate (#334155) & Emerald (#059669)
+ */
+
+:root {
+  --rr-primary: #334155;
+  --rr-accent: #059669;
+  --rr-border: #cbd5e1;
+  --rr-border-dark: #475569;
+  --rr-text: #0f172a;
+  --rr-text-muted: #64748b;
+  --rr-bg: #ffffff;
+}
+
+@page {
+  size: A4 landscape;
+  margin: 0;
+}
+
+.rr-module-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+  background: #f1f5f9;
+  min-height: calc(100vh - 120px);
+  overflow-x: auto;
+}
+
+.rr-report-page {
+  width: 297mm;
+  min-height: 210mm;
+  background: var(--rr-bg);
+  color: var(--rr-text);
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+  font-size: 9.5px;
+  padding: 12mm 14mm 10mm 14mm;
+  box-sizing: border-box;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--rr-border);
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.rr-header {
+  border-bottom: 2px solid var(--rr-primary);
+  padding-bottom: 6px;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.rr-soc-name {
+  font-size: 13pt;
+  font-weight: 800;
+  color: var(--rr-primary);
+  text-transform: uppercase;
+}
+
+.rr-title-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--rr-primary);
+  color: #ffffff;
+  padding: 4px 10px;
+  border-radius: 3px;
+  margin-bottom: 8px;
+}
+
+.rr-doc-title {
+  font-size: 10pt;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.rr-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 8pt;
+  border: 1px solid var(--rr-border-dark);
+  margin-bottom: 8px;
+}
+
+.rr-table th {
+  background: var(--rr-primary);
+  color: #ffffff;
+  padding: 4px 6px;
+  font-weight: 700;
+  text-align: left;
+  border: 1px solid var(--rr-border-dark);
+  text-transform: uppercase;
+  font-size: 7.5pt;
+  white-space: nowrap;
+}
+
+.rr-table td {
+  padding: 3.5px 6px;
+  border: 1px solid var(--rr-border);
+}
+
+.rr-table td.center, .rr-table th.center { text-align: center; }
+.rr-table td.right, .rr-table th.right { text-align: right; }
+
+.rr-table tbody tr:nth-child(even) {
+  background: #f8fafc;
+}
+
+.rr-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  background: #f8fafc;
+  border: 1.5px solid var(--rr-primary);
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+}
+
+.rr-summary-item {
+  border-right: 1px solid #cbd5e1;
+  padding-right: 6px;
+}
+
+.rr-summary-item:last-child {
+  border-right: none;
+}
+
+.rr-summary-item .lbl {
+  font-size: 7.5pt;
+  color: var(--rr-text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.rr-summary-item .val {
+  font-size: 10pt;
+  font-weight: 800;
+  color: var(--rr-primary);
+  margin-top: 2px;
+}
+
+.rr-footer {
+  margin-top: auto;
+  border-top: 1px solid var(--rr-border);
+  padding-top: 6px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 7.5pt;
+  color: var(--rr-text-muted);
+}
+
+@media print {
+  body, html {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+  .module-top-bar, .filter-bar, .no-print, .sample-preview-badge {
+    display: none !important;
+  }
+  .rr-module-wrapper {
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+  .rr-report-page {
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 10mm 12mm !important;
+    width: 297mm !important;
+    min-height: 210mm !important;
+    page-break-after: always !important;
+    break-after: page !important;
+  }
+}

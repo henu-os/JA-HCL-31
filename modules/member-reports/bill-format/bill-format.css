@@ -1,55 +1,324 @@
-/* ═══════════════════════════════════════════════════════════
-   JEEVIKA ERP v2 — BILL FORMAT CSS (A4 Print Engine)
-   G02. Full Page - GST1 with Receipt (A4 Format)
-   ═══════════════════════════════════════════════════════════ */
+/**
+ * bill-format.css — Professional Member Bill Format (A4 GST & Standard)
+ * Identity: Deep Navy (#1E3A8A) & Crimson (#DC2626)
+ */
 
-@page {
-    size: A4 portrait;
-    margin: 0;
+:root {
+  --bill-primary: #1e3a8a;
+  --bill-primary-dark: #172554;
+  --bill-accent: #dc2626;
+  --bill-bg: #f8fafc;
+  --bill-surface: #ffffff;
+  --bill-border: #cbd5e1;
+  --bill-border-dark: #475569;
+  --bill-text: #0f172a;
+  --bill-text-muted: #64748b;
+  --bill-font: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
 }
 
-/* A4 Sheet Container */
+@page {
+  size: A4 portrait;
+  margin: 0;
+}
+
+/* Outer preview container */
+.bill-module-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+  background: #f1f5f9;
+  min-height: calc(100vh - 120px);
+  overflow-y: auto;
+}
+
+/* A4 Sheet (210mm x 297mm) */
 .bill-page {
-    width: 210mm !important;
-    max-width: 100%;
-    min-height: 297mm !important;
-    margin: 0 auto 20px auto !important;
-    background: #ffffff !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
-    border: 1px solid #cbd5e1 !important;
-    border-radius: 4px;
-    box-sizing: border-box;
-    padding: 12mm 10mm;
-    color: #000000;
-    font-family: 'Segoe UI', Arial, sans-serif;
-    font-size: 11px;
-    page-break-after: always;
-    break-after: page;
+  width: 210mm;
+  min-height: 297mm;
+  background: var(--bill-surface);
+  color: var(--bill-text);
+  font-family: var(--bill-font);
+  font-size: 11px;
+  padding: 12mm 12mm 10mm 12mm;
+  box-sizing: border-box;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--bill-border);
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.bill-page.page-break {
+  page-break-after: always;
+  break-after: page;
+}
+
+/* Sample Preview Watermark Badge */
+.sample-preview-badge {
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  color: #b45309;
+  font-weight: 700;
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 8px;
+  align-self: center;
+}
+
+/* 1. Header Section */
+.bill-header {
+  border-bottom: 2px solid var(--bill-primary);
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bill-header-left {
+  flex: 1;
+  text-align: center;
+}
+
+.bill-soc-name {
+  font-size: 15pt;
+  font-weight: 800;
+  color: var(--bill-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1.2;
+}
+
+.bill-soc-meta {
+  font-size: 8.5pt;
+  color: var(--bill-text-muted);
+  margin-top: 3px;
+  line-height: 1.3;
+}
+
+.bill-soc-reg {
+  font-size: 8.5pt;
+  font-weight: 600;
+  color: var(--bill-text);
+  margin-top: 2px;
+}
+
+/* 2. Document Title & Type */
+.bill-title-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bill-primary);
+  color: #ffffff;
+  padding: 4px 10px;
+  border-radius: 3px;
+  margin-bottom: 10px;
+}
+
+.bill-doc-title {
+  font-size: 11pt;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.bill-doc-period {
+  font-size: 9pt;
+  font-weight: 600;
+}
+
+/* 3. Meta & Member Info Grid */
+.bill-meta-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.bill-meta-box {
+  border: 1px solid var(--bill-border);
+  border-radius: 4px;
+  padding: 8px 10px;
+  background: var(--bill-bg);
+  font-size: 9pt;
+  line-height: 1.45;
+}
+
+.bill-meta-title {
+  font-size: 8pt;
+  font-weight: 800;
+  color: var(--bill-primary);
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--bill-border);
+  padding-bottom: 3px;
+  margin-bottom: 5px;
+}
+
+.bill-meta-row {
+  display: flex;
+  margin-bottom: 2px;
+}
+
+.bill-meta-label {
+  width: 105px;
+  font-weight: 600;
+  color: var(--bill-text-muted);
+}
+
+.bill-meta-val {
+  flex: 1;
+  font-weight: 600;
+  color: var(--bill-text);
+}
+
+/* 4. Charge Table */
+.bill-table-wrapper {
+  margin-bottom: 10px;
+}
+
+.bill-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9pt;
+  border: 1px solid var(--bill-border-dark);
+}
+
+.bill-table th {
+  background: var(--bill-primary);
+  color: #ffffff;
+  padding: 6px 8px;
+  font-weight: 700;
+  text-align: left;
+  border: 1px solid var(--bill-border-dark);
+  font-size: 8.5pt;
+  text-transform: uppercase;
+}
+
+.bill-table th.center, .bill-table td.center { text-align: center; }
+.bill-table th.right, .bill-table td.right { text-align: right; }
+
+.bill-table td {
+  padding: 5px 8px;
+  border: 1px solid var(--bill-border);
+  color: var(--bill-text);
+}
+
+.bill-table tbody tr:nth-child(even) {
+  background: #f8fafc;
+}
+
+/* 5. Summary & Calculations Block */
+.bill-summary-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.bill-words-box {
+  border: 1px dashed var(--bill-border-dark);
+  border-radius: 4px;
+  padding: 8px 10px;
+  background: #f1f5f9;
+  font-size: 8.5pt;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.bill-totals-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9pt;
+  border: 1px solid var(--bill-border-dark);
+}
+
+.bill-totals-table td {
+  padding: 4px 8px;
+  border: 1px solid var(--bill-border);
+}
+
+.bill-totals-table tr.grand-total {
+  background: #e2e8f0;
+  font-weight: 800;
+  font-size: 10pt;
+  color: var(--bill-primary-dark);
+  border-top: 2px solid var(--bill-primary);
+}
+
+/* 6. Payment & Bank Information */
+.bill-payment-box {
+  border: 1px solid var(--bill-border);
+  border-radius: 4px;
+  padding: 6px 10px;
+  background: #f8fafc;
+  font-size: 8pt;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+}
+
+/* 7. Footer Signatures & Terms */
+.bill-footer {
+  margin-top: auto;
+  border-top: 1px solid var(--bill-border);
+  padding-top: 8px;
+}
+
+.bill-terms {
+  font-size: 7.5pt;
+  color: var(--bill-text-muted);
+  margin-bottom: 16px;
+  line-height: 1.3;
+}
+
+.bill-signature-row {
+  display: flex;
+  justify-content: space-between;
+  text-align: center;
+  font-size: 8.5pt;
+  margin-top: 15px;
+}
+
+.bill-sig-col {
+  width: 28%;
+}
+
+.bill-sig-line {
+  border-top: 1px solid var(--bill-border-dark);
+  padding-top: 4px;
+  font-weight: 600;
+  color: var(--bill-text);
 }
 
 /* Print Rules */
 @media print {
-    body, html {
-        margin: 0 !important;
-        padding: 0 !important;
-        background: #ffffff !important;
-    }
-    .module-top-bar, 
-    .filter-bar, 
-    .no-print {
-        display: none !important;
-    }
-    .table-container,
-    .format-preview-area {
-        padding: 0 !important;
-        background: #ffffff !important;
-        overflow: visible !important;
-    }
-    .bill-page {
-        box-shadow: none !important;
-        border: none !important;
-        margin: 0 !important;
-        page-break-after: always !important;
-        break-after: page !important;
-    }
+  body, html {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+  .module-top-bar, .filter-bar, .no-print, .sample-preview-badge {
+    display: none !important;
+  }
+  .bill-module-wrapper {
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+  .bill-page {
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 10mm 12mm !important;
+    width: 210mm !important;
+    min-height: 297mm !important;
+    page-break-after: always !important;
+    break-after: page !important;
+  }
 }

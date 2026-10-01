@@ -1,330 +1,213 @@
-// ═══════════════════════════════════════════════════════════
-// JEEVIKA ERP v2 — Member Bill Register Controller
-// ═══════════════════════════════════════════════════════════
+/**
+ * bill-register.js — Member Bill Register Engine (Landscape A4)
+ * Architecture: Real ERP Backend Data + Active Published HENU OS DESIGN + Mail to Committee UX
+ */
 
-let allBills = [];
-let filteredBills = [];
-let currentSocietyName = 'SHREE SAI RESIDENCY CO-OP HSG SOC LTD';
+(function () {
+  'use strict';
 
-document.addEventListener('DOMContentLoaded', () => {
-  initSocietyInfo();
-  loadBillRegister();
-});
+  const REPORT_KEY = 'bill-register';
+  let activeDesign = null;
+  let currentReportData = null;
 
-function getApiUrl(endpoint) {
-  const base = (window.APP_CONFIG && window.APP_CONFIG.API_BASE) || 'http://localhost:5002/api';
-  return `${base}/${endpoint}`;
-}
-
-async function initSocietyInfo() {
-  try {
-    const activeSoc = sessionStorage.getItem('activeSocietyName') || localStorage.getItem('activeSocietyName');
-    if (activeSoc) {
-      currentSocietyName = activeSoc;
-    }
-    const lbl = document.getElementById('lbl-society-period');
-    if (lbl) lbl.innerHTML = `<i class="bi bi-building"></i> ${currentSocietyName} — Maintenance & Assessment Register`;
-    const prtSoc = document.getElementById('prt-soc-name');
-    if (prtSoc) prtSoc.innerText = currentSocietyName;
-  } catch (e) {}
-}
-
-async function loadBillRegister() {
-  const tbody = document.getElementById('tbl-bills-body');
-  if (tbody) tbody.innerHTML = `<tr><td colspan="16" class="col-center" style="padding:30px; color:#94a3b8;"><i class="bi bi-hourglass-split"></i> Loading Member Bill Register...</td></tr>`;
-
-  try {
-    const res = await fetch(getApiUrl('member-bills?societyId=1&fyId=1'));
-    const data = await res.json();
-
-    if (data.success && Array.isArray(data.data)) {
-      allBills = data.data;
-    } else if (Array.isArray(data)) {
-      allBills = data;
-    } else {
-      allBills = [];
-    }
-
-    populateWings();
-    applyFilters();
-  } catch (err) {
-    console.error('Failed to load bill register:', err);
-    if (tbody) tbody.innerHTML = `<tr><td colspan="16" class="col-center" style="padding:30px; color:#dc2626;">Error loading bills: ${err.message}</td></tr>`;
-  }
-}
-
-function populateWings() {
-  const wingSet = new Set();
-  allBills.forEach(b => {
-    if (b.wing) wingSet.add(b.wing.trim());
-  });
-
-  const selWing = document.getElementById('flt-wing');
-  if (selWing) {
-    const cur = selWing.value;
-    selWing.innerHTML = `<option value="ALL">-- All Wings --</option>` +
-      Array.from(wingSet).sort().map(w => `<option value="${w}">${w}</option>`).join('');
-    if (wingSet.has(cur)) selWing.value = cur;
-  }
-}
-
-function applyFilters() {
-  const bType = document.getElementById('flt-bill-type')?.value || 'ALL';
-  const wing = document.getElementById('flt-wing')?.value || 'ALL';
-  const status = document.getElementById('flt-status')?.value || 'ALL';
-  const search = (document.getElementById('flt-search')?.value || '').toLowerCase().trim();
-
-  filteredBills = allBills.filter(b => {
-    if (bType !== 'ALL' && b.billType !== bType) return false;
-    if (wing !== 'ALL' && (b.wing || '').trim() !== wing) return false;
-    
-    const paid = parseFloat(b.paidAmount) || 0;
-    const tot = parseFloat(b.totalAmount) || 0;
-    const bal = parseFloat(b.balanceAmount) || (tot - paid);
-
-    if (status === 'PAID' && bal > 0.01) return false;
-    if (status === 'UNPAID' && paid > 0) return false;
-    if (status === 'PARTIAL' && (paid <= 0 || bal <= 0.01)) return false;
-
-    if (search) {
-      const match = (b.billNo || '').toLowerCase().includes(search) ||
-                    (b.memName || b.memberName || '').toLowerCase().includes(search) ||
-                    (b.memCode || b.memberCode || '').toLowerCase().includes(search) ||
-                    (b.flatNo || '').toLowerCase().includes(search);
-      if (!match) return false;
-    }
-    return true;
-  });
-
-  renderSummary();
-  renderTable();
-}
-
-function resetFilters() {
-  if (document.getElementById('flt-bill-type')) document.getElementById('flt-bill-type').value = 'ALL';
-  if (document.getElementById('flt-wing')) document.getElementById('flt-wing').value = 'ALL';
-  if (document.getElementById('flt-status')) document.getElementById('flt-status').value = 'ALL';
-  if (document.getElementById('flt-search')) document.getElementById('flt-search').value = '';
-  applyFilters();
-}
-
-function toggleSummaryPopover(e) {
-  if (e) e.stopPropagation();
-  const p = document.getElementById('summaryPopover');
-  if (p) p.classList.toggle('show');
-}
-
-document.addEventListener('click', (e) => {
-  const p = document.getElementById('summaryPopover');
-  if (p && p.classList.contains('show') && !e.target.closest('.summary-dropdown-wrap')) {
-    p.classList.remove('show');
-  }
-});
-
-function renderSummary() {
-  let count = filteredBills.length;
-  let totPrin = 0;
-  let totArr = 0;
-  let totInt = 0;
-  let totGross = 0;
-  let totPaid = 0;
-  let totBal = 0;
-
-  filteredBills.forEach(b => {
-    const prin = parseFloat(b.principalAmount) || 0;
-    const arr = parseFloat(b.arrearsAmount) || 0;
-    const int = parseFloat(b.interestAmount) || 0;
-    const gross = parseFloat(b.totalAmount) || (prin + arr + int);
-    const paid = parseFloat(b.paidAmount) || 0;
-    const bal = parseFloat(b.balanceAmount) || (gross - paid);
-
-    totPrin += prin;
-    totArr += arr;
-    totInt += int;
-    totGross += gross;
-    totPaid += paid;
-    totBal += bal;
-  });
-
-  const bCount = document.getElementById('stat-count');
-  if (bCount) bCount.innerText = `${count} Bills`;
-  const pCount = document.getElementById('pop-count');
-  if (pCount) pCount.innerText = `${count} Bills`;
-
-  if (document.getElementById('stat-principal')) document.getElementById('stat-principal').innerText = '₹' + formatCurrency(totPrin);
-  if (document.getElementById('stat-arrears')) document.getElementById('stat-arrears').innerText = '₹' + formatCurrency(totArr);
-  if (document.getElementById('stat-interest')) document.getElementById('stat-interest').innerText = '₹' + formatCurrency(totInt);
-  if (document.getElementById('stat-gross')) document.getElementById('stat-gross').innerText = '₹' + formatCurrency(totGross);
-  if (document.getElementById('stat-paid')) document.getElementById('stat-paid').innerText = '₹' + formatCurrency(totPaid);
-  if (document.getElementById('stat-balance')) document.getElementById('stat-balance').innerText = '₹' + formatCurrency(totBal);
-}
-
-function renderTable() {
-  const tbody = document.getElementById('tbl-bills-body');
-  const tfoot = document.getElementById('tbl-bills-foot');
-  const prtTbody = document.getElementById('prt-tbody');
-  const prtTfoot = document.getElementById('prt-tfoot');
-  if (!tbody) return;
-
-  if (filteredBills.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="16" class="col-center" style="padding:30px; color:#64748b;">No maintenance bills match selected criteria.</td></tr>`;
-    if (tfoot) tfoot.innerHTML = '';
-    if (prtTbody) prtTbody.innerHTML = `<tr><td colspan="16" class="col-center">No records found.</td></tr>`;
-    return;
+  async function init() {
+    activeDesign = await HenuOsReportEngine.loadActiveDesign(REPORT_KEY);
+    HenuOsReportEngine.applyDesignToDOM(activeDesign);
+    await loadBillRegister();
   }
 
-  let html = '';
-  let prtHtml = '';
-  let totPrin = 0, totArr = 0, totInt = 0, totGross = 0, totPaid = 0, totBal = 0;
+  async function loadBillRegister() {
+    const container = document.getElementById('brContainer') || document.getElementById('reportOutputArea');
+    if (!container) return;
 
-  filteredBills.forEach((b, idx) => {
-    const prin = parseFloat(b.principalAmount) || 0;
-    const arr = parseFloat(b.arrearsAmount) || 0;
-    const int = parseFloat(b.interestAmount) || 0;
-    const gross = parseFloat(b.totalAmount) || (prin + arr + int);
-    const paid = parseFloat(b.paidAmount) || 0;
-    const bal = parseFloat(b.balanceAmount) || (gross - paid);
+    HenuOsReportEngine.renderLoading(container, 'Loading Bill Register from ERP database...');
 
-    totPrin += prin;
-    totArr += arr;
-    totInt += int;
-    totGross += gross;
-    totPaid += paid;
-    totBal += bal;
+    const ctx = HenuOsReportEngine.getSystemContext();
+    const wing = document.getElementById('filterWing')?.value?.trim() || '';
+    const member = document.getElementById('filterMember')?.value?.trim() || '';
+    const fyId = document.getElementById('filterFy')?.value || ctx.fyId;
+    const period = document.getElementById('filterPeriod')?.value || '';
 
-    let statusBadge = `<span class="badge-status badge-unpaid">Unpaid</span>`;
-    let statusText = 'UNPAID';
-    if (bal <= 0.01) {
-      statusBadge = `<span class="badge-status badge-paid">Paid</span>`;
-      statusText = 'PAID';
-    } else if (paid > 0) {
-      statusBadge = `<span class="badge-status badge-partial">Partially Paid</span>`;
-      statusText = 'PARTIAL';
+    let url = `${ctx.apiBase}/reports/member/bill-register?societyId=${ctx.societyId}&fyId=${fyId}`;
+    if (wing) url += `&wing=${encodeURIComponent(wing)}`;
+    if (member) url += `&fromMember=${encodeURIComponent(member)}`;
+    if (period) url += `&period=${encodeURIComponent(period)}`;
+
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP Error ${res.status}: ${res.statusText}`);
+      const data = await res.json();
+
+      if (!data || !data.success) {
+        throw new Error(data?.message || 'Failed to fetch bill register data.');
+      }
+
+      currentReportData = data;
+      updateKpis(data);
+
+      const bills = data.bills || [];
+      if (bills.length === 0) {
+        HenuOsReportEngine.renderEmpty(
+          container,
+          'No bill records found for the selected criteria.',
+          'Try clearing or adjusting your Wing, Member, or Financial Year filters.'
+        );
+        return;
+      }
+
+      renderBillRegister(data);
+    } catch (err) {
+      console.error('[BillRegister] Load error:', err);
+      HenuOsReportEngine.renderError(
+        container,
+        'Unable to load Bill Register data from ERP server.',
+        err.message || 'Network request failed.',
+        loadBillRegister
+      );
     }
+  }
 
-    const bDate = b.billDate ? (b.billDate.split('T')[0]) : '-';
-    const dDate = b.dueDate ? (b.dueDate.split('T')[0]) : '-';
-    const memCode = b.memCode || b.memberCode || '';
-    const memName = b.memName || b.memberName || '';
-    const flat = (b.wing ? (b.wing + '-') : '') + (b.flatNo || '');
+  function updateKpis(data) {
+    const bills = data.bills || [];
+    const countEl = document.getElementById('kpiTotalBills');
+    const taxableEl = document.getElementById('kpiTotalTaxable');
+    const taxEl = document.getElementById('kpiTotalTax');
+    const grandEl = document.getElementById('kpiGrandTotal');
 
-    html += `
+    let totalTaxable = 0, totalTax = 0, grandTotal = 0;
+    bills.forEach(b => {
+      totalTaxable += Number(b.taxable || 0);
+      totalTax += Number(b.cgst || 0) + Number(b.sgst || 0);
+      grandTotal += Number(b.total || 0);
+    });
+
+    if (countEl) countEl.textContent = bills.length;
+    if (taxableEl) taxableEl.textContent = `₹ ${HenuOsReportEngine.formatINR(totalTaxable)}`;
+    if (taxEl) taxEl.textContent = `₹ ${HenuOsReportEngine.formatINR(totalTax)}`;
+    if (grandEl) grandEl.textContent = `₹ ${HenuOsReportEngine.formatINR(grandTotal)}`;
+  }
+
+  function renderBillRegister(data) {
+    const container = document.getElementById('brContainer') || document.getElementById('reportOutputArea');
+    if (!container) return;
+
+    const society = data.society || {};
+    const bills = data.bills || [];
+
+    let totMaint = 0, totSink = 0, totPark = 0, totNonOcc = 0, totOther = 0, totArrears = 0, totTaxable = 0, totCgst = 0, totSgst = 0, totGrand = 0;
+
+    bills.forEach(b => {
+      totMaint += Number(b.maintenance || 0);
+      totSink += Number(b.sinking || 0);
+      totPark += Number(b.parking || 0);
+      totNonOcc += Number(b.nonOccupancy || 0);
+      totOther += Number(b.other || 0);
+      totArrears += Number(b.arrears || 0);
+      totTaxable += Number(b.taxable || 0);
+      totCgst += Number(b.cgst || 0);
+      totSgst += Number(b.sgst || 0);
+      totGrand += Number(b.total || 0);
+    });
+
+    const rowsHtml = bills.map((b, idx) => `
       <tr>
-        <td class="col-center">${idx + 1}</td>
-        <td><strong>${escapeHtml(b.billNo || '')}</strong></td>
-        <td class="col-center">${bDate}</td>
-        <td class="col-center">${dDate}</td>
-        <td><span style="font-weight:700; color:#2563eb;">${escapeHtml(b.billType || 'Maintenance')}</span></td>
-        <td>${escapeHtml(b.period || '-')}</td>
-        <td class="col-center"><strong>${escapeHtml(memCode)}</strong></td>
-        <td>${escapeHtml(memName)}</td>
-        <td class="col-center">${escapeHtml(flat)}</td>
-        <td class="col-right">${formatCurrency(prin)}</td>
-        <td class="col-right" style="color:#d97706;">${formatCurrency(arr)}</td>
-        <td class="col-right" style="color:#dc2626;">${formatCurrency(int)}</td>
-        <td class="col-right" style="font-weight:700; color:#0f172a;">${formatCurrency(gross)}</td>
-        <td class="col-right" style="color:#16a34a;">${formatCurrency(paid)}</td>
-        <td class="col-right" style="font-weight:700; color:#dc2626;">${formatCurrency(bal)}</td>
-        <td class="col-center">${statusBadge}</td>
+        <td class="center">${b.srNo || (idx + 1)}</td>
+        <td><strong>${HenuOsReportEngine.escapeHtml(b.billNo || '-')}</strong></td>
+        <td class="center">${HenuOsReportEngine.formatDate(b.billDate)}</td>
+        <td class="center"><b>${HenuOsReportEngine.escapeHtml(b.wing ? b.wing + '-' : '')}${HenuOsReportEngine.escapeHtml(b.flatNo || '-')}</b></td>
+        <td>${HenuOsReportEngine.escapeHtml(b.memberName || '-')}</td>
+        <td class="right">${HenuOsReportEngine.formatINR(b.maintenance)}</td>
+        <td class="right">${HenuOsReportEngine.formatINR(b.sinking)}</td>
+        <td class="right">${HenuOsReportEngine.formatINR(b.parking)}</td>
+        <td class="right">${HenuOsReportEngine.formatINR(b.nonOccupancy)}</td>
+        <td class="right">${HenuOsReportEngine.formatINR(b.arrears)}</td>
+        <td class="right">${HenuOsReportEngine.formatINR(b.taxable)}</td>
+        <td class="right">${HenuOsReportEngine.formatINR(b.cgst)}</td>
+        <td class="right">${HenuOsReportEngine.formatINR(b.sgst)}</td>
+        <td class="right"><strong>${HenuOsReportEngine.formatINR(b.total)}</strong></td>
       </tr>
+    `).join('');
+
+    const html = `
+      <div class="br-report-page henu-dynamic-document">
+        <!-- 1. Header -->
+        <div class="br-header">
+          <div class="br-soc-name">${HenuOsReportEngine.escapeHtml(society.SocietyName || society.societyName || 'CO-OPERATIVE HOUSING SOCIETY LTD.')}</div>
+          <div style="font-size:8pt; color:var(--br-text-muted);">${HenuOsReportEngine.escapeHtml(society.Address || society.address || 'Registered Society Premises')} ${society.RegistrationNo ? '| Reg: ' + HenuOsReportEngine.escapeHtml(society.RegistrationNo) : ''}</div>
+        </div>
+
+        <!-- 2. Title Bar -->
+        <div class="br-title-bar">
+          <div class="br-doc-title">MEMBER BILL REGISTER (DEMAND REGISTER)</div>
+          <div style="font-size:8.5pt; font-weight:600;">Billing Period: ${HenuOsReportEngine.escapeHtml(data.period || 'Current Period')}</div>
+        </div>
+
+        <!-- 3. Register Data Table -->
+        <table class="br-table">
+          <thead>
+            <tr>
+              <th style="width:25px;" class="center">#</th>
+              <th style="width:85px;">Bill No</th>
+              <th style="width:65px;" class="center">Date</th>
+              <th style="width:35px;" class="center">W-Fl</th>
+              <th>Member Name</th>
+              <th style="width:70px;" class="right">Maint (₹)</th>
+              <th style="width:60px;" class="right">Sinking (₹)</th>
+              <th style="width:60px;" class="right">Parking (₹)</th>
+              <th style="width:60px;" class="right">Non-Occ (₹)</th>
+              <th style="width:65px;" class="right">Arrears (₹)</th>
+              <th style="width:75px;" class="right">Taxable (₹)</th>
+              <th style="width:60px;" class="right">CGST (₹)</th>
+              <th style="width:60px;" class="right">SGST (₹)</th>
+              <th style="width:85px;" class="right">Total Bill (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHtml}
+            <tr class="br-totals-row">
+              <td colspan="5" style="text-align:right; font-weight:700;">REGISTER TOTALS:</td>
+              <td class="right">${HenuOsReportEngine.formatINR(totMaint)}</td>
+              <td class="right">${HenuOsReportEngine.formatINR(totSink)}</td>
+              <td class="right">${HenuOsReportEngine.formatINR(totPark)}</td>
+              <td class="right">${HenuOsReportEngine.formatINR(totNonOcc)}</td>
+              <td class="right">${HenuOsReportEngine.formatINR(totArrears)}</td>
+              <td class="right">${HenuOsReportEngine.formatINR(totTaxable)}</td>
+              <td class="right">${HenuOsReportEngine.formatINR(totCgst)}</td>
+              <td class="right">${HenuOsReportEngine.formatINR(totSgst)}</td>
+              <td class="right" style="font-size:8.5pt; font-weight:800;">₹ ${HenuOsReportEngine.formatINR(totGrand)}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- 4. Footer -->
+        <div class="br-footer">
+          <div>Total Bills: <b>${bills.length}</b> | Generated: ${new Date().toLocaleString('en-IN')}</div>
+          <div>Page 1 of 1</div>
+        </div>
+      </div>
     `;
 
-    prtHtml += `
-      <tr>
-        <td class="col-center">${idx + 1}</td>
-        <td>${escapeHtml(b.billNo || '')}</td>
-        <td class="col-center">${bDate}</td>
-        <td class="col-center">${dDate}</td>
-        <td>${escapeHtml(b.billType || 'Maintenance')}</td>
-        <td>${escapeHtml(b.period || '-')}</td>
-        <td class="col-center">${escapeHtml(memCode)}</td>
-        <td>${escapeHtml(memName)}</td>
-        <td class="col-center">${escapeHtml(flat)}</td>
-        <td class="col-right">${formatCurrency(prin)}</td>
-        <td class="col-right">${formatCurrency(arr)}</td>
-        <td class="col-right">${formatCurrency(int)}</td>
-        <td class="col-right"><strong>${formatCurrency(gross)}</strong></td>
-        <td class="col-right">${formatCurrency(paid)}</td>
-        <td class="col-right"><strong>${formatCurrency(bal)}</strong></td>
-        <td class="col-center">${statusText}</td>
-      </tr>
-    `;
-  });
-
-  tbody.innerHTML = html;
-  if (prtTbody) prtTbody.innerHTML = prtHtml;
-
-  const footHtml = `
-    <tr>
-      <td colspan="9" class="col-left" style="font-weight:800; text-transform:uppercase;">Grand Total (${filteredBills.length} Bills)</td>
-      <td class="col-right">${formatCurrency(totPrin)}</td>
-      <td class="col-right">${formatCurrency(totArr)}</td>
-      <td class="col-right">${formatCurrency(totInt)}</td>
-      <td class="col-right" style="color:#2563eb;">${formatCurrency(totGross)}</td>
-      <td class="col-right" style="color:#16a34a;">${formatCurrency(totPaid)}</td>
-      <td class="col-right" style="color:#dc2626;">${formatCurrency(totBal)}</td>
-      <td></td>
-    </tr>
-  `;
-  if (tfoot) tfoot.innerHTML = footHtml;
-  if (prtTfoot) prtTfoot.innerHTML = footHtml;
-}
-
-function exportBillRegisterExcel() {
-  if (typeof XLSX === 'undefined') {
-    alert('Excel library not loaded.');
-    return;
+    container.innerHTML = html;
   }
 
-  const wsData = [
-    [currentSocietyName],
-    ['MEMBER BILL REGISTER'],
-    [`Generated on: ${new Date().toLocaleDateString('en-IN')}`],
-    [],
-    ['Sr No', 'Bill No', 'Bill Date', 'Due Date', 'Bill Type', 'Period', 'Member Code', 'Member Name', 'Flat/Unit', 'Assessment (₹)', 'Arrears (₹)', 'Interest (₹)', 'Gross Billed (₹)', 'Paid (₹)', 'Balance Due (₹)', 'Status']
-  ];
+  function resetFilters() {
+    const wing = document.getElementById('filterWing');
+    const member = document.getElementById('filterMember');
+    const period = document.getElementById('filterPeriod');
+    if (wing) wing.value = '';
+    if (member) member.value = '';
+    if (period) period.value = '';
+    loadBillRegister();
+  }
 
-  filteredBills.forEach((b, idx) => {
-    const prin = parseFloat(b.principalAmount) || 0;
-    const arr = parseFloat(b.arrearsAmount) || 0;
-    const int = parseFloat(b.interestAmount) || 0;
-    const gross = parseFloat(b.totalAmount) || (prin + arr + int);
-    const paid = parseFloat(b.paidAmount) || 0;
-    const bal = parseFloat(b.balanceAmount) || (gross - paid);
-    const status = bal <= 0.01 ? 'PAID' : (paid > 0 ? 'PARTIAL' : 'UNPAID');
-    const flat = (b.wing ? (b.wing + '-') : '') + (b.flatNo || '');
+  window.loadBillRegister = loadBillRegister;
+  window.resetFilters = resetFilters;
+  window.printReport = () => window.print();
+  window.exportPdf = () => window.print();
 
-    wsData.push([
-      idx + 1,
-      b.billNo || '',
-      b.billDate ? b.billDate.split('T')[0] : '',
-      b.dueDate ? b.dueDate.split('T')[0] : '',
-      b.billType || 'Maintenance',
-      b.period || '',
-      b.memCode || b.memberCode || '',
-      b.memName || b.memberName || '',
-      flat,
-      prin,
-      arr,
-      int,
-      gross,
-      paid,
-      bal,
-      status
-    ]);
-  });
-
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet(wsData);
-  XLSX.utils.book_append_sheet(wb, ws, 'Bill Register');
-  XLSX.writeFile(wb, `Member_Bill_Register_${new Date().toISOString().split('T')[0]}.xlsx`);
-}
-
-function formatCurrency(val) {
-  return (parseFloat(val) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-function escapeHtml(text) {
-  if (!text) return '';
-  return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();

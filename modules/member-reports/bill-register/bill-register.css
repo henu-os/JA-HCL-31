@@ -1,0 +1,151 @@
+/**
+ * bill-register.css — Member Bill Register (Landscape A4)
+ * Identity: Professional Navy (#1E3A8A) & Amber (#F59E0B)
+ */
+
+:root {
+  --br-primary: #1e3a8a;
+  --br-accent: #f59e0b;
+  --br-border: #cbd5e1;
+  --br-border-dark: #334155;
+  --br-text: #0f172a;
+  --br-text-muted: #64748b;
+  --br-bg: #ffffff;
+}
+
+@page {
+  size: A4 landscape;
+  margin: 0;
+}
+
+.br-module-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+  background: #f1f5f9;
+  min-height: calc(100vh - 120px);
+  overflow-x: auto;
+}
+
+.br-report-page {
+  width: 297mm;
+  min-height: 210mm;
+  background: var(--br-bg);
+  color: var(--br-text);
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+  font-size: 9.5px;
+  padding: 12mm 14mm 10mm 14mm;
+  box-sizing: border-box;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--br-border);
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.br-header {
+  border-bottom: 2px solid var(--br-primary);
+  padding-bottom: 6px;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.br-soc-name {
+  font-size: 13pt;
+  font-weight: 800;
+  color: var(--br-primary);
+  text-transform: uppercase;
+}
+
+.br-title-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--br-primary);
+  color: #ffffff;
+  padding: 4px 10px;
+  border-radius: 3px;
+  margin-bottom: 8px;
+}
+
+.br-doc-title {
+  font-size: 10pt;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.br-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 7.5pt;
+  border: 1px solid var(--br-border-dark);
+  margin-bottom: 8px;
+}
+
+.br-table th {
+  background: var(--br-primary);
+  color: #ffffff;
+  padding: 4px 5px;
+  font-weight: 700;
+  text-align: left;
+  border: 1px solid var(--br-border-dark);
+  text-transform: uppercase;
+  font-size: 7pt;
+  white-space: nowrap;
+}
+
+.br-table td {
+  padding: 3px 5px;
+  border: 1px solid var(--br-border);
+}
+
+.br-table td.center, .br-table th.center { text-align: center; }
+.br-table td.right, .br-table th.right { text-align: right; }
+
+.br-table tbody tr:nth-child(even) {
+  background: #f8fafc;
+}
+
+.br-totals-row {
+  background: #e2e8f0 !important;
+  font-weight: 800;
+  color: var(--br-primary);
+  border-top: 2px solid var(--br-primary);
+}
+
+.br-footer {
+  margin-top: auto;
+  border-top: 1px solid var(--br-border);
+  padding-top: 6px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 7.5pt;
+  color: var(--br-text-muted);
+}
+
+@media print {
+  body, html {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+  .module-top-bar, .filter-bar, .no-print, .sample-preview-badge {
+    display: none !important;
+  }
+  .br-module-wrapper {
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+  .br-report-page {
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 10mm 12mm !important;
+    width: 297mm !important;
+    min-height: 210mm !important;
+    page-break-after: always !important;
+    break-after: page !important;
+  }
+}

@@ -1,196 +1,210 @@
-/* ═══════════════════════════════════════════════════════════
-   JEEVIKA ERP v2 — DEBIT NOTE REPORT CSS
-   Multi-Format Engine: Half Page, Full Page 14 Heads, Full Page 21 Heads
-   ═══════════════════════════════════════════════════════════ */
+/**
+ * debit-note.css — Member Debit Note (A4 Document Format)
+ * Identity: Corporate Blue (#1E40AF) & Mint (#10B981)
+ */
+
+:root {
+  --dn-primary: #1e40af;
+  --dn-accent: #10b981;
+  --dn-border: #cbd5e1;
+  --dn-border-dark: #334155;
+  --dn-text: #0f172a;
+  --dn-text-muted: #64748b;
+  --dn-bg: #ffffff;
+}
 
 @page {
-    size: A4 portrait;
-    margin: 0;
+  size: A4 portrait;
+  margin: 0;
+}
+
+.debit-module-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+  background: #f1f5f9;
+  min-height: calc(100vh - 120px);
+  overflow-y: auto;
 }
 
 .debit-note-page {
-    background: #ffffff;
-    color: #000;
-    font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
-    border: 1px solid #cbd5e1;
-    border-radius: 4px;
-    box-sizing: border-box;
-    margin: 0 auto 20px auto;
-    position: relative;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    display: flex;
-    flex-direction: column;
-    max-width: 100%;
+  width: 210mm;
+  min-height: 297mm;
+  background: var(--dn-bg);
+  color: var(--dn-text);
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+  font-size: 11px;
+  padding: 14mm 14mm 12mm 14mm;
+  box-sizing: border-box;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--dn-border);
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
 }
 
-/* Full Page 14 Heads (Standard A4) */
-.debit-note-full-14 {
-    width: 210mm !important;
-    min-height: 290mm;
-    padding: 10mm 12mm;
-    page-break-after: always;
-    break-after: page;
+.debit-note-page.page-break {
+  page-break-after: always;
+  break-after: page;
 }
 
-/* Full Page 21 Heads (Condensed A4) */
-.debit-note-full-21 {
-    width: 210mm !important;
-    min-height: 290mm;
-    padding: 8mm 10mm;
-    page-break-after: always;
-    break-after: page;
-    font-size: 10px;
+.debit-header {
+  border-bottom: 2px solid var(--dn-primary);
+  padding-bottom: 8px;
+  margin-bottom: 10px;
+  text-align: center;
 }
 
-/* Half Page */
-.debit-note-half {
-    width: 210mm !important;
-    min-height: 140mm;
-    padding: 6mm 10mm;
-    margin-bottom: 12mm;
-    page-break-inside: avoid;
-    break-inside: avoid;
+.debit-soc-name {
+  font-size: 14pt;
+  font-weight: 800;
+  color: var(--dn-primary);
+  text-transform: uppercase;
 }
 
-/* Header */
-.dn-header {
-    text-align: center;
-    border-bottom: 2px solid #000;
-    padding-bottom: 6px;
-    margin-bottom: 6px;
+.debit-soc-meta {
+  font-size: 8.5pt;
+  color: var(--dn-text-muted);
+  margin-top: 2px;
 }
 
-.dn-soc-name {
-    font-size: 15px;
-    font-weight: 800;
-    text-transform: uppercase;
-    line-height: 1.2;
+.debit-title-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--dn-primary);
+  color: #ffffff;
+  padding: 5px 12px;
+  border-radius: 3px;
+  margin-bottom: 12px;
 }
 
-.dn-soc-meta {
-    font-size: 9.5px;
-    color: #333;
-    margin-top: 2px;
+.debit-doc-title {
+  font-size: 11pt;
+  font-weight: 800;
+  letter-spacing: 1px;
 }
 
-.dn-title-box {
-    text-align: center;
-    font-size: 13px;
-    font-weight: 800;
-    letter-spacing: 1.5px;
-    text-decoration: underline;
-    margin: 4px 0 6px 0;
+.debit-meta-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
 }
 
-/* Meta Information Grid */
-.dn-meta-grid {
-    display: grid;
-    grid-template-columns: 1.4fr 1fr;
-    border: 1px solid #000;
-    margin-bottom: 6px;
-    font-size: 11px;
+.debit-meta-box {
+  border: 1px solid var(--dn-border);
+  border-radius: 4px;
+  padding: 8px 10px;
+  background: #f8fafc;
+  font-size: 9pt;
+  line-height: 1.5;
 }
 
-.dn-meta-col {
-    padding: 5px 8px;
+.debit-meta-title {
+  font-size: 8pt;
+  font-weight: 800;
+  color: var(--dn-primary);
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--dn-border);
+  padding-bottom: 3px;
+  margin-bottom: 5px;
 }
 
-.dn-meta-col:first-child {
-    border-right: 1px solid #000;
+.debit-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9pt;
+  border: 1px solid var(--dn-border-dark);
+  margin-bottom: 14px;
 }
 
-.dn-meta-row {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 3px;
+.debit-table th {
+  background: #1e3a8a;
+  color: #ffffff;
+  padding: 6px 8px;
+  font-weight: 700;
+  text-align: left;
+  border: 1px solid var(--dn-border-dark);
+  text-transform: uppercase;
+  font-size: 8.5pt;
 }
 
-/* Particulars Table */
-.dn-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 11px;
-    margin-bottom: 6px;
-    flex: 1;
+.debit-table td {
+  padding: 6px 8px;
+  border: 1px solid var(--dn-border);
 }
 
-.dn-table th, .dn-table td {
-    border: 1px solid #000;
-    padding: 4px 6px;
+.debit-table td.right, .debit-table th.right { text-align: right; }
+.debit-table td.center, .debit-table th.center { text-align: center; }
+
+.debit-summary-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #eff6ff;
+  border: 1.5px solid var(--dn-primary);
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin-bottom: 14px;
 }
 
-.dn-table th {
-    background: #f1f5f9;
-    font-weight: 700;
-    text-transform: uppercase;
-    font-size: 10px;
+.debit-status-badge {
+  background: #dcfce7;
+  border: 1px solid #86efac;
+  color: #166534;
+  font-weight: 700;
+  font-size: 8.5pt;
+  padding: 3px 8px;
+  border-radius: 3px;
 }
 
-.dn-table .col-sr { width: 35px; text-align: center; }
-.dn-table .col-desc { text-align: left; }
-.dn-table .col-amt { width: 100px; text-align: right; }
-
-.dn-table td.empty-cell {
-    height: 16px;
-    border-bottom: 1px solid #ddd;
+.debit-footer {
+  margin-top: auto;
+  border-top: 1px solid var(--dn-border);
+  padding-top: 12px;
 }
 
-/* Total & Words Block */
-.dn-total-row td {
-    font-weight: 800;
-    background: #f8fafc;
+.debit-sig-row {
+  display: flex;
+  justify-content: space-between;
+  text-align: center;
+  margin-top: 30px;
 }
 
-.dn-words-box {
-    border: 1px solid #000;
-    padding: 5px 8px;
-    font-size: 10.5px;
-    font-weight: 600;
-    margin-bottom: 6px;
-    background: #fafafa;
+.debit-sig-col {
+  width: 28%;
 }
 
-/* Footer & Signatures */
-.dn-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    margin-top: auto;
-    padding-top: 6px;
+.debit-sig-line {
+  border-top: 1px solid var(--dn-border-dark);
+  padding-top: 4px;
+  font-weight: 600;
 }
 
-.dn-sign-box {
-    text-align: center;
-    width: 180px;
-    border-top: 1px solid #000;
-    padding-top: 4px;
-    font-size: 10px;
-    font-weight: 700;
-}
-
-/* Print Rules */
 @media print {
-    body, html {
-        margin: 0 !important;
-        padding: 0 !important;
-        background: #fff !important;
-    }
-    .module-top-bar, 
-    .filter-bar, 
-    .no-print {
-        display: none !important;
-    }
-    .table-container,
-    .format-preview-area {
-        padding: 0 !important;
-        background: #fff !important;
-        overflow: visible !important;
-    }
-    .debit-note-page {
-        box-shadow: none !important;
-        border: 1.5px solid #000 !important;
-        margin: 0 !important;
-        page-break-after: always !important;
-        break-after: page !important;
-    }
+  body, html {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+  .module-top-bar, .filter-bar, .no-print, .sample-preview-badge {
+    display: none !important;
+  }
+  .debit-module-wrapper {
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+  .debit-note-page {
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 12mm 14mm !important;
+    width: 210mm !important;
+    min-height: 297mm !important;
+    page-break-after: always !important;
+    break-after: page !important;
+  }
 }

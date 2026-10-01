@@ -1,0 +1,206 @@
+/**
+ * balance-confirmation-letter.css — Annual / Audit Balance Confirmation Letter
+ * Identity: Formal Navy & Slate with Perforated Tear-off Slip
+ */
+
+:root {
+  --bac-primary: #0f172a;
+  --bac-border: #cbd5e1;
+  --bac-border-dark: #334155;
+  --bac-text: #0f172a;
+  --bac-text-muted: #475569;
+  --bac-bg: #ffffff;
+}
+
+@page {
+  size: A4 portrait;
+  margin: 0;
+}
+
+.bac-module-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+  background: #f1f5f9;
+  min-height: calc(100vh - 120px);
+  overflow-y: auto;
+}
+
+.bac-letter-page {
+  width: 210mm;
+  min-height: 297mm;
+  background: var(--bac-bg);
+  color: var(--bac-text);
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+  font-size: 10pt;
+  line-height: 1.45;
+  padding: 14mm 16mm 12mm 16mm;
+  box-sizing: border-box;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--bac-border);
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.bac-letter-page.page-break {
+  page-break-after: always;
+  break-after: page;
+}
+
+.bac-header {
+  border-bottom: 2px solid var(--bac-primary);
+  padding-bottom: 6px;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.bac-soc-name {
+  font-size: 14pt;
+  font-weight: 800;
+  color: var(--bac-primary);
+  text-transform: uppercase;
+}
+
+.bac-soc-meta {
+  font-size: 8pt;
+  color: var(--bac-text-muted);
+  margin-top: 2px;
+}
+
+.bac-ref-date-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 8.5pt;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.bac-addressee-box {
+  background: #f8fafc;
+  border: 1px solid var(--bac-border);
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  font-size: 9pt;
+}
+
+.bac-subject-line {
+  font-weight: 800;
+  font-size: 9.5pt;
+  color: var(--bac-primary);
+  text-decoration: underline;
+  margin-bottom: 8px;
+}
+
+.bac-body-para {
+  font-size: 9pt;
+  text-align: justify;
+  margin-bottom: 8px;
+}
+
+.bac-summary-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 8.5pt;
+  border: 1.5px solid var(--bac-border-dark);
+  margin-bottom: 8px;
+}
+
+.bac-summary-table th {
+  background: #f1f5f9;
+  color: var(--bac-primary);
+  padding: 5px 8px;
+  font-weight: 700;
+  text-align: left;
+  border: 1px solid var(--bac-border);
+  text-transform: uppercase;
+  font-size: 8pt;
+}
+
+.bac-summary-table td {
+  padding: 5px 8px;
+  border: 1px solid var(--bac-border);
+}
+
+.bac-summary-table td.right, .bac-summary-table th.right { text-align: right; }
+
+.bac-summary-table tr.closing-row {
+  background: #e2e8f0;
+  font-weight: 800;
+  font-size: 9.5pt;
+  color: var(--bac-primary);
+}
+
+.bac-sig-row {
+  display: flex;
+  justify-content: space-between;
+  text-align: center;
+  margin-top: 15px;
+  margin-bottom: 10px;
+}
+
+.bac-sig-col {
+  width: 28%;
+}
+
+.bac-sig-line {
+  border-top: 1px solid var(--bac-border-dark);
+  padding-top: 3px;
+  font-weight: 600;
+  font-size: 8pt;
+}
+
+/* Tear-off Confirmation Slip */
+.bac-tearoff-line {
+  border-top: 1px dashed #64748b;
+  margin: 8px 0 6px 0;
+  position: relative;
+  text-align: center;
+}
+
+.bac-tearoff-tag {
+  position: relative;
+  top: -8px;
+  background: #ffffff;
+  padding: 0 8px;
+  font-size: 7.5pt;
+  color: var(--bac-text-muted);
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.bac-ack-card {
+  border: 1px solid var(--bac-border-dark);
+  border-radius: 4px;
+  padding: 6px 10px;
+  background: #f8fafc;
+  font-size: 8pt;
+}
+
+@media print {
+  body, html {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+  .module-top-bar, .filter-bar, .no-print, .sample-preview-badge {
+    display: none !important;
+  }
+  .bac-module-wrapper {
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+  .bac-letter-page {
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 10mm 15mm !important;
+    width: 210mm !important;
+    min-height: 297mm !important;
+    page-break-after: always !important;
+    break-after: page !important;
+  }
+}

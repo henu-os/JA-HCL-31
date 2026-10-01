@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Executive Dashboard — JEEVIKA ERP</title>
+  
+  <!-- Favicon & Fonts -->
+  <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="dashboard.css">
+</head>
+
+<body class="dash-body">
+
+  <!-- ── 1. HEADER SECTION (GREETING & REAL-TIME SYNC) ────────── -->
+  <header class="dash-header-section">
+    <div class="dash-greeting-left">
+      <div class="dash-title-row">
+        <h1 class="dash-greeting-title" id="dashGreeting">Good morning, <strong>Admin</strong></h1>
+        <span class="dash-version-badge">HENU OS CLM v3.8</span>
+      </div>
+      <p class="dash-subtitle" id="dashSocietySub">Simple systems. Real progress. Here's what's happening with HENU OS CLM today.</p>
+    </div>
+
+    <div class="dash-header-right">
+      <div class="dash-sync-badge">
+        <span class="pulse-dot"></span>
+        <span style="font-weight:600; color:#0f172a;">Real-time Sync Active</span>
+        <span style="color:#cbd5e1;">•</span>
+        <span id="syncTimerText" style="color:#64748b;">Last updated just now</span>
+      </div>
+      <button class="dash-refresh-btn" id="btnRefresh" onclick="DashboardApp.loadDashboard()" title="Refresh live statistics">
+        <i class="bi bi-arrow-clockwise"></i>
+        <span>Refresh</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ── 2. QUICK ACTION PILLS ROW ────────────────────────────── -->
+  <section class="dash-actions-strip" aria-label="Quick Action Controls">
+    <button type="button" class="dash-action-pill primary" onclick="DashboardApp.openModule('member-master')">
+      <i class="bi bi-person-plus"></i>
+      <span>+ New Member</span>
+    </button>
+    <button type="button" class="dash-action-pill" onclick="DashboardApp.openModule('member-receipt')">
+      <i class="bi bi-receipt"></i>
+      <span>+ Member Receipt</span>
+    </button>
+    <button type="button" class="dash-action-pill" onclick="DashboardApp.openModule('member-bill')">
+      <i class="bi bi-receipt-cutoff"></i>
+      <span>+ Generate Bill</span>
+    </button>
+    <button type="button" class="dash-action-pill" onclick="DashboardApp.openModule('payment-entry')">
+      <i class="bi bi-cash-stack"></i>
+      <span>+ Payment Entry</span>
+    </button>
+    <button type="button" class="dash-action-pill" onclick="DashboardApp.openModule('journal-voucher')">
+      <i class="bi bi-journal-plus"></i>
+      <span>+ Journal Voucher</span>
+    </button>
+    <button type="button" class="dash-action-pill" onclick="DashboardApp.openModule('contra-entry')">
+      <i class="bi bi-arrow-left-right"></i>
+      <span>+ Contra Entry</span>
+    </button>
+    <button type="button" class="dash-action-pill" onclick="DashboardApp.openModule('debit-note')">
+      <i class="bi bi-file-earmark-diff"></i>
+      <span>+ Debit / Credit Note</span>
+    </button>
+    <button type="button" class="dash-action-pill" onclick="DashboardApp.openModule('whatsapp-inbox')">
+      <i class="bi bi-whatsapp" style="color:#25d366;"></i>
+      <span>+ WhatsApp Blast</span>
+    </button>
+  </section>
+
+  <!-- ── 3. 8 KPI METRIC CARDS (4x2 GRID) ──────────────────────── -->
+  <section class="dash-kpi-grid" aria-label="Key Performance Indicators">
+    
+    <!-- Card 1: Total Sales / Billing -->
+    <div class="dash-kpi-card" onclick="DashboardApp.openModule('mr-bill-register')">
+      <div class="dash-kpi-top">
+        <span class="dash-kpi-label">TOTAL SALES</span>
+        <span class="dash-kpi-badge trend-up" id="badgeSalesTrend"><i class="bi bi-graph-up-arrow"></i> +14.2%</span>
+      </div>
+      <div class="dash-kpi-mid">
+        <div class="dash-kpi-val" id="valTotalSales">₹48,25,400</div>
+        <div class="dash-kpi-spark">
+          <svg id="sparkSales" viewBox="0 0 76 28"></svg>
+        </div>
+      </div>
+      <div class="dash-kpi-sub" id="subSales">vs last month (₹42.2L)</div>
+    </div>
+
+    <!-- Card 2: Outstanding -->
+    <div class="dash-kpi-card" onclick="DashboardApp.openModule('mr-outstanding-list')">
+      <div class="dash-kpi-top">
+        <span class="dash-kpi-label">OUTSTANDING</span>
+        <span class="dash-kpi-badge danger" id="badgeOutstanding">8 OVERDUE</span>
+      </div>
+      <div class="dash-kpi-mid">
+        <div class="dash-kpi-val" id="valOutstanding">₹6,40,000</div>
+        <div class="dash-kpi-spark">
+          <svg id="sparkOutstanding" viewBox="0 0 76 28"></svg>
+        </div>
+      </div>
+      <div class="dash-kpi-sub" id="subOutstanding">Action required within 5d</div>
+    </div>
+
+    <!-- Card 3: Payments Received -->
+    <div class="dash-kpi-card" onclick="DashboardApp.openModule('mr-receipt-register')">
+      <div class="dash-kpi-top">
+        <span class="dash-kpi-label">PAYMENTS RECEIVED</span>
+        <span class="dash-kpi-badge info" id="badgeReceived">THIS MONTH</span>
+      </div>
+      <div class="dash-kpi-mid">
+        <div class="dash-kpi-val" id="valPaymentsReceived">₹32,80,000</div>
+        <div class="dash-kpi-spark">
+          <svg id="sparkReceived" viewBox="0 0 76 28"></svg>
+        </div>
+      </div>
+      <div class="dash-kpi-sub" id="subReceived">87% settlement through gateways</div>
+    </div>
+
+    <!-- Card 4: Conversion / Recovery Rate -->
+    <div class="dash-kpi-card" onclick="DashboardApp.openModule('ar-dues-advance-ledger')">
+      <div class="dash-kpi-top">
+        <span class="dash-kpi-label">CONVERSION RATE</span>
+        <span class="dash-kpi-badge purple" id="badgePending">24 PENDING</span>
+      </div>
+      <div class="dash-kpi-mid">
+        <div class="dash-kpi-val" id="valConversionRate">68.4%</div>
+        <div class="dash-kpi-spark">
+          <svg id="sparkConversion" viewBox="0 0 76 28"></svg>
+        </div>
+      </div>
+      <div class="dash-kpi-sub" id="subConversion">+4.8% industry average</div>
+    </div>
+
+    <!-- Card 5: Active Clients / Members -->
+    <div class="dash-kpi-card" onclick="DashboardApp.openModule('member-master')">
+      <div class="dash-kpi-top">
+        <span class="dash-kpi-label">ACTIVE CLIENTS</span>
+        <span class="dash-kpi-badge neutral" id="badgeClients">+8 this week</span>
+      </div>
+      <div class="dash-kpi-mid">
+        <div class="dash-kpi-val" id="valActiveClients">142</div>
+      </div>
+      <div class="dash-kpi-sub">98.2% enterprise retention</div>
+    </div>
+
+    <!-- Card 6: Active Services / Bank & Cash -->
+    <div class="dash-kpi-card" onclick="DashboardApp.openModule('ar-cash-bank-book')">
+      <div class="dash-kpi-top">
+        <span class="dash-kpi-label">ACTIVE SERVICES</span>
+        <span class="dash-kpi-badge neutral">In Catalogue</span>
+      </div>
+      <div class="dash-kpi-mid">
+        <div class="dash-kpi-val" id="valActiveServices">28</div>
+      </div>
+      <div class="dash-kpi-sub">Custom engineering &amp; consulting</div>
+    </div>
+
+    <!-- Card 7: Products Sold / Posted Vouchers -->
+    <div class="dash-kpi-card" onclick="DashboardApp.openModule('voucher-check')">
+      <div class="dash-kpi-top">
+        <span class="dash-kpi-label">PRODUCTS SOLD</span>
+        <span class="dash-kpi-badge neutral">Digital &amp; Source</span>
+      </div>
+      <div class="dash-kpi-mid">
+        <div class="dash-kpi-val" id="valProductsSold">315</div>
+      </div>
+      <div class="dash-kpi-sub">Licenses &amp; micro-modules</div>
+    </div>
+
+    <!-- Card 8: Orders in Pipeline -->
+    <div class="dash-kpi-card" onclick="DashboardApp.openModule('mr-outstanding-list')">
+      <div class="dash-kpi-top">
+        <span class="dash-kpi-label">ORDERS IN PIPELINE</span>
+        <span class="dash-kpi-badge neutral" id="badgePipeline">₹18.9L value</span>
+      </div>
+      <div class="dash-kpi-mid">
+        <div class="dash-kpi-val" id="valOrdersPipeline">19</div>
+      </div>
+      <div class="dash-kpi-sub">Scheduled for fulfillment</div>
+    </div>
+
+  </section>
+
+  <!-- ── 4. ANALYTICS CHART & SIDEBAR SECTION ──────────────────── -->
+  <main class="dash-content-grid">
+    
+    <!-- LEFT: Performance Analytics Chart -->
+    <section class="dash-analytics-card">
+      <div class="dash-analytics-header">
+        <div>
+          <h2 class="dash-analytics-title">Revenue &amp; Sales Performance</h2>
+          <p class="dash-analytics-sub">Real-time performance comparison vs previous cycle</p>
+        </div>
+
+        <div class="dash-chart-controls">
+          <div class="dash-legend">
+            <div class="legend-item">
+              <span class="legend-dot billed"></span>
+              <span>Current</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-dot expenses"></span>
+              <span>Target</span>
+            </div>
+          </div>
+
+          <div class="dash-time-pills">
+            <button type="button" class="time-pill-btn" data-timeframe="7D">7D</button>
+            <button type="button" class="time-pill-btn" data-timeframe="30D">30D</button>
+            <button type="button" class="time-pill-btn" data-timeframe="90D">90D</button>
+            <button type="button" class="time-pill-btn" data-timeframe="1Y">1Y</button>
+            <button type="button" class="time-pill-btn active" data-timeframe="ALL FY">FY</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Canvas Chart Container -->
+      <div class="dash-chart-container">
+        <canvas id="analyticsCanvas"></canvas>
+        <div class="chart-tooltip" id="chartTooltip"></div>
+      </div>
+
+      <!-- Chart Footnote Stats -->
+      <div class="dash-chart-footer">
+        <div class="chart-footer-stat">
+          <span class="cfs-label">Avg Monthly Billing</span>
+          <span class="cfs-val" id="statAvgBilling">₹4,02,116</span>
+        </div>
+        <div class="chart-footer-stat">
+          <span class="cfs-label">Collection Velocity</span>
+          <span class="cfs-val" style="color:#10b981;" id="statVelocity">87.4% on-time</span>
+        </div>
+        <div class="chart-footer-stat">
+          <span class="cfs-label">Operating Ratio</span>
+          <span class="cfs-val" style="color:#5b46e5;" id="statOpRatio">52.8%</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT: Pending Approvals & Live Activity Stream -->
+    <aside class="dash-side-column">
+      
+      <!-- Pending Approvals Panel -->
+      <div class="dash-panel-card">
+        <div class="dash-panel-header">
+          <div class="dash-panel-title-wrap">
+            <i class="bi bi-stars"></i>
+            <h3 class="dash-panel-title">Pending Approvals</h3>
+          </div>
+          <span class="dash-count-pill" id="pendingApprovalsCount">2 QUOTES</span>
+        </div>
+
+        <div class="dash-item-list custom-scroll" id="pendingApprovalsList">
+          <!-- Dynamic actionable items populated by dashboard.js -->
+        </div>
+      </div>
+
+      <!-- Recent Live Transactions Feed -->
+      <div class="dash-panel-card">
+        <div class="dash-panel-header">
+          <div class="dash-panel-title-wrap">
+            <i class="bi bi-activity" style="color:#5b46e5;"></i>
+            <h3 class="dash-panel-title">Live Transactions Feed</h3>
+          </div>
+          <span class="dash-kpi-badge neutral" style="font-size:10px; cursor:pointer;" onclick="DashboardApp.openModule('voucher-check')">View All</span>
+        </div>
+
+        <div class="dash-item-list custom-scroll" id="recentActivityList">
+          <!-- Dynamic recent entries populated by dashboard.js -->
+        </div>
+      </div>
+
+    </aside>
+
+  </main>
+
+  <!-- Script linkages -->
+  <script src="../../config.js"></script>
+  <script src="../../assets/js/api.js"></script>
+  <script src="../../assets/js/auth.js"></script>
+  <script src="dashboard.js"></script>
+</body>
+</html>

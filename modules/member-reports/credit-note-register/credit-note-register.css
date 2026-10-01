@@ -1,0 +1,229 @@
+/**
+ * credit-note-register.css — Member Credit Note Register (Landscape A4)
+ * Identity: Deep Emerald (#065F46) & Mint (#059669)
+ */
+
+:root {
+  --cnr-primary: #065f46;
+  --cnr-accent: #059669;
+  --cnr-border: #cbd5e1;
+  --cnr-border-dark: #047857;
+  --cnr-text: #0f172a;
+  --cnr-text-muted: #64748b;
+  --cnr-bg: #ffffff;
+}
+
+@page {
+  size: A4 landscape;
+  margin: 0;
+}
+
+.cnr-module-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+  background: #f1f5f9;
+  min-height: calc(100vh - 120px);
+  overflow-x: auto;
+}
+
+.cnr-report-page {
+  width: 297mm;
+  min-height: 210mm;
+  background: var(--cnr-bg);
+  color: var(--cnr-text);
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+  font-size: 9.5px;
+  padding: 12mm 14mm 10mm 14mm;
+  box-sizing: border-box;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--cnr-border);
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.sample-preview-badge {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px dashed #d97706;
+  padding: 4px 12px;
+  font-size: 8pt;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 8px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
+.cnr-header {
+  border-bottom: 2px solid var(--cnr-primary);
+  padding-bottom: 6px;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.cnr-soc-name {
+  font-size: 13pt;
+  font-weight: 800;
+  color: var(--cnr-primary);
+  text-transform: uppercase;
+}
+
+.cnr-soc-sub {
+  font-size: 8pt;
+  color: var(--cnr-text-muted);
+  margin-top: 2px;
+}
+
+.cnr-title-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--cnr-primary);
+  color: #ffffff;
+  padding: 4px 10px;
+  border-radius: 3px;
+  margin-bottom: 8px;
+}
+
+.cnr-doc-title {
+  font-size: 10pt;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.cnr-period-tag {
+  font-size: 8pt;
+  font-weight: 600;
+}
+
+.cnr-table-wrapper {
+  flex: 1;
+  margin-bottom: 8px;
+}
+
+.cnr-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 8pt;
+  border: 1px solid var(--cnr-border-dark);
+  margin-bottom: 8px;
+}
+
+.cnr-table th {
+  background: var(--cnr-primary);
+  color: #ffffff;
+  padding: 4px 6px;
+  font-weight: 700;
+  text-align: left;
+  border: 1px solid var(--cnr-border-dark);
+  text-transform: uppercase;
+  font-size: 7.5pt;
+  white-space: nowrap;
+}
+
+.cnr-table td {
+  padding: 4px 6px;
+  border: 1px solid var(--cnr-border);
+}
+
+.cnr-table td.center, .cnr-table th.center { text-align: center; }
+.cnr-table td.right, .cnr-table th.right { text-align: right; }
+
+.cnr-table tbody tr:nth-child(even) {
+  background: #f0fdf4;
+}
+
+.cnr-table tr.total-row {
+  background: #dcfce7;
+  font-weight: 800;
+  border-top: 2px solid var(--cnr-primary);
+  border-bottom: 2px solid var(--cnr-primary);
+}
+
+.cnr-table tr.total-row td {
+  font-size: 8.5pt;
+}
+
+.cnr-status-tag {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 7pt;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.cnr-status-tag.posted { background: #dcfce7; color: #15803d; }
+.cnr-status-tag.draft { background: #fef3c7; color: #b45309; }
+
+.cnr-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  background: #f8fafc;
+  border: 1.5px solid var(--cnr-primary);
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+}
+
+.cnr-summary-item {
+  border-right: 1px solid #cbd5e1;
+  padding-right: 6px;
+}
+
+.cnr-summary-item:last-child {
+  border-right: none;
+}
+
+.cnr-summary-item .lbl {
+  font-size: 7.5pt;
+  color: var(--cnr-text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.cnr-summary-item .val {
+  font-size: 10pt;
+  font-weight: 800;
+  color: var(--cnr-primary);
+  margin-top: 2px;
+}
+
+.cnr-footer {
+  margin-top: auto;
+  border-top: 1px solid var(--cnr-border);
+  padding-top: 6px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 7.5pt;
+  color: var(--cnr-text-muted);
+}
+
+@media print {
+  body, html {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+  .module-top-bar, .filter-bar, .no-print, .sample-preview-badge {
+    display: none !important;
+  }
+  .cnr-module-wrapper {
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+  .cnr-report-page {
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 10mm 12mm !important;
+    width: 297mm !important;
+    min-height: 210mm !important;
+    page-break-after: always !important;
+    break-after: page !important;
+  }
+}

@@ -1,264 +1,222 @@
-// ═══════════════════════════════════════════════════════════
-// JEEVIKA ERP v2 — Bank Deposit List & Pay-in Slip Controller
-// ═══════════════════════════════════════════════════════════
+/**
+ * bank-deposit-list.js — Member Bank Deposit Pay-in List Engine
+ * Connects 100% to Live ERP Database & Active HENU OS Design
+ */
 
-let allDeposits = [];
-let filteredDeposits = [];
-let currentSocietyName = 'SHREE SAI RESIDENCY CO-OP HSG SOC LTD';
+(function () {
+  'use strict';
 
-document.addEventListener('DOMContentLoaded', () => {
-  initSocietyInfo();
-  loadBankDeposits();
-});
+  const REPORT_KEY = 'MEMBER_BANK_DEPOSIT';
+  let activeDesign = null;
 
-function getApiUrl(endpoint) {
-  const base = (window.APP_CONFIG && window.APP_CONFIG.API_BASE) || 'http://localhost:5002/api';
-  return `${base}/${endpoint}`;
-}
+  document.addEventListener('DOMContentLoaded', async () => {
+    setupEventListeners();
+    activeDesign = await HenuOsReportEngine.loadActiveDesign(REPORT_KEY);
+    loadDeposits();
+  });
 
-async function initSocietyInfo() {
-  try {
-    const activeSoc = sessionStorage.getItem('activeSocietyName') || localStorage.getItem('activeSocietyName');
-    if (activeSoc) {
-      currentSocietyName = activeSoc;
+  function setupEventListeners() {
+    document.getElementById('btnRefresh')?.addEventListener('click', () => loadDeposits());
+    document.getElementById('btnApplyFilters')?.addEventListener('click', () => loadDeposits());
+    document.getElementById('btnReset')?.addEventListener('click', () => resetFilters());
+    document.getElementById('btnPrint')?.addEventListener('click', () => window.print());
+    document.getElementById('btnPdf')?.addEventListener('click', () => window.print());
+  }
+
+  function resetFilters() {
+    document.getElementById('filterBankName').value = '';
+    document.getElementById('filterPaymentMode').value = '';
+    document.getElementById('filterDateFrom').value = '';
+    document.getElementById('filterDateTo').value = '';
+    loadDeposits();
+  }
+
+  async function loadDeposits() {
+    const container = document.getElementById('bankDepositContainer');
+    const kpiStrip = document.getElementById('kpiStrip');
+    if (!container) return;
+
+    HenuOsReportEngine.renderLoading(container, 'Loading bank deposits from HENU ERP database...');
+
+    const ctx = HenuOsReportEngine.getSystemContext();
+    const bankName = document.getElementById('filterBankName')?.value?.trim() || '';
+    const paymentMode = document.getElementById('filterPaymentMode')?.value || '';
+    const fromDate = document.getElementById('filterDateFrom')?.value || '';
+    const toDate = document.getElementById('filterDateTo')?.value || '';
+
+    try {
+      const params = new URLSearchParams();
+      params.append('societyId', ctx.societyId);
+      if (ctx.fyId) params.append('fyId', ctx.fyId);
+      if (bankName) params.append('bankName', bankName);
+      if (paymentMode) params.append('paymentMode', paymentMode);
+      if (fromDate) params.append('fromDate', fromDate);
+      if (toDate) params.append('toDate', toDate);
+
+      const res = await fetch(`${HenuOsReportEngine.API_BASE}/reports/member/bank-deposit-list?${params.toString()}`);
+      if (!res.ok) {
+        throw new Error(`Server returned HTTP ${res.status}`);
+      }
+
+      const data = await res.json();
+      const deposits = data.deposits || data.items || [];
+      const society = data.society || {};
+
+      if (deposits.length === 0) {
+        HenuOsReportEngine.renderEmpty(container, 'No deposit records found for the selected bank / date criteria.');
+        if (kpiStrip) kpiStrip.style.display = 'none';
+        return;
+      }
+
+      // Update KPI strip
+      if (kpiStrip) {
+        let totChq = 0;
+        let totElec = 0;
+        let grandTot = 0;
+
+        deposits.forEach(d => {
+          const amt = d.amount || 0;
+          grandTot += amt;
+          const mode = (d.paymentMode || d.instrument || '').toUpperCase();
+          if (mode.includes('CHQ') || mode.includes('CHEQUE')) {
+            totChq += amt;
+          } else {
+            totElec += amt;
+          }
+        });
+
+        document.getElementById('kpiTotalDeposits').textContent = deposits.length;
+        document.getElementById('kpiTotalCheques').textContent = HenuOsReportEngine.formatINR(totChq);
+        document.getElementById('kpiTotalElectronic').textContent = HenuOsReportEngine.formatINR(totElec);
+        document.getElementById('kpiGrandTotal').textContent = HenuOsReportEngine.formatINR(grandTot);
+        kpiStrip.style.display = 'flex';
+      }
+
+      renderBankDepositsHTML(society, data, deposits, container);
+      HenuOsReportEngine.applyDesignToDOM(activeDesign);
+    } catch (err) {
+      console.error('[Bank Deposit List] Error loading deposits:', err);
+      HenuOsReportEngine.renderError(container, 'Unable to load deposit records from server.', () => loadDeposits());
+      if (kpiStrip) kpiStrip.style.display = 'none';
     }
-    const lbl = document.getElementById('lbl-society-period');
-    if (lbl) lbl.innerHTML = `<i class="bi bi-building"></i> ${currentSocietyName} — Cheque &amp; DD Deposit Slips`;
-    const prtSoc = document.getElementById('prt-soc-name');
-    if (prtSoc) prtSoc.innerText = currentSocietyName;
-  } catch (e) {}
-}
+  }
 
-async function loadBankDeposits() {
-  const tbody = document.getElementById('tbl-deposit-body');
-  if (tbody) tbody.innerHTML = `<tr><td colspan="10" class="col-center" style="padding:30px; color:#94a3b8;"><i class="bi bi-hourglass-split"></i> Loading Bank Deposit List...</td></tr>`;
+  function renderBankDepositsHTML(soc, data, deposits, container) {
+    const socName = soc.SocietyName || soc.societyname || soc.name || 'CO-OPERATIVE HOUSING SOCIETY LTD.';
+    const regNo = soc.RegistrationNo || soc.registrationno || '';
+    const pan = soc.PANNumber || soc.pannumber || soc.pan || '';
+    const addr = soc.Address || soc.address || '';
+    const bankName = soc.BankName || soc.bankname || 'Bank of Baroda';
+    const accNo = soc.BankAccountNo || soc.bankaccountno || '';
+    const ifsc = soc.IFSCCode || soc.ifsccode || '';
 
-  try {
-    const res = await fetch(getApiUrl('member-receipts?societyId=1&fyId=1'));
-    const data = await res.json();
+    let totCash = 0;
+    let totChq = 0;
+    let totElec = 0;
+    let grandTot = 0;
+    let trRows = '';
 
-    let list = [];
-    if (data.success && Array.isArray(data.data)) {
-      list = data.data;
-    } else if (Array.isArray(data)) {
-      list = data;
-    }
+    deposits.forEach((d, idx) => {
+      const amt = d.amount || 0;
+      grandTot += amt;
+      const mode = (d.paymentMode || d.instrument || 'Cheque').toUpperCase();
+      if (mode.includes('CASH')) totCash += amt;
+      else if (mode.includes('CHQ') || mode.includes('CHEQUE')) totChq += amt;
+      else totElec += amt;
 
-    // Filter only cheque / DD / instrument payments
-    allDeposits = list.filter(r => {
-      const pMode = (r.paymentMode || r.mode || r.voucherType || '').toLowerCase();
-      const bName = (r.cashBankName || r.bankName || '').toLowerCase();
-      if (pMode.includes('cash') || bName.includes('cash')) return false;
-      return true;
+      trRows += `
+        <tr>
+          <td class="center">${idx + 1}</td>
+          <td class="center">${HenuOsReportEngine.formatDate(d.depositDate || d.date)}</td>
+          <td class="center"><strong>${HenuOsReportEngine.escapeHtml(d.receiptNo || d.voucherNo || '-')}</strong></td>
+          <td><strong>${HenuOsReportEngine.escapeHtml(d.member || d.memberName || d.personName || '-')}</strong></td>
+          <td class="center">${HenuOsReportEngine.escapeHtml(d.flat || d.flatNo || '-')}</td>
+          <td class="center">${HenuOsReportEngine.escapeHtml(d.paymentMode || d.instrument || 'Cheque')}</td>
+          <td class="center">${HenuOsReportEngine.escapeHtml(d.chequeNo || d.instrumentNo || d.transactionRef || '-')}</td>
+          <td>${HenuOsReportEngine.escapeHtml(d.bankName || d.drawnOnBank || '-')}</td>
+          <td class="right" style="font-weight:700;">${HenuOsReportEngine.formatINR(amt)}</td>
+          <td class="center"><span style="color:#15803d; font-weight:700; font-size:7.5pt;">${HenuOsReportEngine.escapeHtml(d.clearanceStatus || d.status || 'Received')}</span></td>
+        </tr>
+      `;
     });
 
-    populateBankAccounts();
-    applyFilters();
-  } catch (err) {
-    console.error('Failed to load bank deposit list:', err);
-    if (tbody) tbody.innerHTML = `<tr><td colspan="10" class="col-center" style="padding:30px; color:#dc2626;">Error loading deposit list: ${err.message}</td></tr>`;
-  }
-}
+    container.innerHTML = `
+      <div class="bd-report-page">
+        <!-- Header -->
+        <header class="bd-header">
+          <div class="bd-soc-name">${HenuOsReportEngine.escapeHtml(socName)}</div>
+          <div class="bd-soc-meta">
+            ${regNo ? `Reg No: <strong>${HenuOsReportEngine.escapeHtml(regNo)}</strong> | ` : ''}
+            ${pan ? `PAN: <strong>${HenuOsReportEngine.escapeHtml(pan)}</strong>` : ''}
+            ${addr ? `<br>${HenuOsReportEngine.escapeHtml(addr)}` : ''}
+          </div>
+        </header>
 
-function populateBankAccounts() {
-  const bankSet = new Set();
-  allDeposits.forEach(r => {
-    const bName = r.cashBankName || r.bankName;
-    if (bName) bankSet.add(bName.trim());
-  });
+        <!-- Title Bar -->
+        <div class="bd-title-bar">
+          <div class="bd-doc-title">BANK DEPOSIT / PAY-IN LIST</div>
+          <div>Period: <strong>${data.fyLabel || 'Current FY'}</strong></div>
+        </div>
 
-  const selBank = document.getElementById('flt-bank');
-  if (selBank) {
-    const cur = selBank.value;
-    selBank.innerHTML = `<option value="ALL">-- All Bank Accounts --</option>` +
-      Array.from(bankSet).sort().map(b => `<option value="${b}">${b}</option>`).join('');
-    if (bankSet.has(cur)) selBank.value = cur;
-  }
-}
+        <!-- Bank Account Target Strip -->
+        <div class="bd-bank-info-box">
+          <div>Deposit To: <strong>${HenuOsReportEngine.escapeHtml(bankName)}</strong></div>
+          ${accNo ? `<div>Account No: <strong>${HenuOsReportEngine.escapeHtml(accNo)}</strong></div>` : ''}
+          ${ifsc ? `<div>IFSC Code: <strong>${HenuOsReportEngine.escapeHtml(ifsc)}</strong></div>` : ''}
+        </div>
 
-function applyFilters() {
-  const bank = document.getElementById('flt-bank')?.value || 'ALL';
-  const search = (document.getElementById('flt-search')?.value || '').toLowerCase().trim();
+        <!-- Deposits Table -->
+        <table class="bd-table">
+          <thead>
+            <tr>
+              <th class="center" style="width:30px;">Sr</th>
+              <th class="center" style="width:70px;">Date</th>
+              <th class="center" style="width:75px;">Receipt No</th>
+              <th>Member Name</th>
+              <th class="center" style="width:50px;">Flat</th>
+              <th class="center" style="width:65px;">Mode</th>
+              <th class="center" style="width:85px;">Inst / Ref No</th>
+              <th>Drawn On Bank</th>
+              <th class="right" style="width:95px;">Amount (₹)</th>
+              <th class="center" style="width:65px;">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${trRows}
+            <tr style="background:#e2e8f0; font-weight:800; border-top:2px solid var(--bd-primary);">
+              <td colspan="8" class="right">GRAND TOTAL DEPOSITS:</td>
+              <td class="right" style="color:var(--bd-primary); font-size:9pt;">${HenuOsReportEngine.formatINR(grandTot)}</td>
+              <td class="center">-</td>
+            </tr>
+          </tbody>
+        </table>
 
-  filteredDeposits = allDeposits.filter(r => {
-    const bName = (r.cashBankName || r.bankName || '').trim();
-    if (bank !== 'ALL' && bName !== bank) return false;
+        <!-- Summary Grid -->
+        <div class="bd-summary-grid">
+          <div class="bd-summary-item">
+            <div class="lbl">Total Cheques</div>
+            <div class="val">${HenuOsReportEngine.formatINR(totChq)}</div>
+          </div>
+          <div class="bd-summary-item">
+            <div class="lbl">Total Electronic (NEFT/UPI)</div>
+            <div class="val">${HenuOsReportEngine.formatINR(totElec)}</div>
+          </div>
+          <div class="bd-summary-item">
+            <div class="lbl">Total Cash</div>
+            <div class="val">${HenuOsReportEngine.formatINR(totCash)}</div>
+          </div>
+          <div class="bd-summary-item">
+            <div class="lbl">Grand Total Deposited</div>
+            <div class="val" style="color:var(--bd-primary);">${HenuOsReportEngine.formatINR(grandTot)}</div>
+          </div>
+        </div>
 
-    if (search) {
-      const match = (r.voucherNo || r.receiptNo || '').toLowerCase().includes(search) ||
-                    (r.personName || r.memName || r.memberName || '').toLowerCase().includes(search) ||
-                    (r.personCode || r.memCode || r.memberCode || '').toLowerCase().includes(search) ||
-                    (r.chqNo || r.chequeNo || r.refNo || '').toLowerCase().includes(search) ||
-                    (r.bankName || r.drawnOn || '').toLowerCase().includes(search);
-      if (!match) return false;
-    }
-    return true;
-  });
-
-  renderSummary();
-  renderTable();
-}
-
-function resetFilters() {
-  if (document.getElementById('flt-bank')) document.getElementById('flt-bank').value = 'ALL';
-  if (document.getElementById('flt-search')) document.getElementById('flt-search').value = '';
-  applyFilters();
-}
-
-function toggleSummaryPopover(e) {
-  if (e) e.stopPropagation();
-  const p = document.getElementById('summaryPopover');
-  if (p) p.classList.toggle('show');
-}
-
-document.addEventListener('click', (e) => {
-  const p = document.getElementById('summaryPopover');
-  if (p && p.classList.contains('show') && !e.target.closest('.summary-dropdown-wrap')) {
-    p.classList.remove('show');
-  }
-});
-
-function renderSummary() {
-  let count = filteredDeposits.length;
-  let tot = 0;
-
-  filteredDeposits.forEach(r => {
-    tot += parseFloat(r.amount) || 0;
-  });
-
-  const sCount = document.getElementById('stat-count');
-  if (sCount) sCount.innerText = `${count} Cheques`;
-  const pCount = document.getElementById('pop-count');
-  if (pCount) pCount.innerText = `${count} Cheques`;
-
-  if (document.getElementById('stat-total')) document.getElementById('stat-total').innerText = '₹' + formatCurrency(tot);
-}
-
-function renderTable() {
-  const tbody = document.getElementById('tbl-deposit-body');
-  const tfoot = document.getElementById('tbl-deposit-foot');
-  const prtTbody = document.getElementById('prt-tbody');
-  const prtTfoot = document.getElementById('prt-tfoot');
-  if (!tbody) return;
-
-  if (filteredDeposits.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="10" class="col-center" style="padding:30px; color:#64748b;">No cheques / deposit items match selected criteria.</td></tr>`;
-    if (tfoot) tfoot.innerHTML = '';
-    if (prtTbody) prtTbody.innerHTML = `<tr><td colspan="10" class="col-center">No records found.</td></tr>`;
-    return;
-  }
-
-  let html = '';
-  let prtHtml = '';
-  let totAmt = 0;
-
-  filteredDeposits.forEach((r, idx) => {
-    const amt = parseFloat(r.amount) || 0;
-    totAmt += amt;
-
-    const rDate = r.voucherDate || r.receiptDate ? (r.voucherDate || r.receiptDate).split('T')[0] : '-';
-    const cDate = r.chqDate ? r.chqDate.split('T')[0] : '-';
-    const rNo = r.voucherNo || r.receiptNo || ('REC-' + (r.voucherId || idx + 1));
-    const memCode = r.personCode || r.memCode || r.memberCode || '-';
-    const memName = r.personName || r.memName || r.memberName || '-';
-    const chq = r.chqNo || r.chequeNo || r.refNo || '-';
-    const drawn = r.bankName || r.drawnOn || '-';
-    const bankAcct = r.cashBankName || 'Society Bank Account';
-
-    html += `
-      <tr>
-        <td class="col-center">${idx + 1}</td>
-        <td><strong>${escapeHtml(rNo)}</strong></td>
-        <td class="col-center">${rDate}</td>
-        <td class="col-center"><strong>${escapeHtml(memCode)}</strong></td>
-        <td>${escapeHtml(memName)}</td>
-        <td class="col-center"><strong>${escapeHtml(chq)}</strong></td>
-        <td class="col-center">${cDate}</td>
-        <td>${escapeHtml(drawn)}</td>
-        <td>${escapeHtml(bankAcct)}</td>
-        <td class="col-right" style="color:#16a34a; font-weight:700;">${formatCurrency(amt)}</td>
-      </tr>
+        <!-- Footer -->
+        <footer class="bd-footer" style="margin-top:auto; padding-top:8px; border-top:1px solid #cbd5e1; display:flex; justify-content:space-between; font-size:7.5pt; color:#64748b;">
+          <div>Generated by HENU ERP on ${new Date().toLocaleString()}</div>
+          <div>Deposited By: ___________________ &nbsp; &nbsp; Bank Stamp: [ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ]</div>
+        </footer>
+      </div>
     `;
-
-    prtHtml += `
-      <tr>
-        <td class="col-center">${idx + 1}</td>
-        <td>${escapeHtml(rNo)}</td>
-        <td class="col-center">${rDate}</td>
-        <td class="col-center">${escapeHtml(memCode)}</td>
-        <td>${escapeHtml(memName)}</td>
-        <td class="col-center"><strong>${escapeHtml(chq)}</strong></td>
-        <td class="col-center">${cDate}</td>
-        <td>${escapeHtml(drawn)}</td>
-        <td>${escapeHtml(bankAcct)}</td>
-        <td class="col-right"><strong>${formatCurrency(amt)}</strong></td>
-      </tr>
-    `;
-  });
-
-  tbody.innerHTML = html;
-  if (prtTbody) prtTbody.innerHTML = prtHtml;
-
-  const footHtml = `
-    <tr>
-      <td colspan="9" class="col-left" style="font-weight:800; text-transform:uppercase;">Total Deposit Amount (${filteredDeposits.length} Items)</td>
-      <td class="col-right" style="color:#16a34a; font-size:12px;">₹ ${formatCurrency(totAmt)}</td>
-    </tr>
-  `;
-  if (tfoot) tfoot.innerHTML = footHtml;
-  if (prtTfoot) prtTfoot.innerHTML = footHtml;
-}
-
-function exportBankDepositExcel() {
-  if (typeof XLSX === 'undefined') {
-    alert('Excel library not loaded.');
-    return;
   }
-
-  const wsData = [
-    [currentSocietyName],
-    ['BANK DEPOSIT LIST / PAY-IN STATEMENT'],
-    [`Generated on: ${new Date().toLocaleDateString('en-IN')}`],
-    [],
-    ['Sr No', 'Receipt No', 'Receipt Date', 'Member Code', 'Member Name', 'Cheque / DD No', 'Cheque Date', 'Drawn On Bank', 'Deposited Bank', 'Amount (₹)']
-  ];
-
-  filteredDeposits.forEach((r, idx) => {
-    const amt = parseFloat(r.amount) || 0;
-    const rDate = r.voucherDate || r.receiptDate ? (r.voucherDate || r.receiptDate).split('T')[0] : '';
-    const cDate = r.chqDate ? r.chqDate.split('T')[0] : '';
-    const rNo = r.voucherNo || r.receiptNo || ('REC-' + (r.voucherId || idx + 1));
-    const memCode = r.personCode || r.memCode || r.memberCode || '';
-    const memName = r.personName || r.memName || r.memberName || '';
-    const chq = r.chqNo || r.chequeNo || r.refNo || '';
-    const drawn = r.bankName || r.drawnOn || '';
-    const bankAcct = r.cashBankName || 'Society Bank Account';
-
-    wsData.push([
-      idx + 1,
-      rNo,
-      rDate,
-      memCode,
-      memName,
-      chq,
-      cDate,
-      drawn,
-      bankAcct,
-      amt
-    ]);
-  });
-
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet(wsData);
-  XLSX.utils.book_append_sheet(wb, ws, 'Deposit List');
-  XLSX.writeFile(wb, `Bank_Deposit_List_${new Date().toISOString().split('T')[0]}.xlsx`);
-}
-
-function formatCurrency(val) {
-  return (parseFloat(val) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-function escapeHtml(text) {
-  if (!text) return '';
-  return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
+})();

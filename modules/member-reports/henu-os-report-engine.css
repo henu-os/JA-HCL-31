@@ -1,0 +1,265 @@
+/**
+ * henu-os-report-engine.css — HENU ERP Central Design System & Report Workspace Styles
+ * Modeled after Mail to Committee UI/UX standards
+ */
+
+:root {
+  --erp-primary: #1565C0;
+  --erp-primary-hover: #0D47A1;
+  --erp-primary-light: #E3F2FD;
+  --erp-success: #2E7D32;
+  --erp-danger: #C62828;
+  --erp-warning: #EF6C00;
+  --erp-bg-page: #F8FAFC;
+  --erp-bg-card: #FFFFFF;
+  --erp-border: #CBD5E1;
+  --erp-border-dark: #334155;
+  --erp-text: #0F172A;
+  --erp-text-muted: #64748B;
+  --erp-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body.erp-module {
+  font-family: var(--erp-font);
+  background-color: var(--erp-bg-page);
+  color: var(--erp-text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  font-size: 13px;
+}
+
+/* 1. Top Header Bar */
+.module-top-bar {
+  background: #FFFFFF;
+  border-bottom: 1px solid var(--erp-border);
+  padding: 10px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.module-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--erp-primary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  letter-spacing: 0.3px;
+}
+
+.module-title i {
+  font-size: 18px;
+}
+
+.top-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.btn-top {
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid var(--erp-border);
+  background: #FFFFFF;
+  color: var(--erp-text);
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.btn-top:hover {
+  background: #F1F5F9;
+  border-color: #94A3B8;
+}
+
+.btn-top-primary {
+  background: var(--erp-primary);
+  color: #FFFFFF;
+  border-color: var(--erp-primary);
+}
+
+.btn-top-primary:hover {
+  background: var(--erp-primary-hover);
+}
+
+.btn-top-success {
+  background: var(--erp-success);
+  color: #FFFFFF;
+  border-color: var(--erp-success);
+}
+
+.btn-top-success:hover {
+  background: #1B5E20;
+}
+
+/* 2. Filter Strip */
+.filter-strip {
+  background: #FFFFFF;
+  border-bottom: 1px solid var(--erp-border);
+  padding: 10px 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.filter-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--erp-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.filter-input, .filter-select {
+  height: 32px;
+  padding: 4px 10px;
+  font-size: 12.5px;
+  font-family: inherit;
+  border: 1px solid var(--erp-border);
+  border-radius: 4px;
+  background: #FFFFFF;
+  color: var(--erp-text);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.filter-input:focus, .filter-select:focus {
+  border-color: var(--erp-primary);
+  box-shadow: 0 0 0 2px rgba(21, 101, 192, 0.15);
+}
+
+/* 3. Summary / KPI Strip */
+.kpi-summary-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 20px;
+  background: #F1F5F9;
+  border-bottom: 1px solid var(--erp-border);
+}
+
+.kpi-pill {
+  background: #FFFFFF;
+  border: 1px solid var(--erp-border);
+  border-radius: 4px;
+  padding: 6px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.kpi-pill .kpi-lbl {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--erp-text-muted);
+  text-transform: uppercase;
+}
+
+.kpi-pill .kpi-val {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--erp-primary);
+}
+
+/* 4. Main Viewport & Preview Area */
+.report-viewport {
+  flex: 1;
+  padding: 20px;
+  background: #F8FAFC;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Empty, Loading, and Error States */
+.erp-loading-state, .erp-empty-state, .erp-error-state {
+  width: 100%;
+  max-width: 600px;
+  background: #FFFFFF;
+  border: 1px solid var(--erp-border);
+  border-radius: 6px;
+  padding: 40px 20px;
+  text-align: center;
+  margin: 40px auto;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.erp-loading-state i {
+  font-size: 36px;
+  color: var(--erp-primary);
+  display: inline-block;
+  animation: erp-spin 1s linear infinite;
+  margin-bottom: 12px;
+}
+
+@keyframes erp-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.erp-empty-state i {
+  font-size: 40px;
+  color: #94A3B8;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.erp-error-state i {
+  font-size: 40px;
+  color: var(--erp-danger);
+  display: block;
+  margin-bottom: 12px;
+}
+
+.state-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--erp-text);
+  margin-bottom: 4px;
+}
+
+.state-subtitle {
+  font-size: 12px;
+  color: var(--erp-text-muted);
+}
+
+/* Print Rules */
+@media print {
+  body, html {
+    background: #FFFFFF !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  .module-top-bar, .filter-strip, .kpi-summary-strip, .no-print {
+    display: none !important;
+  }
+  .report-viewport {
+    padding: 0 !important;
+    background: #FFFFFF !important;
+  }
+}

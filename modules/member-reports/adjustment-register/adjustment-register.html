@@ -5,107 +5,74 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Adjustment Register — JEEVIKA ERP</title>
   <script src="../../../config.js"></script>
-  <script src="../../../assets/js/xlsx-js-style.bundle.js"></script>
   <link rel="stylesheet" href="../../../assets/css/global.css">
   <link rel="stylesheet" href="../../../assets/css/components.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <link rel="stylesheet" href="../member-reports-grid.css">
+  <link rel="stylesheet" href="../henu-os-report-engine.css">
+  <link rel="stylesheet" href="adjustment-register.css">
 </head>
 <body class="erp-module">
 
-  <!-- PRINT ONLY HEADER -->
-  <div class="print-header">
-    <div style="text-align:center;">
-      <h2 style="margin:0; font-size:16px; font-weight:900; color:#0f172a;" id="prt-soc-name">SHREE SAI RESIDENCY CO-OP HSG SOC LTD</h2>
-      <div style="font-size:12px; font-weight:700; margin-top:2px;">MEMBER ADJUSTMENT REGISTER</div>
-      <div style="font-size:11px; color:#475569; margin-top:2px;">
-        Financial Year: <span id="prt-fy" style="font-weight:bold;">FY 2026-2027</span> | Date: <span id="prt-date-stamp" style="font-weight:bold;">30/09/2026</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- TOP MODULE BAR -->
-  <div class="module-top-bar">
+  <!-- TOP ACTION BAR (Mail to Committee standard) -->
+  <div class="module-top-bar no-print">
     <div class="module-title">
-      <i class="bi bi-arrow-left-right" style="color:var(--primary);"></i>
+      <i class="bi bi-sliders" style="color:var(--ar-primary, #6366f1);"></i>
       <span>Member Adjustment Register</span>
     </div>
-    <div class="d-flex gap-6" style="display:flex; gap:6px;">
-      <button class="btn-top" onclick="exportAdjustmentRegisterExcel()"><i class="bi bi-file-earmark-spreadsheet"></i> Export Excel</button>
-      <button class="btn-top" onclick="window.print()"><i class="bi bi-printer"></i> Print</button>
-      <button class="btn-top primary" onclick="loadAdjustments()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+    <div class="top-actions">
+      <button class="btn-top" onclick="printReport()"><i class="bi bi-printer"></i> Print</button>
+      <button class="btn-top" onclick="exportPdf()"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
+      <button class="btn-top primary" onclick="loadAdjustmentRegister()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+      <button class="btn-top" onclick="resetFilters()"><i class="bi bi-x-circle"></i> Reset</button>
     </div>
   </div>
 
-  <!-- FILTERS PANEL -->
-  <div class="filter-bar">
-    <div class="filter-row">
-      <div class="filter-item" style="width:130px;">
-        <label class="filter-lbl">Financial Year</label>
-        <select id="flt-fy" class="filter-input" onchange="loadAdjustments()">
-          <option value="2026-2027" selected>FY 2026-2027</option>
-          <option value="2025-2026">FY 2025-2026</option>
-        </select>
-      </div>
+  <!-- FILTER STRIP -->
+  <div class="filter-strip no-print">
+    <div class="filter-group">
+      <label class="filter-label">From Date</label>
+      <input type="date" id="fromDate" class="filter-control">
+    </div>
 
-      <div class="filter-item" style="min-width:180px; flex:1; max-width:300px;">
-        <label class="filter-lbl">Search Voucher / Member / Reason</label>
-        <input type="text" id="flt-search" class="filter-input" placeholder="🔍 Search Adjustment, Member..." onkeyup="applyFilters()">
-      </div>
+    <div class="filter-group">
+      <label class="filter-label">To Date</label>
+      <input type="date" id="toDate" class="filter-control">
+    </div>
 
-      <!-- Summary Pop-over -->
-      <div class="filter-item summary-dropdown-wrap">
-        <label class="filter-lbl">Adjustment Summary</label>
-        <button type="button" class="summary-dropdown-btn" id="btnSummaryToggle" onclick="toggleSummaryPopover(event)">
-          <i class="bi bi-pie-chart-fill" style="color:var(--primary); font-size:11px;"></i>
-          <span>Summary</span>
-          <span style="font-size:10px; font-weight:700; color:#0369a1; background:#e0f2fe; padding:1px 6px; border-radius:10px;" id="stat-count">0 Vouchers</span>
-          <i class="bi bi-chevron-down" style="font-size:9.5px; color:#64748b;"></i>
-        </button>
+    <div class="filter-group" style="width:100px;">
+      <label class="filter-label">Wing</label>
+      <input type="text" id="wing" class="filter-control" placeholder="All">
+    </div>
 
-        <div class="summary-popover" id="summaryPopover">
-          <div class="summary-popover-head">
-            <div style="font-size:11.5px; font-weight:800; color:#0f172a; display:flex; align-items:center; gap:6px;">
-              <i class="bi bi-bar-chart-line-fill" style="color:var(--primary);"></i> Adjustment Summary
-            </div>
-            <span style="font-size:10px; font-weight:700; color:#0369a1; background:#e0f2fe; padding:1px 6px; border-radius:10px;" id="pop-count">0 Vouchers</span>
-          </div>
+    <div class="filter-group" style="flex:1; min-width:180px;">
+      <label class="filter-label">Member Search</label>
+      <input type="text" id="fromMember" class="filter-control" placeholder="Search member name...">
+    </div>
 
-          <div class="summary-popover-grid">
-            <div class="pop-card full-width" style="background:#fffbeb;">
-              <div style="display:flex; justify-content:space-between; align-items:center;">
-                <span class="pop-lbl" style="color:#92400e;">Total Adjusted Amount</span>
-                <span class="pop-val" id="stat-total" style="font-size:13px; margin:0; color:#b45309;">₹0.00</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div class="filter-group" style="align-self:flex-end;">
+      <button class="btn-top primary" onclick="loadAdjustmentRegister()"><i class="bi bi-funnel"></i> Apply Filter</button>
     </div>
   </div>
 
-  <!-- TABLE CONTAINER -->
-  <div class="table-container">
-    <table class="ledger-grid" id="tbl-adj">
-      <thead>
-        <tr>
-          <th class="text-center" style="width:40px;">#</th>
-          <th>Voucher No</th>
-          <th class="text-center">Date</th>
-          <th class="text-center">Member Code</th>
-          <th>Member Name</th>
-          <th>Particular / Account</th>
-          <th class="text-right">Adjusted Amount (₹)</th>
-          <th>Narration / Purpose</th>
-        </tr>
-      </thead>
-      <tbody id="tbl-adj-body">
-        <tr><td colspan="8" class="text-center" style="padding: 30px; color: #94a3b8;"><i class="bi bi-hourglass-split"></i> Loading Adjustment Register...</td></tr>
-      </tbody>
-      <tfoot id="tbl-adj-foot"></tfoot>
-    </table>
+  <!-- KPI SUMMARY STRIP -->
+  <div class="kpi-summary-strip no-print">
+    <div class="kpi-pill">
+      <span class="kpi-pill-label">Total Adjustments:</span>
+      <span class="kpi-pill-value" id="kpiTotalCount">0</span>
+    </div>
+    <div class="kpi-pill primary">
+      <span class="kpi-pill-label">Total Adjusted Amount:</span>
+      <span class="kpi-pill-value" id="kpiTotalAmount">₹ 0.00</span>
+    </div>
   </div>
 
+  <!-- MAIN REPORT CONTAINER -->
+  <div class="ar-module-wrapper report-document-viewport" id="arContainer">
+    <!-- Rendered dynamically from live ERP data -->
+  </div>
+
+  <script src="../henu-os-report-engine.js"></script>
   <script src="adjustment-register.js"></script>
 </body>
 </html>

@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="../../../assets/css/global.css">
   <link rel="stylesheet" href="../../../assets/css/components.css">
   <link rel="stylesheet" href="balance-sheet.css?v=20260928_1720">
+  <link rel="stylesheet" href="henu-os-template.css?v=20261001">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 </head>
 
@@ -17,6 +18,15 @@
   <!-- ── Top Action & Filter Toolbar ───────────────────────────────────────── -->
   <div class="bs-toolbar">
     <div class="bs-filter-group">
+      <div class="bs-filter-item" style="display:flex; align-items:center; gap:6px;">
+        <label class="erp-toggle-switch">
+          <input type="checkbox" id="chk-template-toggle" checked onchange="onTemplateToggleChange()">
+          <span class="erp-toggle-slider"></span>
+        </label>
+        <span id="lbl-template-name" style="font-size:11.5px; font-weight:800; color:#4338ca; cursor:pointer;"
+          onclick="document.getElementById('chk-template-toggle').click()">HENU OS FORMATE</span>
+      </div>
+
       <div class="bs-filter-item">
         <label for="bs-as-on-date"><i class="bi bi-calendar3"></i> As On Date:</label>
         <input type="date" id="bs-as-on-date" class="bs-input fy-date" style="width:125px;">
@@ -35,7 +45,8 @@
           <input type="checkbox" id="chk-voucher-no" checked onchange="renderBalanceSheetView()">
           <span class="erp-toggle-slider"></span>
         </label>
-        <span style="font-size:11.5px; font-weight:700; color:#334155; cursor:pointer;" onclick="document.getElementById('chk-voucher-no').click()">Voucher No.</span>
+        <span style="font-size:11.5px; font-weight:700; color:#334155; cursor:pointer;"
+          onclick="document.getElementById('chk-voucher-no').click()">Voucher No.</span>
       </div>
 
       <div class="bs-filter-item" style="display:flex; align-items:center; gap:6px;">
@@ -43,7 +54,8 @@
           <input type="checkbox" id="chk-member-breakup" checked onchange="toggleMemberBreakup()">
           <span class="erp-toggle-slider"></span>
         </label>
-        <span style="font-size:11.5px; font-weight:700; color:#334155; cursor:pointer;" onclick="document.getElementById('chk-member-breakup').click()">Member Dues Breakup</span>
+        <span style="font-size:11.5px; font-weight:700; color:#334155; cursor:pointer;"
+          onclick="document.getElementById('chk-member-breakup').click()">Member Dues Breakup</span>
       </div>
     </div>
 
@@ -62,7 +74,11 @@
 
   <!-- ── Scrollable Body Area ───────────────────────────────────────────── -->
   <div class="bs-scroll-wrapper">
-    <div class="bs-report-container">
+    <!-- HENU OS FORMATE Container -->
+    <div id="bs-henu-os-container"></div>
+
+    <!-- Existing Template Container -->
+    <div id="bs-existing-container" class="bs-report-container" style="display:none;">
 
       <!-- Society Header -->
       <div class="bs-header">
@@ -99,13 +115,17 @@
             </tr>
             <!-- Clean Single-Tier Column Headers -->
             <tr class="bs-col-header-row">
-              <th class="bs-col-header col-prev text-center col-amount" id="th-prev-liab">31/03/2025<br>Amount (<span class="erp-currency-sym" style="font-size:9.5px;">₹</span>)</th>
+              <th class="bs-col-header col-prev text-center col-amount" id="th-prev-liab">31/03/2025<br>Amount (<span
+                  class="erp-currency-sym" style="font-size:9.5px;">₹</span>)</th>
               <th class="bs-col-header text-center" colspan="2" id="th-liab-title">Liabilities</th>
-              <th class="bs-col-header text-center bs-side-divider col-amount" id="th-cur-liab">31/03/2026<br>Amount (<span class="erp-currency-sym" style="font-size:9.5px;">₹</span>)</th>
+              <th class="bs-col-header text-center bs-side-divider col-amount" id="th-cur-liab">31/03/2026<br>Amount
+                (<span class="erp-currency-sym" style="font-size:9.5px;">₹</span>)</th>
 
-              <th class="bs-col-header col-prev text-center col-amount" id="th-prev-asset">31/03/2025<br>Amount (<span class="erp-currency-sym" style="font-size:9.5px;">₹</span>)</th>
+              <th class="bs-col-header col-prev text-center col-amount" id="th-prev-asset">31/03/2025<br>Amount (<span
+                  class="erp-currency-sym" style="font-size:9.5px;">₹</span>)</th>
               <th class="bs-col-header text-center" colspan="2" id="th-asset-title">Assets</th>
-              <th class="bs-col-header text-center col-amount" id="th-cur-asset">31/03/2026<br>Amount (<span class="erp-currency-sym" style="font-size:9.5px;">₹</span>)</th>
+              <th class="bs-col-header text-center col-amount" id="th-cur-asset">31/03/2026<br>Amount (<span
+                  class="erp-currency-sym" style="font-size:9.5px;">₹</span>)</th>
             </tr>
           </thead>
           <tbody id="bsTBody">
@@ -166,7 +186,8 @@
   <script src="../../../assets/js/api.js?v=20260928_1700"></script>
   <script src="../../../assets/js/auth.js?v=20260928_1700"></script>
   <script src="../../../assets/js/utils.js?v=20260928_1700"></script>
-  <script src="balance-sheet.js?v=20260928_1720"></script>
+  <script src="henu-os-template.js?v=20261001"></script>
+  <script src="balance-sheet.js?v=20261001"></script>
 </body>
 
 </html>

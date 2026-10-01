@@ -3,157 +3,83 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Balance Confirmation Letter — JEEVIKA ERP</title>
+  <title>Balance Confirmation Letter — HENU ERP</title>
   <script src="../../../config.js"></script>
-  <script src="../../../assets/js/xlsx-js-style.bundle.js"></script>
-  <link rel="stylesheet" href="../../../assets/css/global.css">
-  <link rel="stylesheet" href="../../../assets/css/components.css">
+  <link rel="stylesheet" href="../../../assets/vendor/bootstrap-icons/bootstrap-icons.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-  <link rel="stylesheet" href="../member-reports-grid.css">
-  <style>
-    .letter-preview-sheet {
-      background: #ffffff;
-      border: 1px solid #cbd5e1;
-      border-radius: 6px;
-      padding: 30px 36px;
-      margin: 16px auto;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-      page-break-after: always;
-      max-width: 800px;
-    }
-    .letter-header { text-align: center; border-bottom: 2px solid #0f172a; padding-bottom: 8px; margin-bottom: 16px; }
-    .letter-soc-title { font-size: 16px; font-weight: 900; color: #0f172a; text-transform: uppercase; margin-bottom: 2px; }
-    .letter-soc-sub { font-size: 10px; color: #475569; }
-    .letter-meta { display: flex; justify-content: space-between; margin-bottom: 16px; font-size: 11px; font-weight: 600; }
-    .letter-title-badge { text-align: center; font-size: 13px; font-weight: 800; text-transform: uppercase; text-decoration: underline; margin: 14px 0; color: #0f172a; }
-    .letter-body { font-size: 11.5px; line-height: 1.5; color: #1e293b; margin-bottom: 16px; }
-    .letter-table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 11px; }
-    .letter-table th, .letter-table td { border: 1px solid #94a3b8; padding: 6px 10px; }
-    .letter-table th { background: #f1f5f9; font-weight: 700; text-align: left; }
-    .letter-sign-block { display: flex; justify-content: space-between; margin-top: 30px; padding-top: 15px; font-size: 11px; }
-    .letter-ack-slip { border-top: 1.5px dashed #64748b; margin-top: 24px; padding-top: 16px; }
-
-    @media print {
-      body.erp-module { overflow: visible; height: auto; }
-      .letter-preview-sheet { border: none !important; box-shadow: none !important; padding: 0 !important; margin: 0 !important; }
-    }
-  </style>
+  <link rel="stylesheet" href="../henu-os-report-engine.css">
+  <link rel="stylesheet" href="balance-confirmation-letter.css">
 </head>
 <body class="erp-module">
 
-  <!-- TOP MODULE BAR -->
-  <div class="module-top-bar">
+  <!-- Top Header Bar -->
+  <header class="module-top-bar">
     <div class="module-title">
-      <i class="bi bi-envelope-paper-fill" style="color:var(--primary);"></i>
-      <span>Balance Confirmation Letter</span>
+      <i class="bi bi-envelope-paper text-primary"></i>
+      <span>Member Reports ➔ Balance Confirmation Letter (Audit Confirmation Statement)</span>
     </div>
-    <div class="d-flex gap-6" style="display:flex; gap:6px;">
-      <button class="btn-top" onclick="exportConfirmationSummaryExcel()"><i class="bi bi-file-earmark-spreadsheet"></i> Export Summary</button>
-      <button class="btn-top" onclick="window.print()"><i class="bi bi-printer"></i> Print Batch Letters</button>
-      <button class="btn-top primary" onclick="loadConfirmationData()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+    <div class="top-actions">
+      <button class="btn-top" id="btnRefresh" title="Reload from Server">
+        <i class="bi bi-arrow-clockwise"></i> Refresh
+      </button>
+      <button class="btn-top" id="btnReset" title="Reset Filters">
+        <i class="bi bi-x-circle"></i> Reset
+      </button>
+      <button class="btn-top btn-top-primary" id="btnPrint" title="Print Letters">
+        <i class="bi bi-printer"></i> Print
+      </button>
+      <button class="btn-top btn-top-success" id="btnPdf" title="Export PDF">
+        <i class="bi bi-file-earmark-pdf"></i> Export PDF
+      </button>
     </div>
-  </div>
+  </header>
 
-  <!-- FILTERS PANEL -->
-  <div class="filter-bar">
-    <div class="filter-row">
-      <div class="filter-item" style="width:120px;">
-        <label class="filter-lbl">Wing</label>
-        <select id="flt-wing" class="filter-input" onchange="applyFilters()">
-          <option value="ALL">-- All Wings --</option>
-        </select>
-      </div>
+  <!-- Filter Strip -->
+  <div class="filter-strip">
+    <div class="filter-group" style="min-width:200px; flex:1; max-width:300px;">
+      <label class="filter-label">Select Member:</label>
+      <select class="filter-select" id="filterMember">
+        <option value="">-- All Members --</option>
+      </select>
+    </div>
 
-      <div class="filter-item" style="width:170px;">
-        <label class="filter-lbl">Filter Balance</label>
-        <select id="flt-bal-type" class="filter-input" onchange="applyFilters()">
-          <option value="ALL">All Members</option>
-          <option value="DUES" selected>Only Members with Dues (> ₹0)</option>
-          <option value="ADVANCE">Only Members with Advance (&lt; ₹0)</option>
-          <option value="NIL">Nil Balance (₹0)</option>
-        </select>
-      </div>
+    <div class="filter-group" style="width:100px;">
+      <label class="filter-label">Wing:</label>
+      <input type="text" class="filter-input" id="filterWing" placeholder="All">
+    </div>
 
-      <div class="filter-item" style="width:160px;">
-        <label class="filter-lbl">View Mode</label>
-        <select id="flt-view-mode" class="filter-input" onchange="toggleViewMode()">
-          <option value="LETTERS" selected>Printable Letter Preview</option>
-          <option value="TABLE">Summary Table View</option>
-        </select>
-      </div>
+    <div class="filter-group" style="width:140px;">
+      <label class="filter-label">As on Date:</label>
+      <input type="date" class="filter-input" id="filterAsOnDate">
+    </div>
 
-      <div class="filter-item" style="min-width:180px; flex:1; max-width:280px;">
-        <label class="filter-lbl">Search Member / Flat</label>
-        <input type="text" id="flt-search" class="filter-input" placeholder="🔍 Search Member, Flat..." onkeyup="applyFilters()">
-      </div>
-
-      <!-- Summary Pop-over -->
-      <div class="filter-item summary-dropdown-wrap">
-        <label class="filter-lbl">Confirmation Summary</label>
-        <button type="button" class="summary-dropdown-btn" id="btnSummaryToggle" onclick="toggleSummaryPopover(event)">
-          <i class="bi bi-pie-chart-fill" style="color:var(--primary); font-size:11px;"></i>
-          <span>Summary</span>
-          <span style="font-size:10px; font-weight:700; color:#0369a1; background:#e0f2fe; padding:1px 6px; border-radius:10px;" id="stat-count">0 Letters</span>
-          <i class="bi bi-chevron-down" style="font-size:9.5px; color:#64748b;"></i>
-        </button>
-
-        <div class="summary-popover" id="summaryPopover">
-          <div class="summary-popover-head">
-            <div style="font-size:11.5px; font-weight:800; color:#0f172a; display:flex; align-items:center; gap:6px;">
-              <i class="bi bi-bar-chart-line-fill" style="color:var(--primary);"></i> Audit Summary
-            </div>
-            <span style="font-size:10px; font-weight:700; color:#0369a1; background:#e0f2fe; padding:1px 6px; border-radius:10px;" id="pop-count">0 Letters</span>
-          </div>
-
-          <div class="summary-popover-grid">
-            <div class="pop-card">
-              <span class="pop-lbl">Members with Dues</span>
-              <span class="pop-val debit" id="stat-dr-count">0</span>
-            </div>
-            <div class="pop-card">
-              <span class="pop-lbl">Members in Advance</span>
-              <span class="pop-val credit" id="stat-cr-count">0</span>
-            </div>
-            <div class="pop-card full-width" style="background:#fef2f2;">
-              <div style="display:flex; justify-content:space-between; align-items:center;">
-                <span class="pop-lbl" style="color:#991b1b;">Total Collectible Dues</span>
-                <span class="pop-val debit" id="stat-total-dues" style="font-size:13px; margin:0;">₹0.00</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div class="filter-group" style="align-self:flex-end;">
+      <button class="btn-top btn-top-primary" id="btnApplyFilters">
+        <i class="bi bi-funnel"></i> Apply
+      </button>
     </div>
   </div>
 
-  <!-- SUMMARY TABLE VIEW -->
-  <div class="table-container" id="panel-table-view" style="display: none;">
-    <table class="ledger-grid" id="tbl-summary">
-      <thead>
-        <tr>
-          <th class="text-center" style="width:40px;">#</th>
-          <th class="text-center">Member Code</th>
-          <th>Member Name</th>
-          <th class="text-center">Wing</th>
-          <th class="text-center">Flat No</th>
-          <th class="text-center">Contact No</th>
-          <th class="text-right">Opening (₹)</th>
-          <th class="text-right">Billed (₹)</th>
-          <th class="text-right">Paid (₹)</th>
-          <th class="text-right">Closing Balance (₹)</th>
-          <th class="text-center">Action</th>
-        </tr>
-      </thead>
-      <tbody id="tbl-summary-body"></tbody>
-      <tfoot id="tbl-summary-foot"></tfoot>
-    </table>
+  <!-- KPI / Summary Strip -->
+  <div class="kpi-summary-strip" id="kpiStrip" style="display:none;">
+    <div class="kpi-pill">
+      <span class="kpi-lbl">Total Confirmation Letters:</span>
+      <span class="kpi-val" id="kpiTotalLetters">0</span>
+    </div>
+    <div class="kpi-pill">
+      <span class="kpi-lbl">Total Outstanding Balance:</span>
+      <span class="kpi-val" id="kpiTotalOutstanding" style="color:var(--bac-primary);">₹0.00</span>
+    </div>
   </div>
 
-  <!-- PRINTABLE LETTERS CONTAINER -->
-  <div class="table-container" id="panel-letters-view" style="background:#f8fafc; padding:10px;">
-    <div id="letters-container"></div>
-  </div>
+  <!-- Main Viewport -->
+  <main class="report-viewport">
+    <div id="letterContainer" style="width:100%; display:flex; flex-direction:column; align-items:center;">
+      <!-- Dynamic Confirmation Letters rendered here -->
+    </div>
+  </main>
 
+  <script src="../henu-os-report-engine.js"></script>
   <script src="balance-confirmation-letter.js"></script>
 </body>
 </html>

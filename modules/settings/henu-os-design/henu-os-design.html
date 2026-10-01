@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HENU OS — Member Reports Designs</title>
+  <script src="../../../config.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="../../member-reports/henu-os-report-engine.css">
+  <link rel="stylesheet" href="../../member-reports/member-reports-grid.css">
+  <link rel="stylesheet" href="../../member-reports/bill-format/bill-format.css">
+  <link rel="stylesheet" href="../../member-reports/receipt/receipt.css">
+  <link rel="stylesheet" href="../../member-reports/debit-note/debit-note.css">
+  <link rel="stylesheet" href="../../member-reports/credit-note/credit-note.css">
+  <link rel="stylesheet" href="../../member-reports/adjustment/adjustment.css">
+  <link rel="stylesheet" href="../../member-reports/member-control-account/member-control-account.css">
+  <link rel="stylesheet" href="../../member-reports/balance-confirmation-letter/balance-confirmation-letter.css">
+  <link rel="stylesheet" href="../../member-reports/bank-deposit-list/bank-deposit-list.css">
+  <link rel="stylesheet" href="../../member-reports/data-sheet/data-sheet.css">
+  <link rel="stylesheet" href="../../member-reports/bill-register/bill-register.css">
+  <link rel="stylesheet" href="../../member-reports/receipt-register/receipt-register.css">
+  <link rel="stylesheet" href="../../member-reports/debit-note-register/debit-note-register.css">
+  <link rel="stylesheet" href="../../member-reports/credit-note-register/credit-note-register.css">
+  <link rel="stylesheet" href="../../member-reports/adjustment-register/adjustment-register.css">
+  <link rel="stylesheet" href="../../member-reports/member-jv-register/member-jv-register.css">
+  <link rel="stylesheet" href="henu-os-design.css">
+</head>
+<body class="hod-body">
+
+  <!-- 1. TOP HEADER BAR -->
+  <header class="hod-header-bar">
+    <div class="hod-brand">
+      <i class="bi bi-palette-fill" style="color:var(--hod-primary); font-size:18px;"></i>
+      <span>HENU OS</span>
+      <span class="hod-brand-badge">Member Reports Designs</span>
+      <span style="color:#94a3b8; margin: 0 4px;">•</span>
+      <span class="hod-module-crumb" id="activeModuleCrumb">
+        <i class="bi bi-file-earmark-text" id="crumbIcon"></i>
+        <span id="crumbText">Bill Format</span>
+      </span>
+      <span id="designStatusBadge" style="font-size:10px; font-weight:700; padding:2px 8px; border-radius:4px; margin-left:8px; background:#dcfce7; color:#166534; border:1px solid #bbf7d0;">
+        ACTIVE DESIGN
+      </span>
+    </div>
+
+    <div class="hod-header-actions">
+      <button class="hod-btn" onclick="resetToDefault()"><i class="bi bi-arrow-counterclockwise"></i> Reset to Default</button>
+      <button class="hod-btn" onclick="saveDraft()"><i class="bi bi-save"></i> Save Draft</button>
+      <button class="hod-btn primary" onclick="publishActive()"><i class="bi bi-send-check"></i> Publish Active</button>
+    </div>
+  </header>
+
+  <!-- 2. MODULE TABS BAR (18 Modules) -->
+  <nav class="hod-module-tabs-wrapper">
+    <button class="hod-tab-nav-btn" onclick="scrollModuleTabs(-180)"><i class="bi bi-chevron-left"></i></button>
+    <div class="hod-module-tabs-strip" id="moduleTabsStrip">
+      <!-- 18 Tabs Injected Dynamically by henu-os-design.js -->
+    </div>
+    <button class="hod-tab-nav-btn" onclick="scrollModuleTabs(180)"><i class="bi bi-chevron-right"></i></button>
+  </nav>
+
+  <!-- 3. MAIN WORKSPACE 2-PANE STAGE -->
+  <main class="hod-workspace">
+
+    <!-- LEFT PANE: CATEGORIES & STRUCTURED SETTINGS -->
+    <aside class="hod-settings-pane">
+      <!-- Category Tabs Strip -->
+      <div class="hod-category-strip" id="categoryTabsStrip">
+        <!-- Injected Dynamically by JS -->
+      </div>
+
+      <!-- Settings Form Scroll Container -->
+      <div class="hod-settings-form-scroll" id="settingsFormContainer">
+        <!-- Injected Dynamically by JS -->
+      </div>
+    </aside>
+
+    <!-- RIGHT PANE: LIVE REACTIVE PREVIEW -->
+    <section class="hod-preview-pane">
+      <div class="hod-preview-header">
+        <div class="hod-preview-title">
+          <i class="bi bi-eye-fill" style="color:var(--hod-primary);"></i>
+          <span>Live Document Preview</span>
+          <span style="font-weight:400; color:var(--hod-text-muted); font-size:11px;" id="previewStateSub">(Real ERP Data • Current Active Design)</span>
+        </div>
+        <div style="display:flex; gap:6px; align-items:center;">
+          <button class="hod-btn" id="btnToggleTestData" style="padding:3px 10px; font-size:11px;" onclick="toggleTestData()"><i class="bi bi-flask"></i> <span id="lblTestData">Test Data</span></button>
+          <button class="hod-btn" style="padding:3px 8px; font-size:11px;" onclick="refreshPreview()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+          <button class="hod-btn" style="padding:3px 8px; font-size:11px;" onclick="testPrint()"><i class="bi bi-printer"></i> Test Print</button>
+        </div>
+      </div>
+
+      <div class="hod-preview-viewport" id="previewViewport">
+        <!-- Live Document Sheet Rendered Here -->
+        <div class="hod-doc-sheet" id="previewSheet">
+          <!-- Document Content Injected Dynamically -->
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div class="hod-toast" id="hodToast">
+    <i class="bi bi-check-circle-fill"></i>
+    <span id="hodToastText">Operation successful</span>
+  </div>
+
+  <script src="../../member-reports/henu-os-report-engine.js"></script>
+  <script src="henu-os-design.js"></script>
+</body>
+</html>

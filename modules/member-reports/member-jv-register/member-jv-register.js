@@ -1,226 +1,274 @@
-// ═══════════════════════════════════════════════════════════
-// JEEVIKA ERP v2 — Member JV Register Controller
-// ═══════════════════════════════════════════════════════════
+/**
+ * member-jv-register.js — Member Journal Voucher (JV) Register Engine (Landscape A4)
+ * Architecture: Real ERP Backend Data + Multi-line JV Grouping + Variance Reconciliation + Mail to Committee UX
+ */
 
-let allJVs = [];
-let filteredJVs = [];
-let currentSocietyName = 'SHREE SAI RESIDENCY CO-OP HSG SOC LTD';
+(function () {
+  'use strict';
 
-document.addEventListener('DOMContentLoaded', () => {
-  initSocietyInfo();
-  loadMemberJVs();
-});
+  const REPORT_KEY = 'member-jv-register';
+  let activeDesign = null;
+  let currentReportData = null;
 
-function getApiUrl(endpoint) {
-  const base = (window.APP_CONFIG && window.APP_CONFIG.API_BASE) || 'http://localhost:5002/api';
-  return `${base}/${endpoint}`;
-}
-
-async function initSocietyInfo() {
-  try {
-    const activeSoc = sessionStorage.getItem('activeSocietyName') || localStorage.getItem('activeSocietyName');
-    if (activeSoc) {
-      currentSocietyName = activeSoc;
-    }
-    const lbl = document.getElementById('lbl-society-period');
-    if (lbl) lbl.innerHTML = `<i class="bi bi-building"></i> ${currentSocietyName} — Member Journal Vouchers`;
-    const prtSoc = document.getElementById('prt-soc-name');
-    if (prtSoc) prtSoc.innerText = currentSocietyName;
-  } catch (e) {}
-}
-
-async function loadMemberJVs() {
-  const tbody = document.getElementById('tbl-jv-body');
-  if (tbody) tbody.innerHTML = `<tr><td colspan="8" class="col-center" style="padding:30px; color:#94a3b8;"><i class="bi bi-hourglass-split"></i> Loading Member JVs...</td></tr>`;
-
-  try {
-    const res = await fetch(getApiUrl('vouchers/register?societyId=1&fyId=1&type=Journal'));
-    const data = await res.json();
-
-    if (data.success && Array.isArray(data.data)) {
-      allJVs = data.data;
-    } else if (Array.isArray(data)) {
-      allJVs = data;
-    } else {
-      allJVs = [];
-    }
-
-    applyFilters();
-  } catch (err) {
-    console.error('Failed to load member JVs:', err);
-    if (tbody) tbody.innerHTML = `<tr><td colspan="8" class="col-center" style="padding:30px; color:#dc2626;">Error loading member JVs: ${err.message}</td></tr>`;
-  }
-}
-
-function applyFilters() {
-  const search = (document.getElementById('flt-search')?.value || '').toLowerCase().trim();
-
-  filteredJVs = allJVs.filter(j => {
-    if (search) {
-      const match = (j.voucherNo || '').toLowerCase().includes(search) ||
-                    (j.personName || j.memName || '').toLowerCase().includes(search) ||
-                    (j.personCode || j.memCode || '').toLowerCase().includes(search) ||
-                    (j.narration || '').toLowerCase().includes(search) ||
-                    (j.particular1 || '').toLowerCase().includes(search);
-      if (!match) return false;
-    }
-    return true;
-  });
-
-  renderSummary();
-  renderTable();
-}
-
-function resetFilters() {
-  if (document.getElementById('flt-search')) document.getElementById('flt-search').value = '';
-  applyFilters();
-}
-
-function toggleSummaryPopover(e) {
-  if (e) e.stopPropagation();
-  const p = document.getElementById('summaryPopover');
-  if (p) p.classList.toggle('show');
-}
-
-document.addEventListener('click', (e) => {
-  const p = document.getElementById('summaryPopover');
-  if (p && p.classList.contains('show') && !e.target.closest('.summary-dropdown-wrap')) {
-    p.classList.remove('show');
-  }
-});
-
-function renderSummary() {
-  let count = filteredJVs.length;
-  let tot = 0;
-
-  filteredJVs.forEach(j => {
-    tot += parseFloat(j.amount) || 0;
-  });
-
-  const sCount = document.getElementById('stat-count');
-  if (sCount) sCount.innerText = `${count} JVs`;
-  const pCount = document.getElementById('pop-count');
-  if (pCount) pCount.innerText = `${count} JVs`;
-
-  if (document.getElementById('stat-total')) document.getElementById('stat-total').innerText = '₹' + formatCurrency(tot);
-}
-
-function renderTable() {
-  const tbody = document.getElementById('tbl-jv-body');
-  const tfoot = document.getElementById('tbl-jv-foot');
-  const prtTbody = document.getElementById('prt-tbody');
-  const prtTfoot = document.getElementById('prt-tfoot');
-  if (!tbody) return;
-
-  if (filteredJVs.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" class="col-center" style="padding:30px; color:#64748b;">No member journal entries match selected criteria.</td></tr>`;
-    if (tfoot) tfoot.innerHTML = '';
-    if (prtTbody) prtTbody.innerHTML = `<tr><td colspan="8" class="col-center">No records found.</td></tr>`;
-    return;
+  async function init() {
+    initDateFilters();
+    activeDesign = await HenuOsReportEngine.loadActiveDesign(REPORT_KEY);
+    HenuOsReportEngine.applyDesignToDOM(activeDesign);
+    await loadJVRegister();
   }
 
-  let html = '';
-  let prtHtml = '';
-  let totAmt = 0;
+  function initDateFilters() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    
+    const fromEl = document.getElementById('fromDate');
+    const toEl = document.getElementById('toDate');
+    
+    if (fromEl && !fromEl.value) fromEl.value = `${y}-04-01`;
+    if (toEl && !toEl.value) toEl.value = `${y}-${m}-${d}`;
+  }
 
-  filteredJVs.forEach((j, idx) => {
-    const amt = parseFloat(j.amount) || 0;
-    totAmt += amt;
+  async function loadJVRegister() {
+    const container = document.getElementById('jvContainer') || document.getElementById('reportOutputArea');
+    if (!container) return;
 
-    const jDate = j.voucherDate ? j.voucherDate.split('T')[0] : '-';
-    const vNo = j.voucherNo || ('JV-' + (j.voucherId || idx + 1));
-    const memCode = j.personCode || j.memCode || '-';
-    const memName = j.personName || j.memName || 'Member Journal Entry';
-    const part = j.particular1 || j.cashBankName || 'Member Ledger Account';
-    const narr = j.narration || 'Year-end / audit adjustment';
+    HenuOsReportEngine.renderLoading(container, 'Loading Member JV Register from ERP database...');
 
-    html += `
-      <tr>
-        <td class="col-center">${idx + 1}</td>
-        <td><strong>${escapeHtml(vNo)}</strong></td>
-        <td class="col-center">${jDate}</td>
-        <td class="col-center"><strong>${escapeHtml(memCode)}</strong></td>
-        <td>${escapeHtml(memName)}</td>
-        <td>${escapeHtml(part)}</td>
-        <td class="col-right" style="color:#2563eb; font-weight:700;">${formatCurrency(amt)}</td>
-        <td><span style="color:#64748b; font-size:10.5px;">${escapeHtml(narr)}</span></td>
-      </tr>
+    const ctx = HenuOsReportEngine.getSystemContext();
+    const fromDate = document.getElementById('fromDate')?.value || '';
+    const toDate = document.getElementById('toDate')?.value || '';
+    const wing = document.getElementById('wing')?.value?.trim() || '';
+    const member = document.getElementById('fromMember')?.value?.trim() || '';
+
+    let url = `${ctx.apiBase}/reports/member/member-jv-register?societyId=${ctx.societyId}&fyId=${ctx.fyId}`;
+    if (fromDate) url += `&fromDate=${encodeURIComponent(fromDate)}`;
+    if (toDate) url += `&toDate=${encodeURIComponent(toDate)}`;
+    if (wing) url += `&wing=${encodeURIComponent(wing)}`;
+    if (member) url += `&fromMember=${encodeURIComponent(member)}`;
+
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP Error ${res.status}: ${res.statusText}`);
+      const data = await res.json();
+
+      if (!data || !data.success) {
+        throw new Error(data?.message || 'Failed to fetch member JV register data.');
+      }
+
+      currentReportData = data;
+      const jvs = data.jvs || data.items || [];
+      updateKpis(jvs);
+
+      if (jvs.length === 0) {
+        HenuOsReportEngine.renderEmpty(
+          container,
+          'No journal voucher records found for the selected criteria.',
+          'Try adjusting your Date, Wing, or Member filters.'
+        );
+        return;
+      }
+
+      renderJVRegister(data);
+    } catch (err) {
+      console.error('[JVRegister] Load error:', err);
+      HenuOsReportEngine.renderError(
+        container,
+        'Unable to load Member JV Register data from ERP server.',
+        err.message || 'Network request failed.',
+        loadJVRegister
+      );
+    }
+  }
+
+  function updateKpis(jvs) {
+    let totalDebit = 0;
+    let totalCredit = 0;
+
+    jvs.forEach(jv => {
+      const lines = jv.lines || [jv];
+      lines.forEach(line => {
+        totalDebit += Number(line.debit || line.debitAmount || 0);
+        totalCredit += Number(line.credit || line.creditAmount || 0);
+      });
+    });
+
+    const variance = Math.abs(totalDebit - totalCredit);
+    const isMatched = variance < 0.01;
+
+    const countEl = document.getElementById('kpiTotalJvs');
+    const drEl = document.getElementById('kpiTotalDebit');
+    const crEl = document.getElementById('kpiTotalCredit');
+    const varEl = document.getElementById('kpiVariance');
+    const statusEl = document.getElementById('kpiStatus');
+    const pillEl = document.getElementById('kpiStatusPill');
+
+    if (countEl) countEl.textContent = jvs.length;
+    if (drEl) drEl.textContent = `₹ ${HenuOsReportEngine.formatINR(totalDebit)}`;
+    if (crEl) crEl.textContent = `₹ ${HenuOsReportEngine.formatINR(totalCredit)}`;
+    if (varEl) varEl.textContent = `₹ ${HenuOsReportEngine.formatINR(variance)}`;
+    if (statusEl) {
+      statusEl.textContent = isMatched ? 'MATCHED' : 'UNBALANCED';
+      statusEl.style.color = isMatched ? '#166534' : '#b91c1c';
+      statusEl.style.fontWeight = '800';
+    }
+    if (pillEl) {
+      pillEl.className = isMatched ? 'kpi-pill' : 'kpi-pill primary';
+    }
+  }
+
+  function renderJVRegister(data) {
+    const container = document.getElementById('jvContainer') || document.getElementById('reportOutputArea');
+    if (!container) return;
+
+    const soc = data.society || {};
+    const jvs = data.jvs || data.items || [];
+
+    let totalDebit = 0;
+    let totalCredit = 0;
+    let rowsHtml = '';
+
+    jvs.forEach((jv, jvIdx) => {
+      const lines = jv.lines || [jv];
+      const jvNo = jv.jvNumber || jv.jvNo || jv.voucherNo || `JV-${1000 + jvIdx}`;
+      const date = jv.date || jv.voucherDate || '';
+      const unit = jv.flatNo || jv.unit || '';
+      const wing = jv.wing ? jv.wing + '-' : '';
+      const memberName = jv.memberName || jv.residentName || '-';
+      const narration = jv.narration || '';
+
+      lines.forEach((line, lineIdx) => {
+        const dr = Number(line.debit || line.debitAmount || 0);
+        const cr = Number(line.credit || line.creditAmount || 0);
+        totalDebit += dr;
+        totalCredit += cr;
+
+        const isFirst = lineIdx === 0;
+        const groupClass = isFirst ? 'jv-group-start' : '';
+
+        rowsHtml += `
+          <tr class="${groupClass}">
+            ${isFirst ? `<td class="center" rowspan="${lines.length}" style="font-weight:700; vertical-align:top;">${HenuOsReportEngine.escapeHtml(jvNo)}</td>` : ''}
+            ${isFirst ? `<td class="center" rowspan="${lines.length}" style="vertical-align:top;">${HenuOsReportEngine.formatDate(date)}</td>` : ''}
+            ${isFirst ? `<td class="center" rowspan="${lines.length}" style="vertical-align:top;"><b>${HenuOsReportEngine.escapeHtml(wing + unit)}</b></td>` : ''}
+            ${isFirst ? `<td rowspan="${lines.length}" style="vertical-align:top;"><strong>${HenuOsReportEngine.escapeHtml(memberName)}</strong></td>` : ''}
+            <td>${HenuOsReportEngine.escapeHtml(line.ledgerHead || line.accountHead || 'General Ledger')}</td>
+            <td class="right" style="${dr > 0 ? 'font-weight:700;' : 'color:#94a3b8;'}">${dr > 0 ? HenuOsReportEngine.formatINR(dr) : '-'}</td>
+            <td class="right" style="${cr > 0 ? 'font-weight:700;' : 'color:#94a3b8;'}">${cr > 0 ? HenuOsReportEngine.formatINR(cr) : '-'}</td>
+          </tr>
+        `;
+      });
+
+      if (narration) {
+        rowsHtml += `
+          <tr class="jv-narration-row">
+            <td colspan="7" style="background:#f8fafc; font-size:7.5pt; color:#475569; padding:4px 8px;">
+              <span style="font-weight:700; color:#1e293b;">Narration:</span> ${HenuOsReportEngine.escapeHtml(narration)}
+            </td>
+          </tr>
+        `;
+      }
+    });
+
+    const variance = Math.abs(totalDebit - totalCredit);
+    const isMatched = variance < 0.01;
+
+    const fromDate = document.getElementById('fromDate')?.value || '';
+    const toDate = document.getElementById('toDate')?.value || '';
+
+    const html = `
+      <div class="jv-report-page henu-dynamic-document">
+        <header class="jv-header">
+          <div class="jv-soc-name">${HenuOsReportEngine.escapeHtml(soc.SocietyName || soc.name || 'CO-OPERATIVE HOUSING SOCIETY LTD.')}</div>
+          <div class="jv-soc-sub">
+            ${soc.RegistrationNo ? 'Reg. No: ' + HenuOsReportEngine.escapeHtml(soc.RegistrationNo) + ' | ' : ''}
+            ${soc.Address || soc.address || 'Registered Society Premises'}
+          </div>
+        </header>
+
+        <div class="jv-title-bar">
+          <div class="jv-doc-title">MEMBER JOURNAL VOUCHER (JV) REGISTER</div>
+          <div class="jv-period-tag">Period: ${HenuOsReportEngine.formatDate(fromDate)} to ${HenuOsReportEngine.formatDate(toDate)}</div>
+        </div>
+
+        <div class="jv-table-wrapper">
+          <table class="jv-table">
+            <thead>
+              <tr>
+                <th class="center" style="width:85px;">JV No</th>
+                <th class="center" style="width:75px;">Date</th>
+                <th class="center" style="width:55px;">Unit</th>
+                <th style="width:160px;">Member Name</th>
+                <th>Ledger Head</th>
+                <th class="right" style="width:105px;">Debit (₹)</th>
+                <th class="right" style="width:105px;">Credit (₹)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+              <tr class="total-row">
+                <td colspan="5" class="right" style="font-weight:700;">GRAND TOTAL:</td>
+                <td class="right" style="color:var(--jv-primary); font-weight:800;">₹ ${HenuOsReportEngine.formatINR(totalDebit)}</td>
+                <td class="right" style="color:var(--jv-primary); font-weight:800;">₹ ${HenuOsReportEngine.formatINR(totalCredit)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="jv-summary-grid">
+          <div class="jv-summary-item">
+            <div class="lbl">Total Debit</div>
+            <div class="val">₹ ${HenuOsReportEngine.formatINR(totalDebit)}</div>
+          </div>
+          <div class="jv-summary-item">
+            <div class="lbl">Total Credit</div>
+            <div class="val">₹ ${HenuOsReportEngine.formatINR(totalCredit)}</div>
+          </div>
+          <div class="jv-summary-item">
+            <div class="lbl">Variance (Dr - Cr)</div>
+            <div class="val" style="color:${isMatched ? '#166534' : '#b91c1c'}; font-weight:800;">
+              ₹ ${HenuOsReportEngine.formatINR(variance)}
+            </div>
+          </div>
+          <div class="jv-summary-item" style="display:flex; flex-direction:column; justify-content:center; align-items:flex-start;">
+            <div class="lbl">Reconciliation Status</div>
+            <div style="margin-top:4px;">
+              <span class="jv-variance-badge ${isMatched ? 'matched' : 'unbalanced'}" style="padding:4px 8px; border-radius:4px; font-weight:800; font-size:8pt; background:${isMatched ? '#dcfce7' : '#fee2e2'}; color:${isMatched ? '#166534' : '#b91c1c'};">
+                <i class="bi ${isMatched ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill'}"></i>
+                ${isMatched ? 'MATCHED' : 'UNBALANCED'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <footer class="jv-footer">
+          <div>Generated by JEEVIKA ERP on ${new Date().toLocaleString('en-IN')}</div>
+          <div>Page 1 of 1</div>
+        </footer>
+      </div>
     `;
 
-    prtHtml += `
-      <tr>
-        <td class="col-center">${idx + 1}</td>
-        <td>${escapeHtml(vNo)}</td>
-        <td class="col-center">${jDate}</td>
-        <td class="col-center">${escapeHtml(memCode)}</td>
-        <td>${escapeHtml(memName)}</td>
-        <td>${escapeHtml(part)}</td>
-        <td class="col-right"><strong>${formatCurrency(amt)}</strong></td>
-        <td>${escapeHtml(narr)}</td>
-      </tr>
-    `;
-  });
-
-  tbody.innerHTML = html;
-  if (prtTbody) prtTbody.innerHTML = prtHtml;
-
-  const footHtml = `
-    <tr>
-      <td colspan="6" class="col-left" style="font-weight:800; text-transform:uppercase;">Total Member JVs (${filteredJVs.length})</td>
-      <td class="col-right" style="color:#2563eb; font-size:12px;">₹ ${formatCurrency(totAmt)}</td>
-      <td></td>
-    </tr>
-  `;
-  if (tfoot) tfoot.innerHTML = footHtml;
-  if (prtTfoot) prtTfoot.innerHTML = footHtml;
-}
-
-function exportMemberJvRegisterExcel() {
-  if (typeof XLSX === 'undefined') {
-    alert('Excel library not loaded.');
-    return;
+    container.innerHTML = html;
   }
 
-  const wsData = [
-    [currentSocietyName],
-    ['MEMBER JV REGISTER'],
-    [`Generated on: ${new Date().toLocaleDateString('en-IN')}`],
-    [],
-    ['Sr No', 'JV No', 'Date', 'Member Code', 'Member Name', 'Particular / Account', 'Amount (₹)', 'Narration']
-  ];
+  function resetFilters() {
+    const wing = document.getElementById('wing');
+    const member = document.getElementById('fromMember');
+    if (wing) wing.value = '';
+    if (member) member.value = '';
+    initDateFilters();
+    loadJVRegister();
+  }
 
-  filteredJVs.forEach((j, idx) => {
-    const amt = parseFloat(j.amount) || 0;
-    const jDate = j.voucherDate ? j.voucherDate.split('T')[0] : '';
-    const vNo = j.voucherNo || ('JV-' + (j.voucherId || idx + 1));
-    const memCode = j.personCode || j.memCode || '';
-    const memName = j.personName || j.memName || '';
-    const part = j.particular1 || j.cashBankName || '';
-    const narr = j.narration || '';
+  window.loadJVRegister = loadJVRegister;
+  window.resetFilters = resetFilters;
+  window.printReport = () => window.print();
+  window.exportPdf = () => window.print();
 
-    wsData.push([
-      idx + 1,
-      vNo,
-      jDate,
-      memCode,
-      memName,
-      part,
-      amt,
-      narr
-    ]);
-  });
-
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet(wsData);
-  XLSX.utils.book_append_sheet(wb, ws, 'Member JVs');
-  XLSX.writeFile(wb, `Member_JV_Register_${new Date().toISOString().split('T')[0]}.xlsx`);
-}
-
-function formatCurrency(val) {
-  return (parseFloat(val) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-function escapeHtml(text) {
-  if (!text) return '';
-  return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();

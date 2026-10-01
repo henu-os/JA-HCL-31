@@ -3,112 +3,85 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Member Data Sheet — JEEVIKA ERP</title>
+  <title>DATA SHEET — HENU ERP</title>
   <script src="../../../config.js"></script>
-  <script src="../../../assets/js/xlsx-js-style.bundle.js"></script>
-  <link rel="stylesheet" href="../../../assets/css/global.css">
-  <link rel="stylesheet" href="../../../assets/css/components.css">
+  <link rel="stylesheet" href="../../../assets/vendor/bootstrap-icons/bootstrap-icons.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-  <link rel="stylesheet" href="../member-reports-grid.css">
+  <link rel="stylesheet" href="../henu-os-report-engine.css">
+  <link rel="stylesheet" href="data-sheet.css">
 </head>
 <body class="erp-module">
 
-  <!-- PRINT ONLY HEADER -->
-  <div class="print-header">
-    <div style="text-align:center;">
-      <h2 style="margin:0; font-size:16px; font-weight:900; color:#0f172a;" id="prt-soc-name">SHREE SAI RESIDENCY CO-OP HSG SOC LTD</h2>
-      <div style="font-size:12px; font-weight:700; margin-top:2px;">MEMBER DATA SHEET &amp; MASTER ROSTER</div>
-      <div style="font-size:11px; color:#475569; margin-top:2px;">
-        <span id="prt-wing-lbl">Wing: ALL WINGS</span> | Date: <span id="prt-date-stamp" style="font-weight:bold;">30/09/2026</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- TOP MODULE BAR -->
-  <div class="module-top-bar">
+  <!-- Top Header Bar -->
+  <header class="module-top-bar">
     <div class="module-title">
-      <i class="bi bi-people-fill" style="color:var(--primary);"></i>
-      <span>Member Data Sheet &amp; Directory</span>
+      <i class="bi bi-layout-text-window text-primary"></i>
+      <span>Member Reports ➔ DATA SHEET (Comprehensive Member Master Directory)</span>
     </div>
-    <div class="d-flex gap-6" style="display:flex; gap:6px;">
-      <button class="btn-top" onclick="exportDataSheetExcel()"><i class="bi bi-file-earmark-spreadsheet"></i> Export Excel</button>
-      <button class="btn-top" onclick="window.print()"><i class="bi bi-printer"></i> Print Directory</button>
-      <button class="btn-top primary" onclick="loadMembers()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+    <div class="top-actions">
+      <button class="btn-top" id="btnRefresh" title="Reload from Server">
+        <i class="bi bi-arrow-clockwise"></i> Refresh
+      </button>
+      <button class="btn-top" id="btnReset" title="Reset Filters">
+        <i class="bi bi-x-circle"></i> Reset
+      </button>
+      <button class="btn-top btn-top-primary" id="btnPrint" title="Print Data Sheet">
+        <i class="bi bi-printer"></i> Print
+      </button>
+      <button class="btn-top btn-top-success" id="btnPdf" title="Export PDF">
+        <i class="bi bi-file-earmark-pdf"></i> Export PDF
+      </button>
     </div>
-  </div>
+  </header>
 
-  <!-- FILTERS PANEL -->
-  <div class="filter-bar">
-    <div class="filter-row">
-      <div class="filter-item" style="width:120px;">
-        <label class="filter-lbl">Wing</label>
-        <select id="flt-wing" class="filter-input" onchange="applyFilters()">
-          <option value="ALL">-- All Wings --</option>
-        </select>
-      </div>
+  <!-- Filter Strip -->
+  <div class="filter-strip">
+    <div class="filter-group" style="width:120px;">
+      <label class="filter-label">Wing:</label>
+      <input type="text" class="filter-input" id="filterWing" placeholder="All Wings">
+    </div>
 
-      <div class="filter-item" style="min-width:180px; flex:1; max-width:300px;">
-        <label class="filter-lbl">Search Member / Flat / Phone</label>
-        <input type="text" id="flt-search" class="filter-input" placeholder="🔍 Search Member, Flat, Phone..." onkeyup="applyFilters()">
-      </div>
+    <div class="filter-group" style="width:140px;">
+      <label class="filter-label">Flat Type / BHK:</label>
+      <input type="text" class="filter-input" id="filterFlatType" placeholder="All Types">
+    </div>
 
-      <!-- Summary Pop-over -->
-      <div class="filter-item summary-dropdown-wrap">
-        <label class="filter-lbl">Directory Summary</label>
-        <button type="button" class="summary-dropdown-btn" id="btnSummaryToggle" onclick="toggleSummaryPopover(event)">
-          <i class="bi bi-pie-chart-fill" style="color:var(--primary); font-size:11px;"></i>
-          <span>Summary</span>
-          <span style="font-size:10px; font-weight:700; color:#0369a1; background:#e0f2fe; padding:1px 6px; border-radius:10px;" id="stat-count">0 Members</span>
-          <i class="bi bi-chevron-down" style="font-size:9.5px; color:#64748b;"></i>
-        </button>
+    <div class="filter-group" style="min-width:200px; flex:1; max-width:320px;">
+      <label class="filter-label">Search Member / Flat / Phone:</label>
+      <input type="text" class="filter-input" id="filterSearch" placeholder="Type to search...">
+    </div>
 
-        <div class="summary-popover" id="summaryPopover">
-          <div class="summary-popover-head">
-            <div style="font-size:11.5px; font-weight:800; color:#0f172a; display:flex; align-items:center; gap:6px;">
-              <i class="bi bi-bar-chart-line-fill" style="color:var(--primary);"></i> Directory Summary
-            </div>
-            <span style="font-size:10px; font-weight:700; color:#0369a1; background:#e0f2fe; padding:1px 6px; border-radius:10px;" id="pop-count">0 Members</span>
-          </div>
-
-          <div class="summary-popover-grid">
-            <div class="pop-card">
-              <span class="pop-lbl">Total Carpet Area</span>
-              <span class="pop-val" id="stat-area">0 Sq.Ft</span>
-            </div>
-            <div class="pop-card">
-              <span class="pop-lbl">Opening Dues (Dr)</span>
-              <span class="pop-val debit" id="stat-opening">₹0.00</span>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div class="filter-group" style="align-self:flex-end;">
+      <button class="btn-top btn-top-primary" id="btnApplyFilters">
+        <i class="bi bi-funnel"></i> Apply
+      </button>
     </div>
   </div>
 
-  <!-- TABLE CONTAINER -->
-  <div class="table-container">
-    <table class="ledger-grid" id="tbl-data-sheet">
-      <thead>
-        <tr>
-          <th class="text-center" style="width:40px;">#</th>
-          <th class="text-center">Member Code</th>
-          <th>Member Full Name</th>
-          <th class="text-center">Wing</th>
-          <th class="text-center">Flat / Unit</th>
-          <th class="text-right">Carpet Area (Sq.Ft)</th>
-          <th class="text-center">Share Cert No</th>
-          <th class="text-center">Mobile / Contact</th>
-          <th>Email Address</th>
-          <th class="text-right">Opening Balance (₹)</th>
-        </tr>
-      </thead>
-      <tbody id="tbl-data-sheet-body">
-        <tr><td colspan="10" class="text-center" style="padding: 30px; color: #94a3b8;"><i class="bi bi-hourglass-split"></i> Loading Member Data Sheet...</td></tr>
-      </tbody>
-      <tfoot id="tbl-data-sheet-foot"></tfoot>
-    </table>
+  <!-- KPI / Summary Strip -->
+  <div class="kpi-summary-strip" id="kpiStrip" style="display:none;">
+    <div class="kpi-pill">
+      <span class="kpi-lbl">Total Members:</span>
+      <span class="kpi-val" id="kpiTotalMembers">0</span>
+    </div>
+    <div class="kpi-pill">
+      <span class="kpi-lbl">Total Carpet Area:</span>
+      <span class="kpi-val" id="kpiTotalArea">0 Sq.Ft</span>
+    </div>
+    <div class="kpi-pill">
+      <span class="kpi-lbl">Total Opening Debtors:</span>
+      <span class="kpi-val" id="kpiTotalOpening" style="color:var(--ds-primary);">₹0.00</span>
+    </div>
   </div>
 
+  <!-- Main Viewport -->
+  <main class="report-viewport">
+    <div id="dataSheetContainer" style="width:100%; display:flex; flex-direction:column; align-items:center;">
+      <!-- Dynamic Data Sheet rendered here -->
+    </div>
+  </main>
+
+  <script src="../henu-os-report-engine.js"></script>
   <script src="data-sheet.js"></script>
 </body>
 </html>

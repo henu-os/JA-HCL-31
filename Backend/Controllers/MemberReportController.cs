@@ -3207,5 +3207,632 @@ namespace JeevikaERP.Controllers
 
             return dict;
         }
+
+        // ═══════════════════════════════════════════════════════════
+        // ── ISOLATED 15 MEMBER REPORTS & HENU OS DESIGN API ─────────
+        // ═══════════════════════════════════════════════════════════
+
+        [HttpGet("member/bill-format")]
+        public IActionResult GetMemberBillFormatApi(
+            [FromQuery] int societyId,
+            [FromQuery] int fyId,
+            [FromQuery] string? fromMember,
+            [FromQuery] string? toMember,
+            [FromQuery] DateTime? billFrom,
+            [FromQuery] DateTime? billTo,
+            [FromQuery] DateTime? rcptFrom,
+            [FromQuery] DateTime? rcptTo,
+            [FromQuery] int? billTypeId,
+            [FromQuery] string? emailFilter)
+        {
+            try
+            {
+                using var conn = DbHelper.GetConn();
+                var res = Services.MemberReportService.GetBillFormat(conn, societyId, fyId, fromMember, toMember, billFrom, billTo, rcptFrom, rcptTo, billTypeId, emailFilter);
+                return Ok(res);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet("member/receipt")]
+        public IActionResult GetMemberReceiptApi(
+            [FromQuery] int societyId,
+            [FromQuery] int fyId,
+            [FromQuery] string? fromReceiptNo,
+            [FromQuery] string? toReceiptNo,
+            [FromQuery] string? fromMember,
+            [FromQuery] string? toMember,
+            [FromQuery] DateTime? fromDate,
+            [FromQuery] DateTime? toDate,
+            [FromQuery] string? paymentMode)
+        {
+            try
+            {
+                using var conn = DbHelper.GetConn();
+                var res = Services.MemberReportService.GetReceipt(conn, societyId, fyId, fromReceiptNo, toReceiptNo, fromMember, toMember, fromDate, toDate, paymentMode);
+                return Ok(res);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet("member/debit-note")]
+        public IActionResult GetMemberDebitNoteApi(
+            [FromQuery] int societyId,
+            [FromQuery] int fyId,
+            [FromQuery] string? fromNoteNo,
+            [FromQuery] string? toNoteNo,
+            [FromQuery] string? fromMember,
+            [FromQuery] string? toMember,
+            [FromQuery] DateTime? fromDate,
+            [FromQuery] DateTime? toDate)
+        {
+            try
+            {
+                using var conn = DbHelper.GetConn();
+                var res = Services.MemberReportService.GetDebitNote(conn, societyId, fyId, fromNoteNo, toNoteNo, fromMember, toMember, fromDate, toDate);
+                return Ok(res);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet("member/credit-note")]
+        public IActionResult GetMemberCreditNoteApi(
+            [FromQuery] int societyId,
+            [FromQuery] int fyId,
+            [FromQuery] string? fromNoteNo,
+            [FromQuery] string? toNoteNo,
+            [FromQuery] string? fromMember,
+            [FromQuery] string? toMember,
+            [FromQuery] DateTime? fromDate,
+            [FromQuery] DateTime? toDate)
+        {
+            try
+            {
+                using var conn = DbHelper.GetConn();
+                var res = Services.MemberReportService.GetCreditNote(conn, societyId, fyId, fromNoteNo, toNoteNo, fromMember, toMember, fromDate, toDate);
+                return Ok(res);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet("member/adjustment")]
+        public IActionResult GetMemberAdjustmentApi(
+            [FromQuery] int societyId,
+            [FromQuery] int fyId,
+            [FromQuery] string? fromVoucherNo,
+            [FromQuery] string? toVoucherNo,
+            [FromQuery] string? fromMember,
+            [FromQuery] string? toMember,
+            [FromQuery] DateTime? fromDate,
+            [FromQuery] DateTime? toDate)
+        {
+            try
+            {
+                using var conn = DbHelper.GetConn();
+                var res = Services.MemberReportService.GetAdjustment(conn, societyId, fyId, fromVoucherNo, toVoucherNo, fromMember, toMember, fromDate, toDate);
+                return Ok(res);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet("member/control-account")]
+        [HttpGet("member/member-control-account")]
+        public IActionResult GetMemberControlAccountApi(
+            [FromQuery] int societyId,
+            [FromQuery] int fyId,
+            [FromQuery] int? billTypeId,
+            [FromQuery] DateTime? fromDate,
+            [FromQuery] DateTime? toDate)
+        {
+            try
+            {
+                using var conn = DbHelper.GetConn();
+                var res = Services.MemberReportService.GetControlAccount(conn, societyId, fyId, billTypeId, fromDate, toDate);
+                return Ok(res);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet("member/balance-confirmation")]
+        public IActionResult GetMemberBalanceConfirmationApi(
+            [FromQuery] int societyId,
+            [FromQuery] int fyId,
+            [FromQuery] DateTime? asOnDate,
+            [FromQuery] string? fromMember,
+            [FromQuery] string? toMember,
+            [FromQuery] string? wing,
+            [FromQuery] string? flatNo)
+        {
+            try
+            {
+                using var conn = DbHelper.GetConn();
+                var res = Services.MemberReportService.GetBalanceConfirmation(conn, societyId, fyId, asOnDate, fromMember, toMember, wing, flatNo);
+                return Ok(res);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet("member/bank-deposit-list")]
+        [HttpGet("member/bank-deposit")]
+        public IActionResult GetMemberBankDepositListApi(
+            [FromQuery] int societyId,
+            [FromQuery] int fyId,
+            [FromQuery] string? bankName,
+            [FromQuery] DateTime? fromDate,
+            [FromQuery] DateTime? toDate,
+            [FromQuery] string? paymentMode)
+        {
+            try
+            {
+                using var conn = DbHelper.GetConn();
+                var res = Services.MemberReportService.GetBankDepositList(conn, societyId, fyId, bankName, fromDate, toDate, paymentMode);
+                return Ok(res);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet("member/data-sheet")]
+        public IActionResult GetMemberDataSheetApi(
+            [FromQuery] int societyId,
+            [FromQuery] string? wing,
+            [FromQuery] string? flatType,
+            [FromQuery] string? memberType,
+            [FromQuery] string? searchText)
+        {
+            try
+            {
+                using var conn = DbHelper.GetConn();
+                var res = Services.MemberReportService.GetDataSheet(conn, societyId, wing, flatType, memberType, searchText);
+                return Ok(res);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet("member/bill-register")]
+        public IActionResult GetMemberBillRegisterApi(
+            [FromQuery] int societyId,
+            [FromQuery] int fyId,
+            [FromQuery] DateTime? fromDate,
+            [FromQuery] DateTime? toDate,
+            [FromQuery] int? billTypeId,
+            [FromQuery] string? wing,
+            [FromQuery] string? fromBillNo,
+            [FromQuery] string? toBillNo)
+        {
+            try
+            {
+                using var conn = DbHelper.GetConn();
+                var res = Services.MemberReportService.GetBillRegister(conn, societyId, fyId, fromDate, toDate, billTypeId, wing, fromBillNo, toBillNo);
+                return Ok(res);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet("member/receipt-register")]
+        public IActionResult GetMemberReceiptRegisterApi(
+            [FromQuery] int societyId,
+            [FromQuery] int fyId,
+            [FromQuery] DateTime? fromDate,
+            [FromQuery] DateTime? toDate,
+            [FromQuery] string? paymentMode,
+            [FromQuery] string? bankName,
+            [FromQuery] string? wing)
+        {
+            try
+            {
+                using var conn = DbHelper.GetConn();
+                var res = Services.MemberReportService.GetReceiptRegister(conn, societyId, fyId, fromDate, toDate, paymentMode, bankName, wing);
+                return Ok(res);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet("member/debit-note-register")]
+        public IActionResult GetMemberDebitNoteRegisterApi(
+            [FromQuery] int societyId,
+            [FromQuery] int fyId,
+            [FromQuery] DateTime? fromDate,
+            [FromQuery] DateTime? toDate,
+            [FromQuery] string? wing,
+            [FromQuery] string? fromMember,
+            [FromQuery] string? toMember)
+        {
+            try
+            {
+                using var conn = DbHelper.GetConn();
+                var res = Services.MemberReportService.GetDebitNoteRegister(conn, societyId, fyId, fromDate, toDate, wing, fromMember, toMember);
+                return Ok(res);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet("member/credit-note-register")]
+        public IActionResult GetMemberCreditNoteRegisterApi(
+            [FromQuery] int societyId,
+            [FromQuery] int fyId,
+            [FromQuery] DateTime? fromDate,
+            [FromQuery] DateTime? toDate,
+            [FromQuery] string? wing,
+            [FromQuery] string? fromMember,
+            [FromQuery] string? toMember)
+        {
+            try
+            {
+                using var conn = DbHelper.GetConn();
+                var res = Services.MemberReportService.GetCreditNoteRegister(conn, societyId, fyId, fromDate, toDate, wing, fromMember, toMember);
+                return Ok(res);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet("member/adjustment-register")]
+        public IActionResult GetMemberAdjustmentRegisterApi(
+            [FromQuery] int societyId,
+            [FromQuery] int fyId,
+            [FromQuery] DateTime? fromDate,
+            [FromQuery] DateTime? toDate,
+            [FromQuery] string? wing,
+            [FromQuery] string? fromMember,
+            [FromQuery] string? toMember)
+        {
+            try
+            {
+                using var conn = DbHelper.GetConn();
+                var res = Services.MemberReportService.GetAdjustmentRegister(conn, societyId, fyId, fromDate, toDate, wing, fromMember, toMember);
+                return Ok(res);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet("member/member-jv-register")]
+        public IActionResult GetMemberJVRegisterApi(
+            [FromQuery] int societyId,
+            [FromQuery] int fyId,
+            [FromQuery] DateTime? fromDate,
+            [FromQuery] DateTime? toDate,
+            [FromQuery] string? wing,
+            [FromQuery] string? fromMember,
+            [FromQuery] string? toMember)
+        {
+            try
+            {
+                using var conn = DbHelper.GetConn();
+                var res = Services.MemberReportService.GetMemberJVRegister(conn, societyId, fyId, fromDate, toDate, wing, fromMember, toMember);
+                return Ok(res);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        // ── Template and Runtime Settings API ──
+
+        [HttpGet("member/definitions")]
+        public IActionResult GetReportDefinitionsApi()
+        {
+            try
+            {
+                using var conn = DbHelper.GetConn();
+                var res = Services.MemberReportService.GetReportDefinitions(conn);
+                return Ok(new { success = true, definitions = res });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet("member/templates/{reportKey}")]
+        public IActionResult GetTemplatesApi([FromRoute] string reportKey)
+        {
+            try
+            {
+                using var conn = DbHelper.GetConn();
+                var res = Services.MemberReportService.GetTemplates(conn, reportKey);
+                return Ok(new { success = true, templates = res });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        public class SaveTemplateRequest
+        {
+            [JsonPropertyName("reportKey")] public string ReportKey { get; set; } = "";
+            [JsonPropertyName("templateKey")] public string TemplateKey { get; set; } = "";
+            [JsonPropertyName("templateName")] public string TemplateName { get; set; } = "";
+            [JsonPropertyName("templateJson")] public string TemplateJson { get; set; } = "{}";
+            [JsonPropertyName("isSystem")] public bool IsSystem { get; set; }
+        }
+
+        [HttpPost("member/templates")]
+        public IActionResult SaveTemplateApi([FromBody] SaveTemplateRequest req)
+        {
+            try
+            {
+                using var conn = DbHelper.GetConn();
+                var res = Services.MemberReportService.SaveTemplate(conn, req.ReportKey, req.TemplateKey, req.TemplateName, req.TemplateJson, req.IsSystem);
+                return Ok(new { success = res });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet("member/settings/{reportKey}")]
+        public IActionResult GetRuntimeSettingsApi([FromRoute] string reportKey)
+        {
+            try
+            {
+                using var conn = DbHelper.GetConn();
+                var res = Services.MemberReportService.GetRuntimeSettings(conn, reportKey);
+                return Ok(new { success = true, settingsJson = res });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        public class SaveSettingsRequest
+        {
+            [JsonPropertyName("reportKey")] public string ReportKey { get; set; } = "";
+            [JsonPropertyName("settingJson")] public string SettingJson { get; set; } = "{}";
+            [JsonPropertyName("updatedBy")] public string UpdatedBy { get; set; } = "SYSTEM";
+        }
+
+        [HttpPost("member/settings")]
+        public IActionResult SaveRuntimeSettingsApi([FromBody] SaveSettingsRequest req)
+        {
+            try
+            {
+                using var conn = DbHelper.GetConn();
+                var res = Services.MemberReportService.SaveRuntimeSettings(conn, req.ReportKey, req.SettingJson, req.UpdatedBy);
+                return Ok(new { success = res });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        public class PublishTemplateRequest
+        {
+            [JsonPropertyName("reportKey")] public string ReportKey { get; set; } = "";
+            [JsonPropertyName("templateKey")] public string TemplateKey { get; set; } = "";
+            [JsonPropertyName("templateName")] public string TemplateName { get; set; } = "";
+            [JsonPropertyName("templateJson")] public string TemplateJson { get; set; } = "{}";
+            [JsonPropertyName("publishedBy")] public string PublishedBy { get; set; } = "ADMIN";
+        }
+
+        [HttpPost("member/templates/publish")]
+        public IActionResult PublishTemplateApi([FromBody] PublishTemplateRequest req)
+        {
+            try
+            {
+                using var conn = DbHelper.GetConn();
+                var res = Services.MemberReportService.PublishTemplate(conn, req.ReportKey, req.TemplateKey, req.TemplateName, req.TemplateJson, req.PublishedBy);
+                return Ok(new { success = res, message = "Template published successfully as active design" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        public class DuplicateTemplateRequest
+        {
+            [JsonPropertyName("reportKey")] public string ReportKey { get; set; } = "";
+            [JsonPropertyName("sourceTemplateKey")] public string SourceTemplateKey { get; set; } = "";
+            [JsonPropertyName("newTemplateKey")] public string NewTemplateKey { get; set; } = "";
+            [JsonPropertyName("newTemplateName")] public string NewTemplateName { get; set; } = "";
+            [JsonPropertyName("createdBy")] public string CreatedBy { get; set; } = "ADMIN";
+        }
+
+        [HttpPost("member/templates/duplicate")]
+        public IActionResult DuplicateTemplateApi([FromBody] DuplicateTemplateRequest req)
+        {
+            try
+            {
+                using var conn = DbHelper.GetConn();
+                var res = Services.MemberReportService.DuplicateTemplate(conn, req.ReportKey, req.SourceTemplateKey, req.NewTemplateKey, req.NewTemplateName, req.CreatedBy);
+                return Ok(new { success = res, message = res ? "Template duplicated successfully" : "Failed to duplicate template" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpDelete("member/templates/{reportKey}/{templateKey}")]
+        public IActionResult DeleteTemplateApi([FromRoute] string reportKey, [FromRoute] string templateKey)
+        {
+            try
+            {
+                using var conn = DbHelper.GetConn();
+                var (ok, msg) = Services.MemberReportService.DeleteTemplate(conn, reportKey, templateKey);
+                return Ok(new { success = ok, message = msg });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet("member/templates/{reportKey}/{templateKey}/versions")]
+        public IActionResult GetTemplateVersionsApi([FromRoute] string reportKey, [FromRoute] string templateKey)
+        {
+            try
+            {
+                using var conn = DbHelper.GetConn();
+                var list = Services.MemberReportService.GetTemplateVersions(conn, reportKey, templateKey);
+                return Ok(new { success = true, versions = list });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        public class RollbackVersionRequest
+        {
+            [JsonPropertyName("reportKey")] public string ReportKey { get; set; } = "";
+            [JsonPropertyName("templateKey")] public string TemplateKey { get; set; } = "";
+            [JsonPropertyName("versionNo")] public int VersionNo { get; set; }
+            [JsonPropertyName("restoredBy")] public string RestoredBy { get; set; } = "ADMIN";
+        }
+
+        [HttpPost("member/templates/rollback")]
+        public IActionResult RollbackVersionApi([FromBody] RollbackVersionRequest req)
+        {
+            try
+            {
+                using var conn = DbHelper.GetConn();
+                var res = Services.MemberReportService.RollbackTemplateVersion(conn, req.ReportKey, req.TemplateKey, req.VersionNo, req.RestoredBy);
+                return Ok(new { success = res, message = res ? $"Restored to v{req.VersionNo} successfully" : "Version not found" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet("member/audit-logs/{reportKey}")]
+        public IActionResult GetAuditLogsApi([FromRoute] string reportKey)
+        {
+            try
+            {
+                using var conn = DbHelper.GetConn();
+                var list = Services.MemberReportService.GetAuditLogs(conn, reportKey);
+                return Ok(new { success = true, auditLogs = list });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet("member/assets/{reportKey}")]
+        public IActionResult GetAssetsApi([FromRoute] string reportKey)
+        {
+            try
+            {
+                using var conn = DbHelper.GetConn();
+                var list = Services.MemberReportService.GetAssets(conn, reportKey);
+                return Ok(new { success = true, assets = list });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        public class SaveAssetRequest
+        {
+            [JsonPropertyName("reportKey")] public string ReportKey { get; set; } = "";
+            [JsonPropertyName("assetType")] public string AssetType { get; set; } = "";
+            [JsonPropertyName("fileName")] public string FileName { get; set; } = "";
+            [JsonPropertyName("storagePath")] public string StoragePath { get; set; } = "";
+            [JsonPropertyName("mimeType")] public string MimeType { get; set; } = "";
+            [JsonPropertyName("metadataJson")] public string MetadataJson { get; set; } = "{}";
+        }
+
+        [HttpPost("member/assets")]
+        public IActionResult SaveAssetApi([FromBody] SaveAssetRequest req)
+        {
+            try
+            {
+                using var conn = DbHelper.GetConn();
+                var res = Services.MemberReportService.SaveAsset(conn, req.ReportKey, req.AssetType, req.FileName, req.StoragePath, req.MimeType, req.MetadataJson);
+                return Ok(new { success = res });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet("member/presets/{reportKey}")]
+        public IActionResult GetFilterPresetsApi([FromRoute] string reportKey)
+        {
+            try
+            {
+                using var conn = DbHelper.GetConn();
+                var res = Services.MemberReportService.GetFilterPresets(conn, reportKey);
+                return Ok(new { success = true, presets = res });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        public class SavePresetRequest
+        {
+            [JsonPropertyName("reportKey")] public string ReportKey { get; set; } = "";
+            [JsonPropertyName("presetName")] public string PresetName { get; set; } = "";
+            [JsonPropertyName("filterJson")] public string FilterJson { get; set; } = "{}";
+            [JsonPropertyName("createdBy")] public string CreatedBy { get; set; } = "USER";
+        }
+
+        [HttpPost("member/presets")]
+        public IActionResult SaveFilterPresetApi([FromBody] SavePresetRequest req)
+        {
+            try
+            {
+                using var conn = DbHelper.GetConn();
+                var res = Services.MemberReportService.SaveFilterPreset(conn, req.ReportKey, req.PresetName, req.FilterJson, req.CreatedBy);
+                return Ok(new { success = res });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
     }
 }

@@ -1,250 +1,205 @@
-// ═══════════════════════════════════════════════════════════
-// JEEVIKA ERP v2 — Debit Note Register Controller
-// ═══════════════════════════════════════════════════════════
+/**
+ * debit-note-register.js — Member Debit Note Register Engine (Landscape A4)
+ * Architecture: Real ERP Backend Data + Active Published HENU OS DESIGN + Mail to Committee UX
+ */
 
-let allNotes = [];
-let filteredNotes = [];
-let currentSocietyName = 'SHREE SAI RESIDENCY CO-OP HSG SOC LTD';
+(function () {
+  'use strict';
 
-document.addEventListener('DOMContentLoaded', () => {
-  initSocietyInfo();
-  loadDebitNotes();
-});
+  const REPORT_KEY = 'debit-note-register';
+  let activeDesign = null;
+  let currentReportData = null;
 
-function getApiUrl(endpoint) {
-  const base = (window.APP_CONFIG && window.APP_CONFIG.API_BASE) || 'http://localhost:5002/api';
-  return `${base}/${endpoint}`;
-}
+  async function init() {
+    initDateFilters();
+    activeDesign = await HenuOsReportEngine.loadActiveDesign(REPORT_KEY);
+    HenuOsReportEngine.applyDesignToDOM(activeDesign);
+    await loadDebitNoteRegister();
+  }
 
-async function initSocietyInfo() {
-  try {
-    const activeSoc = sessionStorage.getItem('activeSocietyName') || localStorage.getItem('activeSocietyName');
-    if (activeSoc) {
-      currentSocietyName = activeSoc;
+  function initDateFilters() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    
+    const fromEl = document.getElementById('fromDate');
+    const toEl = document.getElementById('toDate');
+    
+    if (fromEl && !fromEl.value) fromEl.value = `${y}-04-01`;
+    if (toEl && !toEl.value) toEl.value = `${y}-${m}-${d}`;
+  }
+
+  async function loadDebitNoteRegister() {
+    const container = document.getElementById('dnrContainer') || document.getElementById('reportOutputArea');
+    if (!container) return;
+
+    HenuOsReportEngine.renderLoading(container, 'Loading Debit Note Register from ERP database...');
+
+    const ctx = HenuOsReportEngine.getSystemContext();
+    const fromDate = document.getElementById('fromDate')?.value || '';
+    const toDate = document.getElementById('toDate')?.value || '';
+    const wing = document.getElementById('wing')?.value?.trim() || '';
+    const member = document.getElementById('fromMember')?.value?.trim() || '';
+
+    let url = `${ctx.apiBase}/reports/member/debit-note-register?societyId=${ctx.societyId}&fyId=${ctx.fyId}`;
+    if (fromDate) url += `&fromDate=${encodeURIComponent(fromDate)}`;
+    if (toDate) url += `&toDate=${encodeURIComponent(toDate)}`;
+    if (wing) url += `&wing=${encodeURIComponent(wing)}`;
+    if (member) url += `&fromMember=${encodeURIComponent(member)}`;
+
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP Error ${res.status}: ${res.statusText}`);
+      const data = await res.json();
+
+      if (!data || !data.success) {
+        throw new Error(data?.message || 'Failed to fetch debit note register data.');
+      }
+
+      currentReportData = data;
+      const notes = data.notes || data.items || [];
+      updateKpis(notes);
+
+      if (notes.length === 0) {
+        HenuOsReportEngine.renderEmpty(
+          container,
+          'No debit note records found for the selected criteria.',
+          'Try adjusting your Date, Wing, or Member filters.'
+        );
+        return;
+      }
+
+      renderDebitNoteRegister(data);
+    } catch (err) {
+      console.error('[DebitNoteRegister] Load error:', err);
+      HenuOsReportEngine.renderError(
+        container,
+        'Unable to load Debit Note Register data from ERP server.',
+        err.message || 'Network request failed.',
+        loadDebitNoteRegister
+      );
     }
-    const lbl = document.getElementById('lbl-society-period');
-    if (lbl) lbl.innerHTML = `<i class="bi bi-building"></i> ${currentSocietyName} — Member Supplementary Debit Charges`;
-    const prtSoc = document.getElementById('prt-soc-name');
-    if (prtSoc) prtSoc.innerText = currentSocietyName;
-  } catch (e) {}
-}
-
-async function loadDebitNotes() {
-  const tbody = document.getElementById('tbl-dn-body');
-  if (tbody) tbody.innerHTML = `<tr><td colspan="9" class="col-center" style="padding:30px; color:#94a3b8;"><i class="bi bi-hourglass-split"></i> Loading Debit Notes...</td></tr>`;
-
-  try {
-    const res = await fetch(getApiUrl('member-notes?societyId=1&fyId=1&type=debitnote'));
-    const data = await res.json();
-
-    if (data.success && Array.isArray(data.data)) {
-      allNotes = data.data;
-    } else if (Array.isArray(data)) {
-      allNotes = data;
-    } else {
-      allNotes = [];
-    }
-
-    populateWings();
-    applyFilters();
-  } catch (err) {
-    console.error('Failed to load debit notes:', err);
-    if (tbody) tbody.innerHTML = `<tr><td colspan="9" class="col-center" style="padding:30px; color:#dc2626;">Error loading debit notes: ${err.message}</td></tr>`;
-  }
-}
-
-function populateWings() {
-  const wingSet = new Set();
-  allNotes.forEach(n => {
-    if (n.wing) wingSet.add(n.wing.trim());
-  });
-
-  const selWing = document.getElementById('flt-wing');
-  if (selWing) {
-    const cur = selWing.value;
-    selWing.innerHTML = `<option value="ALL">-- All Wings --</option>` +
-      Array.from(wingSet).sort().map(w => `<option value="${w}">${w}</option>`).join('');
-    if (wingSet.has(cur)) selWing.value = cur;
-  }
-}
-
-function applyFilters() {
-  const wing = document.getElementById('flt-wing')?.value || 'ALL';
-  const search = (document.getElementById('flt-search')?.value || '').toLowerCase().trim();
-
-  filteredNotes = allNotes.filter(n => {
-    if (wing !== 'ALL' && (n.wing || '').trim() !== wing) return false;
-
-    if (search) {
-      const match = (n.voucherNo || n.noteNo || '').toLowerCase().includes(search) ||
-                    (n.personName || n.memName || n.memberName || '').toLowerCase().includes(search) ||
-                    (n.personCode || n.memCode || n.memberCode || '').toLowerCase().includes(search) ||
-                    (n.narration || '').toLowerCase().includes(search);
-      if (!match) return false;
-    }
-    return true;
-  });
-
-  renderSummary();
-  renderTable();
-}
-
-function resetFilters() {
-  if (document.getElementById('flt-wing')) document.getElementById('flt-wing').value = 'ALL';
-  if (document.getElementById('flt-search')) document.getElementById('flt-search').value = '';
-  applyFilters();
-}
-
-function toggleSummaryPopover(e) {
-  if (e) e.stopPropagation();
-  const p = document.getElementById('summaryPopover');
-  if (p) p.classList.toggle('show');
-}
-
-document.addEventListener('click', (e) => {
-  const p = document.getElementById('summaryPopover');
-  if (p && p.classList.contains('show') && !e.target.closest('.summary-dropdown-wrap')) {
-    p.classList.remove('show');
-  }
-});
-
-function renderSummary() {
-  let count = filteredNotes.length;
-  let tot = 0;
-
-  filteredNotes.forEach(n => {
-    tot += parseFloat(n.amount) || 0;
-  });
-
-  const sCount = document.getElementById('stat-count');
-  if (sCount) sCount.innerText = `${count} Notes`;
-  const pCount = document.getElementById('pop-count');
-  if (pCount) pCount.innerText = `${count} Notes`;
-
-  if (document.getElementById('stat-total')) document.getElementById('stat-total').innerText = '₹' + formatCurrency(tot);
-}
-
-function renderTable() {
-  const tbody = document.getElementById('tbl-dn-body');
-  const tfoot = document.getElementById('tbl-dn-foot');
-  const prtTbody = document.getElementById('prt-tbody');
-  const prtTfoot = document.getElementById('prt-tfoot');
-  if (!tbody) return;
-
-  if (filteredNotes.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="9" class="col-center" style="padding:30px; color:#64748b;">No debit notes match selected criteria.</td></tr>`;
-    if (tfoot) tfoot.innerHTML = '';
-    if (prtTbody) prtTbody.innerHTML = `<tr><td colspan="9" class="col-center">No records found.</td></tr>`;
-    return;
   }
 
-  let html = '';
-  let prtHtml = '';
-  let totAmt = 0;
+  function updateKpis(notes) {
+    const totalAmount = notes.reduce((acc, row) => acc + Number(row.debitAmount || row.amount || 0), 0);
+    const countEl = document.getElementById('kpiTotalNotes');
+    const amtEl = document.getElementById('kpiTotalAmount');
 
-  filteredNotes.forEach((n, idx) => {
-    const amt = parseFloat(n.amount) || 0;
-    totAmt += amt;
+    if (countEl) countEl.textContent = notes.length;
+    if (amtEl) amtEl.textContent = `₹ ${HenuOsReportEngine.formatINR(totalAmount)}`;
+  }
 
-    const nDate = n.voucherDate || n.noteDate ? (n.voucherDate || n.noteDate).split('T')[0] : '-';
-    const nNo = n.voucherNo || n.noteNo || ('DN-' + (n.voucherId || idx + 1));
-    const memCode = n.personCode || n.memCode || n.memberCode || '-';
-    const memName = n.personName || n.memName || n.memberName || '-';
-    const flat = (n.wing ? (n.wing + '-') : '') + (n.flatNo || '');
-    const bType = n.particular1 || n.billType || 'Maintenance';
-    const narr = n.narration || 'Debit penalty / charge';
+  function renderDebitNoteRegister(data) {
+    const container = document.getElementById('dnrContainer') || document.getElementById('reportOutputArea');
+    if (!container) return;
 
-    html += `
-      <tr>
-        <td class="col-center">${idx + 1}</td>
-        <td><strong>${escapeHtml(nNo)}</strong></td>
-        <td class="col-center">${nDate}</td>
-        <td class="col-center"><strong>${escapeHtml(memCode)}</strong></td>
-        <td>${escapeHtml(memName)}</td>
-        <td class="col-center">${escapeHtml(flat || '-')}</td>
-        <td><span style="font-weight:700; color:#2563eb;">${escapeHtml(bType)}</span></td>
-        <td class="col-right" style="color:#dc2626; font-weight:700;">${formatCurrency(amt)}</td>
-        <td><span style="color:#64748b; font-size:10.5px;">${escapeHtml(narr)}</span></td>
-      </tr>
+    const soc = data.society || {};
+    const notes = data.notes || data.items || [];
+    const totalAmount = notes.reduce((acc, row) => acc + Number(row.debitAmount || row.amount || 0), 0);
+
+    const fromDate = document.getElementById('fromDate')?.value || '';
+    const toDate = document.getElementById('toDate')?.value || '';
+
+    const rowsHtml = notes.map((row, idx) => {
+      const statusClass = (row.status || 'Posted').toLowerCase() === 'posted' ? 'posted' : 'draft';
+      return `
+        <tr>
+          <td class="center">${idx + 1}</td>
+          <td class="center" style="font-weight:700;">${HenuOsReportEngine.escapeHtml(row.debitNoteNumber || row.noteNo || '-')}</td>
+          <td class="center">${HenuOsReportEngine.formatDate(row.date || row.noteDate)}</td>
+          <td><strong>${HenuOsReportEngine.escapeHtml(row.memberName || row.residentName || '-')}</strong></td>
+          <td class="center">${HenuOsReportEngine.escapeHtml(row.wing || '-')}</td>
+          <td class="center">${HenuOsReportEngine.escapeHtml(row.flatNo || row.unit || '-')}</td>
+          <td>${HenuOsReportEngine.escapeHtml(row.reason || row.description || '-')}</td>
+          <td>${HenuOsReportEngine.escapeHtml(row.accountHead || row.ledgerHead || 'Sundry Charges')}</td>
+          <td class="right" style="font-weight:700;">${HenuOsReportEngine.formatINR(row.debitAmount || row.amount || 0)}</td>
+          <td class="center"><span class="dnr-status-tag ${statusClass}">${HenuOsReportEngine.escapeHtml(row.status || 'Posted')}</span></td>
+        </tr>
+      `;
+    }).join('');
+
+    const html = `
+      <div class="dnr-report-page henu-dynamic-document">
+        <header class="dnr-header">
+          <div class="dnr-soc-name">${HenuOsReportEngine.escapeHtml(soc.SocietyName || soc.name || 'CO-OPERATIVE HOUSING SOCIETY LTD.')}</div>
+          <div class="dnr-soc-sub">
+            ${soc.RegistrationNo ? 'Reg. No: ' + HenuOsReportEngine.escapeHtml(soc.RegistrationNo) + ' | ' : ''}
+            ${soc.Address || soc.address || 'Registered Society Premises'}
+          </div>
+        </header>
+
+        <div class="dnr-title-bar">
+          <div class="dnr-doc-title">MEMBER DEBIT NOTE REGISTER</div>
+          <div class="dnr-period-tag">Period: ${HenuOsReportEngine.formatDate(fromDate)} to ${HenuOsReportEngine.formatDate(toDate)}</div>
+        </div>
+
+        <div class="dnr-table-wrapper">
+          <table class="dnr-table">
+            <thead>
+              <tr>
+                <th class="center" style="width:35px;">Sr</th>
+                <th class="center" style="width:75px;">Note No</th>
+                <th class="center" style="width:70px;">Date</th>
+                <th style="width:160px;">Member Name</th>
+                <th class="center" style="width:45px;">Wing</th>
+                <th class="center" style="width:45px;">Flat</th>
+                <th>Reason / Particulars</th>
+                <th style="width:140px;">Account Head</th>
+                <th class="right" style="width:85px;">Debit (₹)</th>
+                <th class="center" style="width:65px;">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+              <tr class="total-row">
+                <td colspan="8" class="right" style="font-weight:700;">TOTAL DEBIT AMOUNT:</td>
+                <td class="right" style="color:var(--dnr-primary); font-weight:800;">₹ ${HenuOsReportEngine.formatINR(totalAmount)}</td>
+                <td class="center">-</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="dnr-summary-grid">
+          <div class="dnr-summary-item">
+            <div class="lbl">Total Debit Notes</div>
+            <div class="val">${notes.length}</div>
+          </div>
+          <div class="dnr-summary-item">
+            <div class="lbl">Total Debit Amount</div>
+            <div class="val" style="color:var(--dnr-primary); font-weight:800;">₹ ${HenuOsReportEngine.formatINR(totalAmount)}</div>
+          </div>
+        </div>
+
+        <footer class="dnr-footer">
+          <div>Generated by JEEVIKA ERP on ${new Date().toLocaleString('en-IN')}</div>
+          <div>Page 1 of 1</div>
+        </footer>
+      </div>
     `;
 
-    prtHtml += `
-      <tr>
-        <td class="col-center">${idx + 1}</td>
-        <td>${escapeHtml(nNo)}</td>
-        <td class="col-center">${nDate}</td>
-        <td class="col-center">${escapeHtml(memCode)}</td>
-        <td>${escapeHtml(memName)}</td>
-        <td class="col-center">${escapeHtml(flat || '-')}</td>
-        <td>${escapeHtml(bType)}</td>
-        <td class="col-right"><strong>${formatCurrency(amt)}</strong></td>
-        <td>${escapeHtml(narr)}</td>
-      </tr>
-    `;
-  });
-
-  tbody.innerHTML = html;
-  if (prtTbody) prtTbody.innerHTML = prtHtml;
-
-  const footHtml = `
-    <tr>
-      <td colspan="7" class="col-left" style="font-weight:800; text-transform:uppercase;">Total Debit Notes (${filteredNotes.length})</td>
-      <td class="col-right" style="color:#dc2626; font-size:12px;">₹ ${formatCurrency(totAmt)}</td>
-      <td></td>
-    </tr>
-  `;
-  if (tfoot) tfoot.innerHTML = footHtml;
-  if (prtTfoot) prtTfoot.innerHTML = footHtml;
-}
-
-function exportDebitNoteRegisterExcel() {
-  if (typeof XLSX === 'undefined') {
-    alert('Excel library not loaded.');
-    return;
+    container.innerHTML = html;
   }
 
-  const wsData = [
-    [currentSocietyName],
-    ['MEMBER DEBIT NOTE REGISTER'],
-    [`Generated on: ${new Date().toLocaleDateString('en-IN')}`],
-    [],
-    ['Sr No', 'Debit Note No', 'Date', 'Member Code', 'Member Name', 'Flat/Unit', 'Bill Type', 'Debit Amount (₹)', 'Reason / Narration']
-  ];
+  function resetFilters() {
+    const wing = document.getElementById('wing');
+    const member = document.getElementById('fromMember');
+    if (wing) wing.value = '';
+    if (member) member.value = '';
+    initDateFilters();
+    loadDebitNoteRegister();
+  }
 
-  filteredNotes.forEach((n, idx) => {
-    const amt = parseFloat(n.amount) || 0;
-    const nDate = n.voucherDate || n.noteDate ? (n.voucherDate || n.noteDate).split('T')[0] : '';
-    const nNo = n.voucherNo || n.noteNo || ('DN-' + (n.voucherId || idx + 1));
-    const memCode = n.personCode || n.memCode || n.memberCode || '';
-    const memName = n.personName || n.memName || n.memberName || '';
-    const flat = (n.wing ? (n.wing + '-') : '') + (n.flatNo || '');
-    const bType = n.particular1 || n.billType || 'Maintenance';
-    const narr = n.narration || '';
+  window.loadDebitNoteRegister = loadDebitNoteRegister;
+  window.resetFilters = resetFilters;
+  window.printReport = () => window.print();
+  window.exportPdf = () => window.print();
 
-    wsData.push([
-      idx + 1,
-      nNo,
-      nDate,
-      memCode,
-      memName,
-      flat,
-      bType,
-      amt,
-      narr
-    ]);
-  });
-
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet(wsData);
-  XLSX.utils.book_append_sheet(wb, ws, 'Debit Notes');
-  XLSX.writeFile(wb, `Member_Debit_Note_Register_${new Date().toISOString().split('T')[0]}.xlsx`);
-}
-
-function formatCurrency(val) {
-  return (parseFloat(val) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-function escapeHtml(text) {
-  if (!text) return '';
-  return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();

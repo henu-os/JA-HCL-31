@@ -3,117 +3,84 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Member Control Account — JEEVIKA ERP</title>
+  <title>Member Control Account — HENU ERP</title>
   <script src="../../../config.js"></script>
-  <script src="../../../assets/js/xlsx-js-style.bundle.js"></script>
-  <link rel="stylesheet" href="../../../assets/css/global.css">
-  <link rel="stylesheet" href="../../../assets/css/components.css">
+  <link rel="stylesheet" href="../../../assets/vendor/bootstrap-icons/bootstrap-icons.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-  <link rel="stylesheet" href="../member-reports-grid.css">
+  <link rel="stylesheet" href="../henu-os-report-engine.css">
+  <link rel="stylesheet" href="member-control-account.css">
 </head>
 <body class="erp-module">
 
-  <!-- PRINT ONLY HEADER -->
-  <div class="print-header">
-    <div style="text-align:center;">
-      <h2 style="margin:0; font-size:16px; font-weight:900; color:#0f172a;" id="prt-soc-name">SHREE SAI RESIDENCY CO-OP HSG SOC LTD</h2>
-      <div style="font-size:12px; font-weight:700; margin-top:2px;">MEMBER CONTROL ACCOUNT (SUNDRY DEBTORS) RECONCILIATION</div>
-      <div style="font-size:11px; color:#475569; margin-top:2px;">
-        Financial Year: <span id="prt-fy" style="font-weight:bold;">FY 2026-2027</span> | Date: <span id="prt-date-stamp" style="font-weight:bold;">30/09/2026</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- TOP MODULE BAR -->
-  <div class="module-top-bar">
+  <!-- Top Header Bar -->
+  <header class="module-top-bar">
     <div class="module-title">
-      <i class="bi bi-shield-check" style="color:var(--primary);"></i>
-      <span>Member Control Account (Sundry Debtors)</span>
+      <i class="bi bi-shield-check text-primary"></i>
+      <span>Member Reports ➔ Member Control Account (Monthly Demand & Collection Reconciliation)</span>
     </div>
-    <div class="d-flex gap-6" style="display:flex; gap:6px;">
-      <button class="btn-top" onclick="exportControlAccountExcel()"><i class="bi bi-file-earmark-spreadsheet"></i> Export Excel</button>
-      <button class="btn-top" onclick="window.print()"><i class="bi bi-printer"></i> Print Statement</button>
-      <button class="btn-top primary" onclick="loadControlAccount()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+    <div class="top-actions">
+      <button class="btn-top" id="btnRefresh" title="Reload from Server">
+        <i class="bi bi-arrow-clockwise"></i> Refresh
+      </button>
+      <button class="btn-top" id="btnReset" title="Reset Filters">
+        <i class="bi bi-x-circle"></i> Reset
+      </button>
+      <button class="btn-top btn-top-primary" id="btnPrint" title="Print Control Account">
+        <i class="bi bi-printer"></i> Print
+      </button>
+      <button class="btn-top btn-top-success" id="btnPdf" title="Export PDF">
+        <i class="bi bi-file-earmark-pdf"></i> Export PDF
+      </button>
     </div>
-  </div>
+  </header>
 
-  <!-- FILTERS PANEL -->
-  <div class="filter-bar">
-    <div class="filter-row">
-      <div class="filter-item" style="width:130px;">
-        <label class="filter-lbl">Financial Year</label>
-        <select id="flt-fy" class="filter-input" onchange="loadControlAccount()">
-          <option value="2026-2027" selected>FY 2026-2027</option>
-          <option value="2025-2026">FY 2025-2026</option>
-        </select>
-      </div>
+  <!-- Filter Strip -->
+  <div class="filter-strip">
+    <div class="filter-group" style="width:130px;">
+      <label class="filter-label">From Date:</label>
+      <input type="date" class="filter-input" id="filterDateFrom">
+    </div>
 
-      <!-- Summary Pop-over -->
-      <div class="filter-item summary-dropdown-wrap">
-        <label class="filter-lbl">Reconciliation Summary</label>
-        <button type="button" class="summary-dropdown-btn" id="btnSummaryToggle" onclick="toggleSummaryPopover(event)">
-          <i class="bi bi-pie-chart-fill" style="color:var(--primary); font-size:11px;"></i>
-          <span>Summary</span>
-          <span style="font-size:10px; font-weight:700; color:#0369a1; background:#e0f2fe; padding:1px 6px; border-radius:10px;">12 Months</span>
-          <i class="bi bi-chevron-down" style="font-size:9.5px; color:#64748b;"></i>
-        </button>
+    <div class="filter-group" style="width:130px;">
+      <label class="filter-label">To Date:</label>
+      <input type="date" class="filter-input" id="filterDateTo">
+    </div>
 
-        <div class="summary-popover" id="summaryPopover">
-          <div class="summary-popover-head">
-            <div style="font-size:11.5px; font-weight:800; color:#0f172a; display:flex; align-items:center; gap:6px;">
-              <i class="bi bi-bar-chart-line-fill" style="color:var(--primary);"></i> Annual Control Summary
-            </div>
-            <span style="font-size:10px; font-weight:700; color:#0369a1; background:#e0f2fe; padding:1px 6px; border-radius:10px;">12 Months</span>
-          </div>
-
-          <div class="summary-popover-grid">
-            <div class="pop-card">
-              <span class="pop-lbl">Opening Balance (Dr)</span>
-              <span class="pop-val debit" id="stat-opening">₹0.00</span>
-            </div>
-            <div class="pop-card">
-              <span class="pop-lbl">Total Billed / Debits</span>
-              <span class="pop-val" id="stat-billed">₹0.00</span>
-            </div>
-            <div class="pop-card">
-              <span class="pop-lbl">Total Collections (Cr)</span>
-              <span class="pop-val credit" id="stat-collected">₹0.00</span>
-            </div>
-            <div class="pop-card full-width" style="background:#fef2f2;">
-              <div style="display:flex; justify-content:space-between; align-items:center;">
-                <span class="pop-lbl" style="color:#991b1b;">Closing Sundry Debtors</span>
-                <span class="pop-val debit" id="stat-closing" style="font-size:13px; margin:0;">₹0.00</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div class="filter-group" style="align-self:flex-end;">
+      <button class="btn-top btn-top-primary" id="btnApplyFilters">
+        <i class="bi bi-funnel"></i> Apply
+      </button>
     </div>
   </div>
 
-  <!-- TABLE CONTAINER -->
-  <div class="table-container">
-    <table class="ledger-grid" id="tbl-ctrl">
-      <thead>
-        <tr>
-          <th class="text-center" style="width:40px;">#</th>
-          <th>Month / Period</th>
-          <th class="text-right">Opening Dues (₹)</th>
-          <th class="text-right">Maintenance Billed (₹)</th>
-          <th class="text-right">Debit Notes (₹)</th>
-          <th class="text-right">Collections (₹)</th>
-          <th class="text-right">Credit Notes (₹)</th>
-          <th class="text-right">Adjustments (₹)</th>
-          <th class="text-right">Closing Balance (₹)</th>
-        </tr>
-      </thead>
-      <tbody id="tbl-ctrl-body">
-        <tr><td colspan="9" class="text-center" style="padding: 30px; color: #94a3b8;"><i class="bi bi-hourglass-split"></i> Loading Control Account Reconciliation...</td></tr>
-      </tbody>
-      <tfoot id="tbl-ctrl-foot"></tfoot>
-    </table>
+  <!-- KPI / Summary Strip -->
+  <div class="kpi-summary-strip" id="kpiStrip" style="display:none;">
+    <div class="kpi-pill">
+      <span class="kpi-lbl">Opening Debtors:</span>
+      <span class="kpi-val" id="kpiOpening">₹0.00</span>
+    </div>
+    <div class="kpi-pill">
+      <span class="kpi-lbl">Total Demand Raised:</span>
+      <span class="kpi-val" id="kpiDemand">₹0.00</span>
+    </div>
+    <div class="kpi-pill">
+      <span class="kpi-lbl">Total Collections:</span>
+      <span class="kpi-val" id="kpiCollections" style="color:var(--erp-success);">₹0.00</span>
+    </div>
+    <div class="kpi-pill">
+      <span class="kpi-lbl">Closing Receivable:</span>
+      <span class="kpi-val" id="kpiClosing" style="color:var(--ctrl-primary);">₹0.00</span>
+    </div>
   </div>
 
+  <!-- Main Viewport -->
+  <main class="report-viewport">
+    <div id="controlAccountContainer" style="width:100%; display:flex; flex-direction:column; align-items:center;">
+      <!-- Dynamic Control Account rendered here -->
+    </div>
+  </main>
+
+  <script src="../henu-os-report-engine.js"></script>
   <script src="member-control-account.js"></script>
 </body>
 </html>

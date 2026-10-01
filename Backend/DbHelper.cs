@@ -365,7 +365,115 @@ namespace JeevikaERP
 
                         -- Clean up any orphaned opening balances and billing matrix rows belonging to deleted members
                         DELETE FROM jeevika_erp.SocMemberOpBalance WHERE MemberId IN (SELECT MemberId FROM jeevika_erp.SocMember WHERE IsDeleted = TRUE);
-                        DELETE FROM jeevika_erp.SocBillingMatrix WHERE MemberId IN (SELECT MemberId FROM jeevika_erp.SocMember WHERE IsDeleted = TRUE);";
+                        DELETE FROM jeevika_erp.SocBillingMatrix WHERE MemberId IN (SELECT MemberId FROM jeevika_erp.SocMember WHERE IsDeleted = TRUE);
+
+                        -- ═══════════════════════════════════════════════════════════
+                        -- MEMBER REPORTS & HENU OS DESIGN CONFIGURATION TABLES
+                        -- ═══════════════════════════════════════════════════════════
+                        CREATE TABLE IF NOT EXISTS jeevika_erp.report_definitions (
+                            id SERIAL PRIMARY KEY,
+                            report_key VARCHAR(100) NOT NULL UNIQUE,
+                            report_name VARCHAR(255) NOT NULL,
+                            category VARCHAR(100) DEFAULT 'Member Reports',
+                            parent_group VARCHAR(100) DEFAULT '',
+                            description TEXT,
+                            source_type VARCHAR(100) DEFAULT 'SQL_SERVICE',
+                            active BOOLEAN DEFAULT TRUE,
+                            created_at TIMESTAMPTZ DEFAULT NOW(),
+                            updated_at TIMESTAMPTZ DEFAULT NOW()
+                        );
+                        ALTER TABLE jeevika_erp.report_definitions ADD COLUMN IF NOT EXISTS parent_group VARCHAR(100) DEFAULT '';
+
+                        CREATE TABLE IF NOT EXISTS jeevika_erp.report_templates (
+                            id SERIAL PRIMARY KEY,
+                            report_key VARCHAR(100) NOT NULL,
+                            template_key VARCHAR(100) NOT NULL,
+                            template_name VARCHAR(255) NOT NULL,
+                            template_version INT DEFAULT 1,
+                            template_json TEXT NOT NULL,
+                            is_system_template BOOLEAN DEFAULT TRUE,
+                            is_active BOOLEAN DEFAULT TRUE,
+                            created_at TIMESTAMPTZ DEFAULT NOW(),
+                            updated_at TIMESTAMPTZ DEFAULT NOW(),
+                            UNIQUE(report_key, template_key)
+                        );
+
+                        CREATE TABLE IF NOT EXISTS jeevika_erp.report_template_versions (
+                            id SERIAL PRIMARY KEY,
+                            template_id INT NOT NULL REFERENCES jeevika_erp.report_templates(id) ON DELETE CASCADE,
+                            version_no INT NOT NULL,
+                            template_json TEXT NOT NULL,
+                            created_by VARCHAR(100) DEFAULT 'SYSTEM',
+                            created_at TIMESTAMPTZ DEFAULT NOW(),
+                            is_published BOOLEAN DEFAULT TRUE
+                        );
+
+                        CREATE TABLE IF NOT EXISTS jeevika_erp.report_runtime_settings (
+                            id SERIAL PRIMARY KEY,
+                            report_key VARCHAR(100) NOT NULL UNIQUE,
+                            setting_json TEXT NOT NULL,
+                            updated_by VARCHAR(100) DEFAULT 'SYSTEM',
+                            updated_at TIMESTAMPTZ DEFAULT NOW()
+                        );
+
+                        CREATE TABLE IF NOT EXISTS jeevika_erp.report_filter_presets (
+                            id SERIAL PRIMARY KEY,
+                            report_key VARCHAR(100) NOT NULL,
+                            preset_name VARCHAR(100) NOT NULL,
+                            filter_json TEXT NOT NULL,
+                            created_by VARCHAR(100) DEFAULT 'SYSTEM',
+                            created_at TIMESTAMPTZ DEFAULT NOW(),
+                            UNIQUE(report_key, preset_name)
+                        );
+
+                        CREATE TABLE IF NOT EXISTS jeevika_erp.report_assets (
+                            id SERIAL PRIMARY KEY,
+                            report_key VARCHAR(100) NOT NULL,
+                            asset_type VARCHAR(50) NOT NULL,
+                            file_name VARCHAR(255) NOT NULL,
+                            storage_path TEXT NOT NULL,
+                            mime_type VARCHAR(100),
+                            metadata_json TEXT,
+                            created_at TIMESTAMPTZ DEFAULT NOW()
+                        );
+
+                        CREATE TABLE IF NOT EXISTS jeevika_erp.report_audit_log (
+                            id SERIAL PRIMARY KEY,
+                            report_key VARCHAR(100) NOT NULL,
+                            action VARCHAR(100) NOT NULL,
+                            changed_by VARCHAR(100) DEFAULT 'SYSTEM',
+                            old_value TEXT,
+                            new_value TEXT,
+                            version INT DEFAULT 1,
+                            created_at TIMESTAMPTZ DEFAULT NOW()
+                        );
+
+                        -- Seed Central Report Registry for ALL 18 Member Report Items (19 tree nodes)
+                        INSERT INTO jeevika_erp.report_definitions (report_key, report_name, category, parent_group, description) VALUES
+                            ('MEMBER_BILL_FORMAT', 'Bill Format', 'Member Reports', '', 'Printable A4 GST and standard maintenance bills with full ledger breakdowns'),
+                            ('MEMBER_RECEIPT', 'Receipt', 'Member Reports', '', 'Official payment receipts with multi-mode transaction confirmation'),
+                            ('MEMBER_DEBIT_NOTE', 'Debit Note', 'Member Reports', '', 'Debit notes for penalties, revisions, and additional charges'),
+                            ('MEMBER_CREDIT_NOTE', 'Credit Note', 'Member Reports', '', 'Credit notes for waivers, rebates, and billing adjustments'),
+                            ('MEMBER_ADJUSTMENT', 'Adjustment', 'Member Reports', '', 'Bill type transfer and inter-account adjustment vouchers'),
+                            ('MEMBER_OUTSTANDING_LIST', 'Outstanding List', 'Member Reports', '', 'Summary list of member dues, arrears, and aging balances'),
+                            ('MEMBER_ACCOUNT_HEAD_WISE', 'Member Account | Head wise', 'Member Reports', 'Member Ledger', 'Head-wise pivot ledger breakdown for member debits and credits'),
+                            ('MEMBER_REGISTER_DR_CR', 'Member Register [Dr/Cr]', 'Member Reports', 'Member Ledger', 'Member Dr/Cr tabular register with opening, billing, collections, and closing'),
+                            ('MEMBER_CONTROL_ACCOUNT', 'Member Control Account', 'Member Reports', '', 'Month-by-month reconciliation of member demands and collections'),
+                            ('MEMBER_BALANCE_CONFIRMATION', 'Balance Confirmation Letter', 'Member Reports', '', 'Formal annual/audit balance confirmation letters to members'),
+                            ('MEMBER_BANK_DEPOSIT', 'Bank Deposite List', 'Member Reports', '', 'Banking schedule and pay-in slip for member cheque/digital receipts'),
+                            ('MEMBER_DATA_SHEET', 'Data Sheet', 'Member Reports', '', 'Comprehensive registry datasheet of flat owners, areas, and contacts'),
+                            ('MEMBER_BILL_REGISTER', 'Bill Register', 'Member Reports', 'Bill Register', 'Chronological and wing-wise register of all generated bills'),
+                            ('MEMBER_RECEIPT_REGISTER', 'Receipt Register', 'Member Reports', 'Bill Register', 'Register of all member collections with mode and bank details'),
+                            ('MEMBER_DEBIT_NOTE_REGISTER', 'Debit Note Register', 'Member Reports', 'Note Register', 'Register of all debit notes issued with reason and account heads'),
+                            ('MEMBER_CREDIT_NOTE_REGISTER', 'Credit Note Register', 'Member Reports', 'Note Register', 'Register of all credit notes issued with reason and account heads'),
+                            ('MEMBER_ADJUSTMENT_REGISTER', 'Adjustment Register', 'Member Reports', 'Note Register', 'Register of member adjustments and bill type transfers'),
+                            ('MEMBER_JV_REGISTER', 'Member JV Register', 'Member Reports', 'Note Register', 'Register of member-related journal vouchers with double-entry leg breakdown')
+                        ON CONFLICT (report_key) DO UPDATE SET 
+                            report_name = EXCLUDED.report_name,
+                            category = EXCLUDED.category,
+                            parent_group = EXCLUDED.parent_group,
+                            description = EXCLUDED.description,
+                            updated_at = NOW();";
                     ensureTables.ExecuteNonQuery();
                 }
             }

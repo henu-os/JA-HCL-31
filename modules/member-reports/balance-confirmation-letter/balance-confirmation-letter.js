@@ -1,413 +1,248 @@
-// ═══════════════════════════════════════════════════════════
-// JEEVIKA ERP v2 — Balance Confirmation Letter Controller
-// ═══════════════════════════════════════════════════════════
+/**
+ * balance-confirmation-letter.js — Member Balance Confirmation Letter Engine
+ * Connects 100% to Live ERP Database & Active HENU OS Design
+ */
 
-let allMembers = [];
-let filteredMembers = [];
-let currentSocietyName = 'SHREE SAI RESIDENCY CO-OP HSG SOC LTD';
+(function () {
+  'use strict';
 
-document.addEventListener('DOMContentLoaded', () => {
-  initSocietyInfo();
-  loadConfirmationData();
-});
+  const REPORT_KEY = 'MEMBER_BALANCE_CONFIRMATION';
+  let activeDesign = null;
 
-function getApiUrl(endpoint) {
-  const base = (window.APP_CONFIG && window.APP_CONFIG.API_BASE) || 'http://localhost:5002/api';
-  return `${base}/${endpoint}`;
-}
-
-async function initSocietyInfo() {
-  try {
-    const activeSoc = sessionStorage.getItem('activeSocietyName') || localStorage.getItem('activeSocietyName');
-    if (activeSoc) {
-      currentSocietyName = activeSoc;
-    }
-    const lbl = document.getElementById('lbl-society-period');
-    if (lbl) lbl.innerHTML = `<i class="bi bi-building"></i> ${currentSocietyName} — Member Dues &amp; Audit Confirmation Letters`;
-  } catch (e) {}
-}
-
-async function loadConfirmationData() {
-  const container = document.getElementById('letters-container');
-  if (container) container.innerHTML = `<div style="text-align:center; padding:50px; color:#94a3b8;"><i class="bi bi-hourglass-split"></i> Loading Member Ledger Balances for Confirmation Letters...</div>`;
-
-  try {
-    // Fetch live member ledger data
-    const [mRes, bRes, rRes] = await Promise.all([
-      fetch(getApiUrl('members?societyId=1')).then(r => r.json()).catch(() => ({ data: [] })),
-      fetch(getApiUrl('member-bills?societyId=1&fyId=1')).then(r => r.json()).catch(() => ({ data: [] })),
-      fetch(getApiUrl('member-receipts?societyId=1&fyId=1')).then(r => r.json()).catch(() => ({ data: [] }))
-    ]);
-
-    const members = (mRes.success && Array.isArray(mRes.data)) ? mRes.data : (Array.isArray(mRes) ? mRes : []);
-    const bills = (bRes.success && Array.isArray(bRes.data)) ? bRes.data : (Array.isArray(bRes) ? bRes : []);
-    const receipts = (rRes.success && Array.isArray(rRes.data)) ? rRes.data : (Array.isArray(rRes) ? rRes : []);
-
-    allMembers = members.map(m => {
-      const code = (m.memCode || m.memberCode || '').trim();
-      const mId = m.memberId;
-      const openBal = parseFloat(m.openingBalance || m.openBal) || 0;
-
-      let totBilled = 0;
-      bills.forEach(b => {
-        if (b.memberId === mId || (b.memCode && b.memCode.trim() === code)) {
-          totBilled += parseFloat(b.principalAmount) || parseFloat(b.totalAmount) || 0;
-        }
-      });
-
-      let totPaid = 0;
-      receipts.forEach(r => {
-        if (r.memberId === mId || (r.personCode && r.personCode.trim() === code)) {
-          totPaid += parseFloat(r.amount) || 0;
-        }
-      });
-
-      const closing = openBal + totBilled - totPaid;
-
-      return {
-        ...m,
-        openingBal: openBal,
-        totalBilled: totBilled,
-        totalPaid: totPaid,
-        closingBal: closing
-      };
-    });
-
-    populateWings();
-    applyFilters();
-  } catch (err) {
-    console.error('Failed to load confirmation data:', err);
-    if (container) container.innerHTML = `<div style="text-align:center; padding:50px; color:#dc2626;">Error calculating confirmation letters: ${err.message}</div>`;
-  }
-}
-
-function populateWings() {
-  const wingSet = new Set();
-  allMembers.forEach(m => {
-    if (m.wing) wingSet.add(m.wing.trim());
+  document.addEventListener('DOMContentLoaded', async () => {
+    setupEventListeners();
+    await loadMembersDropdown();
+    activeDesign = await HenuOsReportEngine.loadActiveDesign(REPORT_KEY);
+    loadLetters();
   });
 
-  const selWing = document.getElementById('flt-wing');
-  if (selWing) {
-    const cur = selWing.value;
-    selWing.innerHTML = `<option value="ALL">-- All Wings --</option>` +
-      Array.from(wingSet).sort().map(w => `<option value="${w}">${w}</option>`).join('');
-    if (wingSet.has(cur)) selWing.value = cur;
+  function setupEventListeners() {
+    document.getElementById('btnRefresh')?.addEventListener('click', () => loadLetters());
+    document.getElementById('btnApplyFilters')?.addEventListener('click', () => loadLetters());
+    document.getElementById('btnReset')?.addEventListener('click', () => resetFilters());
+    document.getElementById('btnPrint')?.addEventListener('click', () => window.print());
+    document.getElementById('btnPdf')?.addEventListener('click', () => window.print());
   }
-}
 
-function applyFilters() {
-  const wing = document.getElementById('flt-wing')?.value || 'ALL';
-  const balType = document.getElementById('flt-bal-type')?.value || 'DUES';
-  const search = (document.getElementById('flt-search')?.value || '').toLowerCase().trim();
+  function resetFilters() {
+    document.getElementById('filterMember').value = '';
+    document.getElementById('filterWing').value = '';
+    document.getElementById('filterAsOnDate').value = '';
+    loadLetters();
+  }
 
-  filteredMembers = allMembers.filter(m => {
-    if (wing !== 'ALL' && (m.wing || '').trim() !== wing) return false;
+  async function loadMembersDropdown() {
+    const select = document.getElementById('filterMember');
+    if (!select) return;
+    const ctx = HenuOsReportEngine.getSystemContext();
 
-    if (balType === 'DUES' && m.closingBal <= 0.01) return false;
-    if (balType === 'ADVANCE' && m.closingBal >= -0.01) return false;
-    if (balType === 'NIL' && Math.abs(m.closingBal) > 0.01) return false;
-
-    if (search) {
-      const match = (m.memCode || m.memberCode || '').toLowerCase().includes(search) ||
-                    (m.memName || m.memberName || '').toLowerCase().includes(search) ||
-                    (m.flatNo || '').toLowerCase().includes(search);
-      if (!match) return false;
+    try {
+      const res = await fetch(`${HenuOsReportEngine.API_BASE}/reports/member/data-sheet?societyId=${ctx.societyId}`);
+      if (res.ok) {
+        const json = await res.json();
+        const members = json.members || [];
+        select.innerHTML = '<option value="">-- All Members --</option>';
+        members.forEach(m => {
+          const opt = document.createElement('option');
+          opt.value = m.memberCode || m.memberId || '';
+          opt.textContent = `${m.flat || ''} ${m.wing ? '(' + m.wing + ')' : ''} - ${m.memberName || ''}`.trim();
+          select.appendChild(opt);
+        });
+      }
+    } catch (err) {
+      console.warn('[Balance Confirmation] Could not load member dropdown:', err);
     }
-    return true;
-  });
-
-  renderSummary();
-  renderView();
-}
-
-function resetFilters() {
-  if (document.getElementById('flt-wing')) document.getElementById('flt-wing').value = 'ALL';
-  if (document.getElementById('flt-bal-type')) document.getElementById('flt-bal-type').value = 'DUES';
-  if (document.getElementById('flt-search')) document.getElementById('flt-search').value = '';
-  applyFilters();
-}
-
-function toggleSummaryPopover(e) {
-  if (e) e.stopPropagation();
-  const p = document.getElementById('summaryPopover');
-  if (p) p.classList.toggle('show');
-}
-
-document.addEventListener('click', (e) => {
-  const p = document.getElementById('summaryPopover');
-  if (p && p.classList.contains('show') && !e.target.closest('.summary-dropdown-wrap')) {
-    p.classList.remove('show');
   }
-});
 
-function renderSummary() {
-  let count = filteredMembers.length;
-  let drCount = 0;
-  let crCount = 0;
-  let totalDues = 0;
+  async function loadLetters() {
+    const container = document.getElementById('letterContainer');
+    const kpiStrip = document.getElementById('kpiStrip');
+    if (!container) return;
 
-  allMembers.forEach(m => {
-    if (m.closingBal > 0.01) {
-      drCount++;
-      totalDues += m.closingBal;
-    } else if (m.closingBal < -0.01) {
-      crCount++;
+    HenuOsReportEngine.renderLoading(container, 'Loading balance confirmation statements from HENU ERP database...');
+
+    const ctx = HenuOsReportEngine.getSystemContext();
+    const member = document.getElementById('filterMember')?.value?.trim() || '';
+    const wing = document.getElementById('filterWing')?.value?.trim() || '';
+    const asOnDate = document.getElementById('filterAsOnDate')?.value || '';
+
+    try {
+      const params = new URLSearchParams();
+      params.append('societyId', ctx.societyId);
+      if (ctx.fyId) params.append('fyId', ctx.fyId);
+      if (member) params.append('fromMember', member);
+      if (wing) params.append('wing', wing);
+      if (asOnDate) params.append('asOnDate', asOnDate);
+
+      const res = await fetch(`${HenuOsReportEngine.API_BASE}/reports/member/balance-confirmation?${params.toString()}`);
+      if (!res.ok) {
+        throw new Error(`Server returned HTTP ${res.status}`);
+      }
+
+      const data = await res.json();
+      const letters = data.letters || data.items || [];
+      const society = data.society || {};
+
+      if (letters.length === 0) {
+        HenuOsReportEngine.renderEmpty(container, 'No member records found for balance confirmation.');
+        if (kpiStrip) kpiStrip.style.display = 'none';
+        return;
+      }
+
+      // Update KPI strip
+      if (kpiStrip) {
+        let totalOut = 0;
+        letters.forEach(l => {
+          totalOut += (l.closingBalance || l.closingDue || 0);
+        });
+        document.getElementById('kpiTotalLetters').textContent = letters.length;
+        document.getElementById('kpiTotalOutstanding').textContent = HenuOsReportEngine.formatINR(totalOut);
+        kpiStrip.style.display = 'flex';
+      }
+
+      renderLettersHTML(society, data, letters, container);
+      HenuOsReportEngine.applyDesignToDOM(activeDesign);
+    } catch (err) {
+      console.error('[Balance Confirmation] Error loading letters:', err);
+      HenuOsReportEngine.renderError(container, 'Unable to load confirmation letters from server.', () => loadLetters());
+      if (kpiStrip) kpiStrip.style.display = 'none';
     }
-  });
-
-  const sCount = document.getElementById('stat-count');
-  if (sCount) sCount.innerText = `${count} Letters`;
-  const pCount = document.getElementById('pop-count');
-  if (pCount) pCount.innerText = `${count} Letters`;
-
-  if (document.getElementById('stat-dr-count')) document.getElementById('stat-dr-count').innerText = drCount;
-  if (document.getElementById('stat-cr-count')) document.getElementById('stat-cr-count').innerText = crCount;
-  if (document.getElementById('stat-total-dues')) document.getElementById('stat-total-dues').innerText = '₹' + formatCurrency(totalDues);
-}
-
-function toggleViewMode() {
-  const mode = document.getElementById('flt-view-mode')?.value || 'LETTERS';
-  const panelTable = document.getElementById('panel-table-view');
-  const panelLetters = document.getElementById('panel-letters-view');
-
-  if (mode === 'TABLE') {
-    if (panelTable) panelTable.style.display = 'block';
-    if (panelLetters) panelLetters.style.display = 'none';
-  } else {
-    if (panelTable) panelTable.style.display = 'none';
-    if (panelLetters) panelLetters.style.display = 'block';
-  }
-  renderView();
-}
-
-function renderView() {
-  renderLetters();
-  renderTable();
-}
-
-function renderLetters() {
-  const container = document.getElementById('letters-container');
-  if (!container) return;
-
-  if (filteredMembers.length === 0) {
-    container.innerHTML = `<div style="text-align:center; padding:50px; color:#64748b;">No member records match selected criteria for confirmation letters.</div>`;
-    return;
   }
 
-  let html = '';
-  filteredMembers.forEach((m, idx) => {
-    const memCode = m.memCode || m.memberCode || '-';
-    const memName = m.memName || m.memberName || '-';
-    const flat = (m.wing ? (m.wing + '-') : '') + (m.flatNo || '');
-    const bal = m.closingBal;
-    const isDr = bal >= 0;
-    const balText = isDr ? `${formatCurrency(bal)} (Debit / Due)` : `${formatCurrency(Math.abs(bal))} (Credit / Advance)`;
+  function renderLettersHTML(soc, data, letters, container) {
+    const socName = soc.SocietyName || soc.societyname || soc.name || 'CO-OPERATIVE HOUSING SOCIETY LTD.';
+    const regNo = soc.RegistrationNo || soc.registrationno || '';
+    const pan = soc.PANNumber || soc.pannumber || soc.pan || '';
+    const addr = soc.Address || soc.address || '';
+    const asOnStr = data.asOnDate ? HenuOsReportEngine.formatDate(data.asOnDate) : HenuOsReportEngine.formatDate(new Date());
 
-    html += `
-      <div class="letter-preview-sheet">
-        <div class="letter-header">
-          <div class="letter-soc-title">${escapeHtml(currentSocietyName)}</div>
-          <div class="letter-soc-sub">Registered Under Maharashtra Co-operative Societies Act, 1960 | Registration No: BOM/HSG/2020/2026</div>
-        </div>
+    let html = '';
 
-        <div class="letter-meta">
-          <div>
-            <strong>To:</strong><br>
-            ${escapeHtml(memName)}<br>
-            Flat No: ${escapeHtml(flat)}<br>
-            Member Code: ${escapeHtml(memCode)}
+    letters.forEach((item, idx) => {
+      const isLast = idx === letters.length - 1;
+      const mem = item.member || item;
+      const closing = item.closingBalance || item.closingDue || 0;
+      const opening = item.openingBalance || 0;
+      const billed = item.billedAmount || item.demands || 0;
+      const collected = item.collectedAmount || item.payments || 0;
+      const adjustments = item.adjustedAmount || 0;
+      const words = HenuOsReportEngine.numberToWordsINR(Math.abs(closing));
+
+      html += `
+        <div class="bac-letter-page ${!isLast ? 'page-break' : ''}">
+          <!-- Letterhead -->
+          <header class="bac-header">
+            <div class="bac-soc-name">${HenuOsReportEngine.escapeHtml(socName)}</div>
+            <div class="bac-soc-meta">
+              ${regNo ? `Reg No: <strong>${HenuOsReportEngine.escapeHtml(regNo)}</strong> | ` : ''}
+              ${pan ? `PAN: <strong>${HenuOsReportEngine.escapeHtml(pan)}</strong>` : ''}
+              ${addr ? `<br>${HenuOsReportEngine.escapeHtml(addr)}` : ''}
+            </div>
+          </header>
+
+          <!-- Reference & Date -->
+          <div class="bac-ref-date-row">
+            <div>Ref No: <strong>BCL/${data.fyLabel || 'FY'}/${mem.flat || mem.flatNo || (idx + 1)}</strong></div>
+            <div>Date: <strong>${asOnStr}</strong></div>
           </div>
-          <div style="text-align: right;">
-            <strong>Date:</strong> 31st March 2027<br>
-            <strong>Ref:</strong> JEEV/CONF/2026-27/${idx + 1}<br>
-            <strong>F.Y.:</strong> 2026 - 2027
+
+          <!-- Addressee Member Box -->
+          <div class="bac-addressee-box">
+            <div style="font-weight:700; font-size:10pt;">To,</div>
+            <div style="font-weight:800; font-size:10.5pt; color:var(--bac-primary);">${HenuOsReportEngine.escapeHtml(mem.name || mem.memberName || '-')}</div>
+            <div>Flat / Unit No: <strong>${HenuOsReportEngine.escapeHtml(mem.flat || mem.flatNo || '-')}</strong> ${mem.wing ? '(' + HenuOsReportEngine.escapeHtml(mem.wing) + ')' : ''}</div>
+            <div>Member Code: <strong>${HenuOsReportEngine.escapeHtml(mem.code || mem.memberCode || '-')}</strong></div>
           </div>
-        </div>
 
-        <div class="letter-title-badge">CONFIRMATION OF ACCOUNT BALANCE AS ON 31/03/2027</div>
+          <!-- Subject Line -->
+          <div class="bac-subject-line">
+            Subject: Confirmation of Account Balance as on ${asOnStr}
+          </div>
 
-        <div class="letter-body">
-          <p>Dear Member,</p>
-          <p style="margin-top: 8px;">
-            In connection with the statutory annual audit of our Society for the financial year ending <strong>31st March 2027</strong>, 
-            please confirm directly to our statutory auditors the correctness of the balance outstanding in your maintenance account as stated below:
-          </p>
+          <!-- Formal Letter Body -->
+          <div class="bac-body-para">
+            Dear Member,<br>
+            In connection with the finalization of society accounts and statutory audit for the financial period, please find below the statement of your maintenance and service charges account as per the society's books of accounts:
+          </div>
 
-          <table class="letter-table">
+          <!-- Financial Statement Table -->
+          <table class="bac-summary-table">
             <thead>
               <tr>
-                <th>Particulars</th>
-                <th style="text-align: right;">Amount (₹)</th>
+                <th>Account Head / Particulars</th>
+                <th class="right" style="width:140px;">Amount (₹)</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td>Opening Balance as on 01/04/2026</td>
-                <td style="text-align: right; font-family: Consolas;">${formatCurrency(m.openingBal)}</td>
+                <td>Opening Balance as at beginning of period</td>
+                <td class="right">${HenuOsReportEngine.formatINR(opening)}</td>
               </tr>
               <tr>
-                <td>Add: Maintenance &amp; Charges Billed during the Year</td>
-                <td style="text-align: right; font-family: Consolas;">${formatCurrency(m.totalBilled)}</td>
+                <td>Add: Maintenance & Service Charges Billed during the period</td>
+                <td class="right">${HenuOsReportEngine.formatINR(billed)}</td>
               </tr>
               <tr>
-                <td>Less: Total Collections &amp; Receipts Received</td>
-                <td style="text-align: right; font-family: Consolas;">${formatCurrency(m.totalPaid)}</td>
+                <td>Less: Payments & Collections Received</td>
+                <td class="right" style="color:#15803d;">${HenuOsReportEngine.formatINR(collected)}</td>
               </tr>
-              <tr style="background: #f8fafc; font-weight: 800;">
-                <td>Net Outstanding Closing Balance as on 31/03/2027</td>
-                <td style="text-align: right; font-family: Consolas; color: ${isDr ? '#dc2626' : '#16a34a'};">${balText}</td>
+              ${adjustments !== 0 ? `
+                <tr>
+                  <td>Adjustments / Waivers / Transfers</td>
+                  <td class="right">${HenuOsReportEngine.formatINR(adjustments)}</td>
+                </tr>
+              ` : ''}
+              <tr class="closing-row">
+                <td>CLOSING BALANCE RECEIVABLE AS ON ${asOnStr.toUpperCase()}:</td>
+                <td class="right">${HenuOsReportEngine.formatINR(closing)}</td>
               </tr>
             </tbody>
           </table>
 
-          <p style="font-size: 11px; color: #475569;">
-            If the above balance is in agreement with your records, please sign and return the confirmation slip below. 
-            If not, please specify the differences with complete payment particulars.
-          </p>
-        </div>
-
-        <div class="letter-sign-block">
-          <div>
-            __________________________<br>
-            <strong>Hon. Secretary / Treasurer</strong><br>
-            ${escapeHtml(currentSocietyName)}
+          <div style="font-size:8.5pt; margin-bottom:12px;">
+            Amount in Words: <strong style="font-style:italic;">${HenuOsReportEngine.escapeHtml(words)}</strong> (${closing >= 0 ? 'Debit / Receivable' : 'Credit / Advance'}).
           </div>
-          <div style="text-align: right;">
-            __________________________<br>
-            <strong>Statutory Auditor</strong><br>
-            Chartered Accountants
+
+          <div class="bac-body-para" style="font-size:8.5pt;">
+            Kindly verify the above balance with your records. If you find any discrepancy, please notify the society office within 15 days of receipt of this letter, along with supporting documents / receipts. Otherwise, this balance will be deemed as confirmed.
+          </div>
+
+          <!-- Signatures -->
+          <div class="bac-sig-row">
+            <div class="bac-sig-col">
+              <div class="bac-sig-line">Prepared By (Accountant)</div>
+            </div>
+            <div class="bac-sig-col">
+              <div class="bac-sig-line">Verified By (Auditor)</div>
+            </div>
+            <div class="bac-sig-col">
+              <div class="bac-sig-line">Hon. Secretary / Treasurer</div>
+            </div>
+          </div>
+
+          <!-- Tear-Off Acknowledgment Slip -->
+          <div class="bac-tear-off">
+            <div class="bac-tearoff-line">
+              <span class="bac-tearoff-tag">✂ &nbsp; TEAR-OFF CONFIRMATION SLIP &nbsp; ✂</span>
+            </div>
+            <div class="bac-ack-card">
+              <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                <div>To: The Hon. Secretary, <strong>${HenuOsReportEngine.escapeHtml(socName)}</strong></div>
+                <div>Date: ______________</div>
+              </div>
+              <div style="font-size:7.5pt; margin-bottom:8px;">
+                I/We confirm that the closing balance of <strong>${HenuOsReportEngine.formatINR(closing)}</strong> as on ${asOnStr} in respect of Flat/Unit <strong>${HenuOsReportEngine.escapeHtml(mem.flat || mem.flatNo || '-')}</strong> is correct.
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:flex-end; font-size:7.5pt;">
+                <div>Member Name: <strong>${HenuOsReportEngine.escapeHtml(mem.name || mem.memberName || '-')}</strong></div>
+                <div style="border-top:1px solid #334155; width:160px; text-align:center; padding-top:2px;">Signature of Member</div>
+              </div>
+            </div>
           </div>
         </div>
+      `;
+    });
 
-        <div class="letter-ack-slip">
-          <div style="text-align: center; font-weight: 800; font-size: 11px; margin-bottom: 8px;">(PLEASE DETACH AND RETURN THIS CONFIRMATION SLIP)</div>
-          <p style="font-size: 11px;">
-            To The Statutory Auditor, <strong>${escapeHtml(currentSocietyName)}</strong>.<br>
-            I/We hereby confirm that the balance of <strong>₹ ${balText}</strong> appearing against my Flat No: <strong>${escapeHtml(flat)}</strong> as on 31/03/2027 is correct.
-          </p>
-          <div style="display: flex; justify-content: space-between; margin-top: 24px; font-size: 11px;">
-            <div>Date: ______________</div>
-            <div>Mobile: ______________</div>
-            <div>Signature of Member: ______________________</div>
-          </div>
-        </div>
-      </div>
-    `;
-  });
-
-  container.innerHTML = html;
-}
-
-function renderTable() {
-  const tbody = document.getElementById('tbl-summary-body');
-  const tfoot = document.getElementById('tbl-summary-foot');
-  if (!tbody) return;
-
-  if (filteredMembers.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="11" class="col-center" style="padding:30px; color:#64748b;">No records match selected criteria.</td></tr>`;
-    if (tfoot) tfoot.innerHTML = '';
-    return;
+    container.innerHTML = html;
   }
-
-  let html = '';
-  let totOp = 0, totBill = 0, totPd = 0, totCl = 0;
-
-  filteredMembers.forEach((m, idx) => {
-    totOp += m.openingBal;
-    totBill += m.totalBilled;
-    totPd += m.totalPaid;
-    totCl += m.closingBal;
-
-    const memCode = m.memCode || m.memberCode || '-';
-    const memName = m.memName || m.memberName || '-';
-    const wing = m.wing || '-';
-    const flat = m.flatNo || '-';
-    const phone = m.contactNo || m.mobile || '-';
-
-    html += `
-      <tr>
-        <td class="col-center">${idx + 1}</td>
-        <td class="col-center"><strong>${escapeHtml(memCode)}</strong></td>
-        <td><strong>${escapeHtml(memName)}</strong></td>
-        <td class="col-center">${escapeHtml(wing)}</td>
-        <td class="col-center"><strong>${escapeHtml(flat)}</strong></td>
-        <td class="col-center">${escapeHtml(phone)}</td>
-        <td class="col-right">${formatCurrency(m.openingBal)}</td>
-        <td class="col-right" style="color:#2563eb;">${formatCurrency(m.totalBilled)}</td>
-        <td class="col-right" style="color:#16a34a;">${formatCurrency(m.totalPaid)}</td>
-        <td class="col-right" style="color:${m.closingBal > 0 ? '#dc2626' : '#16a34a'}; font-weight:800;">${formatCurrency(m.closingBal)}</td>
-        <td class="col-center">
-          <button class="btn-reset" style="height:24px; padding:0 8px; font-size:10px;" onclick="printSingleMember('${escapeHtml(memCode)}')"><i class="bi bi-printer"></i> Letter</button>
-        </td>
-      </tr>
-    `;
-  });
-
-  tbody.innerHTML = html;
-
-  const footHtml = `
-    <tr>
-      <td colspan="6" class="col-left" style="font-weight:800; text-transform:uppercase;">Total (${filteredMembers.length} Members)</td>
-      <td class="col-right">${formatCurrency(totOp)}</td>
-      <td class="col-right" style="color:#2563eb;">${formatCurrency(totBill)}</td>
-      <td class="col-right" style="color:#16a34a;">${formatCurrency(totPd)}</td>
-      <td class="col-right" style="color:#dc2626; font-size:12px;">₹ ${formatCurrency(totCl)}</td>
-      <td></td>
-    </tr>
-  `;
-  if (tfoot) tfoot.innerHTML = footHtml;
-}
-
-function printSingleMember(memCode) {
-  document.getElementById('flt-view-mode').value = 'LETTERS';
-  document.getElementById('flt-search').value = memCode;
-  applyFilters();
-  window.print();
-}
-
-function exportConfirmationSummaryExcel() {
-  if (typeof XLSX === 'undefined') {
-    alert('Excel library not loaded.');
-    return;
-  }
-
-  const wsData = [
-    [currentSocietyName],
-    ['MEMBER BALANCE CONFIRMATION AUDIT SUMMARY'],
-    [`Generated on: ${new Date().toLocaleDateString('en-IN')}`],
-    [],
-    ['Sr No', 'Member Code', 'Member Name', 'Wing', 'Flat No', 'Contact No', 'Opening Balance (₹)', 'Total Billed (₹)', 'Total Paid (₹)', 'Closing Balance (₹)', 'Status']
-  ];
-
-  filteredMembers.forEach((m, idx) => {
-    const status = m.closingBal > 0.01 ? 'DUES / DR' : (m.closingBal < -0.01 ? 'ADVANCE / CR' : 'NIL');
-    wsData.push([
-      idx + 1,
-      m.memCode || m.memberCode || '',
-      m.memName || m.memberName || '',
-      m.wing || '',
-      m.flatNo || '',
-      m.contactNo || m.mobile || '',
-      m.openingBal,
-      m.totalBilled,
-      m.totalPaid,
-      m.closingBal,
-      status
-    ]);
-  });
-
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet(wsData);
-  XLSX.utils.book_append_sheet(wb, ws, 'Audit Confirmations');
-  XLSX.writeFile(wb, `Balance_Confirmation_Summary_${new Date().toISOString().split('T')[0]}.xlsx`);
-}
-
-function formatCurrency(val) {
-  return (parseFloat(val) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-function escapeHtml(text) {
-  if (!text) return '';
-  return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
+})();

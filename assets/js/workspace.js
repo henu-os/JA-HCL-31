@@ -17,11 +17,15 @@ const WorkspaceManager = (() => {
     { id: 'billing-utility', label: 'Billing Utilities', icon: 'bi-receipt-cutoff', hasSub: true },
     { id: 'statutory', label: 'Statutory', icon: 'bi-journal-bookmark-fill', hasSub: true },
     { id: 'admin', label: 'Admin', icon: 'bi-gear-fill', hasSub: true },
+    { id: 'henu-os', label: 'HENU OS', icon: 'bi-palette-fill', hasSub: true },
     { id: 'settings', label: 'Settings', icon: 'bi-sliders', hasSub: true },
     { id: 'help', label: 'Help & Documentation', icon: 'bi-question-circle-fill', hasSub: false }
   ];
 
   const MODULES = [
+    // DASHBOARD
+    { id: 'dashboard', label: 'Executive Dashboard', category: 'dashboard', path: 'modules/dashboard/dashboard.html' },
+
     // MASTERS
     { id: 'society-master', label: 'Society Master', category: 'master', path: 'modules/master/society-master/society-master.html' },
     { id: 'group-master', label: 'Group Master', category: 'master', path: 'modules/master/group-master/group-master.html' },
@@ -261,6 +265,10 @@ const WorkspaceManager = (() => {
     { id: 'role-permissions', label: 'Role Access Permissions', category: 'admin', path: 'modules/admin/role-permissions/role-permissions.html' },
     { id: 'audit-log', label: 'System Audit Logs', category: 'admin', path: 'modules/admin/audit-log/audit-log.html' },
 
+    // HENU OS
+    { id: 'henu-member-designs', label: 'Member Reports Designs', category: 'henu-os', path: 'modules/settings/henu-os-design/henu-os-design.html' },
+    { id: 'henu-os-design', label: 'Member Reports Designs', category: 'henu-os', path: 'modules/settings/henu-os-design/henu-os-design.html' },
+
     // SETTINGS
     {
       id: 'henu-db-universal-group',
@@ -380,6 +388,10 @@ const WorkspaceManager = (() => {
 
     const frame = document.getElementById('moduleFrame');
     if (frame) injectSocietyContextToFrame(frame);
+
+    if (window.DashboardApp && typeof window.DashboardApp.loadDashboard === 'function') {
+      window.DashboardApp.loadDashboard();
+    }
   }
 
   function setActiveSociety(arg1, arg2, arg3, arg4, arg5, arg6) {
@@ -473,6 +485,10 @@ const WorkspaceManager = (() => {
     }
 
     updateGstMenuVisibility();
+
+    if (window.DashboardApp && typeof window.DashboardApp.loadDashboard === 'function') {
+      window.DashboardApp.loadDashboard();
+    }
   }
 
   function getModule(id) {
@@ -609,7 +625,10 @@ const WorkspaceManager = (() => {
       };
       const sep = mod.path.includes('?') ? '&' : '?';
       frame.src = mod.path + sep + 't=' + Date.now() + (queryParams ? '&' + queryParams : '');
-      if (placeholder) placeholder.style.display = 'none';
+    }
+    if (placeholder) {
+      placeholder.style.display = 'none';
+      placeholder.classList.add('d-none');
     }
   }
 
@@ -654,15 +673,12 @@ const WorkspaceManager = (() => {
       if (openTabs.length > 0) {
         activateTab(openTabs[openTabs.length - 1].id);
       } else {
-        activeTabId = null;
-        const frame = document.getElementById('moduleFrame');
-        const placeholder = document.getElementById('modulePlaceholder');
-        if (frame) frame.style.display = 'none';
-        if (placeholder) placeholder.style.display = 'flex';
+        showDashboard();
       }
+    } else {
+      renderSidebar();
+      renderOpenTabsStrip();
     }
-    renderSidebar();
-    renderOpenTabsStrip();
   }
 
   function escHtmlWs(str) {
@@ -683,9 +699,15 @@ const WorkspaceManager = (() => {
       frame.style.display = 'none';
       frame.src = 'about:blank';
     }
-    if (placeholder) placeholder.style.display = 'flex';
+    if (placeholder) {
+      placeholder.style.display = 'flex';
+      placeholder.classList.remove('d-none');
+    }
     renderSidebar();
     renderOpenTabsStrip();
+    if (window.DashboardApp && typeof window.DashboardApp.loadDashboard === 'function') {
+      window.DashboardApp.loadDashboard();
+    }
   }
 
   async function syncActiveSocietyGST() {

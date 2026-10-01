@@ -65,6 +65,32 @@
     dateInp.value = fyEnd;
   }
 
+  function isHenuOsTemplate() {
+    const chk = document.getElementById('chk-template-toggle');
+    if (chk) return chk.checked;
+    const select = document.getElementById('bs-template-select');
+    return select ? (select.value === 'henu_os') : true;
+  }
+
+  window.onTemplateToggleChange = function () {
+    const chk = document.getElementById('chk-template-toggle');
+    const lbl = document.getElementById('lbl-template-name');
+    if (chk && lbl) {
+      if (chk.checked) {
+        lbl.textContent = 'HENU OS FORMATE';
+        lbl.style.color = '#4338ca';
+      } else {
+        lbl.textContent = 'Existing Template';
+        lbl.style.color = '#475569';
+      }
+    }
+    renderBalanceSheetView();
+  };
+
+  window.onTemplateChange = function () {
+    renderBalanceSheetView();
+  };
+
   // ── 2. DATA FETCHING ────────────────────────────────────────────────────
   window.loadBalanceSheetData = async function () {
     const societyId = (window.Auth && Auth.getSocietyId) ? Auth.getSocietyId() : (sessionStorage.getItem('activeSocietyId') || '1');
@@ -82,6 +108,15 @@
             <i class="bi bi-arrow-repeat spin"></i> Generating Statutory Balance Sheet...
           </td>
         </tr>`;
+    }
+
+    const henuContainer = document.getElementById('bs-henu-os-container');
+    if (henuContainer) {
+      henuContainer.innerHTML = `
+        <div class="henu-os-wrapper text-center text-muted" style="padding:60px; text-align:center;">
+          <i class="bi bi-arrow-repeat spin" style="font-size:24px; color:#A39ED4;"></i><br><br>
+          Generating HENU OS FORMATE Balance Sheet...
+        </div>`;
     }
 
     try {
@@ -110,6 +145,13 @@
             <i class="bi bi-exclamation-octagon-fill"></i> ${escHtml(msg)}
           </td>
         </tr>`;
+    }
+    const henuContainer = document.getElementById('bs-henu-os-container');
+    if (henuContainer) {
+      henuContainer.innerHTML = `
+        <div class="henu-os-wrapper text-center text-danger" style="padding:40px; text-align:center; font-weight:700;">
+          <i class="bi bi-exclamation-octagon-fill"></i> ${escHtml(msg)}
+        </div>`;
     }
   }
 
@@ -257,6 +299,21 @@
   // ── 4. T-FORMAT SIDE-BY-SIDE RENDERER ────────────────────────────────────
   window.renderBalanceSheetView = function () {
     if (!currentBSReport) return;
+
+    const isHenuOs = isHenuOsTemplate();
+    const henuContainer = document.getElementById('bs-henu-os-container');
+    const existingContainer = document.getElementById('bs-existing-container');
+
+    if (isHenuOs && window.HenuOsBalanceSheet) {
+      if (henuContainer) henuContainer.style.display = 'block';
+      if (existingContainer) existingContainer.style.display = 'none';
+      window.HenuOsBalanceSheet.render(currentBSReport, henuContainer);
+      return;
+    }
+
+    // Existing Template Workflow
+    if (henuContainer) henuContainer.style.display = 'none';
+    if (existingContainer) existingContainer.style.display = 'block';
 
     const viewMode = document.getElementById('bs-view-mode')?.value || 'detailed';
     const comparePrev = true;
@@ -749,6 +806,12 @@
 
   // ── 6. PRINT ENGINE ─────────────────────────────────────────────────────
   window.printReport = function () {
+    if (!currentBSReport) return;
+    if (isHenuOsTemplate() && window.HenuOsBalanceSheet) {
+      window.HenuOsBalanceSheet.print(currentBSReport);
+      return;
+    }
+
     const socName = (currentBSReport && currentBSReport.society) ? currentBSReport.society.societyName : 'Balance_Sheet';
     const asOn = (currentBSReport && currentBSReport.asOnDate) ? currentBSReport.asOnDate : '';
     const origTitle = document.title;
@@ -761,6 +824,11 @@
   window.exportToExcel = function () {
     if (!currentBSReport) {
       alert('Please wait for the Balance Sheet to load before exporting.');
+      return;
+    }
+
+    if (isHenuOsTemplate() && window.HenuOsBalanceSheet) {
+      window.HenuOsBalanceSheet.exportExcel(currentBSReport);
       return;
     }
 

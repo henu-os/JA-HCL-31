@@ -1,645 +1,330 @@
 /**
- * Bill Format - G02. Full Page - GST1 with Receipt Controller
- * Dynamic Re-Preview & Dynamic Database Parameter Binding (Zero Hardcoding)
+ * bill-format.js — Member Bill Format Engine (A4 GST & Standard)
+ * Connects 100% to Live ERP Database & Active HENU OS Design
  */
+
 (function () {
-    const API_BASE = window.APP_CONFIG ? window.APP_CONFIG.API_BASE : 'http://localhost:5002/api';
+  'use strict';
 
-    let loadedBillsData = null;
+  const REPORT_KEY = 'MEMBER_BILL_FORMAT';
+  let activeDesign = null;
 
-    // Helper: Convert YYYY-MM-DD or DD-MM-YYYY to YYYY-MM-DD
-    function normalizeDate(val) {
-        if (!val) return '';
-        const trimmed = String(val).trim();
-        if (trimmed.includes('-') && trimmed.split('-')[0].length === 4) return trimmed; // Already YYYY-MM-DD
-        const parts = trimmed.split(/[-/]/);
-        if (parts.length === 3) {
-            // DD-MM-YYYY to YYYY-MM-DD
-            return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-        }
-        return trimmed;
+  document.addEventListener('DOMContentLoaded', async () => {
+    setupEventListeners();
+    await loadMembersDropdown();
+    activeDesign = await HenuOsReportEngine.loadActiveDesign(REPORT_KEY);
+    loadBills();
+  });
+
+  function setupEventListeners() {
+    document.getElementById('btnRefresh')?.addEventListener('click', () => loadBills());
+    document.getElementById('btnApplyFilters')?.addEventListener('click', () => loadBills());
+    document.getElementById('btnReset')?.addEventListener('click', () => resetFilters());
+    document.getElementById('btnPrint')?.addEventListener('click', () => window.print());
+    document.getElementById('btnPdf')?.addEventListener('click', () => window.print());
+  }
+
+  function resetFilters() {
+    document.getElementById('filterBillNo').value = '';
+    document.getElementById('filterWing').value = '';
+    document.getElementById('filterMember').value = '';
+    document.getElementById('filterBillFrom').value = '';
+    document.getElementById('filterBillTo').value = '';
+    loadBills();
+  }
+
+  async function loadMembersDropdown() {
+    const select = document.getElementById('filterMember');
+    if (!select) return;
+    const ctx = HenuOsReportEngine.getSystemContext();
+
+    try {
+      const res = await fetch(`${HenuOsReportEngine.API_BASE}/reports/member/data-sheet?societyId=${ctx.societyId}`);
+      if (res.ok) {
+        const json = await res.json();
+        const members = json.members || [];
+        select.innerHTML = '<option value="">-- All Members --</option>';
+        members.forEach(m => {
+          const opt = document.createElement('option');
+          opt.value = m.memberCode || m.memberId || '';
+          opt.textContent = `${m.flat || ''} ${m.wing ? '(' + m.wing + ')' : ''} - ${m.memberName || ''}`.trim();
+          select.appendChild(opt);
+        });
+      }
+    } catch (err) {
+      console.warn('[Bill Format] Could not load member dropdown:', err);
     }
+  }
 
-    function formatDateToInput(dateStr) {
-        if (!dateStr) return '';
-        const d = new Date(dateStr);
-        if (isNaN(d.getTime())) {
-            return normalizeDate(dateStr);
-        }
-        return d.toISOString().split('T')[0];
-    }
+  async function loadBills() {
+    const container = document.getElementById('billContainer');
+    const kpiStrip = document.getElementById('kpiStrip');
+    if (!container) return;
 
-    // Active Society ID Resolution matching Member Master exactly
-    function getActiveSocietyId() {
-        if (window.Auth && typeof window.Auth.getSocietyId === 'function') {
-            const s = window.Auth.getSocietyId();
-            if (s && !isNaN(parseInt(s, 10)) && parseInt(s, 10) > 0) return parseInt(s, 10);
-        }
-        const raw = sessionStorage.getItem('activeSocietyId') || localStorage.getItem('activeSocietyId') || sessionStorage.getItem('activeSocietyCode') || localStorage.getItem('activeSocietyCode') || '';
-        const num = parseInt(raw, 10);
-        if (!isNaN(num) && num > 0) return num;
-        const rawUpper = String(raw).toUpperCase().trim();
-        if (rawUpper.includes('SRS') || rawUpper.includes('SAI')) return 2;
-        if (rawUpper.includes('GDS') || rawUpper.includes('GOKUL')) return 1;
-        return 1;
-    }
+    HenuOsReportEngine.renderLoading(container, 'Loading bills from HENU ERP database...');
 
-    // Dynamic Member Range Populating from Database matching Member Master
-    async function loadMembers() {
-        try {
-            const activeSocietyId = getActiveSocietyId();
-            const token = sessionStorage.getItem('jwtToken');
-            let members = [];
+    const ctx = HenuOsReportEngine.getSystemContext();
+    const billNo = document.getElementById('filterBillNo')?.value?.trim() || '';
+    const wing = document.getElementById('filterWing')?.value?.trim() || '';
+    const member = document.getElementById('filterMember')?.value?.trim() || '';
+    const fromDate = document.getElementById('filterBillFrom')?.value || '';
+    const toDate = document.getElementById('filterBillTo')?.value || '';
 
-            if (typeof API !== 'undefined' && API.get) {
-                const res = await API.get(`members?societyId=${activeSocietyId}`);
-                members = (res && res.data) ? res.data : (Array.isArray(res) ? res : []);
-            } else {
-                const res = await fetch(`${API_BASE}/members?societyId=${activeSocietyId}`, {
-                    headers: { 'Authorization': 'Bearer ' + token }
-                });
-                const data = await res.json();
-                members = (data && data.data) ? data.data : (Array.isArray(data) ? data : []);
-            }
+    try {
+      const params = new URLSearchParams();
+      params.append('societyId', ctx.societyId);
+      if (ctx.fyId) params.append('fyId', ctx.fyId);
+      if (billNo) params.append('fromBillNo', billNo);
+      if (wing) params.append('wing', wing);
+      if (member) params.append('fromMember', member);
+      if (fromDate) params.append('billFrom', fromDate);
+      if (toDate) params.append('billTo', toDate);
 
-            // Sort members naturally by MemCode so fromMember and toMember form a proper boundary
-            members.sort((a, b) => {
-                const codeA = String(a.memCode || a.code || a.MemCode || '').toUpperCase();
-                const codeB = String(b.memCode || b.code || b.MemCode || '').toUpperCase();
-                return codeA.localeCompare(codeB, undefined, { numeric: true });
-            });
+      const res = await fetch(`${HenuOsReportEngine.API_BASE}/reports/member/bill-format?${params.toString()}`);
+      if (!res.ok) {
+        throw new Error(`Server returned HTTP ${res.status}`);
+      }
 
-            const fromSelect = document.getElementById('fromMember');
-            const toSelect = document.getElementById('toMember');
+      const data = await res.json();
+      const bills = data.bills || [];
+      const society = data.society || {};
 
-            if (fromSelect && toSelect && members.length > 0) {
-                const options = members.map(m => {
-                    const code = m.memCode || m.code || m.MemCode || '';
-                    const name = m.memName || m.name || m.MemName || '';
-                    const flat = m.flatNo || m.FlatNo || '';
-                    const wing = m.wing || m.Wing || '';
-                    
-                    // Format matching Member Master: [Flat] Code - Name (Wing) or Code - Name (Flat: Wing-Flat)
-                    const flatDesc = (wing || flat) ? ` (Flat: ${wing ? wing + '-' : ''}${flat})` : '';
-                    const label = `${code} - ${name}${flatDesc}`;
-                    return `<option value="${code}">${label}</option>`;
-                }).join('');
+      if (bills.length === 0) {
+        HenuOsReportEngine.renderEmpty(container, 'No billing records found for the selected criteria.');
+        if (kpiStrip) kpiStrip.style.display = 'none';
+        return;
+      }
 
-                fromSelect.innerHTML = options;
-                toSelect.innerHTML = options;
-                fromSelect.selectedIndex = 0; // First member according to Member Master
-                toSelect.selectedIndex = members.length - 1; // Last member according to Member Master
-            }
-        } catch (e) {
-            console.error("Failed loading members dynamically", e);
-        }
-    }
-
-    // Dynamic Fiscal Year & Date Initialization from Database
-    async function initFiscalDates() {
-        try {
-            const activeSocietyId = getActiveSocietyId();
-            const activeFYId = sessionStorage.getItem('activeFYId') || 1;
-            const token = sessionStorage.getItem('jwtToken');
-            let fyList = [];
-
-            if (typeof API !== 'undefined' && API.get) {
-                const res = await API.get(`financial-years?societyId=${activeSocietyId}`);
-                fyList = (res && res.data) ? res.data : (Array.isArray(res) ? res : []);
-            } else {
-                const res = await fetch(`${API_BASE}/financial-years?societyId=${activeSocietyId}`, {
-                    headers: { 'Authorization': 'Bearer ' + token }
-                });
-                const data = await res.json();
-                fyList = (data && data.data) ? data.data : (Array.isArray(data) ? data : []);
-            }
-
-            let activeFY = fyList.find(f => String(f.fYId || f.fyId) === String(activeFYId)) || 
-                           fyList.find(f => f.isActive || f.isDefault) || 
-                           fyList[0];
-
-            if (activeFY && (activeFY.fYStart || activeFY.fyStart) && (activeFY.fYEnd || activeFY.fyEnd)) {
-                const startDate = (activeFY.fYStart || activeFY.fyStart).split('T')[0];
-                const endDate = (activeFY.fYEnd || activeFY.fyEnd).split('T')[0];
-
-                const dateFromInputs = document.querySelectorAll('input[name="billFrom"], input[name="rcptFrom"], #billFrom, #rcptFrom, #fromDate');
-                const dateToInputs = document.querySelectorAll('input[name="billTo"], input[name="rcptTo"], #billTo, #rcptTo, #toDate');
-
-                dateFromInputs.forEach(input => { if (input) input.value = startDate; });
-                dateToInputs.forEach(input => { if (input) input.value = endDate; });
-            }
-        } catch (e) {
-            console.error("Failed initializing fiscal year dates dynamically", e);
-        }
-    }
-
-    // Extract Form Parameters live from inputs at execution time (Zero Caching)
-    function getFilterParams() {
-        const getVal = (id, fallback = '') => {
-            const el = document.getElementById(id);
-            return el ? String(el.value).trim() : fallback;
-        };
-
-        const activeSocietyId = getActiveSocietyId();
-        const activeFYId = sessionStorage.getItem('activeFYId') || 1;
-
-        const fromMem = getVal('fromMember');
-        const toMem = getVal('toMember');
-        const bFrom = normalizeDate(getVal('billFrom'));
-        const bTo = normalizeDate(getVal('billTo'));
-        const rFrom = normalizeDate(getVal('rcptFrom'));
-        const rTo = normalizeDate(getVal('rcptTo'));
-
-        // Email filter dropdown or radio
-        let emailFilter = getVal('emailFilterSelect') || 'all';
-        const checkedRadio = document.querySelector('input[name="emailFilter"]:checked');
-        if (checkedRadio) {
-            emailFilter = checkedRadio.value || emailFilter;
-        }
-
-        return {
-            societyId: activeSocietyId,
-            fyId: activeFYId,
-            fromMemberCode: fromMem,
-            toMemberCode: toMem,
-            billDateFrom: bFrom,
-            billDateTo: bTo,
-            receiptDateFrom: rFrom,
-            receiptDateTo: rTo,
-            emailFilter: emailFilter
-        };
-    }
-
-    // Summary Popover toggle
-    window.toggleSummaryPopover = function(e) {
-        if (e) e.stopPropagation();
-        const pop = document.getElementById('summaryPopover');
-        if (pop) pop.classList.toggle('show');
-        const optPop = document.getElementById('optionsPopover');
-        if (optPop) optPop.classList.remove('show');
-    };
-
-    window.toggleOptionsPopover = function(e) {
-        if (e) e.stopPropagation();
-        const optPop = document.getElementById('optionsPopover');
-        if (optPop) optPop.classList.toggle('show');
-        const pop = document.getElementById('summaryPopover');
-        if (pop) pop.classList.remove('show');
-    };
-
-    window.closeOptionsPopover = function() {
-        const optPop = document.getElementById('optionsPopover');
-        if (optPop) optPop.classList.remove('show');
-    };
-
-    document.addEventListener('click', function(e) {
-        const pop = document.getElementById('summaryPopover');
-        const btn = document.getElementById('btnSummaryToggle');
-        if (pop && pop.classList.contains('show') && !pop.contains(e.target) && btn && !btn.contains(e.target)) {
-            pop.classList.remove('show');
-        }
-        const optPop = document.getElementById('optionsPopover');
-        if (optPop && optPop.classList.contains('show') && !optPop.contains(e.target)) {
-            optPop.classList.remove('show');
-        }
-    });
-
-    function updateSummaryMetrics(bills) {
-        const count = bills.length;
-        let totCurrent = 0;
-        let totArrears = 0;
-        let totPayable = 0;
+      // Update KPI strip
+      if (kpiStrip) {
+        let totalTaxable = 0;
+        let totalTax = 0;
+        let totalNet = 0;
 
         bills.forEach(b => {
-            totCurrent += Number(b.summary?.currentBill || 0);
-            totArrears += Number(b.summary?.arrearsTotal || 0);
-            totPayable += Number(b.summary?.netPayable || 0);
+          totalTaxable += (b.subtotalTaxable || b.principalAmount || 0);
+          totalTax += ((b.cgstTotal || 0) + (b.sgstTotal || 0));
+          totalNet += (b.netPayable || b.totalAmount || 0);
         });
 
-        const badge = document.getElementById('badgeBillCount');
-        if (badge) badge.textContent = `${count} Bills`;
-        const kpiCount = document.getElementById('kpiBillCount');
-        if (kpiCount) kpiCount.textContent = `${count} Bills`;
-        const kpiCur = document.getElementById('kpiCurrentBill');
-        if (kpiCur) kpiCur.textContent = `₹${totCurrent.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-        const kpiArr = document.getElementById('kpiArrears');
-        if (kpiArr) kpiArr.textContent = `₹${totArrears.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-        const kpiPay = document.getElementById('kpiTotalPayable');
-        if (kpiPay) kpiPay.textContent = `₹${totPayable.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        document.getElementById('kpiTotalBills').textContent = bills.length;
+        document.getElementById('kpiTotalTaxable').textContent = HenuOsReportEngine.formatINR(totalTaxable);
+        document.getElementById('kpiTotalTax').textContent = HenuOsReportEngine.formatINR(totalTax);
+        document.getElementById('kpiNetPayable').textContent = HenuOsReportEngine.formatINR(totalNet);
+        kpiStrip.style.display = 'flex';
+      }
+
+      renderBillsHTML(society, bills, container);
+      HenuOsReportEngine.applyDesignToDOM(activeDesign);
+    } catch (err) {
+      console.error('[Bill Format] Error loading bills:', err);
+      HenuOsReportEngine.renderError(container, 'Unable to load bill format records from server.', () => loadBills());
+      if (kpiStrip) kpiStrip.style.display = 'none';
     }
+  }
 
-    // Fetch Bills & Render Preview (Idempotent, completely flushes DOM on every call)
-    async function loadPreview() {
-        const renderArea = document.getElementById('preview-render-area');
-        if (renderArea) {
-            // Completely flush previous DOM nodes and show immediate spinner
-            renderArea.innerHTML = `
-                <div style="color: #cbd5e1; text-align: center; margin-top: 140px;">
-                    <div class="spinner-border text-light" role="status" style="width: 2.5rem; height: 2.5rem;"></div>
-                    <div style="margin-top: 10px; font-size: 13px;">Generating preview...</div>
+  function renderBillsHTML(soc, bills, container) {
+    const socName = soc.SocietyName || soc.societyname || soc.name || 'CO-OPERATIVE HOUSING SOCIETY LTD.';
+    const regNo = soc.RegistrationNo || soc.registrationno || '';
+    const pan = soc.PANNumber || soc.pannumber || soc.pan || '';
+    const gstin = soc.GSTNumber || soc.gstnumber || soc.gstin || '';
+    const addr = soc.Address || soc.address || '';
+    const bankName = soc.BankName || soc.bankname || '';
+    const accNo = soc.BankAccountNo || soc.bankaccountno || '';
+    const ifsc = soc.IFSCCode || soc.ifsccode || '';
+
+    let html = '';
+
+    bills.forEach((bill, idx) => {
+      const isLast = idx === bills.length - 1;
+      const mem = bill.member || {};
+      const items = bill.items || [];
+      const isGst = bill.isGst !== undefined ? bill.isGst : (gstin.length > 0);
+      const netPayable = bill.netPayable || bill.totalAmount || 0;
+      const amountInWords = HenuOsReportEngine.numberToWordsINR(netPayable);
+
+      let chargeRows = '';
+      if (items.length > 0) {
+        items.forEach((it, itIdx) => {
+          chargeRows += `
+            <tr>
+              <td class="center" style="width:35px;">${itIdx + 1}</td>
+              <td>${HenuOsReportEngine.escapeHtml(it.description || it.headName || 'Maintenance Charge')}</td>
+              <td class="center" style="width:75px;">${HenuOsReportEngine.escapeHtml(it.sac || bill.sacCode || '999598')}</td>
+              <td class="right" style="width:90px;">${HenuOsReportEngine.formatINR(it.taxable || it.amount || 0)}</td>
+              ${isGst ? `
+                <td class="right" style="width:70px;">${HenuOsReportEngine.formatINR(it.cgst || 0)}</td>
+                <td class="right" style="width:70px;">${HenuOsReportEngine.formatINR(it.sgst || 0)}</td>
+              ` : ''}
+              <td class="right" style="width:95px; font-weight:700;">${HenuOsReportEngine.formatINR(it.amount || 0)}</td>
+            </tr>
+          `;
+        });
+      } else {
+        chargeRows = `
+          <tr>
+            <td class="center">1</td>
+            <td>Society Maintenance Charges</td>
+            <td class="center">${HenuOsReportEngine.escapeHtml(bill.sacCode || '999598')}</td>
+            <td class="right">${HenuOsReportEngine.formatINR(bill.principalAmount || 0)}</td>
+            ${isGst ? `
+              <td class="right">₹0.00</td>
+              <td class="right">₹0.00</td>
+            ` : ''}
+            <td class="right" style="font-weight:700;">${HenuOsReportEngine.formatINR(bill.totalAmount || 0)}</td>
+          </tr>
+        `;
+      }
+
+      html += `
+        <div class="bill-page ${!isLast ? 'page-break' : ''}">
+          <!-- Header -->
+          <header class="bill-header">
+            <div class="bill-header-left">
+              <div class="bill-soc-name">${HenuOsReportEngine.escapeHtml(socName)}</div>
+              <div class="bill-soc-meta">
+                ${regNo ? `Reg No: <strong>${HenuOsReportEngine.escapeHtml(regNo)}</strong> | ` : ''}
+                ${pan ? `PAN: <strong>${HenuOsReportEngine.escapeHtml(pan)}</strong> | ` : ''}
+                ${gstin ? `GSTIN: <strong>${HenuOsReportEngine.escapeHtml(gstin)}</strong>` : ''}
+              </div>
+              <div class="bill-soc-meta">${HenuOsReportEngine.escapeHtml(addr)}</div>
+            </div>
+          </header>
+
+          <!-- Document Title -->
+          <div class="bill-title-bar">
+            <div class="bill-doc-title">${isGst ? 'TAX INVOICE' : 'BILL OF SUPPLY / MAINTENANCE BILL'}</div>
+            <div class="bill-doc-period">Billing Period: ${HenuOsReportEngine.escapeHtml(bill.period || HenuOsReportEngine.formatDate(bill.billDate))}</div>
+          </div>
+
+          <!-- Invoice & Member Meta Grid -->
+          <div class="bill-meta-grid">
+            <div class="bill-meta-box">
+              <div class="bill-meta-title">Bill To (Member Details)</div>
+              <div class="bill-meta-row">
+                <span class="bill-meta-label">Member Name:</span>
+                <span class="bill-meta-val">${HenuOsReportEngine.escapeHtml(mem.name || mem.memberName || '-')}</span>
+              </div>
+              <div class="bill-meta-row">
+                <span class="bill-meta-label">Flat / Unit No:</span>
+                <span class="bill-meta-val">${HenuOsReportEngine.escapeHtml(mem.flatNo || mem.flat || '-')} ${mem.wing ? '(' + HenuOsReportEngine.escapeHtml(mem.wing) + ')' : ''}</span>
+              </div>
+              <div class="bill-meta-row">
+                <span class="bill-meta-label">Member Code:</span>
+                <span class="bill-meta-val">${HenuOsReportEngine.escapeHtml(mem.memberCode || mem.code || '-')}</span>
+              </div>
+              ${mem.gstin ? `
+                <div class="bill-meta-row">
+                  <span class="bill-meta-label">Member GSTIN:</span>
+                  <span class="bill-meta-val">${HenuOsReportEngine.escapeHtml(mem.gstin)}</span>
                 </div>
-            `;
-        }
+              ` : ''}
+            </div>
 
-        const statusSummary = document.getElementById('statusSummary');
-        if (statusSummary) statusSummary.textContent = 'Generating preview...';
+            <div class="bill-meta-box">
+              <div class="bill-meta-title">Invoice Information</div>
+              <div class="bill-meta-row">
+                <span class="bill-meta-label">Bill / Inv No:</span>
+                <span class="bill-meta-val" style="color:var(--bill-primary); font-weight:800;">${HenuOsReportEngine.escapeHtml(bill.billNo || '-')}</span>
+              </div>
+              <div class="bill-meta-row">
+                <span class="bill-meta-label">Bill Date:</span>
+                <span class="bill-meta-val">${HenuOsReportEngine.formatDate(bill.billDate)}</span>
+              </div>
+              <div class="bill-meta-row">
+                <span class="bill-meta-label">Due Date:</span>
+                <span class="bill-meta-val" style="color:var(--bill-accent); font-weight:700;">${HenuOsReportEngine.formatDate(bill.dueDate)}</span>
+              </div>
+              <div class="bill-meta-row">
+                <span class="bill-meta-label">Area (Sq. Ft):</span>
+                <span class="bill-meta-val">${mem.areaSqft || mem.area || '-'}</span>
+              </div>
+            </div>
+          </div>
 
-        const params = getFilterParams();
-        const qs = new URLSearchParams(params).toString();
+          <!-- Charge Table -->
+          <div class="bill-table-wrapper">
+            <table class="bill-table">
+              <thead>
+                <tr>
+                  <th class="center">Sr</th>
+                  <th>Particulars / Description</th>
+                  <th class="center">SAC</th>
+                  <th class="right">Taxable (₹)</th>
+                  ${isGst ? `
+                    <th class="right">CGST (₹)</th>
+                    <th class="right">SGST (₹)</th>
+                  ` : ''}
+                  <th class="right">Total (₹)</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${chargeRows}
+              </tbody>
+            </table>
+          </div>
 
-        try {
-            let result;
-            if (typeof API !== 'undefined' && API.get) {
-                result = await API.get(`reports/bill-format/gst-a4?${qs}`);
-            } else {
-                const token = sessionStorage.getItem('jwtToken');
-                const res = await fetch(`${API_BASE}/reports/bill-format/gst-a4?${qs}`, {
-                    headers: {
-                        'Authorization': 'Bearer ' + token,
-                        'X-Society-Id': params.societyId,
-                        'X-FY-Id': params.fyId
-                    }
-                });
-                if (!res.ok) {
-                    const text = await res.text();
-                    let errMsg = `Server error (${res.status})`;
-                    try { const j = JSON.parse(text); errMsg = j.message || errMsg; } catch (_) { if (text) errMsg = text; }
-                    throw new Error(errMsg);
-                }
-                result = await res.json();
-            }
+          <!-- Summary & Totals Grid -->
+          <div class="bill-summary-grid">
+            <div class="bill-words-box">
+              <div>
+                <div style="font-weight:700; color:var(--bill-primary); margin-bottom:3px;">Amount in Words:</div>
+                <div style="font-style:italic; line-height:1.3;">${HenuOsReportEngine.escapeHtml(amountInWords)}</div>
+              </div>
+              <div class="bill-payment-box" style="margin-top:8px;">
+                <div style="font-weight:700; font-size:8pt; margin-bottom:2px; color:var(--bill-primary);">Bank Details for Payment:</div>
+                <div style="font-size:8pt;">Bank: <strong>${HenuOsReportEngine.escapeHtml(bankName || 'Society Bank Account')}</strong></div>
+                ${accNo ? `<div style="font-size:8pt;">A/C No: <strong>${HenuOsReportEngine.escapeHtml(accNo)}</strong> | IFSC: <strong>${HenuOsReportEngine.escapeHtml(ifsc)}</strong></div>` : ''}
+              </div>
+            </div>
 
-            if (!result.success || !result.bills || result.bills.length === 0) {
-                if (statusSummary) statusSummary.textContent = 'No bills found for current criteria.';
-                if (renderArea) {
-                    renderArea.innerHTML = `
-                        <div class="preview-placeholder" style="color: #94a3b8; text-align: center; margin-top: 140px;">
-                            <i class="bi bi-file-earmark-pdf" style="font-size: 48px; display: block; margin-bottom: 10px;"></i>
-                            <div style="font-size: 15px; font-weight: 600; color: #cbd5e1;">No Bills Found</div>
-                            <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">No maintenance bills match the selected member range or dates.</div>
-                        </div>
-                    `;
-                }
-                alert(result.message || 'No maintenance bills found for the selected criteria.');
-                return;
-            }
-
-            loadedBillsData = result;
-            updateSummaryMetrics(result.bills || []);
-            renderBillsHTML(result);
-
-            // Enable print button
-            const printBtn = document.getElementById('btn-print');
-            if (printBtn) printBtn.disabled = false;
-            if (statusSummary) statusSummary.textContent = `Loaded ${result.bills.length} bill(s). Ready to print.`;
-        } catch (err) {
-            console.error("Preview render failed", err);
-            if (statusSummary) statusSummary.textContent = 'Error loading bills.';
-            if (renderArea) {
-                renderArea.innerHTML = `
-                    <div style="color: #f87171; text-align: center; margin-top: 140px;">
-                        <i class="bi bi-exclamation-triangle" style="font-size: 40px; display: block; margin-bottom: 10px;"></i>
-                        <div style="font-size: 14px; font-weight: 600;">Failed to Load Preview</div>
-                        <div style="font-size: 12px; margin-top: 4px;">${err.message}</div>
-                    </div>
-                `;
-            }
-            alert("Error generating bill preview: " + err.message);
-        }
-    }
-
-    // Dynamic UI Toggle Evaluation & A4 Sheet Generation
-    function renderBillsHTML(data) {
-        const { society, bills } = data;
-        let container = document.getElementById('preview-render-area');
-        if (!container) {
-            const viewport = document.getElementById('preview-viewport') || document.body;
-            container = document.createElement('div');
-            container.id = 'preview-render-area';
-            container.style.width = '100%';
-            container.style.display = 'flex';
-            container.style.flexDirection = 'column';
-            container.style.alignItems = 'center';
-            viewport.appendChild(container);
-        }
-
-        container.innerHTML = '';
-
-        // Read all toggles and parameters dynamically
-        const headingTitle = (document.getElementById('headingTitle')?.value || 'GST INVOICE').trim();
-        const prefixBillNo = (document.getElementById('prefixBillNo')?.value || '').trim();
-        const printPan = document.getElementById('printPan')?.checked ?? true;
-        const printGst = document.getElementById('printGst')?.checked ?? true;
-
-        const blankAcNo = (document.getElementById('blankAcNo')?.value || 'No') === 'Yes';
-        const showBldgWing = (document.getElementById('showBldgWing')?.value || 'Yes') === 'Yes';
-        const showArrears = (document.getElementById('showArrears')?.value || 'Yes') === 'Yes';
-        const arrearsBifurcation = (document.getElementById('arrearsBifurcation')?.value || 'Yes') === 'Yes';
-        const blankReceipt = (document.getElementById('blankReceipt')?.value || 'Yes') === 'Yes';
-        const printQr = (document.getElementById('printQr')?.value || 'Yes') === 'Yes';
-        const printSign = (document.getElementById('printSign')?.value || 'Yes') === 'Yes';
-
-        bills.forEach((b) => {
-            const page = document.createElement('div');
-            page.className = 'bill-page';
-
-            const displayBillNo = prefixBillNo ? `${prefixBillNo}${b.bill.billNo}` : b.bill.billNo;
-
-            // Dynamic UPI String
-            const upiString = `upi://pay?pa=${society.accountNo}@${society.ifsc}.ifsc&pn=${encodeURIComponent(society.name)}&am=${b.summary.netPayable}&cu=INR`;
-            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=${encodeURIComponent(upiString)}`;
-
-            // Arrears calculations based on toggles
-            let arrearsBlockHtml = '';
-            if (showArrears) {
-                if (arrearsBifurcation) {
-                    arrearsBlockHtml = `
-                        <div style="border-top: 1px solid #000; padding-top: 4px;">
-                            <div style="display: flex; justify-content: space-between;">
-                                <span>Arrears Prin.</span>
-                                <span>${Number(b.summary.arrearsPrin).toFixed(2)}</span>
-                            </div>
-                            <div style="display: flex; justify-content: space-between;">
-                                <span>Arrears Int.</span>
-                                <span>${Number(b.summary.arrearsInt).toFixed(2)}</span>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; font-weight: bold; border-top: 1px solid #ccc;">
-                                <span>Arrears Total</span>
-                                <span>${Number(b.summary.arrearsTotal).toFixed(2)}</span>
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    arrearsBlockHtml = `
-                        <div style="border-top: 1px solid #000; padding-top: 4px;">
-                            <div style="display: flex; justify-content: space-between; font-weight: bold;">
-                                <span>Arrears Total</span>
-                                <span>${Number(b.summary.arrearsTotal).toFixed(2)}</span>
-                            </div>
-                        </div>
-                    `;
-                }
-            }
-
-            const netPayable = showArrears ? b.summary.netPayable : b.summary.currentBill;
-
-            page.innerHTML = `
-                <!-- Society Header -->
-                <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 6px;">
-                    <div style="font-size: 16px; font-weight: bold; text-transform: uppercase;">${society.name}</div>
-                    <div style="font-size: 10px; margin-top: 2px;">Registration No.: ${society.registrationNo}</div>
-                    <div style="font-size: 10px;">Address: ${society.address}</div>
-                    <div style="font-size: 10px;">Email: ${society.email} | Tel No.: ${society.phone || '-'}</div>
-                    <div style="font-size: 11px; font-weight: bold; margin-top: 4px; display: flex; justify-content: space-between;">
-                        <span>${printPan ? `PAN No.: ${society.pan}` : ''}</span>
-                        <span>${printGst ? `GSTIN: ${society.gstin} (SAC-${society.sacCode})` : ''}</span>
-                    </div>
-                </div>
-
-                <!-- Member and Invoice Meta Grid -->
-                <div style="display: flex; border-bottom: 1px solid #000;">
-                    <div style="flex: 1.3; padding: 6px; border-right: 1px solid #000;">
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                            <span><strong>Flat No:</strong> ${b.member.flatNo}</span>
-                            <span><strong>Floor:</strong> ${b.member.floor || 'FIRST'}</span>
-                            ${showBldgWing ? `<span><strong>Bldg:</strong> ${b.member.building || '-'}</span><span><strong>Wing:</strong> ${b.member.wing || '-'}</span>` : ''}
-                        </div>
-                        <div style="margin-bottom: 4px;"><strong>Name:</strong> ${b.member.name}</div>
-                        <div><strong>Area:</strong> ${b.member.area} Sq.Ft.</div>
-                    </div>
-                    <div style="flex: 1; padding: 6px;">
-                        <div style="font-weight: bold; font-size: 13px; text-align: center; margin-bottom: 4px;">"${headingTitle}"</div>
-                        <div style="display: flex; justify-content: space-between; border-top: 1px solid #ccc; padding-top: 2px;">
-                            <span><strong>No.:</strong> ${displayBillNo}</span>
-                            <span><strong>Due Date:</strong> ${b.bill.dueDate}</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between;">
-                            <span><strong>Date:</strong> ${b.bill.billDate}</span>
-                            <span><strong>Month:</strong> ${b.bill.month}</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Columns: Line Items & Bill Summary -->
-                <div style="display: flex; border-bottom: 1px solid #000; min-height: 480px;">
-                    <!-- Particulars Column -->
-                    <div style="flex: 1.4; border-right: 1px solid #000; display: flex; flex-direction: column;">
-                        <div style="display: flex; font-weight: bold; border-bottom: 1px solid #000; background: #eee; padding: 4px;">
-                            <span style="flex: 1;">Particulars</span>
-                            <span style="width: 75px; text-align: right;">Amount</span>
-                            <span style="width: 75px; text-align: right;">Total</span>
-                        </div>
-                        <div style="padding: 4px; flex: 1;">
-                            <div style="font-weight: bold; margin-top: 3px;">NON-GST APPLICABLE ACCOUNT :</div>
-                            ${b.nonGstItems.map(i => `
-                                <div style="display: flex; justify-content: space-between; padding-left: 10px;">
-                                    <span>${i.head}</span>
-                                    <span>${Number(i.amount).toFixed(2)}</span>
-                                </div>
-                            `).join('')}
-                            <div style="text-align: right; font-weight: bold; border-bottom: 1px solid #ddd; padding: 2px 0;">
-                                ${Number(b.summary.subtotalNonGst).toFixed(2)}
-                            </div>
-
-                            <div style="font-weight: bold; margin-top: 8px;">EXEMPT-GST ACCOUNT :</div>
-                            ${b.exemptItems.map(i => `
-                                <div style="display: flex; justify-content: space-between; padding-left: 10px;">
-                                    <span>${i.head}</span>
-                                    <span>${Number(i.amount).toFixed(2)}</span>
-                                </div>
-                            `).join('')}
-                            <div style="text-align: right; font-weight: bold; border-bottom: 1px solid #ddd; padding: 2px 0;">
-                                ${Number(b.summary.subtotalExempt).toFixed(2)}
-                            </div>
-
-                            <div style="font-weight: bold; margin-top: 8px;">GST APPLICABLE ACCOUNT :</div>
-                            ${b.taxableItems.map(i => `
-                                <div style="display: flex; justify-content: space-between; padding-left: 10px;">
-                                    <span>${i.head}</span>
-                                    <span>${Number(i.amount).toFixed(2)}</span>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-
-                    <!-- Bill Summary Column -->
-                    <div style="flex: 1; display: flex; flex-direction: column;">
-                        <div style="font-weight: bold; border-bottom: 1px solid #000; background: #eee; padding: 4px; text-align: center;">
-                            Bill Summary
-                        </div>
-                        <div style="padding: 6px; font-size: 11px;">
-                            <div style="display: flex; justify-content: space-between;">
-                                <span>Total (GST A/c Head)</span>
-                                <span>${Number(b.summary.subtotalTaxable).toFixed(2)}</span>
-                            </div>
-                            <div style="display: flex; justify-content: space-between;">
-                                <span>CGST - 9%</span>
-                                <span>${Number(b.summary.cgst).toFixed(2)}</span>
-                            </div>
-                            <div style="display: flex; justify-content: space-between;">
-                                <span>SGST - 9%</span>
-                                <span>${Number(b.summary.sgst).toFixed(2)}</span>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; font-weight: bold; border-top: 1px solid #000; margin-top: 4px;">
-                                <span>Total GST A/c Head + GST</span>
-                                <span>${Number(b.summary.totalGstHeadPlusTax).toFixed(2)}</span>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #000; padding-bottom: 4px;">
-                                <span>Total (Non GST + Exempt)</span>
-                                <span>${Number(b.summary.totalNonGstPlusExempt).toFixed(2)}</span>
-                            </div>
-
-                            <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; padding: 6px 0;">
-                                <span>Current Bill</span>
-                                <span>${Number(b.summary.currentBill).toFixed(2)}</span>
-                            </div>
-
-                            ${arrearsBlockHtml}
-
-                            <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; background: #eee; padding: 6px; margin-top: 12px; border: 1px solid #000;">
-                                <span>Net Payable</span>
-                                <span>₹${Number(netPayable).toFixed(2)}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Footer: Bank, QR, Signature -->
-                <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 10px;">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        ${printQr ? `<img src="${qrUrl}" alt="UPI QR" style="width: 85px; height: 85px; border: 1px solid #999; padding: 2px;" />` : ''}
-                        <div style="font-size: 10px;">
-                            <div><strong>Bank:</strong> ${society.bankName || '-'}</div>
-                            <div><strong>A/c No:</strong> ${blankAcNo ? 'XXXXXXXXXXXX' : (society.accountNo || '-')}</div>
-                            <div><strong>IFSC:</strong> ${society.ifsc || '-'}</div>
-                            <div>Scan to pay directly via any UPI App</div>
-                        </div>
-                    </div>
-                    <div style="text-align: center; width: 220px; border-top: 1px solid #000; padding-top: 4px; margin-top: 45px; visibility: ${printSign ? 'visible' : 'hidden'};">
-                        <strong>For ${society.name}</strong><br>
-                        <span style="font-size: 10px;">Hon. Secretary / Treasurer</span>
-                    </div>
-                </div>
-
-                ${blankReceipt ? `
-                <!-- Receipt Counterfoil -->
-                <div style="border: 1.5px dashed #000; margin-top: 12px; padding: 8px; font-size: 10px; background: #fdfdfd;">
-                    <div style="text-align: center; font-weight: bold; font-size: 11px; margin-bottom: 4px; border-bottom: 1px solid #999; padding-bottom: 2px;">
-                        RECEIPT COUNTERFOIL (FOR MEMBER'S RECORD)
-                    </div>
-                    <div style="display: flex; justify-content: space-between; line-height: 1.6;">
-                        <div>
-                            <div><strong>Received From:</strong> ${b.member.name} (${b.member.code})</div>
-                            <div><strong>Flat No:</strong> ${b.member.flatNo} | <strong>Bill No:</strong> ${displayBillNo}</div>
-                        </div>
-                        <div style="text-align: right;">
-                            <div><strong>Amount:</strong> ₹${Number(netPayable).toFixed(2)}</div>
-                            <div><strong>Date:</strong> ___________________</div>
-                        </div>
-                    </div>
-                    <div style="text-align: right; margin-top: 14px; font-weight: bold;">
-                        Authorized Signatory
-                    </div>
-                </div>
+            <div>
+              <table class="bill-totals-table">
+                <tr>
+                  <td>Current Charges:</td>
+                  <td class="right" style="font-weight:700;">${HenuOsReportEngine.formatINR(bill.currentBillTotal || bill.principalAmount || 0)}</td>
+                </tr>
+                ${isGst ? `
+                  <tr>
+                    <td>Total Taxes (CGST + SGST):</td>
+                    <td class="right">${HenuOsReportEngine.formatINR((bill.cgstTotal || 0) + (bill.sgstTotal || 0))}</td>
+                  </tr>
                 ` : ''}
-            `;
-            container.appendChild(page);
-        });
-    }
+                ${(bill.prevArrears && bill.prevArrears > 0) ? `
+                  <tr>
+                    <td>Previous Arrears:</td>
+                    <td class="right" style="color:var(--bill-accent);">${HenuOsReportEngine.formatINR(bill.prevArrears)}</td>
+                  </tr>
+                ` : ''}
+                ${(bill.interest && bill.interest > 0) ? `
+                  <tr>
+                    <td>Interest on Arrears:</td>
+                    <td class="right">${HenuOsReportEngine.formatINR(bill.interest)}</td>
+                  </tr>
+                ` : ''}
+                <tr class="grand-total">
+                  <td>NET PAYABLE AMOUNT:</td>
+                  <td class="right" style="color:var(--bill-primary); font-size:10pt;">${HenuOsReportEngine.formatINR(netPayable)}</td>
+                </tr>
+              </table>
+            </div>
+          </div>
 
-    // Direct High-Fidelity PDF Creation & Print Engine
-    function triggerPrint() {
-        const renderArea = document.getElementById('preview-render-area');
-        if (!renderArea || !loadedBillsData) {
-            alert('Please click "Preview" first to generate the bills before printing.');
-            return;
-        }
+          <!-- Signatures & Footer -->
+          <footer class="bill-signature-area" style="margin-top:auto; padding-top:10px; border-top:1px solid var(--bill-border); display:flex; justify-content:space-between; text-align:center;">
+            <div style="width:30%;">
+              <div style="font-size:8pt; color:var(--bill-text-muted);">Prepared By</div>
+              <div style="margin-top:25px; border-top:1px solid #334155; font-size:8pt; font-weight:700;">Accountant / Manager</div>
+            </div>
+            <div style="width:30%;">
+              <div style="font-size:8pt; color:var(--bill-text-muted);">For ${HenuOsReportEngine.escapeHtml(socName)}</div>
+              <div style="margin-top:25px; border-top:1px solid #334155; font-size:8pt; font-weight:700;">Hon. Treasurer / Secretary</div>
+            </div>
+          </footer>
+        </div>
+      `;
+    });
 
-        const printWindow = window.open('', '_blank', 'width=900,height=800');
-        printWindow.document.open();
-        printWindow.document.write(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>GST Maintenance Invoices</title>
-                <style>
-                    @page { size: A4 portrait; margin: 0; }
-                    body { margin: 0; padding: 10mm; background: #fff; }
-                    .bill-page { width: 190mm !important; min-height: 275mm !important; margin: 0 auto 20mm auto !important; page-break-after: always !important; }
-                    @media print {
-                        body { padding: 0; }
-                        .bill-page { border: none !important; margin: 0 !important; }
-                    }
-                </style>
-            </head>
-            <body>
-                ${renderArea.innerHTML}
-                <script>
-                    window.onload = function() {
-                        window.focus();
-                        window.print();
-                        window.close();
-                    };
-                <\/script>
-            </body>
-            </html>
-        `);
-        printWindow.document.close();
-    }
-
-    // Reset Form Controls
-    function resetForm() {
-        const fromSel = document.getElementById('fromMember');
-        const toSel = document.getElementById('toMember');
-        if (fromSel && fromSel.options.length) fromSel.selectedIndex = 0;
-        if (toSel && toSel.options.length) toSel.selectedIndex = toSel.options.length - 1;
-
-        initFiscalDates();
-
-        const statusSummary = document.getElementById('statusSummary');
-        if (statusSummary) statusSummary.textContent = 'Ready. Select parameters and click Preview.';
-
-        const renderArea = document.getElementById('preview-render-area');
-        if (renderArea) {
-            renderArea.innerHTML = `
-                <div class="preview-placeholder" style="color: #94a3b8; text-align: center; margin-top: 140px;">
-                    <i class="bi bi-file-earmark-pdf" style="font-size: 48px; display: block; margin-bottom: 10px;"></i>
-                    <div style="font-size: 15px; font-weight: 600; color: #cbd5e1;">A4 GST Invoice Preview</div>
-                    <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">Configure parameters on the left and click <strong>Preview</strong>.</div>
-                </div>`;
-        }
-
-        const printBtn = document.getElementById('btn-print');
-        if (printBtn) printBtn.disabled = true;
-        loadedBillsData = null;
-    }
-
-    // Idempotent Event Bindings (Zero stack duplication)
-    function attachEvents() {
-        const previewBtn = document.getElementById('btn-preview');
-        if (previewBtn) previewBtn.onclick = loadPreview;
-
-        const printBtn = document.getElementById('btn-print');
-        if (printBtn) printBtn.onclick = triggerPrint;
-
-        const resetBtn = document.getElementById('btn-reset');
-        if (resetBtn) resetBtn.onclick = resetForm;
-    }
-
-    // Bootstrap Module
-    async function init() {
-        await Promise.all([loadMembers(), initFiscalDates()]);
-        attachEvents();
-    }
-
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        init();
-    }
-
-    // Expose functions globally
-    window.loadAndPreviewBills = loadPreview;
-    window.printBills = triggerPrint;
-    window.resetFilters = resetForm;
+    container.innerHTML = html;
+  }
 })();
